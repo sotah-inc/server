@@ -1,10 +1,21 @@
 package main
 
 import (
-    "fmt"
-    "github.com/user/newmath"
+	"fmt"
+	"github.com/ihsw/go-download/util"
 )
 
+var status_url string = "http://us.battle.net/api/wow/realm/status"
+
 func main() {
-    fmt.Printf("Hello, world.  Sqrt(2) = %v\n", newmath.Sqrt(2))
+	util.Write(fmt.Sprintf("Reading from %s...", status_url))
+	contents, err := util.Download(status_url)
+	if err != nil {
+		util.Write(fmt.Sprintf("Failed! %s", err))
+		return
+	}
+
+	util.Write(len(contents))
+
+	util.Write("Success!")
 }
