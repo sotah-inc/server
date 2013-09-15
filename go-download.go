@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/ihsw/go-download/util"
+	"reflect"
 )
 
 var status_url string = "http://us.battle.net/api/wow/realm/status"
@@ -15,7 +16,7 @@ func main() {
 		return
 	}
 
-	util.Write(len(contents))
+	util.Write(reflect.TypeOf(contents))
 
 	util.Write("Success!")
 }
