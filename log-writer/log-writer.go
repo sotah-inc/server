@@ -30,13 +30,12 @@ func main() {
 		return
 	}
 
-	list := os.Args[1]
-	util.Write(fmt.Sprintf("Blpop'ing from %s...", list))
 	l := logSubscriber{
 		client: redis.NewTCPClient("127.0.0.1:6379", "", 0),
-		list:   list,
+		list:   os.Args[1],
 	}
 
+	util.Write(fmt.Sprintf("Subscribing to %s...", l.list))
 	for {
 		value, err := l.Check()
 		if err != nil {
