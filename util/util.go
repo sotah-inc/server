@@ -5,25 +5,29 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 )
 
-func Write(a interface{}) {
-	fmt.Println(a)
+const writeLayout = "2006-01-02 3:04:04PM"
+
+func Write(s string) {
+	fmt.Println(fmt.Sprintf("[%s] %s", time.Now().Format(writeLayout), s))
 }
 
-func Download(url string) (interface{}, error) {
+func Download(url string) (map[string]interface{}, error) {
+	v := map[string]interface{}{}
+
 	resp, err := http.Get(url)
 	if err != nil {
-		return "", err
+		return v, err
 	}
 	defer resp.Body.Close()
 
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		return v, err
 	}
 
-	v := new(interface{})
-	err = json.Unmarshal(b, v)
+	err = json.Unmarshal(b, &v)
 	return v, err
 }
