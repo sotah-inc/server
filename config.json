@@ -1,0 +1,41 @@
+{
+	"regions": [
+		{
+			"name": "us",
+			"host": "us.battle.net",
+			"locales": [
+				{ "name": "en_US", "fullname": "English", "shortname": "en" },
+				{ "name": "es_MX", "fullname": "Español", "shortname": "es" },
+				{ "name": "pt_BR", "fullname": "Português", "shortname": "pt" }
+			]
+		},
+		{
+			"name": "eu",
+			"host": "eu.battle.net",
+			"locales": [
+				{ "name": "de_DE", "fullname": "Deutsch", "shortname": "de" },
+				{ "name": "en_GB", "fullname": "English (EU)", "shortname": null },
+				{ "name": "es_ES", "fullname": "Español (EU)", "shortname": null },
+				{ "name": "fr_FR", "fullname": "Français", "shortname": "fr" },
+				{ "name": "pt_PT", "fullname": "Português (EU)", "shortname": "de" },
+				{ "name": "ru_RU", "fullname": "Pусский", "shortname": "ru" },
+				{ "name": "it_IT", "fullname": "Italiano", "shortname": "it" }
+			]
+		},
+		{
+			"name": "kr",
+			"host": "kr.battle.net",
+			"locales": [ { "name": "ko_KR", "fullname": "한국어", "shortname": "kr" } ]
+		},
+		{
+			"name": "tw",
+			"host": "tw.battle.net",
+			"locales": [ { "name": "zh_TW", "fullname": "繁體中文", "shortname": "tw" } ]
+		},
+		{
+			"name": "cn",
+			"host": "www.battlenet.com.cn",
+			"locales": [ { "name": "zh_CN", "fullname": "简体中文", "shortname": "cn" } ]
+		}
+	]
+}

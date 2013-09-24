@@ -1,9 +1,9 @@
-package Blizzard
+package Status
 
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ihsw/go-download/util"
+	"github.com/ihsw/go-download/Util"
 )
 
 type PvpArea struct {
@@ -31,12 +31,12 @@ type Status struct {
 	Realms []Realm
 }
 
-const StatusUrlFormat = "http://%s.battle.net/api/wow/realm/status"
+const UrlFormat = "http://%s.battle.net/api/wow/realm/status"
 
-func GetStatus(region string) (Status, error) {
+func Get(region string) (Status, error) {
 	var status Status
 
-	b, err := util.Download(fmt.Sprintf(StatusUrlFormat, region))
+	b, err := Util.Download(fmt.Sprintf(UrlFormat, region))
 	if err != nil {
 		return status, err
 	}
