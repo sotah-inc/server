@@ -15,12 +15,12 @@ type File struct {
 	Url          string
 }
 
-const UrlFormat = "http://%s/api/wow/auction/data/%s"
+const URL_FORMAT = "http://%s/api/wow/auction/data/%s"
 
 func Get(host string, realm string) (Auction, error) {
 	var auction Auction
 
-	b, err := Util.Download(fmt.Sprintf(UrlFormat, host, realm))
+	b, err := Util.Download(fmt.Sprintf(URL_FORMAT, host, realm))
 	if err != nil {
 		return auction, err
 	}

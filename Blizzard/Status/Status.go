@@ -31,12 +31,12 @@ type Status struct {
 	Realms []Realm
 }
 
-const UrlFormat = "http://%s.battle.net/api/wow/realm/status"
+const URL_FORMAT = "http://%s.battle.net/api/wow/realm/status"
 
 func Get(region string) (Status, error) {
 	var status Status
 
-	b, err := Util.Download(fmt.Sprintf(UrlFormat, region))
+	b, err := Util.Download(fmt.Sprintf(URL_FORMAT, region))
 	if err != nil {
 		return status, err
 	}
