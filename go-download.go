@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/ihsw/go-download/Blizzard/Status"
+	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Config"
 	"github.com/ihsw/go-download/Log"
 	"github.com/ihsw/go-download/Util"
@@ -32,13 +33,12 @@ func main() {
 		return
 	}
 
-	// connecting to redis
-	redis, err := config.GetRedis()
+	cache, err := Cache.Connect(config.Redis_Config)
 	if err != nil {
 		Util.Write(err.Error())
 		return
 	}
-	Util.Write(redis.Ping().Val())
+	fmt.Println(cache)
 	return
 
 	l := Log.New("127.0.0.1:6379", "", 0, "jello")

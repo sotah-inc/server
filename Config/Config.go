@@ -12,21 +12,26 @@ type Redis struct {
 	Db       int64
 }
 
+type RedisConfig struct {
+	Main Redis
+	Pool []Redis
+}
+
 type Locale struct {
-	Name      string
-	Fullname  string
-	Shortname string
+	name      string
+	fullname  string
+	shortname string
 }
 
 type Region struct {
-	Name    string
-	Host    string
-	Locales []Locale
+	name    string
+	host    string
+	locales []Locale
 }
 
 type Config struct {
-	Redis   Redis
-	Regions []Region
+	Redis_Config RedisConfig
+	Regions      []Region
 }
 
 func New(fp string) (Config, error) {
@@ -45,8 +50,8 @@ func New(fp string) (Config, error) {
 	return config, nil
 }
 
-func (self Config) GetRedis() (*redis.Client, error) {
-	c := redis.NewTCPClient(self.Redis.Host, self.Redis.Password, self.Redis.Db)
+func GetRedis(r Redis) (*redis.Client, error) {
+	c := redis.NewTCPClient(r.Host, r.Password, r.Db)
 	defer c.Close()
 	return c, c.Ping().Err()
 }
