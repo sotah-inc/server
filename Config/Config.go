@@ -18,15 +18,15 @@ type RedisConfig struct {
 }
 
 type Locale struct {
-	name      string
-	fullname  string
-	shortname string
+	Name      string
+	Fullname  string
+	Shortname string
 }
 
 type Region struct {
-	name    string
-	host    string
-	locales []Locale
+	Name    string
+	Host    string
+	Locales []Locale
 }
 
 type Config struct {

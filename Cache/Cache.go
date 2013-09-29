@@ -29,3 +29,12 @@ func Connect(redisConfig Config.RedisConfig) (Cache, error) {
 
 	return cache, nil
 }
+
+func Incr(key string, c *redis.Client) (int64, error) {
+	var v int64
+	req := c.Incr(key)
+	if req.Err() != nil {
+		return v, req.Err()
+	}
+	return req.Val(), nil
+}

@@ -1,14 +1,19 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/ihsw/go-download/Blizzard/Status"
 	"github.com/ihsw/go-download/Cache"
+	"github.com/ihsw/go-download/Cache/Locale"
+	"github.com/ihsw/go-download/Cache/Region"
 	"github.com/ihsw/go-download/Config"
 	"github.com/ihsw/go-download/Log"
 	"github.com/ihsw/go-download/Util"
+	"github.com/vmihailenco/redis"
 	"os"
 	"path/filepath"
+	// "reflect"
 )
 
 func main() {
@@ -20,7 +25,8 @@ func main() {
 		return
 	}
 
-	// opening the config file
+	// opening the config file and loading it
+	Util.Write("Opening the config file...")
 	fp := os.Args[1]
 	path, err := filepath.Abs(fp)
 	if err != nil {
@@ -33,12 +39,55 @@ func main() {
 		return
 	}
 
+	// connecting the redis clients
+	Util.Write("Connecting the redis clients...")
 	cache, err := Cache.Connect(config.Redis_Config)
 	if err != nil {
 		Util.Write(err.Error())
 		return
 	}
-	fmt.Println(cache)
+
+	// flushing all of the databases
+	Util.Write("Flushing the databases...")
+	var req *redis.StatusReq
+	req = cache.Main.FlushDb()
+	if req.Err() != nil {
+		Util.Write(req.Err().Error())
+		return
+	}
+	for _, c := range cache.Pool {
+		req = c.FlushDb()
+		if req.Err() != nil {
+			Util.Write(req.Err().Error())
+			return
+		}
+	}
+
+	// initializing the locales
+	Util.Write("Reading the regions from the config...")
+	regions := Region.NewFromList(config.Regions)
+	for _, region := range regions {
+		for _, locale := range region.Locales {
+			locale, err := locale.Persist(cache)
+			if err != nil {
+				Util.Write(err.Error())
+				return
+			}
+			Util.Write(fmt.Sprintf("Successfully persisted locale %s", locale.Fullname))
+			continue
+			// marshaling
+			s, err := locale.Marshal()
+
+			// persisting
+
+			// retrieving
+			derp := []byte(s)
+			v := map[string]interface{}{}
+			json.Unmarshal(derp, &v)
+			l := Locale.Unmarshal(v)
+			fmt.Println(l)
+		}
+	}
 	return
 
 	l := Log.New("127.0.0.1:6379", "", 0, "jello")
