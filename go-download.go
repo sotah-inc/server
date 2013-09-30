@@ -10,15 +10,21 @@ import (
 	"github.com/ihsw/go-download/Config"
 	"github.com/ihsw/go-download/Log"
 	"github.com/ihsw/go-download/Util"
-	"github.com/vmihailenco/redis"
 	"os"
 	"path/filepath"
-	// "reflect"
 )
 
 func main() {
+	var (
+		err    error
+		client Cache.Client
+	)
+
 	Util.Write("Starting...")
 
+	/*
+		initialization
+	*/
 	// input validation
 	if len(os.Args) == 1 {
 		Util.Write("Expected path to config file, got nothing")
@@ -41,7 +47,7 @@ func main() {
 
 	// connecting the redis clients
 	Util.Write("Connecting the redis clients...")
-	cache, err := Cache.Connect(config.Redis_Config)
+	client, err = Cache.Connect(config.Redis_Config)
 	if err != nil {
 		Util.Write(err.Error())
 		return
@@ -49,26 +55,24 @@ func main() {
 
 	// flushing all of the databases
 	Util.Write("Flushing the databases...")
-	var req *redis.StatusReq
-	req = cache.Main.FlushDb()
-	if req.Err() != nil {
-		Util.Write(req.Err().Error())
+	err = client.FlushAll()
+	if err != nil {
+		Util.Write(err.Error())
 		return
 	}
-	for _, c := range cache.Pool {
-		req = c.FlushDb()
-		if req.Err() != nil {
-			Util.Write(req.Err().Error())
-			return
-		}
-	}
+
+	/*
+		reading the config
+	*/
+	// clients
+	localeManager := Locale.Manager{Client: client}
 
 	// initializing the locales
 	Util.Write("Reading the regions from the config...")
 	regions := Region.NewFromList(config.Regions)
 	for _, region := range regions {
 		for _, locale := range region.Locales {
-			locale, err := locale.Persist(cache)
+			locale, err := localeManager.Persist(locale)
 			if err != nil {
 				Util.Write(err.Error())
 				return

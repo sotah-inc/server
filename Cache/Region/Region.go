@@ -5,25 +5,24 @@ import (
 	"github.com/ihsw/go-download/Config"
 )
 
-type Region struct {
+type Data struct {
 	Name    string
 	Host    string
-	Locales []Locale.Locale
+	Locales map[int64]Locale.Data
 }
 
-func New(region Config.Region) Region {
-	r := Region{
-		Name:    region.Name,
-		Host:    region.Host,
-		Locales: Locale.NewFromList(region.Locales),
+func New(regionConfig Config.Region) Data {
+	region := Data{
+		Name: regionConfig.Name,
+		Host: regionConfig.Host,
 	}
 	return r
 }
 
-func NewFromList(regions []Config.Region) []Region {
-	var r []Region
-	for _, region := range regions {
-		r = append(r, New(region))
+func NewFromConfig(regionConfigs []Config.Region) map[int64]Data {
+	var regions []Data
+	for _, region := range regionConfigs {
+		regions = append(r, New(region))
 	}
-	return r
+	return regions
 }

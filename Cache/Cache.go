@@ -5,29 +5,49 @@ import (
 	"github.com/vmihailenco/redis"
 )
 
-type Cache struct {
+type Client struct {
 	Main *redis.Client
 	Pool []*redis.Client
 }
 
-func Connect(redisConfig Config.RedisConfig) (Cache, error) {
-	var cache Cache
-	var err error
+func (self Client) FlushAll() error {
+	var (
+		req *redis.StatusReq
+	)
+	req = self.Main.FlushDb()
+	if req.Err() != nil {
+		return req.Err()
+	}
+	for _, c := range self.Pool {
+		req = c.FlushDb()
+		if req.Err() != nil {
+			return req.Err()
+		}
+	}
 
-	cache.Main, err = Config.GetRedis(redisConfig.Main)
+	return nil
+}
+
+func Connect(redisConfig Config.RedisConfig) (Client, error) {
+	var (
+		err    error
+		client Client
+	)
+
+	client.Main, err = Config.GetRedis(redisConfig.Main)
 	if err != nil {
-		return cache, err
+		return client, err
 	}
 
 	for _, poolItem := range redisConfig.Pool {
 		c, err := Config.GetRedis(poolItem)
 		if err != nil {
-			return cache, err
+			return client, err
 		}
-		cache.Pool = append(cache.Pool, c)
+		client.Pool = append(client.Pool, c)
 	}
 
-	return cache, nil
+	return client, nil
 }
 
 func Incr(key string, c *redis.Client) (int64, error) {
