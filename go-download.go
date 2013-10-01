@@ -64,7 +64,8 @@ func main() {
 	/*
 		reading the config
 	*/
-	// clients
+	// managers
+	regionManager := Region.Manager{Client: client}
 	localeManager := Locale.Manager{Client: client}
 
 	// initializing the locales

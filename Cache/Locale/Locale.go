@@ -4,24 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ihsw/go-download/Cache"
-	"github.com/ihsw/go-download/Cache/Region"
 	"github.com/ihsw/go-download/Config"
 )
 
-// structs and consts
-type Data struct {
-	Id        int64
-	Name      string
-	Fullname  string
-	Shortname string
-	Region    Region.Data
-}
-
-type Manager struct {
-	Client Cache.Client
-}
-
-// functions
+// funcs
 func New(locale Config.Locale) Data {
 	l := Data{
 		Name:      locale.Name,
@@ -31,8 +17,8 @@ func New(locale Config.Locale) Data {
 	return l
 }
 
-func NewFromList(locales []Config.Locale) map[int64]Data {
-	var l map[int64]Data
+func NewFromList(locales []Config.Locale) []Data {
+	var l []Data
 	for _, locale := range locales {
 		l = append(l, New(locale))
 	}
@@ -41,13 +27,33 @@ func NewFromList(locales []Config.Locale) map[int64]Data {
 
 func Unmarshal(v map[string]interface{}) Data {
 	return Data{
-		Name:      v["0"].(string),
-		Fullname:  v["1"].(string),
-		Shortname: v["2"].(string),
+		Id:        v["0"].(int64),
+		Name:      v["1"].(string),
+		Fullname:  v["2"].(string),
+		Shortname: v["3"].(string),
 	}
 }
 
-// methods
+// interfaces
+type Region interface {
+	Id() int64
+}
+
+type RegionManager interface {
+	FindOneById() Region
+}
+
+/*
+	Data
+*/
+type Data struct {
+	Id        int64
+	Name      string
+	Fullname  string
+	Shortname string
+	Region    Region
+}
+
 func (self Data) Marshal() (string, error) {
 	var (
 		s string
@@ -58,12 +64,20 @@ func (self Data) Marshal() (string, error) {
 		"1": self.Name,
 		"2": self.Fullname,
 		"3": self.Shortname,
+		"4": self.Region.Id(),
 	}
 	b, err := json.Marshal(v)
 	if err != nil {
 		return s, err
 	}
 	return string(b), nil
+}
+
+/*
+	Manager
+*/
+type Manager struct {
+	Client Cache.Client
 }
 
 func (self Manager) Persist(locale Data) (Data, error) {
