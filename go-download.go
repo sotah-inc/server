@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"github.com/ihsw/go-download/Blizzard/Status"
 	"github.com/ihsw/go-download/Cache"
-	"github.com/ihsw/go-download/Cache/Locale"
-	"github.com/ihsw/go-download/Cache/Region"
 	"github.com/ihsw/go-download/Config"
+	"github.com/ihsw/go-download/Entity"
 	"github.com/ihsw/go-download/Log"
 	"github.com/ihsw/go-download/Util"
 	"os"
@@ -15,51 +14,27 @@ import (
 )
 
 func main() {
+	Util.Write("Starting...")
+
 	var (
 		err    error
 		client Cache.Client
+		config Config.Config
 	)
-
-	Util.Write("Starting...")
 
 	/*
 		initialization
 	*/
-	// input validation
 	if len(os.Args) == 1 {
 		Util.Write("Expected path to config file, got nothing")
 		return
 	}
-
-	// opening the config file and loading it
-	Util.Write("Opening the config file...")
-	fp := os.Args[1]
-	path, err := filepath.Abs(fp)
+	config, err = Config.NewConfig(os.Args[1])
 	if err != nil {
 		Util.Write(err.Error())
 		return
 	}
-	config, err := Config.New(path)
-	if err != nil {
-		Util.Write(err.Error())
-		return
-	}
-
-	// connecting the redis clients
-	Util.Write("Connecting the redis clients...")
-	client, err = Cache.Connect(config.Redis_Config)
-	if err != nil {
-		Util.Write(err.Error())
-		return
-	}
-
-	// flushing all of the databases
-	Util.Write("Flushing the databases...")
-	err = client.FlushAll()
-	if err != nil {
-		Util.Write(err.Error())
-		return
-	}
+	return
 
 	/*
 		reading the config

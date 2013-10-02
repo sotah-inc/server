@@ -1,26 +1,40 @@
 package Cache
 
 import (
-	"github.com/ihsw/go-download/Config"
 	"github.com/vmihailenco/redis"
 )
 
-// funcs
-func Connect(redisConfig Config.RedisConfig) (Client, error) {
-	var (
-		err    error
-		client Client
-	)
+// interfaces
+type Redis interface {
+	Host() string
+	Password() string
+	Db() int64
+}
 
-	client.Main, err = Config.GetRedis(redisConfig.Main)
+type RedisConfig interface {
+	Main() Redis
+	Pool() []Redis
+}
+
+// funcs
+func GetRedis(r Redis) (*redis.Client, error) {
+	c := redis.NewTCPClient(r.Host(), r.Password(), r.Db())
+	defer c.Close()
+	return c, c.Ping().Err()
+}
+
+func NewClient(redisConfig RedisConfig) (client Client, err error) {
+	var c *redis.Client
+
+	client.Main, err = GetRedis(redisConfig.Main())
 	if err != nil {
-		return client, err
+		return
 	}
 
-	for _, poolItem := range redisConfig.Pool {
-		c, err := Config.GetRedis(poolItem)
+	for _, poolItem := range redisConfig.Pool() {
+		c, err = GetRedis(poolItem)
 		if err != nil {
-			return client, err
+			return
 		}
 		client.Pool = append(client.Pool, c)
 	}
@@ -37,7 +51,9 @@ func Incr(key string, c *redis.Client) (int64, error) {
 	return req.Val(), nil
 }
 
-// structs
+/*
+	Client
+*/
 type Client struct {
 	Main *redis.Client
 	Pool []*redis.Client
