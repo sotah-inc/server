@@ -2,21 +2,51 @@ package Config
 
 import (
 	"encoding/json"
-	"github.com/vmihailenco/redis"
+	"github.com/ihsw/go-download/Cache"
 	"io/ioutil"
+	"path/filepath"
 )
 
+/*
+	Redis
+*/
 type Redis struct {
 	Host     string
 	Password string
 	Db       int64
 }
 
+func (self Redis) Host() string {
+	return self.Host
+}
+
+func (self Redis) Password() string {
+	return self.Password
+}
+
+func (self Redis) Db() string {
+	return self.Db
+}
+
+/*
+	RedisConfig
+*/
 type RedisConfig struct {
 	Main Redis
 	Pool []Redis
 }
 
+func (self RedisConfig) Main() Redis {
+	return self.Main
+}
+
+func (self RedisConfig) Pool() []Redis {
+	return self.Pool
+}
+
+/*
+	Config
+*/
 type Locale struct {
 	Name      string
 	Fullname  string
@@ -34,24 +64,37 @@ type Config struct {
 	Regions      []Region
 }
 
-func New(fp string) (Config, error) {
-	var config Config
+func (self Config) New(source string) (config Config, err error) {
+	var (
+		sourceFilepath string
+		client         Cache.Client
+	)
 
-	b, err := ioutil.ReadFile(fp)
+	// opening the config file and loading it
+	sourceFilepath, err = filepath.Abs(source)
 	if err != nil {
-		return config, err
+		return
 	}
-
+	b, err := ioutil.ReadFile(sourceFilepath)
+	if err != nil {
+		return
+	}
 	err = json.Unmarshal(b, &config)
 	if err != nil {
-		return config, err
+		return
 	}
 
-	return config, nil
-}
+	// connecting the redis clients
+	client, err = Cache.NewClient(config.Redis_Config)
+	if err != nil {
+		return
+	}
 
-func GetRedis(r Redis) (*redis.Client, error) {
-	c := redis.NewTCPClient(r.Host, r.Password, r.Db)
-	defer c.Close()
-	return c, c.Ping().Err()
+	// flushing all of the databases
+	err = client.FlushAll()
+	if err != nil {
+		return
+	}
+
+	return
 }
