@@ -2,6 +2,7 @@ package Entity
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/ihsw/go-download/Cache"
 )
 
@@ -51,7 +52,7 @@ type RegionManager struct {
 	Client Cache.Client
 }
 
-func (self RegionManager) Persist(region Region) (Region, nil) {
+func (self RegionManager) Persist(region Region) (Region, error) {
 	var (
 		err error
 		s   string

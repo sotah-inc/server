@@ -8,44 +8,7 @@ import (
 )
 
 /*
-	Redis
-*/
-type Redis struct {
-	Host     string
-	Password string
-	Db       int64
-}
-
-func (self Redis) Host() string {
-	return self.Host
-}
-
-func (self Redis) Password() string {
-	return self.Password
-}
-
-func (self Redis) Db() string {
-	return self.Db
-}
-
-/*
-	RedisConfig
-*/
-type RedisConfig struct {
-	Main Redis
-	Pool []Redis
-}
-
-func (self RedisConfig) Main() Redis {
-	return self.Main
-}
-
-func (self RedisConfig) Pool() []Redis {
-	return self.Pool
-}
-
-/*
-	Config
+	misc
 */
 type Locale struct {
 	Name      string
@@ -59,6 +22,46 @@ type Region struct {
 	Locales []Locale
 }
 
+/*
+	Redis
+*/
+type Redis struct {
+	host     string
+	password string
+	db       int64
+}
+
+func (self Redis) Host() string {
+	return self.host
+}
+
+func (self Redis) Password() string {
+	return self.password
+}
+
+func (self Redis) Db() int64 {
+	return self.db
+}
+
+/*
+	RedisConfig
+*/
+type RedisConfig struct {
+	main Redis
+	pool []Redis
+}
+
+func (self RedisConfig) Main() Redis {
+	return self.main
+}
+
+func (self RedisConfig) Pool() []Redis {
+	return self.pool
+}
+
+/*
+	Config
+*/
 type Config struct {
 	Redis_Config RedisConfig
 	Regions      []Region
