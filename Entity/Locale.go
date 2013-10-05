@@ -62,9 +62,9 @@ func (self LocaleManager) Persist(locale Locale) (Locale, error) {
 	)
 
 	// persisting
-	redis := self.Client.Main
+	wrapper := self.Client.Main
 	if locale.Id == 0 {
-		locale.Id, err = Cache.Incr("locale_id", redis)
+		locale.Id, err = wrapper.Incr("locale_id")
 		if err != nil {
 			return locale, err
 		}

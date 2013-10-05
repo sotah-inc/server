@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ihsw/go-download/Cache"
+	"github.com/ihsw/go-download/Config"
 )
 
 /*
@@ -14,6 +15,13 @@ func UnmarshalRegion(v map[string]interface{}) Region {
 		Id:   v["0"].(int64),
 		Name: v["1"].(string),
 		Host: v["2"].(string),
+	}
+}
+
+func NewRegionFromConfig(configRegion Config.Region) Region {
+	return Region{
+		Name: configRegion.Name,
+		Host: configRegion.Host,
 	}
 }
 
@@ -53,27 +61,27 @@ type RegionManager struct {
 }
 
 func (self RegionManager) Persist(region Region) (Region, error) {
+	// misc
 	var (
 		err error
 		s   string
 	)
+	wrapper := self.Client.Main
 
-	// persisting
-	redis := self.Client.Main
 	if region.Id == 0 {
-		region.Id, err = Cache.Incr("region_id", redis)
+		region.Id, err = wrapper.Incr("region_id")
 		if err != nil {
 			return region, err
 		}
-
-		s, err = region.Marshal()
-		if err != nil {
-			return region, err
-		}
-		fmt.Println(s)
-	} else {
-
 	}
+
+	s, err = region.Marshal()
+	if err != nil {
+		return region, err
+	}
+
+	fmt.Println(Cache.GetBucketKey(region.Id, "region"))
+	fmt.Println(s)
 
 	return region, nil
 }

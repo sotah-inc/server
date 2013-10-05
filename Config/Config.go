@@ -2,7 +2,6 @@ package Config
 
 import (
 	"encoding/json"
-	"github.com/ihsw/go-download/Cache"
 	"io/ioutil"
 	"path/filepath"
 )
@@ -26,37 +25,17 @@ type Region struct {
 	Redis
 */
 type Redis struct {
-	host     string
-	password string
-	db       int64
-}
-
-func (self Redis) Host() string {
-	return self.host
-}
-
-func (self Redis) Password() string {
-	return self.password
-}
-
-func (self Redis) Db() int64 {
-	return self.db
+	Host     string
+	Password string
+	Db       int64
 }
 
 /*
 	RedisConfig
 */
 type RedisConfig struct {
-	main Redis
-	pool []Redis
-}
-
-func (self RedisConfig) Main() Redis {
-	return self.main
-}
-
-func (self RedisConfig) Pool() []Redis {
-	return self.pool
+	Main Redis
+	Pool []Redis
 }
 
 /*
@@ -67,13 +46,8 @@ type Config struct {
 	Regions      []Region
 }
 
-func (self Config) New(source string) (config Config, err error) {
-	var (
-		sourceFilepath string
-		client         Cache.Client
-	)
-
-	// opening the config file and loading it
+func New(source string) (config Config, err error) {
+	var sourceFilepath string
 	sourceFilepath, err = filepath.Abs(source)
 	if err != nil {
 		return
@@ -83,18 +57,6 @@ func (self Config) New(source string) (config Config, err error) {
 		return
 	}
 	err = json.Unmarshal(b, &config)
-	if err != nil {
-		return
-	}
-
-	// connecting the redis clients
-	client, err = Cache.NewClient(config.Redis_Config)
-	if err != nil {
-		return
-	}
-
-	// flushing all of the databases
-	err = client.FlushAll()
 	if err != nil {
 		return
 	}

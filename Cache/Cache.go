@@ -1,50 +1,65 @@
 package Cache
 
 import (
+	"fmt"
+	"github.com/ihsw/go-download/Config"
 	"github.com/vmihailenco/redis"
 )
 
-// interfaces
-type Redis interface {
-	Host() string
-	Password() string
-	Db() int64
-}
-
-type RedisConfig interface {
-	Main() Redis
-	Pool() []Redis
-}
+const ITEMS_PER_BUCKET = 1024
 
 // funcs
-func GetRedis(r Redis) (*redis.Client, error) {
-	c := redis.NewTCPClient(r.Host(), r.Password(), r.Db())
+func NewWrapper(r Config.Redis) (w Wrapper, err error) {
+	c := redis.NewTCPClient(r.Host, r.Password, r.Db)
 	defer c.Close()
-	return c, c.Ping().Err()
-}
 
-func NewClient(redisConfig RedisConfig) (client Client, err error) {
-	var c *redis.Client
-
-	client.Main, err = GetRedis(redisConfig.Main())
+	err = c.Ping().Err()
 	if err != nil {
 		return
 	}
 
-	for _, poolItem := range redisConfig.Pool() {
-		c, err = GetRedis(poolItem)
+	w = Wrapper{
+		Redis: c,
+	}
+	return
+}
+
+func NewClient(redisConfig Config.RedisConfig) (client Client, err error) {
+	var w Wrapper
+
+	client.Main, err = NewWrapper(redisConfig.Main)
+	if err != nil {
+		return
+	}
+
+	for _, poolItem := range redisConfig.Pool {
+		w, err = NewWrapper(poolItem)
 		if err != nil {
 			return
 		}
-		client.Pool = append(client.Pool, c)
+		client.Pool = append(client.Pool, w)
 	}
 
 	return client, nil
 }
 
-func Incr(key string, c *redis.Client) (int64, error) {
+func GetBucketKey(id int64, namespace string) (bucketKey string, subKey int64) {
+	subKey = id % ITEMS_PER_BUCKET
+	bucketId := (id - subKey) / ITEMS_PER_BUCKET
+	bucketKey = fmt.Sprintf("%s_bucket:%d", namespace, bucketId)
+	return bucketKey, subKey
+}
+
+/*
+	Wrapper
+*/
+type Wrapper struct {
+	Redis *redis.Client
+}
+
+func (self Wrapper) Incr(key string) (int64, error) {
 	var v int64
-	req := c.Incr(key)
+	req := self.Redis.Incr(key)
 	if req.Err() != nil {
 		return v, req.Err()
 	}
@@ -55,20 +70,20 @@ func Incr(key string, c *redis.Client) (int64, error) {
 	Client
 */
 type Client struct {
-	Main *redis.Client
-	Pool []*redis.Client
+	Main Wrapper
+	Pool []Wrapper
 }
 
 func (self Client) FlushAll() error {
 	var (
 		req *redis.StatusReq
 	)
-	req = self.Main.FlushDb()
+	req = self.Main.Redis.FlushDb()
 	if req.Err() != nil {
 		return req.Err()
 	}
-	for _, c := range self.Pool {
-		req = c.FlushDb()
+	for _, w := range self.Pool {
+		req = w.Redis.FlushDb()
 		if req.Err() != nil {
 			return req.Err()
 		}
