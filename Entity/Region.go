@@ -9,14 +9,6 @@ import (
 /*
 	funcs
 */
-func UnmarshalRegion(v map[string]interface{}) Region {
-	return Region{
-		Id:   v["0"].(int64),
-		Name: v["1"].(string),
-		Host: v["2"].(string),
-	}
-}
-
 func NewRegionFromConfig(configRegion Config.Region) Region {
 	return Region{
 		Name: configRegion.Name,
@@ -60,7 +52,6 @@ type RegionManager struct {
 }
 
 func (self RegionManager) Persist(region Region) (Region, error) {
-	// misc
 	var (
 		err error
 		s   string
@@ -86,4 +77,31 @@ func (self RegionManager) Persist(region Region) (Region, error) {
 	}
 
 	return region, nil
+}
+
+func (self RegionManager) Unmarshal(v map[string]interface{}) Region {
+	return Region{
+		Id:   int64(v["0"].(float64)),
+		Name: v["1"].(string),
+		Host: v["2"].(string),
+	}
+}
+
+func (self RegionManager) FindOneById(id int64) (region Region, err error) {
+	var s string
+	bucketKey, subKey := Cache.GetBucketKey(id, "region")
+	s, err = self.Client.Main.HGet(bucketKey, subKey)
+	if err != nil {
+		return
+	}
+
+	b := []byte(s)
+	v := map[string]interface{}{}
+	err = json.Unmarshal(b, &v)
+	if err != nil {
+		return
+	}
+
+	region = self.Unmarshal(v)
+	return
 }

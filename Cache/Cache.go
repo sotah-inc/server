@@ -74,6 +74,14 @@ func (self Wrapper) HSet(key string, subKey string, value string) error {
 	return req.Err()
 }
 
+func (self Wrapper) HGet(key string, subKey string) (s string, err error) {
+	req := self.Redis.HGet(key, subKey)
+	if req.Err() != nil {
+		return s, req.Err()
+	}
+	return req.Val(), nil
+}
+
 /*
 	Client
 */
