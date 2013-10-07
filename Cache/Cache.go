@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/ihsw/go-download/Config"
 	"github.com/vmihailenco/redis"
+	"strconv"
 )
 
 const ITEMS_PER_BUCKET = 1024
@@ -43,10 +44,12 @@ func NewClient(redisConfig Config.RedisConfig) (client Client, err error) {
 	return client, nil
 }
 
-func GetBucketKey(id int64, namespace string) (bucketKey string, subKey int64) {
-	subKey = id % ITEMS_PER_BUCKET
-	bucketId := (id - subKey) / ITEMS_PER_BUCKET
-	bucketKey = fmt.Sprintf("%s_bucket:%d", namespace, bucketId)
+func GetBucketKey(id int64, namespace string) (string, string) {
+	remainder := id % ITEMS_PER_BUCKET
+	bucketId := (id - remainder) / ITEMS_PER_BUCKET
+
+	bucketKey := fmt.Sprintf("%s_bucket:%d", namespace, bucketId)
+	subKey := strconv.FormatInt(remainder, 10)
 	return bucketKey, subKey
 }
 
@@ -64,6 +67,11 @@ func (self Wrapper) Incr(key string) (int64, error) {
 		return v, req.Err()
 	}
 	return req.Val(), nil
+}
+
+func (self Wrapper) HSet(key string, subKey string, value string) error {
+	req := self.Redis.HSet(key, subKey, value)
+	return req.Err()
 }
 
 /*

@@ -2,7 +2,6 @@ package Entity
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Config"
 )
@@ -66,10 +65,10 @@ func (self RegionManager) Persist(region Region) (Region, error) {
 		err error
 		s   string
 	)
-	wrapper := self.Client.Main
+	main := self.Client.Main
 
 	if region.Id == 0 {
-		region.Id, err = wrapper.Incr("region_id")
+		region.Id, err = main.Incr("region_id")
 		if err != nil {
 			return region, err
 		}
@@ -80,8 +79,11 @@ func (self RegionManager) Persist(region Region) (Region, error) {
 		return region, err
 	}
 
-	fmt.Println(Cache.GetBucketKey(region.Id, "region"))
-	fmt.Println(s)
+	bucketKey, subKey := Cache.GetBucketKey(region.Id, "region")
+	err = main.HSet(bucketKey, subKey, s)
+	if err != nil {
+		return region, err
+	}
 
 	return region, nil
 }
