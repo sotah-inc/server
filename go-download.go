@@ -52,12 +52,27 @@ func main() {
 	*/
 	// managers
 	regionManager := Entity.RegionManager{Client: client}
-	// localeManager := Entity.LocaleManager{Client: client}
+	localeManager := Entity.LocaleManager{Client: client}
 
 	// persisting the regions
 	for _, configRegion := range config.Regions {
 		region := Entity.NewRegionFromConfig(configRegion)
-		regionManager.Persist(region)
+		region, err = regionManager.Persist(region)
+		if err != nil {
+			Util.Write(err.Error())
+			return
+		}
+
+		for _, configLocale := range configRegion.Locales {
+			break
+			locale := Entity.NewLocaleFromConfig(configLocale)
+			locale.Region = region
+			locale, err = localeManager.Persist(locale)
+			if err != nil {
+				Util.Write(err.Error())
+				return
+			}
+		}
 	}
 
 	// initializing the locales

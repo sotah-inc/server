@@ -2,8 +2,10 @@ package Entity
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Config"
+	"strconv"
 )
 
 /*
@@ -51,6 +53,10 @@ type RegionManager struct {
 	Client Cache.Client
 }
 
+func (self RegionManager) Namespace() string {
+	return "region"
+}
+
 func (self RegionManager) Persist(region Region) (Region, error) {
 	var (
 		err error
@@ -58,22 +64,32 @@ func (self RegionManager) Persist(region Region) (Region, error) {
 	)
 	main := self.Client.Main
 
-	if region.Id == 0 {
+	// id
+	isNew := region.Id == 0
+	if isNew {
 		region.Id, err = main.Incr("region_id")
 		if err != nil {
 			return region, err
 		}
 	}
 
+	// data
 	s, err = region.Marshal()
 	if err != nil {
 		return region, err
 	}
-
 	bucketKey, subKey := Cache.GetBucketKey(region.Id, "region")
 	err = main.HSet(bucketKey, subKey, s)
 	if err != nil {
 		return region, err
+	}
+
+	// misc
+	if isNew {
+		err = main.RPush("region_ids", strconv.FormatInt(region.Id, 10))
+		if err != nil {
+			return region, err
+		}
 	}
 
 	return region, nil
@@ -87,21 +103,16 @@ func (self RegionManager) Unmarshal(v map[string]interface{}) Region {
 	}
 }
 
-func (self RegionManager) FindOneById(id int64) (region Region, err error) {
-	var s string
-	bucketKey, subKey := Cache.GetBucketKey(id, "region")
-	s, err = self.Client.Main.HGet(bucketKey, subKey)
-	if err != nil {
-		return
-	}
+func (self RegionManager) FindOneById(id int64) (Region, error) {
+	v, err := self.Client.Main.FetchFromId(self, id)
+	return self.Unmarshal(v), err
+}
 
-	b := []byte(s)
-	v := map[string]interface{}{}
-	err = json.Unmarshal(b, &v)
+func (self RegionManager) FindAll() {
+	main := self.Client.Main
+	values, err := main.LRange("region_ids", 0, -1)
 	if err != nil {
-		return
+		fmt.Println(err.Error())
 	}
-
-	region = self.Unmarshal(v)
-	return
+	fmt.Println(values)
 }

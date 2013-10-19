@@ -2,19 +2,18 @@ package Entity
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/ihsw/go-download/Cache"
+	"github.com/ihsw/go-download/Config"
 )
 
 /*
 	funcs
 */
-func UnmarshalLocale(v map[string]interface{}) Locale {
+func NewLocaleFromConfig(configLocale Config.Locale) Locale {
 	return Locale{
-		Id:        v["0"].(int64),
-		Name:      v["1"].(string),
-		Fullname:  v["2"].(string),
-		Shortname: v["3"].(string),
+		Name:      configLocale.Name,
+		Fullname:  configLocale.Fullname,
+		Shortname: configLocale.Shortname,
 	}
 }
 
@@ -60,23 +59,34 @@ func (self LocaleManager) Persist(locale Locale) (Locale, error) {
 		err error
 		s   string
 	)
+	main := self.Client.Main
 
-	// persisting
-	wrapper := self.Client.Main
 	if locale.Id == 0 {
-		locale.Id, err = wrapper.Incr("locale_id")
+		locale.Id, err = main.Incr("region_id")
 		if err != nil {
 			return locale, err
 		}
+	}
 
-		s, err = locale.Marshal()
-		if err != nil {
-			return locale, err
-		}
-		fmt.Println(s)
-	} else {
+	s, err = locale.Marshal()
+	if err != nil {
+		return locale, err
+	}
 
+	bucketKey, subKey := Cache.GetBucketKey(locale.Id, "locale")
+	err = main.HSet(bucketKey, subKey, s)
+	if err != nil {
+		return locale, err
 	}
 
 	return locale, nil
+}
+
+func (self LocaleManager) Unmarshal(v map[string]interface{}) Locale {
+	return Locale{
+		Id:        v["0"].(int64),
+		Name:      v["1"].(string),
+		Fullname:  v["2"].(string),
+		Shortname: v["3"].(string),
+	}
 }

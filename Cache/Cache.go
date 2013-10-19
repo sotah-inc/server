@@ -1,6 +1,7 @@
 package Cache
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/ihsw/go-download/Config"
 	"github.com/vmihailenco/redis"
@@ -60,6 +61,10 @@ type Wrapper struct {
 	Redis *redis.Client
 }
 
+type Manager interface {
+	Namespace() string
+}
+
 func (self Wrapper) Incr(key string) (int64, error) {
 	var v int64
 	req := self.Redis.Incr(key)
@@ -70,8 +75,7 @@ func (self Wrapper) Incr(key string) (int64, error) {
 }
 
 func (self Wrapper) HSet(key string, subKey string, value string) error {
-	req := self.Redis.HSet(key, subKey, value)
-	return req.Err()
+	return self.Redis.HSet(key, subKey, value).Err()
 }
 
 func (self Wrapper) HGet(key string, subKey string) (s string, err error) {
@@ -80,6 +84,40 @@ func (self Wrapper) HGet(key string, subKey string) (s string, err error) {
 		return s, req.Err()
 	}
 	return req.Val(), nil
+}
+
+func (self Wrapper) RPush(key string, value string) error {
+	return self.Redis.RPush(key, value).Err()
+}
+
+func (self Wrapper) LRange(key string, start int64, end int64) (values []string, err error) {
+	req := self.Redis.LRange(key, start, end)
+	if req.Err() != nil {
+		return values, req.Err()
+	}
+
+	return req.Val(), nil
+}
+
+func (self Wrapper) PersistHashBucket(bucketKey string, subKey string, entity interface{}) {
+
+}
+
+func (self Wrapper) FetchFromId(manager Manager, id int64) (v map[string]interface{}, err error) {
+	var s string
+	bucketKey, subKey := GetBucketKey(id, manager.Namespace())
+	s, err = self.HGet(bucketKey, subKey)
+	if err != nil {
+		return
+	}
+
+	b := []byte(s)
+	err = json.Unmarshal(b, &v)
+	if err != nil {
+		return
+	}
+
+	return
 }
 
 /*
