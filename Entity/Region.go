@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Config"
+	"github.com/ihsw/go-download/Util"
 	"strconv"
 )
 
@@ -25,7 +26,7 @@ type Region struct {
 	Id      int64
 	Name    string
 	Host    string
-	Locales map[int64]Locale
+	Locales []Locale
 }
 
 func (self Region) Marshal() (string, error) {
@@ -62,15 +63,16 @@ func (self RegionManager) Persist(region Region) (Region, error) {
 		err error
 		s   string
 	)
-	main := self.Client.Main
+	r := self.Client.Main.Redis
 
 	// id
 	isNew := region.Id == 0
 	if isNew {
-		region.Id, err = main.Incr("region_id")
-		if err != nil {
-			return region, err
+		req := r.Incr("region_id")
+		if req.Err() != nil {
+			return region, req.Err()
 		}
+		region.Id = req.Val()
 	}
 
 	// data
@@ -79,16 +81,16 @@ func (self RegionManager) Persist(region Region) (Region, error) {
 		return region, err
 	}
 	bucketKey, subKey := Cache.GetBucketKey(region.Id, "region")
-	err = main.HSet(bucketKey, subKey, s)
-	if err != nil {
-		return region, err
+	req := r.HSet(bucketKey, subKey, s)
+	if req.Err() != nil {
+		return region, req.Err()
 	}
 
 	// misc
 	if isNew {
-		err = main.RPush("region_ids", strconv.FormatInt(region.Id, 10))
-		if err != nil {
-			return region, err
+		req := r.RPush("region_ids", strconv.FormatInt(region.Id, 10))
+		if req.Err() != nil {
+			return region, req.Err()
 		}
 	}
 
@@ -108,11 +110,21 @@ func (self RegionManager) FindOneById(id int64) (Region, error) {
 	return self.Unmarshal(v), err
 }
 
-func (self RegionManager) FindAll() {
+func (self RegionManager) FindAll() ([]Region, error) {
+	var (
+		// strings []string
+		err     error
+		regions []Region
+	)
 	main := self.Client.Main
-	values, err := main.LRange("region_ids", 0, -1)
+
+	// fetching ids
+	ids, err := main.FetchIds("region_ids", 0, -1)
 	if err != nil {
-		fmt.Println(err.Error())
+		return regions, err
 	}
-	fmt.Println(values)
+	fmt.Println(ids)
+	Util.Write("Done!")
+
+	return regions, nil
 }

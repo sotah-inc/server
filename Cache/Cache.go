@@ -65,50 +65,38 @@ type Manager interface {
 	Namespace() string
 }
 
-func (self Wrapper) Incr(key string) (int64, error) {
-	var v int64
-	req := self.Redis.Incr(key)
-	if req.Err() != nil {
-		return v, req.Err()
-	}
-	return req.Val(), nil
-}
-
-func (self Wrapper) HSet(key string, subKey string, value string) error {
-	return self.Redis.HSet(key, subKey, value).Err()
-}
-
-func (self Wrapper) HGet(key string, subKey string) (s string, err error) {
-	req := self.Redis.HGet(key, subKey)
-	if req.Err() != nil {
-		return s, req.Err()
-	}
-	return req.Val(), nil
-}
-
-func (self Wrapper) RPush(key string, value string) error {
-	return self.Redis.RPush(key, value).Err()
-}
-
-func (self Wrapper) LRange(key string, start int64, end int64) (values []string, err error) {
+func (self Wrapper) FetchIds(key string, start int64, end int64) (ids []int64, err error) {
 	req := self.Redis.LRange(key, start, end)
 	if req.Err() != nil {
-		return values, req.Err()
+		return ids, req.Err()
 	}
 
-	return req.Val(), nil
-}
+	// optionally halting
+	length := len(req.Val())
+	if length == 0 {
+		return ids, nil
+	}
 
-func (self Wrapper) PersistHashBucket(bucketKey string, subKey string, entity interface{}) {
+	// converting them
+	ids = make([]int64, length)
+	var i int
+	for k, v := range req.Val() {
+		i, err = strconv.Atoi(v)
+		if err != nil {
+			return ids, err
+		}
+		ids[k] = int64(i)
+	}
 
+	return ids, nil
 }
 
 func (self Wrapper) FetchFromId(manager Manager, id int64) (v map[string]interface{}, err error) {
 	var s string
 	bucketKey, subKey := GetBucketKey(id, manager.Namespace())
-	s, err = self.HGet(bucketKey, subKey)
-	if err != nil {
-		return
+	req := self.Redis.HGet(bucketKey, subKey)
+	if req.Err() != nil {
+		return v, req.Err()
 	}
 
 	b := []byte(s)
@@ -118,6 +106,36 @@ func (self Wrapper) FetchFromId(manager Manager, id int64) (v map[string]interfa
 	}
 
 	return
+}
+
+func (self Wrapper) FetchFromIds(manager Manager, ids []int64) ([]map[string]interface{}, error) {
+	// misc
+	var (
+		// s        string
+		// v        map[string]interface{}
+		err      error
+		pipeline *redis.PipelineClient
+		list     []map[string]interface{}
+	)
+	pipeline, err = self.Redis.PipelineClient()
+	if err != nil {
+		return list, err
+	}
+
+	// optionally halting
+	length := len(ids)
+	if length == 0 {
+		return list, err
+	}
+	list = make([]map[string]interface{}, length)
+
+	// going over the ids
+	for _, id := range ids {
+		bucketKey, subKey := GetBucketKey(id, manager.Namespace())
+		pipeline.HGet(bucketKey, subKey)
+	}
+
+	return list, err
 }
 
 /*

@@ -59,24 +59,27 @@ func (self LocaleManager) Persist(locale Locale) (Locale, error) {
 		err error
 		s   string
 	)
-	main := self.Client.Main
+	r := self.Client.Main.Redis
 
-	if locale.Id == 0 {
-		locale.Id, err = main.Incr("region_id")
-		if err != nil {
-			return locale, err
+	// id
+	isNew := locale.Id == 0
+	if isNew {
+		req := r.Incr("region_id")
+		if req.Err() != nil {
+			return locale, req.Err()
 		}
+		locale.Id = req.Val()
 	}
 
+	// data
 	s, err = locale.Marshal()
 	if err != nil {
 		return locale, err
 	}
-
 	bucketKey, subKey := Cache.GetBucketKey(locale.Id, "locale")
-	err = main.HSet(bucketKey, subKey, s)
-	if err != nil {
-		return locale, err
+	req := r.HSet(bucketKey, subKey, s)
+	if req.Err() != nil {
+		return locale, req.Err()
 	}
 
 	return locale, nil
