@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ihsw/go-download/Config"
-	"github.com/vmihailenco/redis"
+	"github.com/vmihailenco/redis/v2"
 	"strconv"
 )
 
@@ -12,7 +12,11 @@ const ITEMS_PER_BUCKET = 1024
 
 // funcs
 func NewWrapper(r Config.Redis) (w Wrapper, err error) {
-	c := redis.NewTCPClient(r.Host, r.Password, r.Db)
+	c := redis.NewTCPClient(&redis.Options{
+		Addr:     r.Host,
+		Password: r.Password,
+		DB:       r.Db,
+	})
 	defer c.Close()
 
 	err = c.Ping().Err()
@@ -57,12 +61,12 @@ func GetBucketKey(id int64, namespace string) (string, string) {
 /*
 	Wrapper
 */
-type Wrapper struct {
-	Redis *redis.Client
-}
-
 type Manager interface {
 	Namespace() string
+}
+
+type Wrapper struct {
+	Redis *redis.Client
 }
 
 func (self Wrapper) FetchIds(key string, start int64, end int64) (ids []int64, err error) {
@@ -92,50 +96,52 @@ func (self Wrapper) FetchIds(key string, start int64, end int64) (ids []int64, e
 }
 
 func (self Wrapper) FetchFromId(manager Manager, id int64) (v map[string]interface{}, err error) {
-	var s string
-	bucketKey, subKey := GetBucketKey(id, manager.Namespace())
-	req := self.Redis.HGet(bucketKey, subKey)
-	if req.Err() != nil {
-		return v, req.Err()
-	}
+	// misc
+	var values []map[string]interface{}
 
-	b := []byte(s)
-	err = json.Unmarshal(b, &v)
+	// forwarding to the FetchFromIds method
+	ids := make([]int64, 1)
+	ids[0] = id
+	values, err = self.FetchFromIds(manager, ids)
 	if err != nil {
 		return
 	}
 
-	return
+	return values[0], nil
 }
 
-func (self Wrapper) FetchFromIds(manager Manager, ids []int64) ([]map[string]interface{}, error) {
+func (self Wrapper) FetchFromIds(manager Manager, ids []int64) (values []map[string]interface{}, err error) {
 	// misc
-	var (
-		// s        string
-		// v        map[string]interface{}
-		err      error
-		pipeline *redis.PipelineClient
-		list     []map[string]interface{}
-	)
-	pipeline, err = self.Redis.PipelineClient()
-	if err != nil {
-		return list, err
+	idsLength := len(ids)
+
+	// optionally halting on empty ids list
+	if idsLength == 0 {
+		return values, err
 	}
 
-	// optionally halting
-	length := len(ids)
-	if length == 0 {
-		return list, err
-	}
-	list = make([]map[string]interface{}, length)
-
-	// going over the ids
-	for _, id := range ids {
+	// gathering input from the ids
+	redis := self.Redis
+	results := make([]string, idsLength)
+	for i, id := range ids {
 		bucketKey, subKey := GetBucketKey(id, manager.Namespace())
-		pipeline.HGet(bucketKey, subKey)
+		cmd := redis.HGet(bucketKey, subKey)
+		if cmd.Err() != nil {
+			return values, cmd.Err()
+		}
+		results[i] = cmd.Val()
 	}
 
-	return list, err
+	// json-decoding them all
+	decodedResults := make([]map[string]interface{}, idsLength)
+	for i, result := range results {
+		b := []byte(result)
+		err = json.Unmarshal(b, &decodedResults[i])
+		if err != nil {
+			return values, err
+		}
+	}
+
+	return decodedResults, err
 }
 
 /*
@@ -148,16 +154,16 @@ type Client struct {
 
 func (self Client) FlushAll() error {
 	var (
-		req *redis.StatusReq
+		cmd *redis.StatusCmd
 	)
-	req = self.Main.Redis.FlushDb()
-	if req.Err() != nil {
-		return req.Err()
+	cmd = self.Main.Redis.FlushDb()
+	if cmd.Err() != nil {
+		return cmd.Err()
 	}
 	for _, w := range self.Pool {
-		req = w.Redis.FlushDb()
-		if req.Err() != nil {
-			return req.Err()
+		cmd = w.Redis.FlushDb()
+		if cmd.Err() != nil {
+			return cmd.Err()
 		}
 	}
 

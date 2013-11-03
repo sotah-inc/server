@@ -2,10 +2,8 @@ package Entity
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Config"
-	"github.com/ihsw/go-download/Util"
 	"strconv"
 )
 
@@ -68,11 +66,11 @@ func (self RegionManager) Persist(region Region) (Region, error) {
 	// id
 	isNew := region.Id == 0
 	if isNew {
-		req := r.Incr("region_id")
-		if req.Err() != nil {
-			return region, req.Err()
+		cmd := r.Incr("region_id")
+		if cmd.Err() != nil {
+			return region, cmd.Err()
 		}
-		region.Id = req.Val()
+		region.Id = cmd.Val()
 	}
 
 	// data
@@ -80,24 +78,24 @@ func (self RegionManager) Persist(region Region) (Region, error) {
 	if err != nil {
 		return region, err
 	}
-	bucketKey, subKey := Cache.GetBucketKey(region.Id, "region")
-	req := r.HSet(bucketKey, subKey, s)
-	if req.Err() != nil {
-		return region, req.Err()
+	bucketKey, subKey := Cache.GetBucketKey(region.Id, self.Namespace())
+	cmd := r.HSet(bucketKey, subKey, s)
+	if cmd.Err() != nil {
+		return region, cmd.Err()
 	}
 
-	// misc
+	// etc
 	if isNew {
-		req := r.RPush("region_ids", strconv.FormatInt(region.Id, 10))
-		if req.Err() != nil {
-			return region, req.Err()
+		cmd := r.RPush("region_ids", strconv.FormatInt(region.Id, 10))
+		if cmd.Err() != nil {
+			return region, cmd.Err()
 		}
 	}
 
 	return region, nil
 }
 
-func (self RegionManager) Unmarshal(v map[string]interface{}) Region {
+func (self RegionManager) unmarshal(v map[string]interface{}) Region {
 	return Region{
 		Id:   int64(v["0"].(float64)),
 		Name: v["1"].(string),
@@ -105,16 +103,24 @@ func (self RegionManager) Unmarshal(v map[string]interface{}) Region {
 	}
 }
 
+func (self RegionManager) unmarshalAll(values []map[string]interface{}) (regions []Region) {
+	regions = make([]Region, len(values))
+	for i, rawRegion := range values {
+		regions[i] = self.unmarshal(rawRegion)
+	}
+	return regions
+}
+
 func (self RegionManager) FindOneById(id int64) (Region, error) {
 	v, err := self.Client.Main.FetchFromId(self, id)
-	return self.Unmarshal(v), err
+	return self.unmarshal(v), err
 }
 
 func (self RegionManager) FindAll() ([]Region, error) {
 	var (
-		// strings []string
-		err     error
-		regions []Region
+		err        error
+		regions    []Region
+		rawRegions []map[string]interface{}
 	)
 	main := self.Client.Main
 
@@ -123,8 +129,12 @@ func (self RegionManager) FindAll() ([]Region, error) {
 	if err != nil {
 		return regions, err
 	}
-	fmt.Println(ids)
-	Util.Write("Done!")
 
-	return regions, nil
+	// fetching the values
+	rawRegions, err = main.FetchFromIds(self, ids)
+	if err != nil {
+		return regions, err
+	}
+
+	return self.unmarshalAll(rawRegions), nil
 }

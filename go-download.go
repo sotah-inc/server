@@ -64,7 +64,6 @@ func main() {
 		}
 
 		for _, configLocale := range configRegion.Locales {
-			break
 			locale := Entity.NewLocaleFromConfig(configLocale)
 			locale.Region = region
 			locale, err = localeManager.Persist(locale)
