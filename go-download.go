@@ -71,6 +71,7 @@ func main() {
 				Util.Write(err.Error())
 				return
 			}
+			Util.Write(fmt.Sprintf("New locale: #%d", locale.Id))
 		}
 	}
 
@@ -99,6 +100,7 @@ func main() {
 	// 		fmt.Println(l)
 	// 	}
 	// }
+	Util.Write("success!")
 	return
 
 	l := Log.New("127.0.0.1:6379", "", 0, "jello")

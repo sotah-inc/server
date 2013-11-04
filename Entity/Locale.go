@@ -51,6 +51,10 @@ func (self Locale) marshal() (string, error) {
 	return string(b), nil
 }
 
+func (self Locale) IsValid() bool {
+	return self.Id != 0
+}
+
 /*
 	LocaleManager
 */
@@ -72,7 +76,7 @@ func (self LocaleManager) Persist(locale Locale) (Locale, error) {
 	// id
 	isNew := locale.Id == 0
 	if isNew {
-		req := r.Incr("region_id")
+		req := r.Incr("locale_id")
 		if req.Err() != nil {
 			return locale, req.Err()
 		}
@@ -108,8 +112,12 @@ func (self LocaleManager) Persist(locale Locale) (Locale, error) {
 }
 
 func (self LocaleManager) unmarshal(v map[string]interface{}) Locale {
+	if v == nil {
+		return Locale{}
+	}
+
 	return Locale{
-		Id:        v["0"].(int64),
+		Id:        int64(v["0"].(float64)),
 		Name:      v["1"].(string),
 		Fullname:  v["2"].(string),
 		Shortname: v["3"].(string),
@@ -153,4 +161,14 @@ func (self LocaleManager) FindAll() ([]Locale, error) {
 
 func (self LocaleManager) FindAllInRegion(region Region) ([]Locale, error) {
 	return self.findAllInList(fmt.Sprintf("region:%d:locale_ids", region.Id))
+}
+
+func (self LocaleManager) FindOneById(id int64) (locale Locale, err error) {
+	var v map[string]interface{}
+	v, err = self.Client.Main.FetchFromId(self, id)
+	if err != nil {
+		return locale, err
+	}
+
+	return self.unmarshal(v), nil
 }

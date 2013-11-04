@@ -1,7 +1,6 @@
 package Cache
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/ihsw/go-download/Config"
 	"github.com/vmihailenco/redis/v2"
@@ -110,7 +109,7 @@ func (self Wrapper) FetchFromId(manager Manager, id int64) (v map[string]interfa
 	return values[0], nil
 }
 
-func (self Wrapper) FetchFromIds(manager Manager, ids []int64) (values []map[string]interface{}, err error) {
+func (self Wrapper) FetchFromIds(manager Manager, ids []int64) (values []string, err error) {
 	// misc
 	idsLength := len(ids)
 
@@ -121,27 +120,18 @@ func (self Wrapper) FetchFromIds(manager Manager, ids []int64) (values []map[str
 
 	// gathering input from the ids
 	redis := self.Redis
-	results := make([]string, idsLength)
+	values = make([]string, idsLength)
 	for i, id := range ids {
 		bucketKey, subKey := GetBucketKey(id, manager.Namespace())
+		fmt.Println(bucketKey, subKey)
 		cmd := redis.HGet(bucketKey, subKey)
-		if cmd.Err() != nil {
+		if cmd.Err() != nil && cmd.Err().Error() != "(nil)" {
 			return values, cmd.Err()
 		}
-		results[i] = cmd.Val()
+		values[i] = cmd.Val()
 	}
 
-	// json-decoding them all
-	decodedResults := make([]map[string]interface{}, idsLength)
-	for i, result := range results {
-		b := []byte(result)
-		err = json.Unmarshal(b, &decodedResults[i])
-		if err != nil {
-			return values, err
-		}
-	}
-
-	return decodedResults, err
+	return values, nil
 }
 
 /*
