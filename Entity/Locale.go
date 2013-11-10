@@ -6,7 +6,6 @@ import (
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Config"
 	"github.com/vmihailenco/redis/v2"
-	"reflect"
 	"strconv"
 )
 
@@ -33,26 +32,45 @@ type Locale struct {
 }
 
 func (self Locale) marshal() (string, error) {
-	var (
-		s string
-	)
+	localeJson := LocaleJson{
+		Id:        self.Id,
+		Name:      self.Name,
+		Fullname:  self.Fullname,
+		Shortname: self.Shortname,
+		RegionId:  self.Region.Id,
+	}
 
-	v := map[string]interface{}{
-		"0": self.Id,
-		"1": self.Name,
-		"2": self.Fullname,
-		"3": self.Shortname,
-		"4": self.Region.Id,
-	}
-	b, err := json.Marshal(v)
-	if err != nil {
-		return s, err
-	}
-	return string(b), nil
+	return localeJson.marshal()
 }
 
 func (self Locale) IsValid() bool {
 	return self.Id != 0
+}
+
+func (self Locale) String() string {
+	return fmt.Sprintf("Locale[Id: %d, Name: %s, Fullname: %s, Shortname: %s, Region.Id: %d]",
+		self.Id,
+		self.Name,
+		self.Fullname,
+		self.Shortname,
+		self.Region.Id,
+	)
+}
+
+/*
+	LocaleJson
+*/
+type LocaleJson struct {
+	Id        int64  `json:"0"`
+	Name      string `json:"1"`
+	Fullname  string `json:"2"`
+	Shortname string `json:"3"`
+	RegionId  int64  `json:"4"`
+}
+
+func (self LocaleJson) marshal() (string, error) {
+	b, err := json.Marshal(self)
+	return string(b), err
 }
 
 /*
@@ -74,11 +92,11 @@ func (self LocaleManager) Persist(locale Locale) (Locale, error) {
 	r := self.Client.Main.Redis
 
 	// id
-	isNew := locale.Id == 0
+	isNew := !locale.IsValid()
 	if isNew {
 		req := r.Incr("locale_id")
-		if req.Err() != nil {
-			return locale, req.Err()
+		if err = req.Err(); err != nil {
+			return locale, err
 		}
 		locale.Id = req.Val()
 	}
@@ -90,8 +108,8 @@ func (self LocaleManager) Persist(locale Locale) (Locale, error) {
 	}
 	bucketKey, subKey := Cache.GetBucketKey(locale.Id, "locale")
 	req := r.HSet(bucketKey, subKey, s)
-	if req.Err() != nil {
-		return locale, req.Err()
+	if err = req.Err(); err != nil {
+		return locale, err
 	}
 
 	// etc
@@ -99,51 +117,56 @@ func (self LocaleManager) Persist(locale Locale) (Locale, error) {
 	if isNew {
 		id := strconv.FormatInt(locale.Id, 10)
 		cmd = r.RPush("locale_ids", id)
-		if cmd.Err() != nil {
-			return locale, cmd.Err()
+		if err = cmd.Err(); err != nil {
+			return locale, err
 		}
 		cmd = r.RPush(fmt.Sprintf("region:%d:locale_ids", locale.Region.Id), id)
-		if cmd.Err() != nil {
-			return locale, cmd.Err()
+		if err = cmd.Err(); err != nil {
+			return locale, err
 		}
 	}
 
 	return locale, nil
 }
 
-func (self LocaleManager) unmarshal(v map[string]interface{}) Locale {
-	if v == nil {
-		return Locale{}
-	}
-
-	return Locale{
-		Id:        int64(v["0"].(float64)),
-		Name:      v["1"].(string),
-		Fullname:  v["2"].(string),
-		Shortname: v["3"].(string),
-	}
-}
-
-func (self LocaleManager) unmarshalAll(values []map[string]interface{}) (locales []Locale) {
-	locales = make([]Locale, len(values))
-	for i, v := range values {
-		for key, value := range v {
-			fmt.Println(fmt.Sprintf("%s is %s", key, reflect.TypeOf(value)))
-			fmt.Println(value)
-		}
-		locales[i] = self.unmarshal(v)
-	}
-	return locales
-}
-
-func (self LocaleManager) findAllInIds(ids []int64) (locales []Locale, err error) {
-	var rawLocales []map[string]interface{}
-	rawLocales, err = self.Client.Main.FetchFromIds(self, ids)
+func (self LocaleManager) unmarshal(v string) (locale Locale, err error) {
+	localeJson := LocaleJson{}
+	b := []byte(v)
+	err = json.Unmarshal(b, &localeJson)
 	if err != nil {
 		return
 	}
 
-	return self.unmarshalAll(rawLocales), nil
+	var region Region
+	locale = Locale{
+		Id:        localeJson.Id,
+		Name:      localeJson.Name,
+		Fullname:  localeJson.Fullname,
+		Shortname: localeJson.Shortname,
+		Region:    region,
+	}
+	return locale, nil
+}
+
+func (self LocaleManager) unmarshalAll(values []string) (locales []Locale, err error) {
+	locales = make([]Locale, len(values))
+	for i, v := range values {
+		locales[i], err = self.unmarshal(v)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+func (self LocaleManager) findAllInIds(ids []int64) (locales []Locale, err error) {
+	var values []string
+	values, err = self.Client.Main.FetchFromIds(self, ids)
+	if err != nil {
+		return
+	}
+
+	return self.unmarshalAll(values)
 }
 
 func (self LocaleManager) findAllInList(list string) (locales []Locale, err error) {
@@ -164,11 +187,11 @@ func (self LocaleManager) FindAllInRegion(region Region) ([]Locale, error) {
 }
 
 func (self LocaleManager) FindOneById(id int64) (locale Locale, err error) {
-	var v map[string]interface{}
+	var v string
 	v, err = self.Client.Main.FetchFromId(self, id)
 	if err != nil {
 		return locale, err
 	}
 
-	return self.unmarshal(v), nil
+	return self.unmarshal(v)
 }

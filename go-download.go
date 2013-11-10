@@ -31,19 +31,21 @@ func main() {
 	// loading the config
 	config, err = Config.New(os.Args[1])
 	if err != nil {
-		Util.Write(err.Error())
+		Util.Write(fmt.Sprintf("config fail: %s", err.Error()))
 		return
 	}
 
 	// connecting the redis clients
 	client, err = Cache.NewClient(config.Redis_Config)
 	if err != nil {
+		Util.Write(fmt.Sprintf("client fail: %s", err.Error()))
 		return
 	}
 
 	// flushing all of the databases
-	err = client.FlushAll()
+	err = client.FlushDb()
 	if err != nil {
+		Util.Write(fmt.Sprintf("FlushDb() fail: %s", err.Error()))
 		return
 	}
 
@@ -55,6 +57,7 @@ func main() {
 	localeManager := Entity.LocaleManager{Client: client}
 
 	// persisting the regions
+	Util.Write(fmt.Sprintf("Persisting %d regions...", len(config.Regions)))
 	for _, configRegion := range config.Regions {
 		region := Entity.NewRegionFromConfig(configRegion)
 		region, err = regionManager.Persist(region)
@@ -63,6 +66,7 @@ func main() {
 			return
 		}
 
+		Util.Write(fmt.Sprintf("Persisting %d locales belonging to %s...", len(configRegion.Locales), region.Name))
 		for _, configLocale := range configRegion.Locales {
 			locale := Entity.NewLocaleFromConfig(configLocale)
 			locale.Region = region

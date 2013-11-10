@@ -2,6 +2,7 @@ package Entity
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Config"
 	"strconv"
@@ -27,22 +28,45 @@ type Region struct {
 	Locales []Locale
 }
 
-func (self Region) Marshal() (string, error) {
-	var (
-		s string
+func (self Region) marshal() (string, error) {
+	regionJson := RegionJson{
+		Id:   self.Id,
+		Name: self.Name,
+		Host: self.Host,
+	}
+
+	return regionJson.marshal()
+}
+
+func (self Region) String() string {
+	return fmt.Sprintf("Region[Id: %d, Name: %s, Host: %s, Locales: %d]",
+		self.Id,
+		self.Name,
+		self.Host,
+		len(self.Locales),
 	)
+}
 
-	v := map[string]interface{}{
-		"0": self.Id,
-		"1": self.Name,
-		"2": self.Host,
-	}
-	b, err := json.Marshal(v)
-	if err != nil {
-		return s, err
-	}
+/*
+	RegionJson
+*/
+type RegionJson struct {
+	Id   int64  `json:"0"`
+	Name string `json:"1"`
+	Host string `json:"2"`
+}
 
-	return string(b), nil
+func (self RegionJson) marshal() (string, error) {
+	b, err := json.Marshal(self)
+	return string(b), err
+}
+
+func (self RegionJson) String() string {
+	return fmt.Sprintf("RegionJson[Id: %d, Name: %s, Host: %s]",
+		self.Id,
+		self.Name,
+		self.Host,
+	)
 }
 
 /*
@@ -67,60 +91,87 @@ func (self RegionManager) Persist(region Region) (Region, error) {
 	isNew := region.Id == 0
 	if isNew {
 		cmd := r.Incr("region_id")
-		if cmd.Err() != nil {
-			return region, cmd.Err()
+		if err = cmd.Err(); err != nil {
+			return region, err
 		}
 		region.Id = cmd.Val()
 	}
 
 	// data
-	s, err = region.Marshal()
+	s, err = region.marshal()
 	if err != nil {
 		return region, err
 	}
 	bucketKey, subKey := Cache.GetBucketKey(region.Id, self.Namespace())
 	cmd := r.HSet(bucketKey, subKey, s)
-	if cmd.Err() != nil {
-		return region, cmd.Err()
+	if err = cmd.Err(); err != nil {
+		return region, err
 	}
 
 	// etc
 	if isNew {
 		cmd := r.RPush("region_ids", strconv.FormatInt(region.Id, 10))
-		if cmd.Err() != nil {
-			return region, cmd.Err()
+		if err = cmd.Err(); err != nil {
+			return region, err
 		}
 	}
 
 	return region, nil
 }
 
-func (self RegionManager) unmarshal(v map[string]interface{}) Region {
-	return Region{
-		Id:   int64(v["0"].(float64)),
-		Name: v["1"].(string),
-		Host: v["2"].(string),
+func (self RegionManager) unmarshal(v string) (region Region, err error) {
+	// json
+	var regionJson RegionJson
+	b := []byte(v)
+	err = json.Unmarshal(b, &regionJson)
+	if err != nil {
+		return
 	}
+
+	// managers
+	localeManager := LocaleManager{Client: self.Client}
+
+	// initial
+	region = Region{
+		Id:   regionJson.Id,
+		Name: regionJson.Name,
+		Host: regionJson.Host,
+	}
+
+	// sub
+	var locales []Locale
+	locales, err = localeManager.FindAllInRegion(region)
+	if err != nil {
+		return
+	}
+	region.Locales = locales
+	return region, nil
 }
 
-func (self RegionManager) unmarshalAll(values []map[string]interface{}) (regions []Region) {
+func (self RegionManager) unmarshalAll(values []string) (regions []Region, err error) {
 	regions = make([]Region, len(values))
-	for i, rawRegion := range values {
-		regions[i] = self.unmarshal(rawRegion)
+	for i, v := range values {
+		regions[i], err = self.unmarshal(v)
+		if err != nil {
+			return
+		}
 	}
-	return regions
+	return
 }
 
-func (self RegionManager) FindOneById(id int64) (Region, error) {
+func (self RegionManager) FindOneById(id int64) (region Region, err error) {
 	v, err := self.Client.Main.FetchFromId(self, id)
-	return self.unmarshal(v), err
+	if err != nil {
+		return
+	}
+	return self.unmarshal(v)
 }
 
 func (self RegionManager) FindAll() ([]Region, error) {
 	var (
-		err        error
-		regions    []Region
-		rawRegions []map[string]interface{}
+		err     error
+		regions []Region
+		values  []string
 	)
 	main := self.Client.Main
 
@@ -131,10 +182,10 @@ func (self RegionManager) FindAll() ([]Region, error) {
 	}
 
 	// fetching the values
-	rawRegions, err = main.FetchFromIds(self, ids)
+	values, err = main.FetchFromIds(self, ids)
 	if err != nil {
 		return regions, err
 	}
 
-	return self.unmarshalAll(rawRegions), nil
+	return self.unmarshalAll(values)
 }

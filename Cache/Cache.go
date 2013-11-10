@@ -10,21 +10,21 @@ import (
 const ITEMS_PER_BUCKET = 1024
 
 // funcs
-func NewWrapper(r Config.Redis) (w Wrapper, err error) {
-	c := redis.NewTCPClient(&redis.Options{
-		Addr:     r.Host,
-		Password: r.Password,
-		DB:       r.Db,
+func NewWrapper(rConfig Config.Redis) (w Wrapper, err error) {
+	r := redis.NewTCPClient(&redis.Options{
+		Addr:     rConfig.Host,
+		Password: rConfig.Password, // no password set
+		DB:       rConfig.Db,       // use default DB
 	})
-	defer c.Close()
+	defer r.Close()
 
-	err = c.Ping().Err()
-	if err != nil {
+	ping := r.Ping()
+	if err = ping.Err(); err != nil {
 		return
 	}
 
 	w = Wrapper{
-		Redis: c,
+		Redis: r,
 	}
 	return
 }
@@ -70,8 +70,8 @@ type Wrapper struct {
 
 func (self Wrapper) FetchIds(key string, start int64, end int64) (ids []int64, err error) {
 	req := self.Redis.LRange(key, start, end)
-	if req.Err() != nil {
-		return ids, req.Err()
+	if err = req.Err(); err != nil {
+		return
 	}
 
 	// optionally halting
@@ -86,7 +86,7 @@ func (self Wrapper) FetchIds(key string, start int64, end int64) (ids []int64, e
 	for k, v := range req.Val() {
 		i, err = strconv.Atoi(v)
 		if err != nil {
-			return ids, err
+			return
 		}
 		ids[k] = int64(i)
 	}
@@ -94,9 +94,9 @@ func (self Wrapper) FetchIds(key string, start int64, end int64) (ids []int64, e
 	return ids, nil
 }
 
-func (self Wrapper) FetchFromId(manager Manager, id int64) (v map[string]interface{}, err error) {
+func (self Wrapper) FetchFromId(manager Manager, id int64) (v string, err error) {
 	// misc
-	var values []map[string]interface{}
+	var values []string
 
 	// forwarding to the FetchFromIds method
 	ids := make([]int64, 1)
@@ -123,10 +123,9 @@ func (self Wrapper) FetchFromIds(manager Manager, ids []int64) (values []string,
 	values = make([]string, idsLength)
 	for i, id := range ids {
 		bucketKey, subKey := GetBucketKey(id, manager.Namespace())
-		fmt.Println(bucketKey, subKey)
 		cmd := redis.HGet(bucketKey, subKey)
-		if cmd.Err() != nil && cmd.Err().Error() != "(nil)" {
-			return values, cmd.Err()
+		if err = cmd.Err(); err != nil && err.Error() != "(nil)" {
+			return
 		}
 		values[i] = cmd.Val()
 	}
@@ -142,18 +141,18 @@ type Client struct {
 	Pool []Wrapper
 }
 
-func (self Client) FlushAll() error {
+func (self Client) FlushDb() (err error) {
 	var (
 		cmd *redis.StatusCmd
 	)
 	cmd = self.Main.Redis.FlushDb()
-	if cmd.Err() != nil {
-		return cmd.Err()
+	if err = cmd.Err(); err != nil {
+		return
 	}
 	for _, w := range self.Pool {
 		cmd = w.Redis.FlushDb()
-		if cmd.Err() != nil {
-			return cmd.Err()
+		if err = cmd.Err(); err != nil {
+			return
 		}
 	}
 
