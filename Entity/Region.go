@@ -47,6 +47,10 @@ func (self Region) String() string {
 	)
 }
 
+func (self Region) IsValid() bool {
+	return self.Id != 0
+}
+
 /*
 	RegionJson
 */
@@ -120,6 +124,10 @@ func (self RegionManager) Persist(region Region) (Region, error) {
 }
 
 func (self RegionManager) unmarshal(v string) (region Region, err error) {
+	if v == "" {
+		return
+	}
+
 	// json
 	var regionJson RegionJson
 	b := []byte(v)
@@ -128,23 +136,12 @@ func (self RegionManager) unmarshal(v string) (region Region, err error) {
 		return
 	}
 
-	// managers
-	localeManager := LocaleManager{Client: self.Client}
-
 	// initial
 	region = Region{
 		Id:   regionJson.Id,
 		Name: regionJson.Name,
 		Host: regionJson.Host,
 	}
-
-	// sub
-	var locales []Locale
-	locales, err = localeManager.FindAllInRegion(region)
-	if err != nil {
-		return
-	}
-	region.Locales = locales
 	return region, nil
 }
 

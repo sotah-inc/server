@@ -3,6 +3,7 @@ package Status
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ihsw/go-download/Entity"
 	"github.com/ihsw/go-download/Util"
 )
 
@@ -31,20 +32,39 @@ type Status struct {
 	Realms []Realm
 }
 
-const URL_FORMAT = "http://%s.battle.net/api/wow/realm/status"
+type Result struct {
+	Region Entity.Region
+	Status Status
+	Error  error
+}
 
-func Get(region string) (Status, error) {
-	var status Status
+const URL_FORMAT = "http://%s/api/wow/realm/status"
 
-	b, err := Util.Download(fmt.Sprintf(URL_FORMAT, region))
-	if err != nil {
-		return status, err
+func Get(region Entity.Region, c chan Result) {
+	var (
+		b      []byte
+		err    error
+		status Status
+	)
+	result := Result{
+		Region: region,
+		Status: status,
+		Error:  nil,
+	}
+
+	b, result.Error = Util.Download(fmt.Sprintf(URL_FORMAT, region.Host))
+	if err = result.Error; err != nil {
+		c <- result
+		return
 	}
 
 	err = json.Unmarshal(b, &status)
 	if err != nil {
-		return status, err
+		result.Error = err
+		c <- result
+		return
 	}
 
-	return status, nil
+	result.Status = status
+	c <- result
 }

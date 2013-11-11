@@ -6,7 +6,6 @@ import (
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Config"
 	"github.com/ihsw/go-download/Entity"
-	"github.com/ihsw/go-download/Log"
 	"github.com/ihsw/go-download/Util"
 	"os"
 )
@@ -31,21 +30,21 @@ func main() {
 	// loading the config
 	config, err = Config.New(os.Args[1])
 	if err != nil {
-		Util.Write(fmt.Sprintf("config fail: %s", err.Error()))
+		Util.Write(fmt.Sprintf("Config.New() fail: %s", err.Error()))
 		return
 	}
 
 	// connecting the redis clients
 	client, err = Cache.NewClient(config.Redis_Config)
 	if err != nil {
-		Util.Write(fmt.Sprintf("client fail: %s", err.Error()))
+		Util.Write(fmt.Sprintf("Cache.NewClient() fail: %s", err.Error()))
 		return
 	}
 
 	// flushing all of the databases
 	err = client.FlushDb()
 	if err != nil {
-		Util.Write(fmt.Sprintf("FlushDb() fail: %s", err.Error()))
+		Util.Write(fmt.Sprintf("client.FlushDb() fail: %s", err.Error()))
 		return
 	}
 
@@ -56,13 +55,14 @@ func main() {
 	regionManager := Entity.RegionManager{Client: client}
 	localeManager := Entity.LocaleManager{Client: client}
 
-	// persisting the regions
+	// persisting the regions and locales
 	Util.Write(fmt.Sprintf("Persisting %d regions...", len(config.Regions)))
+	regions := map[int64]Entity.Region{}
 	for _, configRegion := range config.Regions {
 		region := Entity.NewRegionFromConfig(configRegion)
 		region, err = regionManager.Persist(region)
 		if err != nil {
-			Util.Write(err.Error())
+			Util.Write(fmt.Sprintf("regionManager.Persist() fail: %s", err.Error()))
 			return
 		}
 
@@ -72,54 +72,36 @@ func main() {
 			locale.Region = region
 			locale, err = localeManager.Persist(locale)
 			if err != nil {
-				Util.Write(err.Error())
+				Util.Write(fmt.Sprintf("localeManager.Persist() fail: ", err.Error()))
 				return
 			}
-			Util.Write(fmt.Sprintf("New locale: #%d", locale.Id))
 		}
+		regions[region.Id] = region
 	}
 
-	// initializing the locales
-	// Util.Write("Reading the regions from the config...")
-	// regions := Region.NewFromList(config.Regions)
-	// for _, region := range regions {
-	// 	for _, locale := range region.Locales {
-	// 		locale, err := localeManager.Persist(locale)
-	// 		if err != nil {
-	// 			Util.Write(err.Error())
-	// 			return
-	// 		}
-	// 		Util.Write(fmt.Sprintf("Successfully persisted locale %s", locale.Fullname))
-	// 		continue
-	// 		// marshaling
-	// 		s, err := locale.Marshal()
-
-	// 		// persisting
-
-	// 		// retrieving
-	// 		derp := []byte(s)
-	// 		v := map[string]interface{}{}
-	// 		json.Unmarshal(derp, &v)
-	// 		l := Locale.Unmarshal(v)
-	// 		fmt.Println(l)
-	// 	}
-	// }
-	Util.Write("success!")
-	return
-
-	l := Log.New("127.0.0.1:6379", "", 0, "jello")
-	l.Write("Jello")
-
-	region := "us"
-	Util.Write(fmt.Sprintf("Downloading from %s...", fmt.Sprintf(Status.URL_FORMAT, region)))
-	status, err := Status.Get(region)
-	if err != nil {
-		Util.Write(fmt.Sprintf("GetStatus failed! %s...", err))
-		return
+	// going over the regions to download the statuses
+	Util.Write(fmt.Sprintf("Going over %d regions to download the statuses...", len(regions)))
+	c := make(chan Status.Result, len(regions))
+	for _, region := range regions {
+		go Status.Get(region, c)
 	}
 
-	for _, realm := range status.Realms {
-		Util.Write(realm.Slug)
+	// gathering the results
+	Util.Write(fmt.Sprintf("Gathering the results for %d regions...", len(regions)))
+	results := make([]Status.Result, len(regions))
+	for i := 0; i < len(results); i++ {
+		results[i] = <-c
+	}
+
+	// going over the results
+	Util.Write(fmt.Sprintf("Going over %d results...", len(results)))
+	for _, result := range results {
+		if err = result.Error; err != nil {
+			Util.Write(fmt.Sprintf("Status.Get() fail: %s", err.Error()))
+			return
+		}
+
+		Util.Write(fmt.Sprintf("Region %s has %d realms", result.Region.Name, len(result.Status.Realms)))
 	}
 
 	Util.Conclude()

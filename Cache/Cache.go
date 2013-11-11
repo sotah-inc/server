@@ -16,7 +16,6 @@ func NewWrapper(rConfig Config.Redis) (w Wrapper, err error) {
 		Password: rConfig.Password, // no password set
 		DB:       rConfig.Db,       // use default DB
 	})
-	defer r.Close()
 
 	ping := r.Ping()
 	if err = ping.Err(); err != nil {
@@ -119,12 +118,12 @@ func (self Wrapper) FetchFromIds(manager Manager, ids []int64) (values []string,
 	}
 
 	// gathering input from the ids
-	redis := self.Redis
+	r := self.Redis
 	values = make([]string, idsLength)
 	for i, id := range ids {
 		bucketKey, subKey := GetBucketKey(id, manager.Namespace())
-		cmd := redis.HGet(bucketKey, subKey)
-		if err = cmd.Err(); err != nil && err.Error() != "(nil)" {
+		cmd := r.HGet(bucketKey, subKey)
+		if err = cmd.Err(); err != nil && err != redis.Nil {
 			return
 		}
 		values[i] = cmd.Val()

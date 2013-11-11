@@ -130,6 +130,11 @@ func (self LocaleManager) Persist(locale Locale) (Locale, error) {
 }
 
 func (self LocaleManager) unmarshal(v string) (locale Locale, err error) {
+	if v == "" {
+		return
+	}
+
+	// json
 	localeJson := LocaleJson{}
 	b := []byte(v)
 	err = json.Unmarshal(b, &localeJson)
@@ -137,7 +142,22 @@ func (self LocaleManager) unmarshal(v string) (locale Locale, err error) {
 		return
 	}
 
+	// optionally halting
+	if localeJson.RegionId == 0 {
+		return
+	}
+
+	// managers
+	regionManager := RegionManager{Client: self.Client}
+
+	// sub
 	var region Region
+	region, err = regionManager.FindOneById(localeJson.RegionId)
+	if err != nil || !region.IsValid() {
+		return
+	}
+
+	// initial
 	locale = Locale{
 		Id:        localeJson.Id,
 		Name:      localeJson.Name,
