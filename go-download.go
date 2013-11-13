@@ -83,7 +83,7 @@ func main() {
 	Util.Write(fmt.Sprintf("Going over %d regions to download the statuses...", len(regions)))
 	c := make(chan Status.Result, len(regions))
 	for _, region := range regions {
-		go Status.Get(region, c)
+		go Status.Get(region.Host, region.Id, c)
 	}
 
 	// gathering the results
@@ -101,7 +101,13 @@ func main() {
 			return
 		}
 
-		Util.Write(fmt.Sprintf("Region %s has %d realms", result.Region.Name, len(result.Status.Realms)))
+		region := regions[result.RegionId]
+
+		for _, statusRealm := range result.Status.Realms {
+			Util.Write(fmt.Sprintf("%s-%s is type %s", region.Name, statusRealm.Slug, statusRealm.RealmType))
+		}
+
+		Util.Write(fmt.Sprintf("Region %s has %d realms", region.Name, len(result.Status.Realms)))
 	}
 
 	Util.Conclude()

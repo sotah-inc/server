@@ -3,7 +3,6 @@ package Status
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ihsw/go-download/Entity"
 	"github.com/ihsw/go-download/Util"
 )
 
@@ -24,7 +23,7 @@ type Realm struct {
 	Status      bool
 	Timezone    string
 	Tol_Barad   PvpArea
-	Type        string
+	RealmType   string `json:"type"`
 	Wintergrasp PvpArea
 }
 
@@ -33,26 +32,26 @@ type Status struct {
 }
 
 type Result struct {
-	Region Entity.Region
-	Status Status
-	Error  error
+	Status   Status
+	RegionId int64
+	Error    error
 }
 
 const URL_FORMAT = "http://%s/api/wow/realm/status"
 
-func Get(region Entity.Region, c chan Result) {
+func Get(host string, regionId int64, c chan Result) {
 	var (
 		b      []byte
 		err    error
 		status Status
 	)
 	result := Result{
-		Region: region,
-		Status: status,
-		Error:  nil,
+		Status:   status,
+		RegionId: regionId,
+		Error:    nil,
 	}
 
-	b, result.Error = Util.Download(fmt.Sprintf(URL_FORMAT, region.Host))
+	b, result.Error = Util.Download(fmt.Sprintf(URL_FORMAT, host))
 	if err = result.Error; err != nil {
 		c <- result
 		return
