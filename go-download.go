@@ -104,7 +104,7 @@ func main() {
 		}
 
 		region := regions[result.RegionId]
-		Util.Write(fmt.Sprintf("Persisting %d realms for region %s", len(result.Status.Realms), region.Name))
+		Util.Write(fmt.Sprintf("Persisting %d realms belonging to %s...", len(result.Status.Realms), region.Name))
 		for _, statusRealm := range result.Status.Realms {
 			realm := Entity.NewRealmFromStatus(statusRealm)
 			realm.Region = region
