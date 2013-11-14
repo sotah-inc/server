@@ -43,9 +43,7 @@ func (self Locale) marshal() (string, error) {
 	return localeJson.marshal()
 }
 
-func (self Locale) IsValid() bool {
-	return self.Id != 0
-}
+func (self Locale) IsValid() bool { return self.Id != 0 }
 
 func (self Locale) String() string {
 	return fmt.Sprintf("Locale[Id: %d, Name: %s, Fullname: %s, Shortname: %s, Region.Id: %d]",
@@ -80,9 +78,7 @@ type LocaleManager struct {
 	Client Cache.Client
 }
 
-func (self LocaleManager) Namespace() string {
-	return "locale"
-}
+func (self LocaleManager) Namespace() string { return "locale" }
 
 func (self LocaleManager) Persist(locale Locale) (Locale, error) {
 	var (

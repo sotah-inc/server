@@ -47,9 +47,7 @@ func (self Region) String() string {
 	)
 }
 
-func (self Region) IsValid() bool {
-	return self.Id != 0
-}
+func (self Region) IsValid() bool { return self.Id != 0 }
 
 /*
 	RegionJson
@@ -80,9 +78,7 @@ type RegionManager struct {
 	Client Cache.Client
 }
 
-func (self RegionManager) Namespace() string {
-	return "region"
-}
+func (self RegionManager) Namespace() string { return "region" }
 
 func (self RegionManager) Persist(region Region) (Region, error) {
 	var (

@@ -14,7 +14,7 @@ type PvpArea struct {
 }
 
 type Realm struct {
-	BattleGroup string
+	Battlegroup string
 	Locale      string
 	Name        string
 	Population  string
@@ -23,7 +23,7 @@ type Realm struct {
 	Status      bool
 	Timezone    string
 	Tol_Barad   PvpArea
-	RealmType   string `json:"type"`
+	Type        string
 	Wintergrasp PvpArea
 }
 

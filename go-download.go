@@ -54,6 +54,7 @@ func main() {
 	// managers
 	regionManager := Entity.RegionManager{Client: client}
 	localeManager := Entity.LocaleManager{Client: client}
+	realmManager := Entity.RealmManager{Client: client}
 
 	// persisting the regions and locales
 	Util.Write(fmt.Sprintf("Persisting %d regions...", len(config.Regions)))
@@ -95,6 +96,7 @@ func main() {
 
 	// going over the results
 	Util.Write(fmt.Sprintf("Going over %d results...", len(results)))
+	realmCount := 0
 	for _, result := range results {
 		if err = result.Error; err != nil {
 			Util.Write(fmt.Sprintf("Status.Get() fail: %s", err.Error()))
@@ -102,13 +104,21 @@ func main() {
 		}
 
 		region := regions[result.RegionId]
-
+		Util.Write(fmt.Sprintf("Persisting %d realms for region %s", len(result.Status.Realms), region.Name))
 		for _, statusRealm := range result.Status.Realms {
-			Util.Write(fmt.Sprintf("%s-%s is type %s", region.Name, statusRealm.Slug, statusRealm.RealmType))
-		}
+			realm := Entity.NewRealmFromStatus(statusRealm)
+			realm.Region = region
 
-		Util.Write(fmt.Sprintf("Region %s has %d realms", region.Name, len(result.Status.Realms)))
+			realm, err = realmManager.Persist(realm)
+			if err != nil {
+				Util.Write(fmt.Sprintf("realmManager.Persist() fail: %s", err.Error()))
+				return
+			}
+
+			realmCount++
+		}
 	}
+	Util.Write(fmt.Sprintf("Persisted %d realms!", realmCount))
 
 	Util.Conclude()
 }
