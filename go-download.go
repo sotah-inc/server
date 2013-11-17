@@ -14,9 +14,9 @@ func main() {
 	Util.Write("Starting...")
 
 	var (
-		err    error
-		client Cache.Client
-		config Config.Config
+		err        error
+		client     Cache.Client
+		configFile Config.ConfigFile
 	)
 
 	/*
@@ -27,17 +27,17 @@ func main() {
 		return
 	}
 
-	// loading the config
-	config, err = Config.New(os.Args[1])
+	// loading the config-file
+	configFile, err = Config.New(os.Args[1])
 	if err != nil {
 		Util.Write(fmt.Sprintf("Config.New() fail: %s", err.Error()))
 		return
 	}
 
 	// connecting the redis clients
-	client, err = Cache.NewClient(config.Redis_Config)
+	client, err = Config.NewCacheClient(configFile.ConnectionList)
 	if err != nil {
-		Util.Write(fmt.Sprintf("Cache.NewClient() fail: %s", err.Error()))
+		Util.Write(fmt.Sprintf("Config.NewCacheClient() fail: %s", err.Error()))
 		return
 	}
 
@@ -57,10 +57,10 @@ func main() {
 	realmManager := Entity.RealmManager{Client: client}
 
 	// persisting the regions and locales
-	Util.Write(fmt.Sprintf("Persisting %d regions...", len(config.Regions)))
+	Util.Write(fmt.Sprintf("Persisting %d regions...", len(configFile.Regions)))
 	regions := map[int64]Entity.Region{}
-	for _, configRegion := range config.Regions {
-		region := Entity.NewRegionFromConfig(configRegion)
+	for _, configRegion := range configFile.Regions {
+		region := Config.NewEntityRegion(configRegion)
 		region, err = regionManager.Persist(region)
 		if err != nil {
 			Util.Write(fmt.Sprintf("regionManager.Persist() fail: %s", err.Error()))
@@ -69,7 +69,7 @@ func main() {
 
 		Util.Write(fmt.Sprintf("Persisting %d locales belonging to %s...", len(configRegion.Locales), region.Name))
 		for _, configLocale := range configRegion.Locales {
-			locale := Entity.NewLocaleFromConfig(configLocale)
+			locale := Config.NewEntityLocale(configLocale)
 			locale.Region = region
 			locale, err = localeManager.Persist(locale)
 			if err != nil {

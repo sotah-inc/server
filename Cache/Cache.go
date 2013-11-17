@@ -2,7 +2,6 @@ package Cache
 
 import (
 	"fmt"
-	"github.com/ihsw/go-download/Config"
 	"github.com/vmihailenco/redis/v2"
 	"strconv"
 )
@@ -10,43 +9,6 @@ import (
 const ITEMS_PER_BUCKET = 1024
 
 // funcs
-func NewWrapper(rConfig Config.Redis) (w Wrapper, err error) {
-	r := redis.NewTCPClient(&redis.Options{
-		Addr:     rConfig.Host,
-		Password: rConfig.Password, // no password set
-		DB:       rConfig.Db,       // use default DB
-	})
-
-	ping := r.Ping()
-	if err = ping.Err(); err != nil {
-		return
-	}
-
-	w = Wrapper{
-		Redis: r,
-	}
-	return
-}
-
-func NewClient(redisConfig Config.RedisConfig) (client Client, err error) {
-	var w Wrapper
-
-	client.Main, err = NewWrapper(redisConfig.Main)
-	if err != nil {
-		return
-	}
-
-	for _, poolItem := range redisConfig.Pool {
-		w, err = NewWrapper(poolItem)
-		if err != nil {
-			return
-		}
-		client.Pool = append(client.Pool, w)
-	}
-
-	return client, nil
-}
-
 func GetBucketKey(id int64, namespace string) (string, string) {
 	remainder := id % ITEMS_PER_BUCKET
 	bucketId := (id - remainder) / ITEMS_PER_BUCKET

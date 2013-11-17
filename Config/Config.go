@@ -2,12 +2,89 @@ package Config
 
 import (
 	"encoding/json"
+	"github.com/ihsw/go-download/Cache"
+	"github.com/ihsw/go-download/Entity"
+	"github.com/vmihailenco/redis/v2"
 	"io/ioutil"
 	"path/filepath"
 )
 
 /*
-	misc
+	funcs
+*/
+func New(source string) (configFile ConfigFile, err error) {
+	var sourceFilepath string
+	sourceFilepath, err = filepath.Abs(source)
+	if err != nil {
+		return
+	}
+	b, err := ioutil.ReadFile(sourceFilepath)
+	if err != nil {
+		return
+	}
+	err = json.Unmarshal(b, &configFile)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+// entity marshallers
+func NewEntityRegion(region Region) Entity.Region {
+	return Entity.Region{
+		Name: region.Name,
+		Host: region.Host,
+	}
+}
+
+func NewEntityLocale(locale Locale) Entity.Locale {
+	return Entity.Locale{
+		Name:      locale.Name,
+		Fullname:  locale.Fullname,
+		Shortname: locale.Shortname,
+	}
+}
+
+// cache intermediates
+func NewCacheWrapper(c Connection) (w Cache.Wrapper, err error) {
+	r := redis.NewTCPClient(&redis.Options{
+		Addr:     c.Host,
+		Password: c.Password,
+		DB:       c.Db,
+	})
+
+	ping := r.Ping()
+	if err = ping.Err(); err != nil {
+		return
+	}
+
+	w = Cache.Wrapper{
+		Redis: r,
+	}
+	return
+}
+
+func NewCacheClient(c ConnectionList) (client Cache.Client, err error) {
+	client.Main, err = NewCacheWrapper(c.Main)
+	if err != nil {
+		return
+	}
+
+	var w Cache.Wrapper
+	for _, poolItem := range c.Pool {
+		w, err = NewCacheWrapper(poolItem)
+		if err != nil {
+			return
+		}
+		client.Pool = append(client.Pool, w)
+	}
+
+	return client, nil
+}
+
+/*
+	intermediate entities
 */
 type Locale struct {
 	Name      string
@@ -22,44 +99,20 @@ type Region struct {
 }
 
 /*
-	Redis
+	connection info
 */
-type Redis struct {
+type Connection struct {
 	Host     string
 	Password string
 	Db       int64
 }
 
-/*
-	RedisConfig
-*/
-type RedisConfig struct {
-	Main Redis
-	Pool []Redis
+type ConnectionList struct {
+	Main Connection
+	Pool []Connection
 }
 
-/*
-	Config
-*/
-type Config struct {
-	Redis_Config RedisConfig
-	Regions      []Region
-}
-
-func New(source string) (config Config, err error) {
-	var sourceFilepath string
-	sourceFilepath, err = filepath.Abs(source)
-	if err != nil {
-		return
-	}
-	b, err := ioutil.ReadFile(sourceFilepath)
-	if err != nil {
-		return
-	}
-	err = json.Unmarshal(b, &config)
-	if err != nil {
-		return
-	}
-
-	return
+type ConfigFile struct {
+	ConnectionList ConnectionList `json:"redis"`
+	Regions        []Region
 }

@@ -4,19 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ihsw/go-download/Cache"
-	"github.com/ihsw/go-download/Config"
 	"strconv"
 )
-
-/*
-	funcs
-*/
-func NewRegionFromConfig(configRegion Config.Region) Region {
-	return Region{
-		Name: configRegion.Name,
-		Host: configRegion.Host,
-	}
-}
 
 /*
 	Region

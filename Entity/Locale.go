@@ -4,21 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ihsw/go-download/Cache"
-	"github.com/ihsw/go-download/Config"
 	"github.com/vmihailenco/redis/v2"
 	"strconv"
 )
-
-/*
-	funcs
-*/
-func NewLocaleFromConfig(configLocale Config.Locale) Locale {
-	return Locale{
-		Name:      configLocale.Name,
-		Fullname:  configLocale.Fullname,
-		Shortname: configLocale.Shortname,
-	}
-}
 
 /*
 	Locale
