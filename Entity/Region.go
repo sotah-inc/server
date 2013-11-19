@@ -11,10 +11,9 @@ import (
 	Region
 */
 type Region struct {
-	Id      int64
-	Name    string
-	Host    string
-	Locales []Locale
+	Id   int64
+	Name string
+	Host string
 }
 
 func (self Region) marshal() (string, error) {
@@ -28,11 +27,10 @@ func (self Region) marshal() (string, error) {
 }
 
 func (self Region) String() string {
-	return fmt.Sprintf("Region[Id: %d, Name: %s, Host: %s, Locales: %d]",
+	return fmt.Sprintf("Region[Id: %d, Name: %s, Host: %s]",
 		self.Id,
 		self.Name,
 		self.Host,
-		len(self.Locales),
 	)
 }
 
