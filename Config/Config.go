@@ -30,22 +30,6 @@ func New(source string) (configFile ConfigFile, err error) {
 	return
 }
 
-// entity marshallers
-func NewEntityRegion(region Region) Entity.Region {
-	return Entity.Region{
-		Name: region.Name,
-		Host: region.Host,
-	}
-}
-
-func NewEntityLocale(locale Locale) Entity.Locale {
-	return Entity.Locale{
-		Name:      locale.Name,
-		Fullname:  locale.Fullname,
-		Shortname: locale.Shortname,
-	}
-}
-
 // cache intermediates
 func NewCacheWrapper(c Connection) (w Cache.Wrapper, err error) {
 	r := redis.NewTCPClient(&redis.Options{
@@ -84,7 +68,7 @@ func NewCacheClient(c ConnectionList) (client Cache.Client, err error) {
 }
 
 /*
-	intermediate entities
+	Locale
 */
 type Locale struct {
 	Name      string
@@ -92,10 +76,28 @@ type Locale struct {
 	Shortname string
 }
 
+func (self Locale) ToEntity() Entity.Locale {
+	return Entity.Locale{
+		Name:      self.Name,
+		Fullname:  self.Fullname,
+		Shortname: self.Shortname,
+	}
+}
+
+/*
+	Region
+*/
 type Region struct {
 	Name    string
 	Host    string
 	Locales []Locale
+}
+
+func (self Region) ToEntity() Entity.Region {
+	return Entity.Region{
+		Name: self.Name,
+		Host: self.Host,
+	}
 }
 
 /*

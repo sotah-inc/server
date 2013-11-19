@@ -3,26 +3,11 @@ package Entity
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ihsw/go-download/Blizzard/Status"
 	"github.com/ihsw/go-download/Cache"
 	"github.com/vmihailenco/redis/v2"
 	"strconv"
 	"time"
 )
-
-/*
-	funcs
-*/
-func NewRealmFromStatus(statusRealm Status.Realm) Realm {
-	return Realm{
-		Name:        statusRealm.Name,
-		Slug:        statusRealm.Slug,
-		Battlegroup: statusRealm.Battlegroup,
-		Type:        statusRealm.Type,
-		Status:      statusRealm.Status,
-		Population:  statusRealm.Population,
-	}
-}
 
 /*
 	Realm

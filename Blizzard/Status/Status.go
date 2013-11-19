@@ -3,9 +3,13 @@ package Status
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ihsw/go-download/Entity"
 	"github.com/ihsw/go-download/Util"
 )
 
+/*
+	misc
+*/
 type PvpArea struct {
 	Area                uint8
 	Controlling_Faction uint8
@@ -13,6 +17,19 @@ type PvpArea struct {
 	Next                uint64
 }
 
+type Status struct {
+	Realms []Realm
+}
+
+type Result struct {
+	Status   Status
+	RegionId int64
+	Error    error
+}
+
+/*
+	Realm
+*/
 type Realm struct {
 	Battlegroup string
 	Locale      string
@@ -27,14 +44,15 @@ type Realm struct {
 	Wintergrasp PvpArea
 }
 
-type Status struct {
-	Realms []Realm
-}
-
-type Result struct {
-	Status   Status
-	RegionId int64
-	Error    error
+func (self Realm) ToEntity() Entity.Realm {
+	return Entity.Realm{
+		Name:        self.Name,
+		Slug:        self.Slug,
+		Battlegroup: self.Battlegroup,
+		Type:        self.Type,
+		Status:      self.Status,
+		Population:  self.Population,
+	}
 }
 
 const URL_FORMAT = "http://%s/api/wow/realm/status"

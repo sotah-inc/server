@@ -60,7 +60,7 @@ func main() {
 	Util.Write(fmt.Sprintf("Persisting %d regions...", len(configFile.Regions)))
 	regions := map[int64]Entity.Region{}
 	for _, configRegion := range configFile.Regions {
-		region := Config.NewEntityRegion(configRegion)
+		region := configRegion.ToEntity()
 		region, err = regionManager.Persist(region)
 		if err != nil {
 			Util.Write(fmt.Sprintf("regionManager.Persist() fail: %s", err.Error()))
@@ -69,7 +69,7 @@ func main() {
 
 		Util.Write(fmt.Sprintf("Persisting %d locales belonging to %s...", len(configRegion.Locales), region.Name))
 		for _, configLocale := range configRegion.Locales {
-			locale := Config.NewEntityLocale(configLocale)
+			locale := configLocale.ToEntity()
 			locale.Region = region
 			locale, err = localeManager.Persist(locale)
 			if err != nil {
@@ -106,7 +106,7 @@ func main() {
 		region := regions[result.RegionId]
 		Util.Write(fmt.Sprintf("Persisting %d realms belonging to %s...", len(result.Status.Realms), region.Name))
 		for _, statusRealm := range result.Status.Realms {
-			realm := Entity.NewRealmFromStatus(statusRealm)
+			realm := statusRealm.ToEntity()
 			realm.Region = region
 
 			realm, err = realmManager.Persist(realm)
