@@ -22,9 +22,9 @@ type Status struct {
 }
 
 type Result struct {
-	Status   Status
-	RegionId int64
-	Error    error
+	Status Status
+	Region Entity.Region
+	Error  error
 }
 
 /*
@@ -57,19 +57,19 @@ func (self Realm) ToEntity() Entity.Realm {
 
 const URL_FORMAT = "http://%s/api/wow/realm/status"
 
-func Get(host string, regionId int64, c chan Result) {
+func Get(region Entity.Region, c chan Result) {
 	var (
 		b      []byte
 		err    error
 		status Status
 	)
 	result := Result{
-		Status:   status,
-		RegionId: regionId,
-		Error:    nil,
+		Status: status,
+		Region: region,
+		Error:  nil,
 	}
 
-	b, result.Error = Util.Download(fmt.Sprintf(URL_FORMAT, host))
+	b, result.Error = Util.Download(fmt.Sprintf(URL_FORMAT, region.Host))
 	if err = result.Error; err != nil {
 		c <- result
 		return

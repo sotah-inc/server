@@ -84,7 +84,7 @@ func main() {
 	Util.Write(fmt.Sprintf("Going over %d regions to download the statuses...", len(regions)))
 	c := make(chan Status.Result, len(regions))
 	for _, region := range regions {
-		go Status.Get(region.Host, region.Id, c)
+		go Status.Get(region, c)
 	}
 
 	// gathering the results
@@ -103,9 +103,10 @@ func main() {
 			return
 		}
 
-		region := regions[result.RegionId]
-		Util.Write(fmt.Sprintf("Persisting %d realms belonging to %s...", len(result.Status.Realms), region.Name))
-		for _, statusRealm := range result.Status.Realms {
+		region := result.Region
+		statusRealms := result.Status.Realms
+		Util.Write(fmt.Sprintf("Persisting %d realms belonging to %s...", len(statusRealms), region.Name))
+		for _, statusRealm := range statusRealms {
 			realm := statusRealm.ToEntity()
 			realm.Region = region
 
