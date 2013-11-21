@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"github.com/ihsw/go-download/Blizzard/Status"
 	"github.com/ihsw/go-download/Cache"
@@ -9,6 +10,37 @@ import (
 	"github.com/ihsw/go-download/Util"
 	"os"
 )
+
+func initialize(args []string) (configFile Config.ConfigFile, client Cache.Client, err error) {
+	if len(args) == 1 {
+		err = errors.New("Expected path to config file, got nothing")
+		return
+	}
+
+	// loading the config-file
+	configFile, err = Config.New(args[1])
+	if err != nil {
+		return
+	}
+
+	// connecting the redis clients
+	client, err = Config.NewCacheClient(configFile.ConnectionList)
+	if err != nil {
+		return
+	}
+
+	// flushing all of the databases
+	err = client.FlushDb()
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+func load(configRegions []Config.Region) (regions []Entity.Region) {
+
+}
 
 func main() {
 	Util.Write("Starting...")
@@ -22,29 +54,9 @@ func main() {
 	/*
 		initialization
 	*/
-	if len(os.Args) == 1 {
-		Util.Write("Expected path to config file, got nothing")
-		return
-	}
-
-	// loading the config-file
-	configFile, err = Config.New(os.Args[1])
+	configFile, client, err = initialize(os.Args)
 	if err != nil {
-		Util.Write(fmt.Sprintf("Config.New() fail: %s", err.Error()))
-		return
-	}
-
-	// connecting the redis clients
-	client, err = Config.NewCacheClient(configFile.ConnectionList)
-	if err != nil {
-		Util.Write(fmt.Sprintf("Config.NewCacheClient() fail: %s", err.Error()))
-		return
-	}
-
-	// flushing all of the databases
-	err = client.FlushDb()
-	if err != nil {
-		Util.Write(fmt.Sprintf("client.FlushDb() fail: %s", err.Error()))
+		Util.Write(fmt.Sprintf("initialize() fail: %s", err.Error()))
 		return
 	}
 
