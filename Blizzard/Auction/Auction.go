@@ -3,10 +3,14 @@ package Auction
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ihsw/go-download/Entity"
 	"github.com/ihsw/go-download/Util"
 )
 
-type Auction struct {
+/*
+	misc
+*/
+type Response struct {
 	Files []File
 }
 
@@ -17,18 +21,45 @@ type File struct {
 
 const URL_FORMAT = "http://%s/api/wow/auction/data/%s"
 
-func Get(host string, realm string) (Auction, error) {
-	var auction Auction
+/*
+	chan structs
+*/
+type Result struct {
+	Response Response
+	Length   int64
+	Realm    Entity.Realm
+	Error    error
+}
 
-	b, err := Util.Download(fmt.Sprintf(URL_FORMAT, host, realm))
-	if err != nil {
-		return auction, err
+/*
+	funcs
+*/
+func Get(realm Entity.Realm, c chan Result) {
+	var (
+		b        []byte
+		err      error
+		response Response
+	)
+	result := Result{
+		Response: response,
+		Realm:    realm,
+		Length:   0,
+		Error:    nil,
 	}
 
-	err = json.Unmarshal(b, &auction)
-	if err != nil {
-		return auction, err
+	url := fmt.Sprintf(URL_FORMAT, realm.Region.Host, realm.Slug)
+	b, result.Error = Util.Download(url)
+	if err = result.Error; err != nil {
+		c <- result
+		return
 	}
 
-	return auction, nil
+	result.Error = json.Unmarshal(b, &response)
+	if err = result.Error; err != nil {
+		c <- result
+	}
+
+	result.Response = response
+	result.Length = int64(len(b))
+	c <- result
 }

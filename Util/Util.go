@@ -8,8 +8,14 @@ import (
 	"time"
 )
 
+/*
+	misc
+*/
 const writeLayout = "2006-01-02 03:04:05PM"
 
+/*
+	funcs
+*/
 func MemoryUsage() uint64 {
 	s := &runtime.MemStats{}
 	runtime.ReadMemStats(s)

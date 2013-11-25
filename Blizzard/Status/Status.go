@@ -17,15 +17,11 @@ type PvpArea struct {
 	Next                uint64
 }
 
-type Status struct {
+type Response struct {
 	Realms []Realm
 }
 
-type Result struct {
-	Status Status
-	Region Entity.Region
-	Error  error
-}
+const URL_FORMAT = "http://%s/api/wow/realm/status"
 
 /*
 	Realm
@@ -55,18 +51,28 @@ func (self Realm) ToEntity() Entity.Realm {
 	}
 }
 
-const URL_FORMAT = "http://%s/api/wow/realm/status"
+/*
+	chan structs
+*/
+type Result struct {
+	Response Response
+	Region   Entity.Region
+	Error    error
+}
 
+/*
+	funcs
+*/
 func Get(region Entity.Region, c chan Result) {
 	var (
-		b      []byte
-		err    error
-		status Status
+		b        []byte
+		err      error
+		response Response
 	)
 	result := Result{
-		Status: status,
-		Region: region,
-		Error:  nil,
+		Response: response,
+		Region:   region,
+		Error:    nil,
 	}
 
 	b, result.Error = Util.Download(fmt.Sprintf(URL_FORMAT, region.Host))
@@ -75,13 +81,12 @@ func Get(region Entity.Region, c chan Result) {
 		return
 	}
 
-	err = json.Unmarshal(b, &status)
-	if err != nil {
-		result.Error = err
+	result.Error = json.Unmarshal(b, &response)
+	if err = result.Error; err != nil {
 		c <- result
 		return
 	}
 
-	result.Status = status
+	result.Response = response
 	c <- result
 }

@@ -88,15 +88,17 @@ func (self Locale) ToEntity() Entity.Locale {
 	Region
 */
 type Region struct {
-	Name    string
-	Host    string
-	Locales []Locale
+	Name      string
+	Host      string
+	Queryable bool
+	Locales   []Locale
 }
 
 func (self Region) ToEntity() Entity.Region {
 	return Entity.Region{
-		Name: self.Name,
-		Host: self.Host,
+		Name:      self.Name,
+		Host:      self.Host,
+		Queryable: self.Queryable,
 	}
 }
 

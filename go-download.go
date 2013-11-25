@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/ihsw/go-download/Blizzard/Auction"
 	"github.com/ihsw/go-download/Blizzard/Status"
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Config"
@@ -11,7 +12,7 @@ import (
 	"os"
 )
 
-func initialize(args []string) (Config.ConfigFile, Cache.Client, error) {
+func Initialize(args []string) (Config.ConfigFile, Cache.Client, error) {
 	var (
 		configFile Config.ConfigFile
 		client     Cache.Client
@@ -44,7 +45,7 @@ func initialize(args []string) (Config.ConfigFile, Cache.Client, error) {
 	return configFile, client, nil
 }
 
-func load(client Cache.Client, configRegions []Config.Region) ([]Entity.Region, error) {
+func Load(client Cache.Client, configRegions []Config.Region) ([]Entity.Region, error) {
 	var (
 		regions []Entity.Region
 		err     error
@@ -99,9 +100,9 @@ func getRealms(client Cache.Client, regions []Entity.Region) (map[int64][]Entity
 		}
 
 		region := result.Region
-		statusRealms := result.Status.Realms
-		for _, statusRealm := range statusRealms {
-			realm := statusRealm.ToEntity()
+		responseRealms := result.Response.Realms
+		for _, responseRealm := range responseRealms {
+			realm := responseRealm.ToEntity()
 			realm.Region = region
 			realm, err = realmManager.Persist(realm)
 			if err != nil {
@@ -131,7 +132,7 @@ func main() {
 	*/
 	// getting a client
 	Util.Write("Initializing the config...")
-	configFile, client, err = initialize(os.Args)
+	configFile, client, err = Initialize(os.Args)
 	if err != nil {
 		Util.Write(fmt.Sprintf("initialize() fail: %s", err.Error()))
 		return
@@ -139,7 +140,7 @@ func main() {
 
 	// loading the regions and locales
 	Util.Write("Loading the regions and locales...")
-	regions, err = load(client, configFile.Regions)
+	regions, err = Load(client, configFile.Regions)
 	if err != nil {
 		Util.Write(fmt.Sprintf("load() fail: %s", err.Error()))
 		return
@@ -156,13 +157,51 @@ func main() {
 	}
 
 	/*
-		debug
+		removing realms that aren't queryable
 	*/
-	realmCount := 0
-	for _, realms := range regionRealms {
-		realmCount += len(realms)
+	totalRealms := 0
+	for _, region := range regions {
+		if !region.Queryable {
+			delete(regionRealms, region.Id)
+			continue
+		}
+		totalRealms += len(regionRealms[region.Id])
 	}
-	Util.Write(fmt.Sprintf("Persisted %d realms...", realmCount))
+
+	/*
+		checking the status of each realm
+	*/
+	Util.Write("Checking the status of each realm...")
+	c := make(chan Auction.Result, totalRealms)
+
+	// going over the realms for the initial polling
+	Util.Write("Queueing up checking the realm status...")
+	for _, realms := range regionRealms {
+		for _, realm := range realms {
+			go Auction.Get(realm, c)
+		}
+	}
+
+	// gathering the results
+	Util.Write("Gathering the results...")
+	results := make([]Auction.Result, totalRealms)
+	for i := 0; i < totalRealms; i++ {
+		results[i] = <-c
+	}
+
+	// going over the results
+	Util.Write("Going over the results...")
+	count := 0
+	size := int64(0)
+	for _, result := range results {
+		if err = result.Error; err != nil {
+			Util.Write(fmt.Sprintf("Auction.Get() fail: %s", err.Error()))
+			return
+		}
+		count++
+		size += result.Length
+	}
+	Util.Write(fmt.Sprintf("Count: %d, size: %.2f MB", count, float64(size)/1000/1000))
 
 	Util.Conclude()
 }

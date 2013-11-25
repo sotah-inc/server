@@ -11,9 +11,10 @@ import (
 	Region
 */
 type Region struct {
-	Id   int64
-	Name string
-	Host string
+	Id        int64
+	Name      string
+	Host      string
+	Queryable bool
 }
 
 func (self Region) marshal() (string, error) {
@@ -27,10 +28,15 @@ func (self Region) marshal() (string, error) {
 }
 
 func (self Region) String() string {
-	return fmt.Sprintf("Region[Id: %d, Name: %s, Host: %s]",
+	queryable := "true"
+	if self.Queryable {
+		queryable = "false"
+	}
+	return fmt.Sprintf("Region[Id: %d, Name: %s, Host: %s, Queryable: %s]",
 		self.Id,
 		self.Name,
 		self.Host,
+		queryable,
 	)
 }
 
