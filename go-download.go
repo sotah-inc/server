@@ -10,6 +10,7 @@ import (
 	"github.com/ihsw/go-download/Entity"
 	"github.com/ihsw/go-download/Util"
 	"os"
+	"time"
 )
 
 func Initialize(args []string) (Config.ConfigFile, Cache.Client, error) {
@@ -117,7 +118,10 @@ func getRealms(client Cache.Client, regions []Entity.Region) (map[int64][]Entity
 }
 
 func main() {
-	Util.Write("Starting...")
+	output := Util.Output{
+		StartTime: time.Now(),
+	}
+	output.Write("Starting...")
 
 	var (
 		err          error
@@ -131,28 +135,28 @@ func main() {
 		reading the config
 	*/
 	// getting a client
-	Util.Write("Initializing the config...")
+	output.Write("Initializing the config...")
 	configFile, client, err = Initialize(os.Args)
 	if err != nil {
-		Util.Write(fmt.Sprintf("initialize() fail: %s", err.Error()))
+		output.Write(fmt.Sprintf("initialize() fail: %s", err.Error()))
 		return
 	}
 
 	// loading the regions and locales
-	Util.Write("Loading the regions and locales...")
+	output.Write("Loading the regions and locales...")
 	regions, err = Load(client, configFile.Regions)
 	if err != nil {
-		Util.Write(fmt.Sprintf("load() fail: %s", err.Error()))
+		output.Write(fmt.Sprintf("load() fail: %s", err.Error()))
 		return
 	}
 
 	/*
 		gathering and persisting realms for each region
 	*/
-	Util.Write("Fetching realms for each region...")
+	output.Write("Fetching realms for each region...")
 	regionRealms, err = getRealms(client, regions)
 	if err != nil {
-		Util.Write(fmt.Sprintf("getRealms() fail: %s", err.Error()))
+		output.Write(fmt.Sprintf("getRealms() fail: %s", err.Error()))
 		return
 	}
 
@@ -168,40 +172,60 @@ func main() {
 		totalRealms += len(regionRealms[region.Id])
 	}
 
+	regionMap := map[int64]int64{}
+	for i, region := range regions {
+		regionMap[region.Id] = int64(i)
+	}
+
 	/*
 		checking the status of each realm
 	*/
-	Util.Write("Checking the status of each realm...")
-	c := make(chan Auction.Result, totalRealms)
+	// misc
+	in := make(chan Entity.Realm, totalRealms)
+	out := make(chan Auction.Result, totalRealms)
+	workerCount := 2
 
-	// going over the realms for the initial polling
-	Util.Write("Queueing up checking the realm status...")
+	// spawning some workers
+	output.Write("Spawning some workers...")
+	for regionId, _ := range regionRealms {
+		for j := 0; j < workerCount; j++ {
+			output.Write(fmt.Sprintf("Spawning a worker for %s...", regions[regionMap[regionId]].Name))
+			go func(in chan Entity.Realm, out chan Auction.Result) {
+				for {
+					go Auction.Get(<-in, out)
+				}
+			}(in, out)
+		}
+	}
+
+	// queueing the realms up
+	output.Write("Queueing up the realms for checking...")
 	for _, realms := range regionRealms {
 		for _, realm := range realms {
-			go Auction.Get(realm, c)
+			in <- realm
 		}
 	}
 
 	// gathering the results
-	Util.Write("Gathering the results...")
+	output.Write("Gathering the results...")
 	results := make([]Auction.Result, totalRealms)
 	for i := 0; i < totalRealms; i++ {
-		results[i] = <-c
+		results[i] = <-out
 	}
 
 	// going over the results
-	Util.Write("Going over the results...")
+	output.Write("Going over the results...")
 	count := 0
 	size := int64(0)
 	for _, result := range results {
 		if err = result.Error; err != nil {
-			Util.Write(fmt.Sprintf("Auction.Get() fail: %s", err.Error()))
+			output.Write(fmt.Sprintf("Auction.Get() fail: %s", err.Error()))
 			return
 		}
 		count++
 		size += result.Length
 	}
-	Util.Write(fmt.Sprintf("Count: %d, size: %.2f MB", count, float64(size)/1000/1000))
+	output.Write(fmt.Sprintf("Count: %d, size: %.2f MB", count, float64(size)/1000/1000))
 
-	Util.Conclude()
+	output.Conclude()
 }

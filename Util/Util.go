@@ -11,6 +11,22 @@ import (
 )
 
 /*
+	Output
+*/
+type Output struct {
+	StartTime time.Time
+}
+
+func (self Output) Write(s string) {
+	duration := time.Since(self.StartTime).Seconds()
+	fmt.Println(fmt.Sprintf("[%s %.2fs] %s", time.Now().Format(writeLayout), duration, s))
+}
+
+func (self Output) Conclude() {
+	self.Write(fmt.Sprintf("Success! %.2f MB", float64(MemoryUsage())/1000/1000))
+}
+
+/*
 	misc
 */
 const writeLayout = "2006-01-02 03:04:05PM"
@@ -22,14 +38,6 @@ func MemoryUsage() uint64 {
 	s := &runtime.MemStats{}
 	runtime.ReadMemStats(s)
 	return s.Alloc
-}
-
-func Write(s string) {
-	fmt.Println(fmt.Sprintf("[%s] %s", time.Now().Format(writeLayout), s))
-}
-
-func Conclude() {
-	Write(fmt.Sprintf("Success! %.2f MB", float64(MemoryUsage())/1000/1000))
 }
 
 func Download(url string) (b []byte, err error) {

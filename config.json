@@ -43,13 +43,13 @@
 			"name": "tw",
 			"host": "tw.battle.net",
 			"locales": [ { "name": "zh_TW", "fullname": "繁體中文", "shortname": "tw" } ],
-			"queryable": false
+			"queryable": true
 		},
 		{
 			"name": "cn",
 			"host": "www.battlenet.com.cn",
 			"locales": [ { "name": "zh_CN", "fullname": "简体中文", "shortname": "cn" } ],
-			"queryable": false
+			"queryable": true
 		}
 	]
 }
