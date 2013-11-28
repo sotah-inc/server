@@ -1,7 +1,9 @@
 package Util
 
 import (
+	"compress/gzip"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"runtime"
@@ -30,14 +32,38 @@ func Conclude() {
 	Write(fmt.Sprintf("Success! %.2f MB", float64(MemoryUsage())/1000/1000))
 }
 
-func Download(url string) ([]byte, error) {
-	var v []byte
+func Download(url string) (b []byte, err error) {
+	var (
+		req    *http.Request
+		reader io.ReadCloser
+	)
 
-	resp, err := http.Get(url)
+	// forming a request
+	req, err = http.NewRequest("GET", url, nil)
 	if err != nil {
-		return v, err
+		return b, err
+	}
+	req.Header.Add("Accept-Encoding", "gzip")
+
+	// running it into a client
+	httpClient := &http.Client{}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return b, err
 	}
 	defer resp.Body.Close()
 
-	return ioutil.ReadAll(resp.Body)
+	// optionally decompressing it
+	switch resp.Header.Get("Content-Encoding") {
+	case "gzip":
+		reader, err = gzip.NewReader(resp.Body)
+		if err != nil {
+			return
+		}
+		defer reader.Close()
+	default:
+		reader = resp.Body
+	}
+
+	return ioutil.ReadAll(reader)
 }
