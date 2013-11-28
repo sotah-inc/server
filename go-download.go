@@ -183,24 +183,38 @@ func main() {
 	// misc
 	in := make(chan Entity.Realm, totalRealms)
 	out := make(chan Auction.Result, totalRealms)
-	workerCount := 2
+	workerCount := 8
 
 	// spawning some workers
 	output.Write("Spawning some workers...")
-	for regionId, _ := range regionRealms {
-		for j := 0; j < workerCount; j++ {
-			output.Write(fmt.Sprintf("Spawning a worker for %s...", regions[regionMap[regionId]].Name))
-			go func(in chan Entity.Realm, out chan Auction.Result) {
-				for {
-					go Auction.Get(<-in, out)
-				}
-			}(in, out)
+	for j := 0; j < workerCount; j++ {
+		go func(in chan Entity.Realm, out chan Auction.Result) {
+			for {
+				Auction.Get(<-in, out)
+			}
+		}(in, out)
+	}
+
+	// formatting the realms to be evenly distributed
+	largestRegion := 0
+	for _, realms := range regionRealms {
+		if len(realms) > largestRegion {
+			largestRegion = len(realms)
+		}
+	}
+	formattedRealms := make([]map[int64]Entity.Realm, largestRegion)
+	for regionId, realms := range regionRealms {
+		for i, realm := range realms {
+			if formattedRealms[int64(i)] == nil {
+				formattedRealms[int64(i)] = map[int64]Entity.Realm{}
+			}
+			formattedRealms[int64(i)][regionId] = realm
 		}
 	}
 
 	// queueing the realms up
 	output.Write("Queueing up the realms for checking...")
-	for _, realms := range regionRealms {
+	for _, realms := range formattedRealms {
 		for _, realm := range realms {
 			in <- realm
 		}
