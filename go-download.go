@@ -10,6 +10,7 @@ import (
 	"github.com/ihsw/go-download/Entity"
 	"github.com/ihsw/go-download/Util"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -74,7 +75,7 @@ func Load(client Cache.Client, configRegions []Config.Region) ([]Entity.Region, 
 	return regions, nil
 }
 
-func getRealms(client Cache.Client, regions []Entity.Region) (map[int64][]Entity.Realm, error) {
+func getRealms(client Cache.Client, regions []Entity.Region, cwd string) (map[int64][]Entity.Realm, error) {
 	var (
 		regionRealms map[int64][]Entity.Realm
 		err          error
@@ -85,7 +86,7 @@ func getRealms(client Cache.Client, regions []Entity.Region) (map[int64][]Entity
 	// going over the regions to download the statuses
 	c := make(chan Status.Result, len(regions))
 	for _, region := range regions {
-		go Status.Get(region, c)
+		go Status.Get(region, cwd, c)
 	}
 
 	// gathering the results
@@ -132,6 +133,50 @@ func main() {
 	)
 
 	/*
+		misc setup
+	*/
+	var (
+		cwd      string
+		fileinfo os.FileInfo
+	)
+
+	// getting the cwd
+	cwd, err = filepath.Abs(".")
+	if err != nil {
+		output.Write(fmt.Sprintf("filepath.Abs() fail: %s", err.Error()))
+		return
+	}
+
+	/*
+		json dir handling
+	*/
+	// misc
+	jsonDir := fmt.Sprintf("%s/json", cwd)
+
+	// checking whether it exists and creating where necessary
+	fileinfo, err = os.Stat(jsonDir)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			output.Write(fmt.Sprintf("os.Stat() fail: %s", err.Error()))
+			return
+		}
+
+		err = os.Mkdir(jsonDir, 0755)
+		if err != nil {
+			output.Write(fmt.Sprintf("os.Mkdir() fail: %s", err.Error()))
+			return
+		}
+	}
+
+	// checking whether it's a writeable directory
+	if !fileinfo.IsDir() {
+		output.Write("json dir is not a directory!")
+		return
+	}
+	output.Write(":D")
+	return
+
+	/*
 		reading the config
 	*/
 	// getting a client
@@ -154,7 +199,7 @@ func main() {
 		gathering and persisting realms for each region
 	*/
 	output.Write("Fetching realms for each region...")
-	regionRealms, err = getRealms(client, regions)
+	regionRealms, err = getRealms(client, regions, cwd)
 	if err != nil {
 		output.Write(fmt.Sprintf("getRealms() fail: %s", err.Error()))
 		return

@@ -63,7 +63,7 @@ type Result struct {
 /*
 	funcs
 */
-func Get(region Entity.Region, c chan Result) {
+func Get(region Entity.Region, cwd string, c chan Result) {
 	var (
 		b        []byte
 		err      error
@@ -75,6 +75,9 @@ func Get(region Entity.Region, c chan Result) {
 		Error:    nil,
 	}
 
+	// checking locally
+
+	// checking the api
 	b, result.Error = Util.Download(fmt.Sprintf(URL_FORMAT, region.Host))
 	if err = result.Error; err != nil {
 		c <- result

@@ -47,6 +47,7 @@ func Get(realm Entity.Realm, c chan Result) {
 		Error:    nil,
 	}
 
+	fmt.Println(fmt.Sprintf("Downloading %s-%s...", realm.Region.Name, realm.Slug))
 	url := fmt.Sprintf(URL_FORMAT, realm.Region.Host, realm.Slug)
 	b, result.Error = Util.Download(url)
 	if err = result.Error; err != nil {
