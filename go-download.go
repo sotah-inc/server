@@ -9,8 +9,8 @@ import (
 	"github.com/ihsw/go-download/Config"
 	"github.com/ihsw/go-download/Entity"
 	"github.com/ihsw/go-download/Util"
+	"io/ioutil"
 	"os"
-	"path/filepath"
 	"time"
 )
 
@@ -75,7 +75,7 @@ func Load(client Cache.Client, configRegions []Config.Region) ([]Entity.Region, 
 	return regions, nil
 }
 
-func getRealms(client Cache.Client, regions []Entity.Region, cwd string) (map[int64][]Entity.Realm, error) {
+func getRealms(client Cache.Client, regions []Entity.Region, statusDir string) (map[int64][]Entity.Realm, error) {
 	var (
 		regionRealms map[int64][]Entity.Realm
 		err          error
@@ -86,7 +86,7 @@ func getRealms(client Cache.Client, regions []Entity.Region, cwd string) (map[in
 	// going over the regions to download the statuses
 	c := make(chan Status.Result, len(regions))
 	for _, region := range regions {
-		go Status.Get(region, cwd, c)
+		go Status.Get(region, statusDir, c)
 	}
 
 	// gathering the results
@@ -133,48 +133,57 @@ func main() {
 	)
 
 	/*
-		misc setup
-	*/
-	var (
-		cwd      string
-		fileinfo os.FileInfo
-	)
-
-	// getting the cwd
-	cwd, err = filepath.Abs(".")
-	if err != nil {
-		output.Write(fmt.Sprintf("filepath.Abs() fail: %s", err.Error()))
-		return
-	}
-
-	/*
 		json dir handling
 	*/
 	// misc
-	jsonDir := fmt.Sprintf("%s/json", cwd)
-
-	// checking whether it exists and creating where necessary
-	fileinfo, err = os.Stat(jsonDir)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			output.Write(fmt.Sprintf("os.Stat() fail: %s", err.Error()))
-			return
-		}
-
-		err = os.Mkdir(jsonDir, 0755)
+	var fileinfo os.FileInfo
+	directories := map[string]string{
+		"json":            "json",
+		"region-statuses": "json/region-statuses",
+	}
+	for _, directory := range directories {
+		// checking whether it exists and creating where necessary
+		fileinfo, err = os.Stat(directory)
 		if err != nil {
-			output.Write(fmt.Sprintf("os.Mkdir() fail: %s", err.Error()))
+			if !os.IsNotExist(err) {
+				output.Write(fmt.Sprintf("os.Stat() fail: %s", err.Error()))
+				return
+			}
+
+			err = os.MkdirAll(directory, 0755)
+			if err != nil {
+				output.Write(fmt.Sprintf("os.Mkdir() fail: %s", err.Error()))
+				return
+			}
+
+			fileinfo, err = os.Stat(directory)
+			if err != nil && !os.IsNotExist(err) {
+				output.Write(fmt.Sprintf("os.Stat() fail: %s", err.Error()))
+				return
+			}
+		}
+
+		// checking whether it's a directory
+		if !fileinfo.IsDir() {
+			output.Write("json dir is not a directory!")
+			return
+		}
+
+		// checking whether it's writeable with a test file
+		testFilepath := fmt.Sprintf("%s/test", directory)
+		err = ioutil.WriteFile(testFilepath, []byte("test"), 0755)
+		if err != nil {
+			output.Write(fmt.Sprintf("ioutil.WriteFile() fail: %s", err.Error()))
+			return
+		}
+
+		// deleting the test file
+		err = os.Remove(testFilepath)
+		if err != nil {
+			output.Write(fmt.Sprintf("os.Remove() fail: %s", err.Error()))
 			return
 		}
 	}
-
-	// checking whether it's a writeable directory
-	if !fileinfo.IsDir() {
-		output.Write("json dir is not a directory!")
-		return
-	}
-	output.Write(":D")
-	return
 
 	/*
 		reading the config
@@ -199,11 +208,12 @@ func main() {
 		gathering and persisting realms for each region
 	*/
 	output.Write("Fetching realms for each region...")
-	regionRealms, err = getRealms(client, regions, cwd)
+	regionRealms, err = getRealms(client, regions, directories["region-statuses"])
 	if err != nil {
 		output.Write(fmt.Sprintf("getRealms() fail: %s", err.Error()))
 		return
 	}
+	return
 
 	/*
 		removing realms that aren't queryable
