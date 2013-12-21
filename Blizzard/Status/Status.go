@@ -7,6 +7,7 @@ import (
 	"github.com/ihsw/go-download/Util"
 	"io/ioutil"
 	"os"
+	"time"
 )
 
 /*
@@ -93,22 +94,31 @@ func Get(region Entity.Region, statusDir string, c chan Result) {
 		and if it fails *only* due to not being json-decodeable then delete it and continue to the api
 	*/
 	if fileinfo != nil {
-		b, result.Error = ioutil.ReadFile(statusFilepath)
-		if result.Error != nil {
-			c <- result
-			return
-		}
-
-		result.Error = json.Unmarshal(b, &response)
-		if result.Error == nil {
-			result.Response = response
-			c <- result
-			return
-		} else {
+		weekAgo := time.Now().Add(24 * 7 * time.Hour * -1)
+		if fileinfo.ModTime().Before(weekAgo) {
 			result.Error = os.Remove(statusFilepath)
 			if result.Error != nil {
 				c <- result
 				return
+			}
+		} else {
+			b, result.Error = ioutil.ReadFile(statusFilepath)
+			if result.Error != nil {
+				c <- result
+				return
+			}
+
+			result.Error = json.Unmarshal(b, &response)
+			if result.Error == nil {
+				result.Response = response
+				c <- result
+				return
+			} else {
+				result.Error = os.Remove(statusFilepath)
+				if result.Error != nil {
+					c <- result
+					return
+				}
 			}
 		}
 	}
