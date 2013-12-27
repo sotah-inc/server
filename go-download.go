@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/ihsw/go-download/Blizzard"
 	"github.com/ihsw/go-download/Blizzard/Auction"
 	"github.com/ihsw/go-download/Blizzard/Status"
 	"github.com/ihsw/go-download/Cache"
@@ -213,7 +214,6 @@ func main() {
 		output.Write(fmt.Sprintf("getRealms() fail: %s", err.Error()))
 		return
 	}
-	return
 
 	/*
 		removing realms that aren't queryable
@@ -226,6 +226,7 @@ func main() {
 		}
 		totalRealms += len(regionRealms[region.Id])
 	}
+	totalRealms = 1
 
 	regionMap := map[int64]int64{}
 	for i, region := range regions {
@@ -245,7 +246,7 @@ func main() {
 	for j := 0; j < workerCount; j++ {
 		go func(in chan Entity.Realm, out chan Auction.Result) {
 			for {
-				Auction.Get(<-in, out)
+				Blizzard.DownloadRealm(<-in, out)
 			}
 		}(in, out)
 	}
@@ -272,7 +273,9 @@ func main() {
 	for _, realms := range formattedRealms {
 		for _, realm := range realms {
 			in <- realm
+			break
 		}
+		break
 	}
 
 	// gathering the results
@@ -291,6 +294,9 @@ func main() {
 			output.Write(fmt.Sprintf("Auction.Get() fail: %s", err.Error()))
 			return
 		}
+
+		fmt.Println(fmt.Sprintf("%#v", result.Response.Files))
+
 		count++
 		size += result.Length
 	}
