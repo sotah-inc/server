@@ -288,7 +288,6 @@ func main() {
 	// going over the results
 	output.Write("Going over the results...")
 	count := 0
-	size := int64(0)
 	for _, result := range results {
 		if err = result.Error; err != nil {
 			output.Write(fmt.Sprintf("Auction.Get() fail: %s", err.Error()))
@@ -298,9 +297,8 @@ func main() {
 		fmt.Println(fmt.Sprintf("%#v", result.Response.Files))
 
 		count++
-		size += result.Length
 	}
-	output.Write(fmt.Sprintf("Count: %d, size: %.2f MB", count, float64(size)/1000/1000))
+	output.Write(fmt.Sprintf("Count: %d", count))
 
 	output.Conclude()
 }
