@@ -23,47 +23,31 @@ type File struct {
 const URL_FORMAT = "http://%s/api/wow/auction/data/%s"
 
 /*
-	chan structs
-*/
-type Result struct {
-	Response Response
-	Realm    Entity.Realm
-	Error    error
-}
-
-/*
 	funcs
 */
-func Get(realm Entity.Realm) Result {
+func Get(realm Entity.Realm) (Response, error) {
 	var (
 		b        []byte
+		err      error
 		response Response
 	)
-	result := Result{
-		Response: response,
-		Realm:    realm,
-		Error:    nil,
-	}
 
 	url := fmt.Sprintf(URL_FORMAT, realm.Region.Host, realm.Slug)
-	b, result.Error = Util.Download(url)
-	if result.Error != nil {
-		return result
+	b, err = Util.Download(url)
+	if err != nil {
+		return response, err
 	}
 
-	result.Error = json.Unmarshal(b, &response)
-	if result.Error != nil {
-		return result
+	err = json.Unmarshal(b, &response)
+	if err != nil {
+		return response, err
 	}
 
 	if len(response.Files) == 0 {
-		result.Error = errors.New("Response.Files length was zero")
-		return result
+		return response, errors.New("Response.Files length was zero")
 	} else if len(response.Files) > 1 {
-		result.Error = errors.New("Response.Files length was >1")
-		return result
+		return response, errors.New("Response.Files length was >1")
 	}
 
-	result.Response = response
-	return result
+	return response, nil
 }

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ihsw/go-download/Blizzard"
-	"github.com/ihsw/go-download/Blizzard/Auction"
+	"github.com/ihsw/go-download/Blizzard/AuctionData"
 	"github.com/ihsw/go-download/Blizzard/Status"
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Config"
@@ -224,9 +224,9 @@ func main() {
 			delete(regionRealms, region.Id)
 			continue
 		}
-		totalRealms += len(regionRealms[region.Id])
+		// totalRealms += len(regionRealms[region.Id])
+		totalRealms += 1
 	}
-	totalRealms = 1
 
 	regionMap := map[int64]int64{}
 	for i, region := range regions {
@@ -238,13 +238,13 @@ func main() {
 	*/
 	// misc
 	in := make(chan Entity.Realm, totalRealms)
-	out := make(chan Auction.Result, totalRealms)
+	out := make(chan Blizzard.Result, totalRealms)
 	workerCount := 8
 
 	// spawning some workers
 	output.Write("Spawning some workers...")
 	for j := 0; j < workerCount; j++ {
-		go func(in chan Entity.Realm, out chan Auction.Result) {
+		go func(in chan Entity.Realm, out chan Blizzard.Result) {
 			for {
 				Blizzard.DownloadRealm(<-in, out)
 			}
@@ -265,6 +265,7 @@ func main() {
 				formattedRealms[int64(i)] = map[int64]Entity.Realm{}
 			}
 			formattedRealms[int64(i)][regionId] = realm
+			break
 		}
 	}
 
@@ -273,14 +274,12 @@ func main() {
 	for _, realms := range formattedRealms {
 		for _, realm := range realms {
 			in <- realm
-			break
 		}
-		break
 	}
 
 	// gathering the results
 	output.Write("Gathering the results...")
-	results := make([]Auction.Result, totalRealms)
+	results := make([]Blizzard.Result, totalRealms)
 	for i := 0; i < totalRealms; i++ {
 		results[i] = <-out
 	}
@@ -289,12 +288,23 @@ func main() {
 	output.Write("Going over the results...")
 	count := 0
 	for _, result := range results {
-		if err = result.Error; err != nil {
-			output.Write(fmt.Sprintf("Auction.Get() fail: %s", err.Error()))
+		if result.Error != nil {
+			output.Write(fmt.Sprintf("Blizzard.DownloadRealm() fail: %s", result.Error.Error()))
 			return
 		}
 
-		fmt.Println(fmt.Sprintf("%#v", result.Response.Files))
+		realm := result.Realm
+		data := result.AuctionDataResponse
+		auctionCount := 0
+		auctionGroups := [][]AuctionData.Auction{
+			data.Alliance.Auctions,
+			data.Horde.Auctions,
+			data.Neutral.Auctions,
+		}
+		for _, auctions := range auctionGroups {
+			auctionCount += len(auctions)
+		}
+		output.Write(fmt.Sprintf("Auction count for %s-%s: %d", realm.Region.Name, realm.Slug, auctionCount))
 
 		count++
 	}

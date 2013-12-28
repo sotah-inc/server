@@ -1,16 +1,22 @@
 package AuctionData
 
+import (
+	"encoding/json"
+	"fmt"
+	"github.com/ihsw/go-download/Util"
+)
+
 /*
 	misc
 */
 type Response struct {
-	Realm    Realm
+	Realm    ResponseRealm
 	Alliance Auctions
 	Horde    Auctions
 	Neutral  Auctions
 }
 
-type Realm struct {
+type ResponseRealm struct {
 	Name string
 	Slug string
 }
@@ -28,6 +34,31 @@ type Auction struct {
 	Buyout     uint64
 	Quantity   uint64
 	TimeLeft   string
-	Rand       uint64
+	Rand       int64
 	Seed       uint64
+}
+
+/*
+	funcs
+*/
+func Get(url string) (Response, error) {
+	var (
+		b        []byte
+		response Response
+		err      error
+	)
+
+	fmt.Println(fmt.Sprintf("start %s", url))
+	b, err = Util.Download(url)
+	fmt.Println(fmt.Sprintf("end %s", url))
+	if err != nil {
+		return response, err
+	}
+
+	err = json.Unmarshal(b, &response)
+	if err != nil {
+		return response, err
+	}
+
+	return response, nil
 }
