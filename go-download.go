@@ -3,19 +3,18 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/ihsw/go-download/Blizzard"
-	"github.com/ihsw/go-download/Blizzard/AuctionData"
 	"github.com/ihsw/go-download/Blizzard/Status"
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Config"
 	"github.com/ihsw/go-download/Entity"
 	"github.com/ihsw/go-download/Util"
+	"github.com/ihsw/go-download/Work"
 	"io/ioutil"
 	"os"
 	"time"
 )
 
-func Initialize(args []string) (Config.ConfigFile, Cache.Client, error) {
+func initialize(args []string) (Config.ConfigFile, Cache.Client, error) {
 	var (
 		configFile Config.ConfigFile
 		client     Cache.Client
@@ -48,7 +47,7 @@ func Initialize(args []string) (Config.ConfigFile, Cache.Client, error) {
 	return configFile, client, nil
 }
 
-func Load(client Cache.Client, configRegions []Config.Region) ([]Entity.Region, error) {
+func load(client Cache.Client, configRegions []Config.Region) ([]Entity.Region, error) {
 	var (
 		regions []Entity.Region
 		err     error
@@ -119,6 +118,52 @@ func getRealms(client Cache.Client, regions []Entity.Region, statusDir string) (
 	return regionRealms, nil
 }
 
+func validateDirectories(directories map[string]string) error {
+	var (
+		err      error
+		fileinfo os.FileInfo
+	)
+	for _, directory := range directories {
+		// checking whether it exists and creating where necessary
+		fileinfo, err = os.Stat(directory)
+		if err != nil {
+			if !os.IsNotExist(err) {
+				return err
+			}
+
+			err = os.MkdirAll(directory, 0755)
+			if err != nil {
+				return err
+			}
+
+			fileinfo, err = os.Stat(directory)
+			if err != nil && !os.IsNotExist(err) {
+				return err
+			}
+		}
+
+		// checking whether it's a directory
+		if !fileinfo.IsDir() {
+			return err
+		}
+
+		// checking whether it's writeable with a test file
+		testFilepath := fmt.Sprintf("%s/test", directory)
+		err = ioutil.WriteFile(testFilepath, []byte("test"), 0755)
+		if err != nil {
+			return err
+		}
+
+		// deleting the test file
+		err = os.Remove(testFilepath)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func main() {
 	output := Util.Output{
 		StartTime: time.Now(),
@@ -137,53 +182,14 @@ func main() {
 		json dir handling
 	*/
 	// misc
-	var fileinfo os.FileInfo
 	directories := map[string]string{
 		"json":            "json",
 		"region-statuses": "json/region-statuses",
 	}
-	for _, directory := range directories {
-		// checking whether it exists and creating where necessary
-		fileinfo, err = os.Stat(directory)
-		if err != nil {
-			if !os.IsNotExist(err) {
-				output.Write(fmt.Sprintf("os.Stat() fail: %s", err.Error()))
-				return
-			}
-
-			err = os.MkdirAll(directory, 0755)
-			if err != nil {
-				output.Write(fmt.Sprintf("os.Mkdir() fail: %s", err.Error()))
-				return
-			}
-
-			fileinfo, err = os.Stat(directory)
-			if err != nil && !os.IsNotExist(err) {
-				output.Write(fmt.Sprintf("os.Stat() fail: %s", err.Error()))
-				return
-			}
-		}
-
-		// checking whether it's a directory
-		if !fileinfo.IsDir() {
-			output.Write("json dir is not a directory!")
-			return
-		}
-
-		// checking whether it's writeable with a test file
-		testFilepath := fmt.Sprintf("%s/test", directory)
-		err = ioutil.WriteFile(testFilepath, []byte("test"), 0755)
-		if err != nil {
-			output.Write(fmt.Sprintf("ioutil.WriteFile() fail: %s", err.Error()))
-			return
-		}
-
-		// deleting the test file
-		err = os.Remove(testFilepath)
-		if err != nil {
-			output.Write(fmt.Sprintf("os.Remove() fail: %s", err.Error()))
-			return
-		}
+	err = validateDirectories(directories)
+	if err != nil {
+		output.Write(fmt.Sprintf("validateDirectories() fail: %s", err.Error()))
+		return
 	}
 
 	/*
@@ -191,7 +197,7 @@ func main() {
 	*/
 	// getting a client
 	output.Write("Initializing the config...")
-	configFile, client, err = Initialize(os.Args)
+	configFile, client, err = initialize(os.Args)
 	if err != nil {
 		output.Write(fmt.Sprintf("initialize() fail: %s", err.Error()))
 		return
@@ -199,7 +205,7 @@ func main() {
 
 	// loading the regions and locales
 	output.Write("Loading the regions and locales...")
-	regions, err = Load(client, configFile.Regions)
+	regions, err = load(client, configFile.Regions)
 	if err != nil {
 		output.Write(fmt.Sprintf("load() fail: %s", err.Error()))
 		return
@@ -234,23 +240,35 @@ func main() {
 	}
 
 	/*
-		checking the status of each realm
+		making channels and spawning workers
 	*/
 	// misc
-	in := make(chan Entity.Realm, totalRealms)
-	out := make(chan Blizzard.Result, totalRealms)
-	workerCount := 8
+	downloadIn := make(chan Entity.Realm, totalRealms)
+	itemizeIn := make(chan Work.DownloadResult, totalRealms)
+	itemizeOut := make(chan Work.ItemizeResult, totalRealms)
+	doneIn := make(chan bool)
 
-	// spawning some workers
-	output.Write("Spawning some workers...")
-	for j := 0; j < workerCount; j++ {
-		go func(in chan Entity.Realm, out chan Blizzard.Result) {
+	// spawning some download workers
+	output.Write("Spawning some download workers...")
+	downloadWorkerCount := 8
+	for j := 0; j < downloadWorkerCount; j++ {
+		go func(in chan Entity.Realm, out chan Work.DownloadResult, output Util.Output) {
 			for {
-				Blizzard.DownloadRealm(<-in, out)
+				Work.DownloadRealm(<-in, out, output)
 			}
-		}(in, out)
+		}(downloadIn, itemizeIn, output)
 	}
 
+	// spawning an itemize worker
+	go func(in chan Work.DownloadResult, out chan Work.ItemizeResult, output Util.Output) {
+		for {
+			Work.ItemizeRealm(<-in, out, output)
+		}
+	}(itemizeIn, itemizeOut, output)
+
+	/*
+		queueing up the realms
+	*/
 	// formatting the realms to be evenly distributed
 	largestRegion := 0
 	for _, realms := range regionRealms {
@@ -265,50 +283,18 @@ func main() {
 				formattedRealms[int64(i)] = map[int64]Entity.Realm{}
 			}
 			formattedRealms[int64(i)][regionId] = realm
-			break
 		}
 	}
 
-	// queueing the realms up
+	// pushing the realms into the start of the queue
 	output.Write("Queueing up the realms for checking...")
 	for _, realms := range formattedRealms {
 		for _, realm := range realms {
-			in <- realm
+			downloadIn <- realm
 		}
+		break
 	}
 
-	// gathering the results
-	output.Write("Gathering the results...")
-	results := make([]Blizzard.Result, totalRealms)
-	for i := 0; i < totalRealms; i++ {
-		results[i] = <-out
-	}
-
-	// going over the results
-	output.Write("Going over the results...")
-	count := 0
-	for _, result := range results {
-		if result.Error != nil {
-			output.Write(fmt.Sprintf("Blizzard.DownloadRealm() fail: %s", result.Error.Error()))
-			return
-		}
-
-		realm := result.Realm
-		data := result.AuctionDataResponse
-		auctionCount := 0
-		auctionGroups := [][]AuctionData.Auction{
-			data.Alliance.Auctions,
-			data.Horde.Auctions,
-			data.Neutral.Auctions,
-		}
-		for _, auctions := range auctionGroups {
-			auctionCount += len(auctions)
-		}
-		output.Write(fmt.Sprintf("Auction count for %s-%s: %d", realm.Region.Name, realm.Slug, auctionCount))
-
-		count++
-	}
-	output.Write(fmt.Sprintf("Count: %d", count))
-
+	<-doneIn
 	output.Conclude()
 }

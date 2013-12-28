@@ -53,6 +53,10 @@ func (self Realm) marshal() (string, error) {
 
 func (self Realm) IsValid() bool { return self.Id != 0 }
 
+func (self Realm) Dump() string {
+	return fmt.Sprintf("%s-%s", self.Region.Name, self.Slug)
+}
+
 /*
 	RealmJson
 */

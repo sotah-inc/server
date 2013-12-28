@@ -2,7 +2,6 @@ package AuctionData
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/ihsw/go-download/Util"
 )
 
@@ -48,9 +47,7 @@ func Get(url string) (Response, error) {
 		err      error
 	)
 
-	fmt.Println(fmt.Sprintf("start %s", url))
 	b, err = Util.Download(url)
-	fmt.Println(fmt.Sprintf("end %s", url))
 	if err != nil {
 		return response, err
 	}
