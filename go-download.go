@@ -246,7 +246,6 @@ func main() {
 	downloadIn := make(chan Entity.Realm, totalRealms)
 	itemizeIn := make(chan Work.DownloadResult, totalRealms)
 	itemizeOut := make(chan Work.ItemizeResult, totalRealms)
-	doneIn := make(chan bool)
 
 	// spawning some download workers
 	output.Write("Spawning some download workers...")
@@ -260,11 +259,11 @@ func main() {
 	}
 
 	// spawning an itemize worker
-	go func(in chan Work.DownloadResult, out chan Work.ItemizeResult, output Util.Output) {
+	go func(in chan Work.DownloadResult, out chan Work.ItemizeResult) {
 		for {
-			Work.ItemizeRealm(<-in, out, output)
+			Work.ItemizeRealm(<-in, out)
 		}
-	}(itemizeIn, itemizeOut, output)
+	}(itemizeIn, itemizeOut)
 
 	/*
 		queueing up the realms
@@ -295,6 +294,25 @@ func main() {
 		break
 	}
 
-	<-doneIn
+	/*
+		debugging
+	*/
+	output.Write(fmt.Sprintf("Gathering %d results for debugging...", totalRealms))
+	results := make([]Work.ItemizeResult, totalRealms)
+	for i := 0; i < totalRealms; i++ {
+		results[i] = <-itemizeOut
+	}
+
+	output.Write(fmt.Sprintf("Going over %d results for debugging...", len(results)))
+	for _, result := range results {
+		realm := result.Realm
+		if result.Error != nil {
+			output.Write(fmt.Sprintf("Itemize %s fail: %s", realm.Dump(), result.Error.Error()))
+			continue
+		}
+
+		output.Write(fmt.Sprintf("%s has %d auctions...", realm.Dump(), result.AuctionCount))
+	}
+
 	output.Conclude()
 }

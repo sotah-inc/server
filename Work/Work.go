@@ -20,8 +20,9 @@ type DownloadResult struct {
 }
 
 type ItemizeResult struct {
-	Error error
-	Realm Entity.Realm
+	Error        error
+	Realm        Entity.Realm
+	AuctionCount int
 }
 
 /*
@@ -50,10 +51,15 @@ func DownloadRealm(realm Entity.Realm, out chan DownloadResult, output Util.Outp
 	out <- result
 }
 
-func ItemizeRealm(downloadResult DownloadResult, out chan ItemizeResult, output Util.Output) {
+func ItemizeRealm(downloadResult DownloadResult, out chan ItemizeResult) {
 	realm := downloadResult.Realm
+	itemizeResult := ItemizeResult{
+		Realm: realm,
+	}
+
 	if downloadResult.Error != nil {
-		output.Write(fmt.Sprintf("Work.DownloadRealm() fail for %s: %s", realm.Dump(), downloadResult.Error.Error()))
+		itemizeResult.Error = downloadResult.Error
+		out <- itemizeResult
 		return
 	}
 
@@ -67,5 +73,6 @@ func ItemizeRealm(downloadResult DownloadResult, out chan ItemizeResult, output 
 	for _, auctions := range auctionGroups {
 		auctionCount += len(auctions)
 	}
-	output.Write(fmt.Sprintf("Auction count for %s-%s: %d", realm.Region.Name, realm.Slug, auctionCount))
+	itemizeResult.AuctionCount = auctionCount
+	out <- itemizeResult
 }
