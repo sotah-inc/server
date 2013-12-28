@@ -37,13 +37,13 @@
 			"name": "kr",
 			"host": "kr.battle.net",
 			"locales": [ { "name": "ko_KR", "fullname": "한국어", "shortname": "kr" } ],
-			"queryable": true
+			"queryable": false
 		},
 		{
 			"name": "tw",
 			"host": "tw.battle.net",
 			"locales": [ { "name": "zh_TW", "fullname": "繁體中文", "shortname": "tw" } ],
-			"queryable": true
+			"queryable": false
 		},
 		{
 			"name": "cn",

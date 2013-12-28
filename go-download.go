@@ -304,6 +304,7 @@ func main() {
 	}
 
 	output.Write(fmt.Sprintf("Going over %d results for debugging...", len(results)))
+	totalAuctionCount := 0
 	for _, result := range results {
 		realm := result.Realm
 		if result.Error != nil {
@@ -311,8 +312,10 @@ func main() {
 			continue
 		}
 
+		totalAuctionCount += result.AuctionCount
 		output.Write(fmt.Sprintf("%s has %d auctions...", realm.Dump(), result.AuctionCount))
 	}
+	output.Write(fmt.Sprintf("%d auctions in the world...", totalAuctionCount))
 
 	output.Conclude()
 }
