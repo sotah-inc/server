@@ -91,23 +91,17 @@ func Get(realm Entity.Realm, dataDirectory string, lastModified time.Time, url s
 		}
 
 		err = json.Unmarshal(b, &responseWrapper)
-		deleteFile := false
 		if err != nil {
-			deleteFile = true
-		} else {
-			wrappedLastModified := time.Unix(responseWrapper.LastModified, 0)
-			if wrappedLastModified == lastModified {
-				return responseWrapper.Response, nil
-			}
-
-			deleteFile = true
+			return response, err
 		}
 
-		if deleteFile {
-			err = os.Remove(dataFilepath)
-			if err != nil {
-				return response, err
-			}
+		wrappedLastModified := time.Unix(responseWrapper.LastModified, 0)
+		if wrappedLastModified == lastModified {
+			return responseWrapper.Response, nil
+		}
+		err = os.Remove(dataFilepath)
+		if err != nil {
+			return response, err
 		}
 	}
 
