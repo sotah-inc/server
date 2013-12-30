@@ -84,12 +84,10 @@ func Get(realm Entity.Realm, dataDirectory string, lastModified time.Time, url s
 		if err != nil {
 			return response, err
 		}
-
 		b, err = Util.GzipDecode(b)
 		if err != nil {
 			return response, err
 		}
-
 		err = json.Unmarshal(b, &responseWrapper)
 		if err != nil {
 			return response, err
