@@ -11,7 +11,7 @@ import (
 )
 
 /*
-	misc
+	blizzard json response structs
 */
 type PvpArea struct {
 	Area                uint8

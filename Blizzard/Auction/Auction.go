@@ -9,14 +9,14 @@ import (
 )
 
 /*
-	misc
+	blizzard json response structs
 */
 type Response struct {
 	Files []File
 }
 
 type File struct {
-	LastModified uint64
+	LastModified int64
 	Url          string
 }
 

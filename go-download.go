@@ -183,8 +183,9 @@ func main() {
 	*/
 	// misc
 	directories := map[string]string{
-		"json":            "json",
-		"region-statuses": "json/region-statuses",
+		"json":                "json",
+		"region-statuses":     "json/region-statuses",
+		"realm-auction-datas": "json/realm-auction-datas",
 	}
 	err = validateDirectories(directories)
 	if err != nil {
@@ -251,11 +252,11 @@ func main() {
 	output.Write("Spawning some download workers...")
 	downloadWorkerCount := 8
 	for j := 0; j < downloadWorkerCount; j++ {
-		go func(in chan Entity.Realm, out chan Work.DownloadResult, output Util.Output) {
+		go func(in chan Entity.Realm, out chan Work.DownloadResult, output Util.Output, dataDirectory string) {
 			for {
-				Work.DownloadRealm(<-in, out, output)
+				Work.DownloadRealm(<-in, out, output, dataDirectory)
 			}
-		}(downloadIn, itemizeIn, output)
+		}(downloadIn, itemizeIn, output, directories["realm-auction-datas"])
 	}
 
 	// spawning an itemize worker

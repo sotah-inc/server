@@ -6,6 +6,7 @@ import (
 	"github.com/ihsw/go-download/Blizzard/AuctionData"
 	"github.com/ihsw/go-download/Entity"
 	"github.com/ihsw/go-download/Util"
+	"time"
 )
 
 /*
@@ -28,10 +29,11 @@ type ItemizeResult struct {
 /*
 	funcs
 */
-func DownloadRealm(realm Entity.Realm, out chan DownloadResult, output Util.Output) {
+func DownloadRealm(realm Entity.Realm, out chan DownloadResult, output Util.Output, dataDirectory string) {
 	result := DownloadResult{
 		Realm: realm,
 	}
+
 	result.AuctionResponse, result.Error = Auction.Get(realm)
 	if result.Error != nil {
 		output.Write(fmt.Sprintf("Auction.Get() fail for %s: %s", realm.Dump(), result.Error.Error()))
@@ -39,8 +41,11 @@ func DownloadRealm(realm Entity.Realm, out chan DownloadResult, output Util.Outp
 		return
 	}
 
+	file := result.AuctionResponse.Files[0]
+	lastModified := time.Unix(file.LastModified/1000, 0)
+
 	output.Write(fmt.Sprintf("Start %s...", realm.Dump()))
-	result.AuctionDataResponse, result.Error = AuctionData.Get(result.AuctionResponse.Files[0].Url)
+	result.AuctionDataResponse, result.Error = AuctionData.Get(realm, dataDirectory, lastModified, file.Url)
 	output.Write(fmt.Sprintf("Done %s...", realm.Dump()))
 	if result.Error != nil {
 		output.Write(fmt.Sprintf("AuctionData.Get() fail for %s: %s", realm.Dump(), result.Error.Error()))
@@ -53,13 +58,13 @@ func DownloadRealm(realm Entity.Realm, out chan DownloadResult, output Util.Outp
 
 func ItemizeRealm(downloadResult DownloadResult, out chan ItemizeResult) {
 	realm := downloadResult.Realm
-	itemizeResult := ItemizeResult{
+	result := ItemizeResult{
 		Realm: realm,
 	}
 
 	if downloadResult.Error != nil {
-		itemizeResult.Error = downloadResult.Error
-		out <- itemizeResult
+		result.Error = downloadResult.Error
+		out <- result
 		return
 	}
 
@@ -73,6 +78,6 @@ func ItemizeRealm(downloadResult DownloadResult, out chan ItemizeResult) {
 	for _, auctions := range auctionGroups {
 		auctionCount += len(auctions)
 	}
-	itemizeResult.AuctionCount = auctionCount
-	out <- itemizeResult
+	result.AuctionCount = auctionCount
+	out <- result
 }
