@@ -1,6 +1,7 @@
 package Util
 
 import (
+	"bytes"
 	"compress/gzip"
 	"fmt"
 	"io"
@@ -74,4 +75,24 @@ func Download(url string) (b []byte, err error) {
 	}
 
 	return ioutil.ReadAll(reader)
+}
+
+func GzipEncode(in []byte) ([]byte, error) {
+	var (
+		buffer bytes.Buffer
+		out    []byte
+		err    error
+	)
+	writer := gzip.NewWriter(&buffer)
+	_, err = writer.Write(in)
+	if err != nil {
+		writer.Close()
+		return out, err
+	}
+	err = writer.Close()
+	if err != nil {
+		return out, err
+	}
+
+	return buffer.Bytes(), nil
 }
