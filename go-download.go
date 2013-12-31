@@ -11,6 +11,7 @@ import (
 	"github.com/ihsw/go-download/Work"
 	"io/ioutil"
 	"os"
+	"runtime"
 	"time"
 )
 
@@ -165,6 +166,8 @@ func validateDirectories(directories map[string]string) error {
 }
 
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
 	output := Util.Output{
 		StartTime: time.Now(),
 	}
@@ -250,7 +253,7 @@ func main() {
 
 	// spawning some download workers
 	output.Write("Spawning some download workers...")
-	downloadWorkerCount := 8
+	downloadWorkerCount := 4
 	for j := 0; j < downloadWorkerCount; j++ {
 		go func(in chan Entity.Realm, out chan Work.DownloadResult, output Util.Output, dataDirectory string) {
 			for {

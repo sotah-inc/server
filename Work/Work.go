@@ -48,7 +48,6 @@ func DownloadRealm(realm Entity.Realm, out chan DownloadResult, output Util.Outp
 	result.AuctionDataResponse, result.Error = AuctionData.Get(realm, dataDirectory, lastModified, file.Url)
 	output.Write(fmt.Sprintf("Done %s...", realm.Dump()))
 	if result.Error != nil {
-		output.Write(fmt.Sprintf("AuctionData.Get() fail for %s: %s", realm.Dump(), result.Error.Error()))
 		out <- result
 		return
 	}
