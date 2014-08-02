@@ -63,6 +63,7 @@ func Get(realm Entity.Realm, dataDirectory string, lastModified time.Time, url s
 		err             error
 		b               []byte
 	)
+	fmt.Println(lastModified.Format("2006-01-02 15:04:05"))
 	dataFilepath := fmt.Sprintf("%s/realm-%s.json.gz", dataDirectory, realm.Dump())
 
 	/*
