@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"github.com/ihsw/go-download/Blizzard/Status"
 	"github.com/ihsw/go-download/Cache"
@@ -14,39 +13,6 @@ import (
 	"runtime"
 	"time"
 )
-
-func initialize(args []string) (Config.ConfigFile, Cache.Client, error) {
-	var (
-		configFile Config.ConfigFile
-		client     Cache.Client
-		err        error
-	)
-
-	if len(args) == 1 {
-		err = errors.New("Expected path to config file, got nothing")
-		return configFile, client, err
-	}
-
-	// loading the config-file
-	configFile, err = Config.New(args[1])
-	if err != nil {
-		return configFile, client, err
-	}
-
-	// connecting the redis clients
-	client, err = Config.NewCacheClient(configFile.ConnectionList)
-	if err != nil {
-		return configFile, client, err
-	}
-
-	// flushing all of the databases
-	err = client.FlushDb()
-	if err != nil {
-		return configFile, client, err
-	}
-
-	return configFile, client, nil
-}
 
 func load(client Cache.Client, configRegions []Config.Region) ([]Entity.Region, error) {
 	var (
@@ -201,7 +167,7 @@ func main() {
 	*/
 	// getting a client
 	output.Write("Initializing the config...")
-	configFile, client, err = initialize(os.Args)
+	configFile, client, err = Config.Initialize(os.Args)
 	if err != nil {
 		output.Write(fmt.Sprintf("initialize() fail: %s", err.Error()))
 		return

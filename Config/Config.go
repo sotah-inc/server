@@ -1,6 +1,7 @@
 package Config
 
 import (
+	"errors"
 	"encoding/json"
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Entity"
@@ -65,6 +66,40 @@ func NewCacheClient(c ConnectionList) (client Cache.Client, err error) {
 	}
 
 	return client, nil
+}
+
+// reading in os.args
+func Initialize(args []string) (ConfigFile, Cache.Client, error) {
+	var (
+		configFile ConfigFile
+		client     Cache.Client
+		err        error
+	)
+
+	if len(args) == 1 {
+		err = errors.New("Expected path to config file, got nothing")
+		return configFile, client, err
+	}
+
+	// loading the config-file
+	configFile, err = New(args[1])
+	if err != nil {
+		return configFile, client, err
+	}
+
+	// connecting the redis clients
+	client, err = NewCacheClient(configFile.ConnectionList)
+	if err != nil {
+		return configFile, client, err
+	}
+
+	// flushing all of the databases
+	err = client.FlushDb()
+	if err != nil {
+		return configFile, client, err
+	}
+
+	return configFile, client, nil
 }
 
 /*
