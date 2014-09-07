@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Config"
@@ -24,7 +23,7 @@ func main() {
 
 	var (
 		err          error
-		client       Cache.Client
+		cacheClient  Cache.Client
 		configFile   Config.ConfigFile
 		regions      []Entity.Region
 		regionRealms map[int64][]Entity.Realm
@@ -35,35 +34,17 @@ func main() {
 	*/
 	// getting a client
 	output.Write("Initializing the config...")
-	args := os.Args
-	if len(args) == 1 {
-		err = errors.New("Expected path to config file, got nothing")
-		return
-	}
-
-	// loading the config-file
-	configFile, err = Config.NewConfigFile(args[1])
+	configFile, cacheClient, err = Misc.GetClientAndConfig(os.Args)
 	if err != nil {
-		return
-	}
-
-	// connecting the redis clients
-	client, err = Misc.NewCacheClient(configFile.ConnectionList)
-	if err != nil {
-		return
-	}
-
-	// flushing all of the databases
-	err = client.FlushDb()
-	if err != nil {
+		output.Write(fmt.Sprintf("Misc.GetClientAndConfig() fail: %s", err.Error()))
 		return
 	}
 
 	// loading the regions and locales
 	output.Write("Loading the regions and locales...")
-	regions, err = Misc.GetRegions(client, configFile.Regions)
+	regions, err = Misc.GetRegions(cacheClient, configFile.Regions)
 	if err != nil {
-		output.Write(fmt.Sprintf("load() fail: %s", err.Error()))
+		output.Write(fmt.Sprintf("Misc.GetRegions() fail: %s", err.Error()))
 		return
 	}
 
@@ -71,9 +52,9 @@ func main() {
 		gathering and persisting realms for each region
 	*/
 	output.Write("Fetching realms for each region...")
-	regionRealms, err = Misc.GetRealms(client, regions)
+	regionRealms, err = Misc.GetRealms(cacheClient, regions)
 	if err != nil {
-		output.Write(fmt.Sprintf("getRealms() fail: %s", err.Error()))
+		output.Write(fmt.Sprintf("Misc.GetRealms() fail: %s", err.Error()))
 		return
 	}
 
