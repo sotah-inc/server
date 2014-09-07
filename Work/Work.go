@@ -6,7 +6,6 @@ import (
 	"github.com/ihsw/go-download/Blizzard/AuctionData"
 	"github.com/ihsw/go-download/Entity"
 	"github.com/ihsw/go-download/Util"
-	"time"
 )
 
 /*
@@ -29,7 +28,7 @@ type ItemizeResult struct {
 /*
 	funcs
 */
-func DownloadRealm(realm Entity.Realm, out chan DownloadResult, output Util.Output, dataDirectory string) {
+func DownloadRealm(realm Entity.Realm, out chan DownloadResult, output Util.Output) {
 	result := DownloadResult{
 		Realm: realm,
 	}
@@ -42,10 +41,9 @@ func DownloadRealm(realm Entity.Realm, out chan DownloadResult, output Util.Outp
 	}
 
 	file := result.AuctionResponse.Files[0]
-	lastModified := time.Unix(file.LastModified/1000, 0)
 
 	output.Write(fmt.Sprintf("Start %s...", realm.Dump()))
-	result.AuctionDataResponse, result.Error = AuctionData.Get(realm, dataDirectory, lastModified, file.Url)
+	result.AuctionDataResponse, result.Error = AuctionData.Get(realm, file.Url)
 	output.Write(fmt.Sprintf("Done %s...", realm.Dump()))
 	if result.Error != nil {
 		out <- result

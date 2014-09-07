@@ -5,9 +5,6 @@ import (
 	"fmt"
 	"github.com/ihsw/go-download/Entity"
 	"github.com/ihsw/go-download/Util"
-	"io/ioutil"
-	"os"
-	"time"
 )
 
 /*
@@ -66,82 +63,22 @@ type Result struct {
 /*
 	funcs
 */
-func Get(region Entity.Region, statusDir string, c chan Result) {
-	var (
-		b        []byte
-		response Response
-		fileinfo os.FileInfo
-	)
+func Get(region Entity.Region, c chan Result) {
+	var response Response
 	result := Result{
 		Response: response,
 		Region:   region,
 		Error:    nil,
 	}
 
-	/*
-		checking locally
-	*/
-	// checking if the file exists
-	statusFilepath := fmt.Sprintf("%s/region-%s.json", statusDir, region.Name)
-	fileinfo, result.Error = os.Stat(statusFilepath)
-	if result.Error != nil && !os.IsNotExist(result.Error) {
-		c <- result
-		return
-	}
-
-	/*
-		attempting to load it
-		and if it fails *only* due to not being json-decodeable then delete it and continue to the api
-	*/
-	if fileinfo != nil {
-		weekAgo := time.Now().Add(24 * 7 * time.Hour * -1)
-		if fileinfo.ModTime().Before(weekAgo) {
-			result.Error = os.Remove(statusFilepath)
-			if result.Error != nil {
-				c <- result
-				return
-			}
-		} else {
-			b, result.Error = ioutil.ReadFile(statusFilepath)
-			if result.Error != nil {
-				c <- result
-				return
-			}
-
-			result.Error = json.Unmarshal(b, &response)
-			if result.Error == nil {
-				result.Response = response
-				c <- result
-				return
-			} else {
-				result.Error = os.Remove(statusFilepath)
-				if result.Error != nil {
-					c <- result
-					return
-				}
-			}
-		}
-	}
-
-	/*
-		falling back to checking the api
-	*/
-	// downloading from the api
+	var b []byte
 	b, result.Error = Util.Download(fmt.Sprintf(URL_FORMAT, region.Host))
 	if result.Error != nil {
 		c <- result
 		return
 	}
 
-	// attempting to json-decode it
 	result.Error = json.Unmarshal(b, &response)
-	if result.Error != nil {
-		c <- result
-		return
-	}
-
-	// dumping it back to disk
-	result.Error = ioutil.WriteFile(statusFilepath, b, 0755)
 	if result.Error != nil {
 		c <- result
 		return

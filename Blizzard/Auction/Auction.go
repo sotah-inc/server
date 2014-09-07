@@ -25,13 +25,8 @@ const URL_FORMAT = "http://%s/api/wow/auction/data/%s"
 /*
 	funcs
 */
-func Get(realm Entity.Realm) (Response, error) {
-	var (
-		b        []byte
-		err      error
-		response Response
-	)
-
+func Get(realm Entity.Realm) (response Response, err error) {
+	var b []byte
 	url := fmt.Sprintf(URL_FORMAT, realm.Region.Host, realm.Slug)
 	b, err = Util.Download(url)
 	if err != nil {
