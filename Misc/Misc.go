@@ -48,34 +48,7 @@ func newCacheClient(c Config.ConnectionList) (client Cache.Client, err error) {
 	return client, nil
 }
 
-func GetClientAndConfig(args []string) (configFile Config.ConfigFile, cacheClient Cache.Client, err error) {
-	if len(args) == 1 {
-		err = errors.New("Expected path to config file, got nothing")
-		return
-	}
-
-	// loading the config-file
-	configFile, err = Config.NewConfigFile(args[1])
-	if err != nil {
-		return
-	}
-
-	// connecting the redis clients
-	cacheClient, err = newCacheClient(configFile.ConnectionList)
-	if err != nil {
-		return
-	}
-
-	// flushing all of the databases
-	err = cacheClient.FlushDb()
-	if err != nil {
-		return
-	}
-
-	return configFile, cacheClient, nil
-}
-
-func GetRegions(client Cache.Client, configRegions []Config.Region) (regions []Entity.Region, err error) {
+func getRegions(client Cache.Client, configRegions []Config.Region) (regions []Entity.Region, err error) {
 	regionManager := Entity.RegionManager{Client: client}
 	localeManager := Entity.LocaleManager{Client: client}
 
@@ -97,6 +70,40 @@ func GetRegions(client Cache.Client, configRegions []Config.Region) (regions []E
 		regions = append(regions, region)
 	}
 	return regions, nil
+}
+
+func GetCacheClientAndRegions(args []string) (cacheClient Cache.Client, regions []Entity.Region, err error) {
+	if len(args) == 1 {
+		err = errors.New("Expected path to config file, got nothing")
+		return
+	}
+
+	// loading the config-file
+	var configFile Config.ConfigFile
+	configFile, err = Config.NewConfigFile(args[1])
+	if err != nil {
+		return
+	}
+
+	// connecting the redis clients
+	cacheClient, err = newCacheClient(configFile.ConnectionList)
+	if err != nil {
+		return
+	}
+
+	// flushing all of the databases
+	err = cacheClient.FlushDb()
+	if err != nil {
+		return
+	}
+
+	// gathering the regions
+	regions, err = getRegions(cacheClient, configFile.Regions)
+	if err != nil {
+		return
+	}
+
+	return cacheClient, regions, nil
 }
 
 func GetRealms(client Cache.Client, regions []Entity.Region) (map[int64][]Entity.Realm, error) {

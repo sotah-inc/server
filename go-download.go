@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/ihsw/go-download/Cache"
-	"github.com/ihsw/go-download/Config"
 	"github.com/ihsw/go-download/Entity"
 	"github.com/ihsw/go-download/Misc"
 	"github.com/ihsw/go-download/Util"
@@ -24,7 +23,6 @@ func main() {
 	var (
 		err          error
 		cacheClient  Cache.Client
-		configFile   Config.ConfigFile
 		regions      []Entity.Region
 		regionRealms map[int64][]Entity.Realm
 	)
@@ -33,19 +31,11 @@ func main() {
 	/*
 		reading the config
 	*/
-	// getting a client
+	// gathering a cache client and regions after reading the config
 	output.Write("Initializing the config and cache-client...")
-	configFile, cacheClient, err = Misc.GetClientAndConfig(os.Args)
+	cacheClient, regions, err = Misc.GetCacheClientAndRegions(os.Args)
 	if err != nil {
-		output.Write(fmt.Sprintf("Misc.GetClientAndConfig() fail: %s", err.Error()))
-		return
-	}
-
-	// loading the regions
-	output.Write("Loading the regions...")
-	regions, err = Misc.GetRegions(cacheClient, configFile.Regions)
-	if err != nil {
-		output.Write(fmt.Sprintf("Misc.GetRegions() fail: %s", err.Error()))
+		output.Write(fmt.Sprintf("Misc.GetCacheClientAndRegions() fail: %s", err.Error()))
 		return
 	}
 
