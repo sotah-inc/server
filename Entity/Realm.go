@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ihsw/go-download/Cache"
-	"github.com/vmihailenco/redis/v2"
+	redis "github.com/vmihailenco/redis/v2"
 	"strconv"
 	"time"
 )
