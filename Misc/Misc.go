@@ -1,6 +1,7 @@
 package Misc
 
 import (
+	"errors"
 	"github.com/ihsw/go-download/Blizzard/Status"
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Config"
@@ -11,7 +12,7 @@ import (
 /*
 	funcs
 */
-func NewCacheWrapper(c Config.Connection) (w Cache.Wrapper, err error) {
+func newCacheWrapper(c Config.Connection) (w Cache.Wrapper, err error) {
 	r := redis.NewTCPClient(&redis.Options{
 		Addr:     c.Host,
 		Password: c.Password,
@@ -29,15 +30,15 @@ func NewCacheWrapper(c Config.Connection) (w Cache.Wrapper, err error) {
 	return
 }
 
-func NewCacheClient(c Config.ConnectionList) (client Cache.Client, err error) {
-	client.Main, err = NewCacheWrapper(c.Main)
+func newCacheClient(c Config.ConnectionList) (client Cache.Client, err error) {
+	client.Main, err = newCacheWrapper(c.Main)
 	if err != nil {
 		return
 	}
 
 	var w Cache.Wrapper
 	for _, poolItem := range c.Pool {
-		w, err = NewCacheWrapper(poolItem)
+		w, err = newCacheWrapper(poolItem)
 		if err != nil {
 			return
 		}
@@ -45,6 +46,33 @@ func NewCacheClient(c Config.ConnectionList) (client Cache.Client, err error) {
 	}
 
 	return client, nil
+}
+
+func GetClientAndConfig(args []string) (configFile Config.ConfigFile, cacheClient Cache.Client, err error) {
+	if len(args) == 1 {
+		err = errors.New("Expected path to config file, got nothing")
+		return
+	}
+
+	// loading the config-file
+	configFile, err = Config.NewConfigFile(args[1])
+	if err != nil {
+		return
+	}
+
+	// connecting the redis clients
+	cacheClient, err = newCacheClient(configFile.ConnectionList)
+	if err != nil {
+		return
+	}
+
+	// flushing all of the databases
+	err = cacheClient.FlushDb()
+	if err != nil {
+		return
+	}
+
+	return configFile, cacheClient, nil
 }
 
 func GetRegions(client Cache.Client, configRegions []Config.Region) (regions []Entity.Region, err error) {
