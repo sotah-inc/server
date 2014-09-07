@@ -28,20 +28,21 @@ func main() {
 		regions      []Entity.Region
 		regionRealms map[int64][]Entity.Realm
 	)
+	debug := true
 
 	/*
 		reading the config
 	*/
 	// getting a client
-	output.Write("Initializing the config...")
+	output.Write("Initializing the config and cache-client...")
 	configFile, cacheClient, err = Misc.GetClientAndConfig(os.Args)
 	if err != nil {
 		output.Write(fmt.Sprintf("Misc.GetClientAndConfig() fail: %s", err.Error()))
 		return
 	}
 
-	// loading the regions and locales
-	output.Write("Loading the regions and locales...")
+	// loading the regions
+	output.Write("Loading the regions...")
 	regions, err = Misc.GetRegions(cacheClient, configFile.Regions)
 	if err != nil {
 		output.Write(fmt.Sprintf("Misc.GetRegions() fail: %s", err.Error()))
@@ -49,7 +50,7 @@ func main() {
 	}
 
 	/*
-		gathering and persisting realms for each region
+		gathering the realms for each region
 	*/
 	output.Write("Fetching realms for each region...")
 	regionRealms, err = Misc.GetRealms(cacheClient, regions)
@@ -67,8 +68,11 @@ func main() {
 			delete(regionRealms, region.Id)
 			continue
 		}
-		// totalRealms += len(regionRealms[region.Id])
-		totalRealms += 1
+		if debug {
+			totalRealms += 1
+		} else {
+			totalRealms += len(regionRealms[region.Id])
+		}
 	}
 
 	regionMap := map[int64]int64{}
@@ -128,7 +132,10 @@ func main() {
 		for _, realm := range realms {
 			downloadIn <- realm
 		}
-		break
+
+		if debug {
+			break
+		}
 	}
 
 	/*
