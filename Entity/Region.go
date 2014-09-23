@@ -153,24 +153,20 @@ func (self RegionManager) FindOneById(id int64) (region Region, err error) {
 	return self.unmarshal(v)
 }
 
-func (self RegionManager) FindAll() ([]Region, error) {
-	var (
-		err     error
-		regions []Region
-		values  []string
-	)
+func (self RegionManager) FindAll() (regions []Region, err error) {
 	main := self.Client.Main
 
 	// fetching ids
 	ids, err := main.FetchIds("region_ids", 0, -1)
 	if err != nil {
-		return regions, err
+		return
 	}
 
 	// fetching the values
+	var values []string
 	values, err = main.FetchFromIds(self, ids)
 	if err != nil {
-		return regions, err
+		return
 	}
 
 	return self.unmarshalAll(values)
