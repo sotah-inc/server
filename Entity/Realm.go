@@ -131,3 +131,62 @@ func (self RealmManager) Persist(realm Realm) (Realm, error) {
 
 	return realm, nil
 }
+
+func (self RealmManager) unmarshal(v string) (realm Realm, err error) {
+	if v == "" {
+		return
+	}
+
+	// json
+	var realmJson RealmJson
+	b := []byte(v)
+	err = json.Unmarshal(b, &realmJson)
+	if err != nil {
+		return
+	}
+
+	// fmt.Println(fmt.Sprintf("lastChecked: %s", realmJson.LastChecked))
+	// fmt.Println(fmt.Sprintf("LastDownloaded: %s", realmJson.LastDownloaded))
+
+	// initial
+	realm = Realm{
+		Id:          realmJson.Id,
+		Name:        realmJson.Name,
+		Slug:        realmJson.Slug,
+		Battlegroup: realmJson.Battlegroup,
+		Type:        realmJson.Type,
+		Status:      realmJson.Status,
+		Population:  realmJson.Population,
+	}
+	return realm, nil
+}
+
+func (self RealmManager) unmarshalAll(values []string) (realms []Realm, err error) {
+	realms = make([]Realm, len(values))
+	for i, v := range values {
+		realms[i], err = self.unmarshal(v)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+func (self RealmManager) FindByRegion(region Region) (realms []Realm, err error) {
+	main := self.Client.Main
+
+	// fetching ids
+	ids, err := main.FetchIds(fmt.Sprintf("region:%d:realm_ids", region.Id), 0, -1)
+	if err != nil {
+		return
+	}
+
+	// fetching the values
+	var values []string
+	values, err = main.FetchFromIds(self, ids)
+	if err != nil {
+		return
+	}
+
+	return self.unmarshalAll(values)
+}
