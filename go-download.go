@@ -33,7 +33,7 @@ func main() {
 	*/
 	// gathering a cache client and regions after reading the config
 	output.Write("Initializing the cache-client and regions...")
-	cacheClient, regions, err = Misc.GetCacheClientAndRegions(os.Args)
+	cacheClient, regions, err = Misc.GetCacheClientAndRegions(os.Args, true)
 	if err != nil {
 		output.Write(fmt.Sprintf("Misc.GetCacheClientAndRegions() fail: %s", err.Error()))
 		return
