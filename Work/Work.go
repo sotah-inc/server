@@ -1,7 +1,6 @@
 package Work
 
 import (
-	"fmt"
 	"github.com/ihsw/go-download/Blizzard/Auction"
 	"github.com/ihsw/go-download/Blizzard/AuctionData"
 	"github.com/ihsw/go-download/Entity"
@@ -35,16 +34,13 @@ func DownloadRealm(realm Entity.Realm, out chan DownloadResult, output Util.Outp
 
 	result.AuctionResponse, result.Error = Auction.Get(realm)
 	if result.Error != nil {
-		output.Write(fmt.Sprintf("Auction.Get() fail for %s: %s", realm.Dump(), result.Error.Error()))
 		out <- result
 		return
 	}
 
 	file := result.AuctionResponse.Files[0]
 
-	output.Write(fmt.Sprintf("Start %s...", realm.Dump()))
 	result.AuctionDataResponse, result.Error = AuctionData.Get(realm, file.Url)
-	output.Write(fmt.Sprintf("Done %s...", realm.Dump()))
 	if result.Error != nil {
 		out <- result
 		return
