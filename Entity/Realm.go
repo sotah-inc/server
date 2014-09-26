@@ -2,6 +2,7 @@ package Entity
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/ihsw/go-download/Cache"
 	redis "github.com/vmihailenco/redis/v2"
@@ -166,7 +167,6 @@ func (self RealmManager) unmarshal(v string) (realm Realm, err error) {
 
 		realm.LastDownloaded = time.Unix(lastDownloaded, 0)
 	}
-
 	if len(realmJson.LastChecked) > 0 {
 		var lastChecked int64
 		lastChecked, err = strconv.ParseInt(realmJson.LastChecked, 10, 64)
@@ -176,6 +176,18 @@ func (self RealmManager) unmarshal(v string) (realm Realm, err error) {
 
 		realm.LastChecked = time.Unix(lastChecked, 0)
 	}
+
+	// resolving the region
+	regionManager := RegionManager{Client: self.Client}
+	region, err := regionManager.FindOneById(realmJson.RegionId)
+	if err != nil {
+		return
+	}
+	if !region.IsValid() {
+		err = errors.New(fmt.Sprintf("Region #%d could not be found!", realmJson.RegionId))
+		return
+	}
+	realm.Region = region
 
 	return realm, nil
 }
