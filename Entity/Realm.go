@@ -145,8 +145,6 @@ func (self RealmManager) unmarshal(v string) (realm Realm, err error) {
 		return
 	}
 
-	// fmt.Println(fmt.Sprintf("lastChecked: %s", realmJson.LastChecked))
-
 	// initial
 	realm = Realm{
 		Id:          realmJson.Id,
