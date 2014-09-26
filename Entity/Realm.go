@@ -33,7 +33,7 @@ func (self Realm) marshal() (string, error) {
 
 	lastDownloaded := ""
 	if !self.LastDownloaded.IsZero() {
-		lastDownloaded = strconv.FormatInt(self.LastChecked.Unix(), 10)
+		lastDownloaded = strconv.FormatInt(self.LastDownloaded.Unix(), 10)
 	}
 
 	realmJson := RealmJson{
@@ -146,7 +146,6 @@ func (self RealmManager) unmarshal(v string) (realm Realm, err error) {
 	}
 
 	// fmt.Println(fmt.Sprintf("lastChecked: %s", realmJson.LastChecked))
-	// fmt.Println(fmt.Sprintf("LastDownloaded: %s", realmJson.LastDownloaded))
 
 	// initial
 	realm = Realm{
@@ -158,6 +157,28 @@ func (self RealmManager) unmarshal(v string) (realm Realm, err error) {
 		Status:      realmJson.Status,
 		Population:  realmJson.Population,
 	}
+
+	// last-downloaded and last-checked
+	if len(realmJson.LastDownloaded) > 0 {
+		var lastDownloaded int64
+		lastDownloaded, err = strconv.ParseInt(realmJson.LastDownloaded, 10, 64)
+		if err != nil {
+			return
+		}
+
+		realm.LastDownloaded = time.Unix(lastDownloaded, 0)
+	}
+
+	if len(realmJson.LastChecked) > 0 {
+		var lastChecked int64
+		lastChecked, err = strconv.ParseInt(realmJson.LastChecked, 10, 64)
+		if err != nil {
+			return
+		}
+
+		realm.LastChecked = time.Unix(lastChecked, 0)
+	}
+
 	return realm, nil
 }
 

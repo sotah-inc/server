@@ -129,16 +129,16 @@ func main() {
 	}
 
 	/*
-		debugging
+		itemizing
 	*/
-	output.Write(fmt.Sprintf("Gathering %d results for debugging...", totalRealms))
+	output.Write(fmt.Sprintf("Gathering %d results for itemizing...", totalRealms))
 	results := make([]Work.ItemizeResult, totalRealms)
 	for i := 0; i < totalRealms; i++ {
 		results[i] = <-itemizeOut
 	}
 
-	output.Write(fmt.Sprintf("Going over %d results for debugging...", len(results)))
-	totalAuctionCount := 0
+	realmManager := Entity.RealmManager{Client: cacheClient}
+	output.Write(fmt.Sprintf("Flagging %d realms as having been checked...", len(results)))
 	for _, result := range results {
 		realm := result.Realm
 		if result.Error != nil {
@@ -146,10 +146,10 @@ func main() {
 			continue
 		}
 
-		totalAuctionCount += result.AuctionCount
-		output.Write(fmt.Sprintf("%s has %d auctions...", realm.Dump(), result.AuctionCount))
+		realm.LastDownloaded = time.Now()
+		realm.LastChecked = time.Now()
+		realmManager.Persist(realm)
 	}
-	output.Write(fmt.Sprintf("%d auctions in the world...", totalAuctionCount))
 
 	output.Conclude()
 }
