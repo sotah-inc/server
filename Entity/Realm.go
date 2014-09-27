@@ -110,9 +110,9 @@ func (self RealmManager) Persist(realm Realm) (Realm, error) {
 	if err != nil {
 		return realm, err
 	}
-	bucketKey, subKey := Cache.GetBucketKey(realm.Id, "realm")
-	req := r.HSet(bucketKey, subKey, s)
-	if err = req.Err(); err != nil {
+	bucketKey, subKey := Cache.GetBucketKey(realm.Id, self.Namespace())
+	err = self.Client.Main.Persist(bucketKey, subKey, s)
+	if err != nil {
 		return realm, err
 	}
 

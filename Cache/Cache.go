@@ -27,6 +27,11 @@ type Manager interface {
 
 type Wrapper struct {
 	Redis *redis.Client
+	Cache map[string]string
+}
+
+func (self Wrapper) getCacheKey(bucketKey string, subKey string) string {
+	return fmt.Sprintf("%s-%s", bucketKey, subKey)
 }
 
 func (self Wrapper) FetchIds(key string, start int64, end int64) (ids []int64, err error) {
@@ -84,14 +89,34 @@ func (self Wrapper) FetchFromIds(manager Manager, ids []int64) (values []string,
 	values = make([]string, idsLength)
 	for i, id := range ids {
 		bucketKey, subKey := GetBucketKey(id, manager.Namespace())
-		cmd := r.HGet(bucketKey, subKey)
-		if err = cmd.Err(); err != nil && err != redis.Nil {
-			return
+
+		// checking the wrapper cache or redis
+		cacheKey := self.getCacheKey(bucketKey, subKey)
+		value, exists := self.Cache[cacheKey]
+		if !exists {
+			cmd := r.HGet(bucketKey, subKey)
+			if err = cmd.Err(); err != nil && err != redis.Nil {
+				return
+			}
+
+			value = cmd.Val()
+			self.Cache[cacheKey] = value
 		}
-		values[i] = cmd.Val()
+
+		values[i] = value
 	}
 
 	return values, nil
+}
+
+func (self Wrapper) Persist(bucketKey string, subKey string, value string) (err error) {
+	cmd := self.Redis.HSet(bucketKey, subKey, value)
+	if err = cmd.Err(); err != nil {
+		return
+	}
+
+	self.Cache[self.getCacheKey(bucketKey, subKey)] = value
+	return nil
 }
 
 /*

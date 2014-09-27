@@ -26,6 +26,7 @@ func newCacheWrapper(c Config.Connection) (w Cache.Wrapper, err error) {
 
 	w = Cache.Wrapper{
 		Redis: r,
+		Cache: make(map[string]string),
 	}
 	return
 }
