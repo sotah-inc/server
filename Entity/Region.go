@@ -96,8 +96,8 @@ func (self RegionManager) Persist(region Region) (Region, error) {
 		return region, err
 	}
 	bucketKey, subKey := Cache.GetBucketKey(region.Id, self.Namespace())
-	cmd := r.HSet(bucketKey, subKey, s)
-	if err = cmd.Err(); err != nil {
+	err = self.Client.Main.Persist(bucketKey, subKey, s)
+	if err != nil {
 		return region, err
 	}
 
