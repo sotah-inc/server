@@ -78,7 +78,8 @@ func (self RegionManager) Persist(region Region) (Region, error) {
 		err error
 		s   string
 	)
-	r := self.Client.Main.Redis
+	w := self.Client.Main
+	r := w.Redis
 
 	// id
 	isNew := region.Id == 0
@@ -96,7 +97,7 @@ func (self RegionManager) Persist(region Region) (Region, error) {
 		return region, err
 	}
 	bucketKey, subKey := Cache.GetBucketKey(region.Id, self.Namespace())
-	err = self.Client.Main.Persist(bucketKey, subKey, s)
+	err = w.Persist(bucketKey, subKey, s)
 	if err != nil {
 		return region, err
 	}
