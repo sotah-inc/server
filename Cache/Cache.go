@@ -100,7 +100,7 @@ func (self Wrapper) FetchFromIds(manager Manager, ids []int64) (values []string,
 			}
 
 			value = cmd.Val()
-			self.Cache[cacheKey] = value
+			self.SetCacheValue(cacheKey, value)
 		}
 
 		values[i] = value
@@ -115,8 +115,12 @@ func (self Wrapper) Persist(bucketKey string, subKey string, value string) (err 
 		return
 	}
 
-	self.Cache[self.getCacheKey(bucketKey, subKey)] = value
+	self.SetCacheValue(self.getCacheKey(bucketKey, subKey), value)
 	return nil
+}
+
+func (self Wrapper) SetCacheValue(key string, value string) {
+	self.Cache[key] = value
 }
 
 /*
