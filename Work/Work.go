@@ -95,18 +95,18 @@ func ItemizeRealm(downloadResult DownloadResult, out chan ItemizeResult, cacheCl
 		}
 	}
 
-	nameCollissions := make(map[string]map[string]string)
+	nameCollisions := make(map[string]map[string]string)
 	for sellerRealm, sellers := range realmSellers {
 		for _, seller := range sellers {
-			_, valid := nameCollissions[seller]
+			_, valid := nameCollisions[seller]
 			if !valid {
-				nameCollissions[seller] = make(map[string]string)
+				nameCollisions[seller] = make(map[string]string)
 			}
-			nameCollissions[seller][sellerRealm] = sellerRealm
+			nameCollisions[seller][sellerRealm] = sellerRealm
 		}
 	}
 
-	for seller, sellerRealms := range nameCollissions {
+	for seller, sellerRealms := range nameCollisions {
 		if len(sellerRealms) == 1 {
 			continue
 		}
