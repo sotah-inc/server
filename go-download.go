@@ -82,11 +82,11 @@ func main() {
 	output.Write("Spawning some download workers...")
 	downloadWorkerCount := 4
 	for j := 0; j < downloadWorkerCount; j++ {
-		go func(in chan Entity.Realm, out chan Work.DownloadResult, output Util.Output) {
+		go func(in chan Entity.Realm, out chan Work.DownloadResult, cacheClient Cache.Client) {
 			for {
-				Work.DownloadRealm(<-in, out, output)
+				Work.DownloadRealm(<-in, out, cacheClient)
 			}
-		}(downloadIn, itemizeIn, output)
+		}(downloadIn, itemizeIn, cacheClient)
 	}
 
 	// spawning an itemize worker
@@ -126,29 +126,6 @@ func main() {
 		if debug {
 			break
 		}
-	}
-
-	/*
-		itemizing
-	*/
-	output.Write(fmt.Sprintf("Gathering %d results for itemizing...", totalRealms))
-	results := make([]Work.ItemizeResult, totalRealms)
-	for i := 0; i < totalRealms; i++ {
-		results[i] = <-itemizeOut
-	}
-
-	realmManager := Entity.RealmManager{Client: cacheClient}
-	output.Write(fmt.Sprintf("Flagging %d realms as having been checked...", len(results)))
-	for _, result := range results {
-		realm := result.Realm
-		if result.Error != nil {
-			output.Write(fmt.Sprintf("Itemize %s fail: %s", realm.Dump(), result.Error.Error()))
-			continue
-		}
-
-		realm.LastDownloaded = time.Now()
-		realm.LastChecked = time.Now()
-		realmManager.Persist(realm)
 	}
 
 	output.Conclude()
