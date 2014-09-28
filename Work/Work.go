@@ -1,10 +1,12 @@
 package Work
 
 import (
+	"fmt"
 	"github.com/ihsw/go-download/Blizzard/Auction"
 	"github.com/ihsw/go-download/Blizzard/AuctionData"
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Entity"
+	"strings"
 	"time"
 )
 
@@ -20,9 +22,8 @@ type DownloadResult struct {
 }
 
 type ItemizeResult struct {
-	Error        error
-	Realm        Entity.Realm
-	AuctionCount int
+	Error error
+	Realm Entity.Realm
 }
 
 /*
@@ -58,28 +59,66 @@ func DownloadRealm(realm Entity.Realm, out chan DownloadResult, cacheClient Cach
 	out <- result
 }
 
-func ItemizeRealm(downloadResult DownloadResult, out chan ItemizeResult) {
+func ItemizeRealm(downloadResult DownloadResult, out chan ItemizeResult, cacheClient Cache.Client) {
+	// misc
 	realm := downloadResult.Realm
 	result := ItemizeResult{
 		Realm: realm,
 	}
 
+	// optionally halting on error
 	if downloadResult.Error != nil {
 		result.Error = downloadResult.Error
 		out <- result
 		return
 	}
 
+	// gathering up unique sellers
 	data := downloadResult.AuctionDataResponse
-	auctionCount := 0
 	auctionGroups := [][]AuctionData.Auction{
 		data.Alliance.Auctions,
 		data.Horde.Auctions,
 		data.Neutral.Auctions,
 	}
+	realmSellers := make(map[string]map[string]string)
 	for _, auctions := range auctionGroups {
-		auctionCount += len(auctions)
+		for _, auction := range auctions {
+			seller := auction.Owner
+			sellerRealm := auction.OwnerRealm
+
+			_, valid := realmSellers[sellerRealm]
+			if !valid {
+				realmSellers[sellerRealm] = make(map[string]string)
+			}
+
+			realmSellers[sellerRealm][seller] = seller
+		}
 	}
-	result.AuctionCount = auctionCount
+
+	nameCollissions := make(map[string]map[string]string)
+	for sellerRealm, sellers := range realmSellers {
+		for _, seller := range sellers {
+			_, valid := nameCollissions[seller]
+			if !valid {
+				nameCollissions[seller] = make(map[string]string)
+			}
+			nameCollissions[seller][sellerRealm] = sellerRealm
+		}
+	}
+
+	for seller, sellerRealms := range nameCollissions {
+		if len(sellerRealms) == 1 {
+			continue
+		}
+		a := make([]string, len(sellerRealms))
+		i := 0
+		for _, sellerRealm := range sellerRealms {
+			a[i] = sellerRealm
+			i++
+		}
+		fmt.Println(fmt.Sprintf("%s is found on %s", seller, strings.Join(a, ", ")))
+	}
+
+	// queueing it out
 	out <- result
 }

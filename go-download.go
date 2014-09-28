@@ -26,7 +26,7 @@ func main() {
 		regions      []Entity.Region
 		regionRealms map[int64][]Entity.Realm
 	)
-	debug := true
+	debug := false
 
 	/*
 		reading the config
@@ -79,8 +79,8 @@ func main() {
 	itemizeOut := make(chan Work.ItemizeResult, totalRealms)
 
 	// spawning some download workers
-	output.Write("Spawning some download workers...")
 	downloadWorkerCount := 4
+	output.Write(fmt.Sprintf("Spawning %d download workers...", downloadWorkerCount))
 	for j := 0; j < downloadWorkerCount; j++ {
 		go func(in chan Entity.Realm, out chan Work.DownloadResult, cacheClient Cache.Client) {
 			for {
@@ -90,14 +90,14 @@ func main() {
 	}
 
 	// spawning an itemize worker
-	go func(in chan Work.DownloadResult, out chan Work.ItemizeResult) {
+	go func(in chan Work.DownloadResult, out chan Work.ItemizeResult, cacheClient Cache.Client) {
 		for {
-			Work.ItemizeRealm(<-in, out)
+			Work.ItemizeRealm(<-in, out, cacheClient)
 		}
-	}(itemizeIn, itemizeOut)
+	}(itemizeIn, itemizeOut, cacheClient)
 
 	/*
-		queueing up the realms
+		preparation for queueing
 	*/
 	// formatting the realms to be evenly distributed
 	largestRegion := 0
@@ -116,6 +116,9 @@ func main() {
 		}
 	}
 
+	/*
+		running the queue
+	*/
 	// pushing the realms into the start of the queue
 	output.Write("Queueing up the realms for checking...")
 	for _, realms := range formattedRealms {
@@ -126,6 +129,12 @@ func main() {
 		if debug {
 			break
 		}
+	}
+
+	// waiting for the itemize results to drain out
+	output.Write(fmt.Sprintf("Waiting for %d results to drain out...", totalRealms))
+	for i := 0; i < totalRealms; i++ {
+		<-itemizeOut
 	}
 
 	output.Conclude()
