@@ -1,4 +1,5 @@
 {
+	"apikey": "BLAHBLAH",
 	"redis": {
 		"main": { "host": "127.0.0.1:6379", "password": "", "db": 0 },
 		"pool": [
@@ -11,7 +12,7 @@
 	"regions": [
 		{
 			"name": "us",
-			"host": "us.battle.net",
+			"host": "us.api.battle.net",
 			"locales": [
 				{ "name": "en_US", "fullname": "English", "shortname": "en" },
 				{ "name": "es_MX", "fullname": "Español", "shortname": "es" },
@@ -21,7 +22,7 @@
 		},
 		{
 			"name": "eu",
-			"host": "eu.battle.net",
+			"host": "eu.api.battle.net",
 			"locales": [
 				{ "name": "de_DE", "fullname": "Deutsch", "shortname": "de" },
 				{ "name": "en_GB", "fullname": "English (EU)", "shortname": null },
@@ -35,13 +36,13 @@
 		},
 		{
 			"name": "kr",
-			"host": "kr.battle.net",
+			"host": "kr.api.battle.net",
 			"locales": [ { "name": "ko_KR", "fullname": "한국어", "shortname": "kr" } ],
 			"queryable": true
 		},
 		{
 			"name": "tw",
-			"host": "tw.battle.net",
+			"host": "tw.api.battle.net",
 			"locales": [ { "name": "zh_TW", "fullname": "繁體中文", "shortname": "tw" } ],
 			"queryable": true
 		}

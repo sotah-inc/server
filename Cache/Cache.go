@@ -127,8 +127,9 @@ func (self Wrapper) SetCacheValue(key string, value string) {
 	Client
 */
 type Client struct {
-	Main Wrapper
-	Pool []Wrapper
+	Main   Wrapper
+	Pool   []Wrapper
+	ApiKey string
 }
 
 func (self Client) FlushDb() (err error) {
