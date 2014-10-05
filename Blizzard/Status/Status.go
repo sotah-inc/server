@@ -21,7 +21,7 @@ type Response struct {
 	Realms []Realm
 }
 
-const URL_FORMAT = "http://%s/api/wow/realm/status"
+const URL_FORMAT = "https://%s/wow/realm/status?apikey=%s"
 
 /*
 	Realm
@@ -63,7 +63,7 @@ type Result struct {
 /*
 	funcs
 */
-func Get(region Entity.Region, c chan Result) {
+func Get(region Entity.Region, apiKey string, c chan Result) {
 	var response Response
 	result := Result{
 		Response: response,
@@ -72,7 +72,7 @@ func Get(region Entity.Region, c chan Result) {
 	}
 
 	var b []byte
-	b, result.Error = Util.Download(fmt.Sprintf(URL_FORMAT, region.Host))
+	b, result.Error = Util.Download(fmt.Sprintf(URL_FORMAT, region.Host, apiKey))
 	if result.Error != nil {
 		c <- result
 		return

@@ -115,6 +115,7 @@ func GetCacheClientAndRegions(args []string, flushDb bool) (cacheClient Cache.Cl
 	if err != nil {
 		return
 	}
+	cacheClient.ApiKey = configFile.ApiKey
 
 	// gathering the regions
 	regions, err = getRegions(cacheClient, configFile.Regions)
@@ -136,7 +137,7 @@ func GetRealms(client Cache.Client, regions []Entity.Region) (map[int64][]Entity
 	// going over the regions to download the statuses
 	c := make(chan Status.Result, len(regions))
 	for _, region := range regions {
-		go Status.Get(region, c)
+		go Status.Get(region, client.ApiKey, c)
 	}
 
 	// gathering the results

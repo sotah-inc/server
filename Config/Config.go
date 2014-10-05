@@ -59,6 +59,7 @@ type ConnectionList struct {
 type ConfigFile struct {
 	ConnectionList ConnectionList `json:"redis"`
 	Regions        []Region
+	ApiKey         string
 }
 
 func NewConfigFile(source string) (configFile ConfigFile, err error) {

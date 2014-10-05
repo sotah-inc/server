@@ -20,14 +20,14 @@ type File struct {
 	Url          string
 }
 
-const URL_FORMAT = "http://%s/api/wow/auction/data/%s"
+const URL_FORMAT = "https://%s/wow/auction/data/%s?apikey=%s"
 
 /*
 	funcs
 */
-func Get(realm Entity.Realm) (response Response, err error) {
+func Get(realm Entity.Realm, apiKey string) (response Response, err error) {
 	var b []byte
-	url := fmt.Sprintf(URL_FORMAT, realm.Region.Host, realm.Slug)
+	url := fmt.Sprintf(URL_FORMAT, realm.Region.Host, realm.Slug, apiKey)
 	b, err = Util.Download(url)
 	if err != nil {
 		return response, err
