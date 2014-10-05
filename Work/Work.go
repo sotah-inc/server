@@ -1,12 +1,10 @@
 package Work
 
 import (
-	"fmt"
 	"github.com/ihsw/go-download/Blizzard/Auction"
 	"github.com/ihsw/go-download/Blizzard/AuctionData"
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Entity"
-	"strings"
 	"time"
 )
 
@@ -71,52 +69,6 @@ func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out c
 		result.Error = downloadResult.Error
 		out <- result
 		return
-	}
-
-	// gathering up unique sellers
-	data := downloadResult.AuctionDataResponse
-	auctionGroups := [][]AuctionData.Auction{
-		data.Alliance.Auctions,
-		data.Horde.Auctions,
-		data.Neutral.Auctions,
-	}
-	realmSellers := make(map[string]map[string]string)
-	for _, auctions := range auctionGroups {
-		for _, auction := range auctions {
-			seller := auction.Owner
-			sellerRealm := auction.OwnerRealm
-
-			_, valid := realmSellers[sellerRealm]
-			if !valid {
-				realmSellers[sellerRealm] = make(map[string]string)
-			}
-
-			realmSellers[sellerRealm][seller] = seller
-		}
-	}
-
-	nameCollisions := make(map[string]map[string]string)
-	for sellerRealm, sellers := range realmSellers {
-		for _, seller := range sellers {
-			_, valid := nameCollisions[seller]
-			if !valid {
-				nameCollisions[seller] = make(map[string]string)
-			}
-			nameCollisions[seller][sellerRealm] = sellerRealm
-		}
-	}
-
-	for seller, sellerRealms := range nameCollisions {
-		if len(sellerRealms) == 1 {
-			continue
-		}
-		a := make([]string, len(sellerRealms))
-		i := 0
-		for _, sellerRealm := range sellerRealms {
-			a[i] = sellerRealm
-			i++
-		}
-		fmt.Println(fmt.Sprintf("%s is found on %s", seller, strings.Join(a, ", ")))
 	}
 
 	// queueing it out
