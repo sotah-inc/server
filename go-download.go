@@ -75,7 +75,7 @@ func main() {
 	*/
 	// misc
 	downloadIn := make(chan Entity.Realm, totalRealms)
-	itemizeIn := make(chan Work.DownloadResult, totalRealms)
+	downloadOut := make(chan Work.DownloadResult, totalRealms)
 	itemizeOut := make(chan Work.ItemizeResult, totalRealms)
 
 	// spawning some download workers
@@ -86,7 +86,7 @@ func main() {
 			for {
 				Work.DownloadRealm(<-in, cacheClient, out)
 			}
-		}(downloadIn, cacheClient, itemizeIn)
+		}(downloadIn, cacheClient, downloadOut)
 	}
 
 	// spawning an itemize worker
@@ -94,7 +94,7 @@ func main() {
 		for {
 			Work.ItemizeRealm(<-in, cacheClient, out)
 		}
-	}(itemizeIn, cacheClient, itemizeOut)
+	}(downloadOut, cacheClient, itemizeOut)
 
 	/*
 		preparation for queueing
