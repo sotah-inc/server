@@ -26,7 +26,7 @@ func main() {
 		regions      []Entity.Region
 		regionRealms map[int64][]Entity.Realm
 	)
-	debug := false
+	debug := true
 
 	/*
 		reading the config
@@ -133,9 +133,37 @@ func main() {
 
 	// waiting for the itemize results to drain out
 	output.Write(fmt.Sprintf("Waiting for %d results to drain out...", totalRealms))
+	itemizeResults := make([]Work.ItemizeResult, totalRealms)
 	for i := 0; i < totalRealms; i++ {
-		<-itemizeOut
+		itemizeResults[i] = <-itemizeOut
 	}
+
+	// gathering unique blizz-item-ids from all itemize results
+	blizzItemIds := make(map[uint64]struct{})
+	for _, result := range itemizeResults {
+		for _, blizzItemId := range result.BlizzItemIds {
+			_, valid := blizzItemIds[blizzItemId]
+			if !valid {
+				blizzItemIds[blizzItemId] = struct{}{}
+			}
+		}
+	}
+
+	// creating them where appropriate
+	for blizzItemId, _ := range blizzItemIds {
+		item := Entity.Item{
+			BlizzId: blizzItemId,
+		}
+
+		var dump string
+		dump, err = item.Marshal()
+		if err != nil {
+			output.Write(fmt.Sprintf("item #%d could not be marshalled: %s", blizzItemId, err.Error()))
+			return
+		}
+		output.Write(dump)
+	}
+	output.Write(fmt.Sprintf("%d items found in %d realms", len(blizzItemIds), totalRealms))
 
 	output.Conclude()
 }

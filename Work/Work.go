@@ -20,8 +20,9 @@ type DownloadResult struct {
 }
 
 type ItemizeResult struct {
-	Error error
-	Realm Entity.Realm
+	Error        error
+	Realm        Entity.Realm
+	BlizzItemIds []uint64
 }
 
 /*
@@ -69,6 +70,31 @@ func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out c
 		result.Error = downloadResult.Error
 		out <- result
 		return
+	}
+
+	// going over the list of auctions to gather the blizz item ids
+	data := downloadResult.AuctionDataResponse
+	auctionGroups := [][]AuctionData.Auction{
+		data.Alliance.Auctions,
+		data.Horde.Auctions,
+		data.Neutral.Auctions,
+	}
+	blizzItemIds := make(map[uint64]struct{})
+	for _, auctions := range auctionGroups {
+		for _, auction := range auctions {
+			blizzItemId := auction.Item
+			_, valid := blizzItemIds[blizzItemId]
+			if !valid {
+				blizzItemIds[blizzItemId] = struct{}{}
+			}
+		}
+	}
+
+	result.BlizzItemIds = make([]uint64, len(blizzItemIds))
+	i := 0
+	for blizzItemId, _ := range blizzItemIds {
+		result.BlizzItemIds[i] = blizzItemId
+		i++
 	}
 
 	// queueing it out
