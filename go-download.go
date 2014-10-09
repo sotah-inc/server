@@ -149,21 +149,25 @@ func main() {
 		}
 	}
 
-	// creating them where appropriate
-	for blizzItemId, _ := range blizzItemIds {
-		item := Entity.Item{
-			BlizzId: blizzItemId,
-		}
-
-		var dump string
-		dump, err = item.Marshal()
-		if err != nil {
-			output.Write(fmt.Sprintf("item #%d could not be marshalled: %s", blizzItemId, err.Error()))
-			return
-		}
-		output.Write(dump)
+	// creating them
+	itemManager := Entity.ItemManager{
+		Client: cacheClient,
 	}
-	output.Write(fmt.Sprintf("%d items found in %d realms", len(blizzItemIds), totalRealms))
+	newItems := make([]Entity.Item, len(blizzItemIds))
+	output.Write(fmt.Sprintf("Creating %d new items...", len(blizzItemIds)))
+	i := 0
+	for blizzItemId, _ := range blizzItemIds {
+		newItems[i] = Entity.Item{BlizzId: blizzItemId}
+		i++
+	}
+
+	// persisting them
+	output.Write(fmt.Sprintf("Persisting %d new items...", len(newItems)))
+	newItems, err = itemManager.PersistAll(newItems)
+	if err != nil {
+		output.Write(fmt.Sprintf("ItemManager.PersistAll() fail: %s", err.Error()))
+		return
+	}
 
 	output.Conclude()
 }

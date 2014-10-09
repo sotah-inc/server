@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ihsw/go-download/Cache"
-	redis "github.com/vmihailenco/redis/v2"
 	"strconv"
 )
 
@@ -97,10 +96,9 @@ func (self LocaleManager) Persist(locale Locale) (Locale, error) {
 	}
 
 	// etc
-	var cmd *redis.IntCmd
 	if isNew {
 		id := strconv.FormatInt(locale.Id, 10)
-		cmd = r.RPush("locale_ids", id)
+		cmd := r.RPush("locale_ids", id)
 		if err = cmd.Err(); err != nil {
 			return locale, err
 		}

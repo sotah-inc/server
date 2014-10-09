@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ihsw/go-download/Cache"
-	redis "github.com/vmihailenco/redis/v2"
 	"strconv"
 	"time"
 )
@@ -118,10 +117,9 @@ func (self RealmManager) Persist(realm Realm) (Realm, error) {
 	}
 
 	// etc
-	var cmd *redis.IntCmd
 	if isNew {
 		id := strconv.FormatInt(realm.Id, 10)
-		cmd = r.RPush("realm_ids", id)
+		cmd := r.RPush("realm_ids", id)
 		if err = cmd.Err(); err != nil {
 			return realm, err
 		}

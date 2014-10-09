@@ -2,7 +2,7 @@ package Cache
 
 import (
 	"fmt"
-	"github.com/vmihailenco/redis/v2"
+	redis "gopkg.in/redis.v2"
 	"strconv"
 )
 
@@ -16,6 +16,15 @@ func GetBucketKey(id int64, namespace string) (string, string) {
 	bucketKey := fmt.Sprintf("%s_bucket:%d", namespace, bucketId)
 	subKey := strconv.FormatInt(remainder, 10)
 	return bucketKey, subKey
+}
+
+/*
+	PersistValue
+*/
+type PersistValue struct {
+	BucketKey string
+	SubKey    string
+	Value     string
 }
 
 /*
@@ -121,6 +130,81 @@ func (self Wrapper) Persist(bucketKey string, subKey string, value string) (err 
 
 func (self Wrapper) SetCacheValue(key string, value string) {
 	self.Cache[key] = value
+}
+
+func (self Wrapper) IncrAll(key string, count int) (ids []int64, err error) {
+	// misc
+	var cmds []redis.Cmder
+	pipe := self.Redis.Pipeline()
+
+	// running the pipeline
+	for i := 0; i < count; i++ {
+		pipe.Incr(key)
+	}
+	cmds, err = pipe.Exec()
+	if err != nil {
+		return
+	}
+
+	// gathering for ids and checking for errors
+	ids = make([]int64, len(cmds))
+	for i, cmd := range cmds {
+		if err = cmd.Err(); err != nil {
+			return
+		}
+
+		ids[i] = cmd.(*redis.IntCmd).Val()
+	}
+
+	return ids, nil
+}
+
+func (self Wrapper) PersistAll(values []PersistValue) (err error) {
+	// misc
+	var cmds []redis.Cmder
+	pipe := self.Redis.Pipeline()
+
+	// running the pipeline
+	for _, v := range values {
+		pipe.HSet(v.BucketKey, v.SubKey, v.Value)
+	}
+	cmds, err = pipe.Exec()
+	if err != nil {
+		return
+	}
+
+	// checking for errors
+	for _, cmd := range cmds {
+		if err = cmd.Err(); err != nil {
+			return
+		}
+	}
+
+	return nil
+}
+
+func (self Wrapper) RPushAll(key string, values []string) (err error) {
+	// misc
+	var cmds []redis.Cmder
+	pipe := self.Redis.Pipeline()
+
+	// running the pipeline
+	for _, v := range values {
+		pipe.RPush(key, v)
+	}
+	cmds, err = pipe.Exec()
+	if err != nil {
+		return
+	}
+
+	// checking for errors
+	for _, cmd := range cmds {
+		if err = cmd.Err(); err != nil {
+			return
+		}
+	}
+
+	return nil
 }
 
 /*
