@@ -62,102 +62,48 @@ type ItemManager struct {
 
 func (self ItemManager) Namespace() string { return "item" }
 
-func (self ItemManager) Persist(item Item) (Item, error) {
+func (self ItemManager) PersistAll(items []Item) ([]Item, error) {
 	var (
 		err error
+		ids []int64
 		s   string
 	)
-	w := self.Client.Main
-	r := w.Redis
+	m := self.Client.Main
 
-	// id
-	isNew := item.Id == 0
-	if isNew {
-		cmd := r.Incr("item_id")
-		if err = cmd.Err(); err != nil {
-			return item, err
-		}
-		item.Id = cmd.Val()
+	// ids
+	ids, err = m.IncrAll("item_id", len(items))
+	if err != nil {
+		return items, err
+	}
+	for i, id := range ids {
+		items[i].Id = id
 	}
 
 	// data
-	s, err = item.Marshal()
-	if err != nil {
-		return item, err
+	values := make([]Cache.PersistValue, len(items))
+	for i, item := range items {
+		s, err = item.Marshal()
+		bucketKey, subKey := Cache.GetBucketKey(item.Id, self.Namespace())
+		values[i] = Cache.PersistValue{
+			BucketKey: bucketKey,
+			SubKey:    subKey,
+			Value:     s,
+		}
 	}
-	bucketKey, subKey := Cache.GetBucketKey(item.Id, self.Namespace())
-	err = w.Persist(bucketKey, subKey, s)
+	err = m.PersistAll(values)
 	if err != nil {
-		return item, err
+		return items, err
 	}
 
 	// etc
-	if isNew {
-		cmd := r.RPush("item_ids", strconv.FormatInt(item.Id, 10))
-		if err = cmd.Err(); err != nil {
-			return item, err
-		}
+	rpushIds := make([]string, len(items))
+	for i, item := range items {
+		rpushIds[i] = strconv.FormatInt(item.Id, 10)
+	}
+	err = m.RPushAll("item_ids", rpushIds)
+	if err != nil {
+		return items, err
 	}
 
-	return item, nil
+	return items, nil
 }
-
-// func (self RegionManager) unmarshal(v string) (region Region, err error) {
-// 	if v == "" {
-// 		return
-// 	}
-
-// 	// json
-// 	var regionJson RegionJson
-// 	b := []byte(v)
-// 	err = json.Unmarshal(b, &regionJson)
-// 	if err != nil {
-// 		return
-// 	}
-
-// 	// initial
-// 	region = Region{
-// 		Id:   regionJson.Id,
-// 		Name: regionJson.Name,
-// 		Host: regionJson.Host,
-// 	}
-// 	return region, nil
-// }
-
-// func (self RegionManager) unmarshalAll(values []string) (regions []Region, err error) {
-// 	regions = make([]Region, len(values))
-// 	for i, v := range values {
-// 		regions[i], err = self.unmarshal(v)
-// 		if err != nil {
-// 			return
-// 		}
-// 	}
-// 	return
-// }
-
-// func (self RegionManager) FindOneById(id int64) (region Region, err error) {
-// 	v, err := self.Client.Main.FetchFromId(self, id)
-// 	if err != nil {
-// 		return
-// 	}
-// 	return self.unmarshal(v)
-// }
-
-// func (self RegionManager) FindAll() (regions []Region, err error) {
-// 	main := self.Client.Main
-
-// 	// fetching ids
-// 	ids, err := main.FetchIds("region_ids", 0, -1)
-// 	if err != nil {
-// 		return
-// 	}
-
-// 	// fetching the values
-// 	var values []string
-// 	values, err = main.FetchFromIds(self, ids)
-// 	if err != nil {
-// 		return
-// 	}
-
-// 	return self.unmarshalAll(values)
-// }
