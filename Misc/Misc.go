@@ -6,7 +6,7 @@ import (
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Config"
 	"github.com/ihsw/go-download/Entity"
-	redis "github.com/vmihailenco/redis/v2"
+	redis "gopkg.in/redis.v2"
 )
 
 /*
