@@ -180,6 +180,12 @@ func (self Wrapper) PersistAll(values []PersistValue) (err error) {
 		}
 	}
 
+	// updating the cache
+	for i, _ := range cmds {
+		v := values[i]
+		self.SetCacheValue(self.getCacheKey(v.BucketKey, v.SubKey), v.Value)
+	}
+
 	return nil
 }
 
