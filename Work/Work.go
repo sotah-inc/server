@@ -31,9 +31,7 @@ type ItemizeResult struct {
 func DownloadRealm(realm Entity.Realm, cacheClient Cache.Client, out chan DownloadResult) {
 	// misc
 	realmManager := Entity.RealmManager{Client: cacheClient}
-	result := DownloadResult{
-		Realm: realm,
-	}
+	result := DownloadResult{Realm: realm}
 
 	// fetching the auction info
 	result.AuctionResponse, result.Error = Auction.Get(realm, cacheClient.ApiKey)
@@ -61,9 +59,7 @@ func DownloadRealm(realm Entity.Realm, cacheClient Cache.Client, out chan Downlo
 func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out chan ItemizeResult) {
 	// misc
 	realm := downloadResult.Realm
-	result := ItemizeResult{
-		Realm: realm,
-	}
+	result := ItemizeResult{Realm: realm}
 
 	// optionally halting on error
 	if downloadResult.Error != nil {

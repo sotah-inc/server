@@ -150,9 +150,7 @@ func main() {
 	}
 
 	// creating them
-	itemManager := Entity.ItemManager{
-		Client: cacheClient,
-	}
+	itemManager := Entity.ItemManager{Client: cacheClient}
 	newItems := make([]Entity.Item, len(blizzItemIds))
 	output.Write(fmt.Sprintf("Creating %d new items...", len(blizzItemIds)))
 	i := 0
