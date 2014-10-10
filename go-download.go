@@ -133,34 +133,17 @@ func main() {
 
 	// waiting for the itemize results to drain out
 	output.Write(fmt.Sprintf("Waiting for %d results to drain out...", totalRealms))
-	itemizeResults := make([]Work.ItemizeResult, totalRealms)
+	itemizeResults := Work.ItemizeResults{List: make([]Work.ItemizeResult, totalRealms)}
 	for i := 0; i < totalRealms; i++ {
-		itemizeResults[i] = <-itemizeOut
+		itemizeResults.List[i] = <-itemizeOut
 	}
 
-	// gathering unique blizz-item-ids from all itemize results
-	blizzItemIds := make(map[uint64]struct{})
-	for _, result := range itemizeResults {
-		for _, blizzItemId := range result.BlizzItemIds {
-			_, valid := blizzItemIds[blizzItemId]
-			if !valid {
-				blizzItemIds[blizzItemId] = struct{}{}
-			}
-		}
-	}
-
-	// creating them
-	itemManager := Entity.ItemManager{Client: cacheClient}
-	newItems := make([]Entity.Item, len(blizzItemIds))
-	output.Write(fmt.Sprintf("Creating %d new items...", len(blizzItemIds)))
-	i := 0
-	for blizzItemId, _ := range blizzItemIds {
-		newItems[i] = Entity.Item{BlizzId: blizzItemId}
-		i++
-	}
+	// gathering items from the results
+	newItems := itemizeResults.GetUniqueItems()
 
 	// persisting them
 	output.Write(fmt.Sprintf("Persisting %d new items...", len(newItems)))
+	itemManager := Entity.ItemManager{Client: cacheClient}
 	newItems, err = itemManager.PersistAll(newItems)
 	if err != nil {
 		output.Write(fmt.Sprintf("ItemManager.PersistAll() fail: %s", err.Error()))

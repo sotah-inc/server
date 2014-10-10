@@ -59,6 +59,34 @@ type ItemizeResult struct {
 }
 
 /*
+	ItemizeResults
+*/
+type ItemizeResults struct {
+	List []ItemizeResult
+}
+
+func (self ItemizeResults) GetUniqueItems() (items []Entity.Item) {
+	blizzItemIds := make(map[uint64]struct{})
+	for _, result := range self.List {
+		for _, blizzItemId := range result.BlizzItemIds {
+			_, valid := blizzItemIds[blizzItemId]
+			if !valid {
+				blizzItemIds[blizzItemId] = struct{}{}
+			}
+		}
+	}
+
+	items = make([]Entity.Item, len(blizzItemIds))
+	i := 0
+	for blizzItemId, _ := range blizzItemIds {
+		items[i] = Entity.Item{BlizzId: blizzItemId}
+		i++
+	}
+
+	return items
+}
+
+/*
 	funcs
 */
 func DownloadRealm(realm Entity.Realm, cacheClient Cache.Client, out chan DownloadResult) {
