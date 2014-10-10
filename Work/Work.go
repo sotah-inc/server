@@ -20,7 +20,7 @@ type DownloadResult struct {
 }
 
 func (self DownloadResult) getBlizzItemIds() []uint64 {
-	// going over the list of auctions to gather the blizz item ids
+	// gather unique blizz item ids
 	uniqueBlizzItemIds := make(map[uint64]struct{})
 	for _, auction := range self.AuctionDataResponse.GetAuctions() {
 		blizzItemId := auction.Item
@@ -30,7 +30,7 @@ func (self DownloadResult) getBlizzItemIds() []uint64 {
 		}
 	}
 
-	// pushing them onto the result
+	// formatting
 	blizzItemIds := make([]uint64, len(uniqueBlizzItemIds))
 	i := 0
 	for blizzItemId, _ := range uniqueBlizzItemIds {
