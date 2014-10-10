@@ -213,6 +213,30 @@ func (self Wrapper) RPushAll(key string, values []string) (err error) {
 	return nil
 }
 
+func (self Wrapper) SAddAll(key string, values []string) (err error) {
+	// misc
+	var cmds []redis.Cmder
+	pipe := self.Redis.Pipeline()
+
+	// running the pipeline
+	for _, v := range values {
+		pipe.SAdd(key, v)
+	}
+	cmds, err = pipe.Exec()
+	if err != nil {
+		return
+	}
+
+	// checking for errors
+	for _, cmd := range cmds {
+		if err = cmd.Err(); err != nil {
+			return
+		}
+	}
+
+	return nil
+}
+
 /*
 	Client
 */

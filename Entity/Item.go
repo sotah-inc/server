@@ -2,7 +2,6 @@ package Entity
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/ihsw/go-download/Cache"
 	"strconv"
 )
@@ -47,6 +46,7 @@ type ItemManager struct {
 func (self ItemManager) Namespace() string { return "item" }
 
 func (self ItemManager) PersistAll(items []Item) ([]Item, error) {
+	return items, nil
 	var (
 		err error
 		ids []int64
@@ -84,7 +84,7 @@ func (self ItemManager) PersistAll(items []Item) ([]Item, error) {
 	for i, item := range items {
 		rpushIds[i] = strconv.FormatInt(item.Id, 10)
 	}
-	err = m.RPushAll("item_ids", rpushIds)
+	err = m.SAddAll("item_ids", rpushIds)
 	if err != nil {
 		return items, err
 	}

@@ -41,6 +41,31 @@ func (self DownloadResult) getBlizzItemIds() []uint64 {
 	return blizzItemIds
 }
 
+func (self DownloadResult) getCharacters() []Entity.Character {
+	// gathering unique character names
+	uniqueCharacterNames := make(map[string]struct{})
+	for _, auction := range self.AuctionDataResponse.GetAuctions() {
+		name := auction.Owner
+		_, valid := uniqueCharacterNames[name]
+		if !valid {
+			uniqueCharacterNames[name] = struct{}{}
+		}
+	}
+
+	// formatting
+	characters := make([]Entity.Character, len(uniqueCharacterNames))
+	i := 0
+	for name, _ := range uniqueCharacterNames {
+		characters[i] = Entity.Character{
+			Name:  name,
+			Realm: self.Realm,
+		}
+		i++
+	}
+
+	return characters
+}
+
 /*
 	ItemizeResult
 */
@@ -111,6 +136,7 @@ func DownloadRealm(realm Entity.Realm, cacheClient Cache.Client, out chan Downlo
 
 func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out chan ItemizeResult) {
 	// misc
+	var err error
 	realm := downloadResult.Realm
 	result := ItemizeResult{Realm: realm}
 
@@ -123,6 +149,16 @@ func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out c
 
 	// gathering blizz-item-ids for post-itemize processing
 	result.BlizzItemIds = downloadResult.getBlizzItemIds()
+
+	// gathering characters and persisting them
+	characters := downloadResult.getCharacters()
+	characterManager := Entity.CharacterManager{Client: cacheClient}
+	characters, err = characterManager.PersistAll(realm, characters)
+	if err != nil {
+		result.Error = err
+		out <- result
+		return
+	}
 
 	// queueing it out
 	out <- result
