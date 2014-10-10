@@ -32,16 +32,6 @@ func (self Locale) marshal() (string, error) {
 
 func (self Locale) IsValid() bool { return self.Id != 0 }
 
-func (self Locale) String() string {
-	return fmt.Sprintf("Locale[Id: %d, Name: %s, Fullname: %s, Shortname: %s, Region.Id: %d]",
-		self.Id,
-		self.Name,
-		self.Fullname,
-		self.Shortname,
-		self.Region.Id,
-	)
-}
-
 /*
 	LocaleJson
 */

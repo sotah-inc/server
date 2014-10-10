@@ -37,13 +37,6 @@ func (self ItemJson) marshal() (string, error) {
 	return string(b), err
 }
 
-func (self ItemJson) String() string {
-	return fmt.Sprintf("ItemJson[Id: %d, BlizzId: %d]",
-		self.Id,
-		self.BlizzId,
-	)
-}
-
 /*
 	ItemManager
 */

@@ -27,19 +27,6 @@ func (self Region) marshal() (string, error) {
 	return regionJson.marshal()
 }
 
-func (self Region) String() string {
-	queryable := "true"
-	if self.Queryable {
-		queryable = "false"
-	}
-	return fmt.Sprintf("Region[Id: %d, Name: %s, Host: %s, Queryable: %s]",
-		self.Id,
-		self.Name,
-		self.Host,
-		queryable,
-	)
-}
-
 func (self Region) IsValid() bool { return self.Id != 0 }
 
 /*
@@ -54,14 +41,6 @@ type RegionJson struct {
 func (self RegionJson) marshal() (string, error) {
 	b, err := json.Marshal(self)
 	return string(b), err
-}
-
-func (self RegionJson) String() string {
-	return fmt.Sprintf("RegionJson[Id: %d, Name: %s, Host: %s]",
-		self.Id,
-		self.Name,
-		self.Host,
-	)
 }
 
 /*
@@ -82,7 +61,7 @@ func (self RegionManager) Persist(region Region) (Region, error) {
 	r := w.Redis
 
 	// id
-	isNew := region.Id == 0
+	isNew := !region.IsValid()
 	if isNew {
 		cmd := r.Incr("region_id")
 		if err = cmd.Err(); err != nil {
