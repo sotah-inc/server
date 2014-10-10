@@ -15,7 +15,7 @@ type Item struct {
 	BlizzId uint64
 }
 
-func (self Item) Marshal() (string, error) {
+func (self Item) marshal() (string, error) {
 	itemJson := ItemJson{
 		Id:      self.Id,
 		BlizzId: self.BlizzId,
@@ -23,15 +23,6 @@ func (self Item) Marshal() (string, error) {
 
 	return itemJson.marshal()
 }
-
-func (self Item) String() string {
-	return fmt.Sprintf("Item[Id: %d, BlizzId: %d]",
-		self.Id,
-		self.BlizzId,
-	)
-}
-
-func (self Item) IsValid() bool { return self.Id != 0 }
 
 /*
 	ItemJson
@@ -82,7 +73,7 @@ func (self ItemManager) PersistAll(items []Item) ([]Item, error) {
 	// data
 	values := make([]Cache.PersistValue, len(items))
 	for i, item := range items {
-		s, err = item.Marshal()
+		s, err = item.marshal()
 		bucketKey, subKey := Cache.GetBucketKey(item.Id, self.Namespace())
 		values[i] = Cache.PersistValue{
 			BucketKey: bucketKey,
