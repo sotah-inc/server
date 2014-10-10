@@ -9,7 +9,7 @@ import (
 )
 
 /*
-	chan structs
+	DownloadResult
 */
 type DownloadResult struct {
 	AuctionResponse     Auction.Response
@@ -19,6 +19,39 @@ type DownloadResult struct {
 	Realm               Entity.Realm
 }
 
+func (self DownloadResult) getBlizzItemIds() []uint64 {
+	// going over the list of auctions to gather the blizz item ids
+	data := self.AuctionDataResponse
+	auctionGroups := [][]AuctionData.Auction{
+		data.Alliance.Auctions,
+		data.Horde.Auctions,
+		data.Neutral.Auctions,
+	}
+	uniqueBlizzItemIds := make(map[uint64]struct{})
+	for _, auctions := range auctionGroups {
+		for _, auction := range auctions {
+			blizzItemId := auction.Item
+			_, valid := uniqueBlizzItemIds[blizzItemId]
+			if !valid {
+				uniqueBlizzItemIds[blizzItemId] = struct{}{}
+			}
+		}
+	}
+
+	// pushing them onto the result
+	blizzItemIds := make([]uint64, len(uniqueBlizzItemIds))
+	i := 0
+	for blizzItemId, _ := range uniqueBlizzItemIds {
+		blizzItemIds[i] = blizzItemId
+		i++
+	}
+
+	return blizzItemIds
+}
+
+/*
+	ItemizeResult
+*/
 type ItemizeResult struct {
 	Error        error
 	Realm        Entity.Realm
@@ -68,30 +101,7 @@ func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out c
 		return
 	}
 
-	// going over the list of auctions to gather the blizz item ids
-	data := downloadResult.AuctionDataResponse
-	auctionGroups := [][]AuctionData.Auction{
-		data.Alliance.Auctions,
-		data.Horde.Auctions,
-		data.Neutral.Auctions,
-	}
-	blizzItemIds := make(map[uint64]struct{})
-	for _, auctions := range auctionGroups {
-		for _, auction := range auctions {
-			blizzItemId := auction.Item
-			_, valid := blizzItemIds[blizzItemId]
-			if !valid {
-				blizzItemIds[blizzItemId] = struct{}{}
-			}
-		}
-	}
-
-	result.BlizzItemIds = make([]uint64, len(blizzItemIds))
-	i := 0
-	for blizzItemId, _ := range blizzItemIds {
-		result.BlizzItemIds[i] = blizzItemId
-		i++
-	}
+	result.BlizzItemIds = downloadResult.getBlizzItemIds()
 
 	// queueing it out
 	out <- result
