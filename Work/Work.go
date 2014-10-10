@@ -21,20 +21,12 @@ type DownloadResult struct {
 
 func (self DownloadResult) getBlizzItemIds() []uint64 {
 	// going over the list of auctions to gather the blizz item ids
-	data := self.AuctionDataResponse
-	auctionGroups := [][]AuctionData.Auction{
-		data.Alliance.Auctions,
-		data.Horde.Auctions,
-		data.Neutral.Auctions,
-	}
 	uniqueBlizzItemIds := make(map[uint64]struct{})
-	for _, auctions := range auctionGroups {
-		for _, auction := range auctions {
-			blizzItemId := auction.Item
-			_, valid := uniqueBlizzItemIds[blizzItemId]
-			if !valid {
-				uniqueBlizzItemIds[blizzItemId] = struct{}{}
-			}
+	for _, auction := range self.AuctionDataResponse.GetAuctions() {
+		blizzItemId := auction.Item
+		_, valid := uniqueBlizzItemIds[blizzItemId]
+		if !valid {
+			uniqueBlizzItemIds[blizzItemId] = struct{}{}
 		}
 	}
 
@@ -129,6 +121,7 @@ func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out c
 		return
 	}
 
+	// gathering blizz-item-ids for post-itemize processing
 	result.BlizzItemIds = downloadResult.getBlizzItemIds()
 
 	// queueing it out
