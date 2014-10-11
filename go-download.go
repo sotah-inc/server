@@ -80,21 +80,20 @@ func main() {
 
 	// spawning some download workers
 	downloadWorkerCount := 4
-	output.Write(fmt.Sprintf("Spawning %d download workers...", downloadWorkerCount))
+	output.Write(fmt.Sprintf("Spawning %d download and itemize workers...", downloadWorkerCount))
 	for j := 0; j < downloadWorkerCount; j++ {
 		go func(in chan Entity.Realm, cacheClient Cache.Client, out chan Work.DownloadResult) {
 			for {
 				Work.DownloadRealm(<-in, cacheClient, out)
 			}
 		}(downloadIn, cacheClient, downloadOut)
-	}
 
-	// spawning an itemize worker
-	go func(in chan Work.DownloadResult, cacheClient Cache.Client, out chan Work.ItemizeResult) {
-		for {
-			Work.ItemizeRealm(<-in, cacheClient, out)
-		}
-	}(downloadOut, cacheClient, itemizeOut)
+		go func(in chan Work.DownloadResult, cacheClient Cache.Client, out chan Work.ItemizeResult) {
+			for {
+				Work.ItemizeRealm(<-in, cacheClient, out)
+			}
+		}(downloadOut, cacheClient, itemizeOut)
+	}
 
 	/*
 		preparation for queueing
