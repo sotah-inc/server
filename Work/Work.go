@@ -12,9 +12,7 @@ import (
 	DownloadResult
 */
 type DownloadResult struct {
-	AuctionResponse     Auction.Response
 	AuctionDataResponse AuctionData.Response
-	DataUrl             string
 	Error               error
 	Realm               Entity.Realm
 }
@@ -74,6 +72,7 @@ type ItemizeResult struct {
 	Realm        Entity.Realm
 	BlizzItemIds []int64
 	Characters   []Entity.Character
+	Auctions     []AuctionData.Auction
 }
 
 /*
@@ -109,18 +108,19 @@ func (self ItemizeResults) GetUniqueItems() (items []Entity.Item) {
 */
 func DownloadRealm(realm Entity.Realm, cacheClient Cache.Client, out chan DownloadResult) {
 	// misc
+	var auctionResponse Auction.Response
 	realmManager := Entity.RealmManager{Client: cacheClient}
 	result := DownloadResult{Realm: realm}
 
 	// fetching the auction info
-	result.AuctionResponse, result.Error = Auction.Get(realm, cacheClient.ApiKey)
+	auctionResponse, result.Error = Auction.Get(realm, cacheClient.ApiKey)
 	if result.Error != nil {
 		out <- result
 		return
 	}
 
 	// fetching the actual auction data
-	file := result.AuctionResponse.Files[0]
+	file := auctionResponse.Files[0]
 	result.AuctionDataResponse, result.Error = AuctionData.Get(realm, file.Url)
 	if result.Error != nil {
 		out <- result
@@ -160,6 +160,9 @@ func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out c
 		out <- result
 		return
 	}
+
+	// gathering auctions for post-itemize processing
+	result.Auctions = downloadResult.AuctionDataResponse.GetAuctions()
 
 	// queueing it out
 	out <- result
