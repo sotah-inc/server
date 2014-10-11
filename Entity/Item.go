@@ -46,7 +46,6 @@ type ItemManager struct {
 func (self ItemManager) Namespace() string { return "item" }
 
 func (self ItemManager) PersistAll(items []Item) ([]Item, error) {
-	return items, nil
 	var (
 		err error
 		ids []int64
@@ -80,11 +79,11 @@ func (self ItemManager) PersistAll(items []Item) ([]Item, error) {
 	}
 
 	// etc
-	rpushIds := make([]string, len(items))
+	blizzIds := make([]string, len(items))
 	for i, item := range items {
-		rpushIds[i] = strconv.FormatInt(item.Id, 10)
+		blizzIds[i] = strconv.FormatInt(item.BlizzId, 10)
 	}
-	err = m.SAddAll("item_ids", rpushIds)
+	err = m.SAddAll("item:blizz_ids", blizzIds)
 	if err != nil {
 		return items, err
 	}
