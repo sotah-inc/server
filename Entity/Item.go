@@ -11,7 +11,7 @@ import (
 */
 type Item struct {
 	Id      int64
-	BlizzId uint64
+	BlizzId int64
 }
 
 func (self Item) marshal() (string, error) {
@@ -27,8 +27,8 @@ func (self Item) marshal() (string, error) {
 	ItemJson
 */
 type ItemJson struct {
-	Id      int64  `json:"0"`
-	BlizzId uint64 `json:"1"`
+	Id      int64 `json:"0"`
+	BlizzId int64 `json:"1"`
 }
 
 func (self ItemJson) marshal() (string, error) {
@@ -81,7 +81,7 @@ func (self ItemManager) PersistAll(items []Item) ([]Item, error) {
 	// etc
 	blizzIds := make([]string, len(items))
 	for i, item := range items {
-		blizzIds[i] = strconv.FormatInt(item.BlizzId, 10)
+		blizzIds[i] = strconv.FormatInt(int64(item.BlizzId), 10)
 	}
 	err = m.SAddAll("item:blizz_ids", blizzIds)
 	if err != nil {

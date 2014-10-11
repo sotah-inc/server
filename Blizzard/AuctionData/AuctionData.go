@@ -62,16 +62,16 @@ type Auctions struct {
 	Auction
 */
 type Auction struct {
-	Auc        uint64 `json:auc`
-	Item       uint64 `json:item`
+	Auc        int64  `json:auc`
+	Item       int64  `json:item`
 	Owner      string `json:owner`
 	OwnerRealm string `json:ownerRealm`
-	Bid        uint64 `json:bid`
-	Buyout     uint64 `json:buyout`
-	Quantity   uint64 `json:quantity`
+	Bid        int64  `json:bid`
+	Buyout     int64  `json:buyout`
+	Quantity   int64  `json:quantity`
 	TimeLeft   string `json:timeLeft`
 	Rand       int64  `json:rand`
-	Seed       uint64 `json:seed`
+	Seed       int64  `json:seed`
 }
 
 /*

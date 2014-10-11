@@ -84,10 +84,16 @@ func (self CharacterManager) PersistAll(realm Realm, characters []Character) ([]
 
 	// etc
 	characterIds := make([]string, len(characters))
+	names := make([]string, len(characters))
 	for i, character := range characters {
 		characterIds[i] = strconv.FormatInt(character.Id, 10)
+		names[i] = character.Name
 	}
-	err = m.RPushAll(fmt.Sprintf("realm:%d:character_ids", realm.Id), characterIds)
+	err = m.RPushAll(fmt.Sprintf("realm:%d:character:ids", realm.Id), characterIds)
+	if err != nil {
+		return characters, err
+	}
+	err = m.SAddAll(fmt.Sprintf("realm:%d:character:names", realm.Id), names)
 	if err != nil {
 		return characters, err
 	}

@@ -11,10 +11,10 @@ import (
 	blizzard json response structs
 */
 type PvpArea struct {
-	Area                uint8
-	Controlling_Faction uint8
+	Area                int8
+	Controlling_Faction int8
 	Status              int8
-	Next                uint64
+	Next                int64
 }
 
 type Response struct {

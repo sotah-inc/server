@@ -19,9 +19,9 @@ type DownloadResult struct {
 	Realm               Entity.Realm
 }
 
-func (self DownloadResult) getBlizzItemIds() []uint64 {
+func (self DownloadResult) getBlizzItemIds() []int64 {
 	// gather unique blizz item ids
-	uniqueBlizzItemIds := make(map[uint64]struct{})
+	uniqueBlizzItemIds := make(map[int64]struct{})
 	for _, auction := range self.AuctionDataResponse.GetAuctions() {
 		blizzItemId := auction.Item
 		_, valid := uniqueBlizzItemIds[blizzItemId]
@@ -31,7 +31,7 @@ func (self DownloadResult) getBlizzItemIds() []uint64 {
 	}
 
 	// formatting
-	blizzItemIds := make([]uint64, len(uniqueBlizzItemIds))
+	blizzItemIds := make([]int64, len(uniqueBlizzItemIds))
 	i := 0
 	for blizzItemId, _ := range uniqueBlizzItemIds {
 		blizzItemIds[i] = blizzItemId
@@ -72,7 +72,7 @@ func (self DownloadResult) getCharacters() []Entity.Character {
 type ItemizeResult struct {
 	Error        error
 	Realm        Entity.Realm
-	BlizzItemIds []uint64
+	BlizzItemIds []int64
 }
 
 /*
@@ -83,7 +83,7 @@ type ItemizeResults struct {
 }
 
 func (self ItemizeResults) GetUniqueItems() (items []Entity.Item) {
-	blizzItemIds := make(map[uint64]struct{})
+	blizzItemIds := make(map[int64]struct{})
 	for _, result := range self.List {
 		for _, blizzItemId := range result.BlizzItemIds {
 			_, valid := blizzItemIds[blizzItemId]
