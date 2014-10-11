@@ -116,7 +116,7 @@ func main() {
 	}
 
 	/*
-		running the queue
+		populating the download queue
 	*/
 	// pushing the realms into the start of the queue
 	output.Write("Queueing up the realms for checking...")
@@ -130,7 +130,10 @@ func main() {
 		}
 	}
 
-	// waiting for the itemize results to drain out
+	/*
+		reading the itemize queue
+	*/
+	// waiting for the results to drain out
 	output.Write(fmt.Sprintf("Waiting for %d results to drain out...", totalRealms))
 	itemizeResults := Work.ItemizeResults{List: make([]Work.ItemizeResult, totalRealms)}
 	for i := 0; i < totalRealms; i++ {
