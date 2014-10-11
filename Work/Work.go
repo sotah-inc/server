@@ -73,6 +73,7 @@ type ItemizeResult struct {
 	Error        error
 	Realm        Entity.Realm
 	BlizzItemIds []int64
+	Characters   []Entity.Character
 }
 
 /*
@@ -153,7 +154,7 @@ func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out c
 	// gathering characters and persisting them
 	characters := downloadResult.getCharacters()
 	characterManager := Entity.CharacterManager{Client: cacheClient}
-	characters, err = characterManager.PersistAll(realm, characters)
+	result.Characters, err = characterManager.PersistAll(realm, characters)
 	if err != nil {
 		result.Error = err
 		out <- result
