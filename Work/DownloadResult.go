@@ -7,6 +7,7 @@ import (
 
 type DownloadResult struct {
 	AuctionDataResponse AuctionData.Response
+	AlreadyChecked      bool
 	Error               error
 	Realm               Entity.Realm
 }

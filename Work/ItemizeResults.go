@@ -11,6 +11,10 @@ type ItemizeResults struct {
 func (self ItemizeResults) GetUniqueItems() (items []Entity.Item) {
 	blizzItemIds := make(map[int64]struct{})
 	for _, result := range self.List {
+		if result.AlreadyChecked {
+			continue
+		}
+
 		for _, blizzItemId := range result.BlizzItemIds {
 			_, valid := blizzItemIds[blizzItemId]
 			if !valid {
