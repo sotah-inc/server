@@ -1,55 +1,19 @@
-package Entity
+package Character
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/ihsw/go-download/Cache"
+	"github.com/ihsw/go-download/Entity"
 	"strconv"
 )
 
-/*
-	Character
-*/
-type Character struct {
-	Id    int64
-	Name  string
-	Realm Realm
-}
-
-func (self Character) marshal() (string, error) {
-	characterJson := CharacterJson{
-		Id:      self.Id,
-		Name:    self.Name,
-		RealmId: self.Realm.Id,
-	}
-
-	return characterJson.marshal()
-}
-
-/*
-	CharacterJson
-*/
-type CharacterJson struct {
-	Id      int64  `json:"0"`
-	Name    string `json:"1"`
-	RealmId int64  `json:"2"`
-}
-
-func (self CharacterJson) marshal() (string, error) {
-	b, err := json.Marshal(self)
-	return string(b), err
-}
-
-/*
-	CharacterManager
-*/
-type CharacterManager struct {
+type Manager struct {
 	Client Cache.Client
 }
 
-func (self CharacterManager) Namespace() string { return "character" }
+func (self Manager) Namespace() string { return "character" }
 
-func (self CharacterManager) PersistAll(realm Realm, characters []Character) ([]Character, error) {
+func (self Manager) PersistAll(realm Entity.Realm, characters []Character) ([]Character, error) {
 	var (
 		err error
 		ids []int64

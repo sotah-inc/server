@@ -5,6 +5,7 @@ import (
 	"github.com/ihsw/go-download/Blizzard/AuctionData"
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Entity"
+	"github.com/ihsw/go-download/Entity/Character"
 	"time"
 )
 
@@ -101,7 +102,7 @@ func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out c
 
 	// gathering characters and persisting them
 	characters := downloadResult.getCharacters()
-	characterManager := Entity.CharacterManager{Client: cacheClient}
+	characterManager := Character.Manager{Client: cacheClient}
 	result.Characters, err = characterManager.PersistAll(realm, characters)
 	if err != nil {
 		result.Error = err

@@ -3,6 +3,7 @@ package Work
 import (
 	"github.com/ihsw/go-download/Blizzard/AuctionData"
 	"github.com/ihsw/go-download/Entity"
+	"github.com/ihsw/go-download/Entity/Character"
 )
 
 type DownloadResult struct {
@@ -34,7 +35,7 @@ func (self DownloadResult) getBlizzItemIds() []int64 {
 	return blizzItemIds
 }
 
-func (self DownloadResult) getCharacters() []Entity.Character {
+func (self DownloadResult) getCharacters() []Character.Character {
 	// gathering unique character names
 	uniqueCharacterNames := make(map[string]struct{})
 	for _, auction := range self.AuctionDataResponse.Auctions.Auctions {
@@ -46,10 +47,10 @@ func (self DownloadResult) getCharacters() []Entity.Character {
 	}
 
 	// formatting
-	characters := make([]Entity.Character, len(uniqueCharacterNames))
+	characters := make([]Character.Character, len(uniqueCharacterNames))
 	i := 0
 	for name, _ := range uniqueCharacterNames {
-		characters[i] = Entity.Character{
+		characters[i] = Character.Character{
 			Name:  name,
 			Realm: self.Realm,
 		}
