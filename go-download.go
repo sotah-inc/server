@@ -58,11 +58,13 @@ func main() {
 			delete(regionRealms, region.Id)
 			continue
 		}
+
+		// optionally truncating the lists of realms
 		if debug {
-			totalRealms += 1
-		} else {
-			totalRealms += len(regionRealms[region.Id])
+			regionRealms[region.Id] = regionRealms[region.Id][:1]
 		}
+
+		totalRealms += len(regionRealms[region.Id])
 	}
 
 	regionMap := map[int64]int64{}
@@ -78,7 +80,7 @@ func main() {
 	downloadOut := make(chan Work.DownloadResult, totalRealms)
 	itemizeOut := make(chan Work.ItemizeResult, totalRealms)
 
-	// spawning some download workers
+	// spawning some download and itemize workers
 	downloadWorkerCount := 4
 	output.Write(fmt.Sprintf("Spawning %d download and itemize workers...", downloadWorkerCount))
 	for j := 0; j < downloadWorkerCount; j++ {
@@ -123,10 +125,6 @@ func main() {
 	for _, realms := range formattedRealms {
 		for _, realm := range realms {
 			downloadIn <- realm
-		}
-
-		if debug {
-			break
 		}
 	}
 
