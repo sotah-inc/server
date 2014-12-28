@@ -26,7 +26,12 @@ func RunQueue(formattedRealms []map[int64]Entity.Realm, downloadIn chan Entity.R
 	// waiting for the results to drain out
 	itemizeResults := ItemizeResults{List: make([]ItemizeResult, totalRealms)}
 	for i := 0; i < totalRealms; i++ {
-		itemizeResults.List[i] = <-itemizeOut
+		result := <-itemizeOut
+		if err = result.Error; err != nil {
+			return
+		}
+
+		itemizeResults.List[i] = result
 	}
 
 	// gathering items from the results
