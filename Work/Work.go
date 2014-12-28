@@ -20,7 +20,7 @@ type DownloadResult struct {
 func (self DownloadResult) getBlizzItemIds() []int64 {
 	// gather unique blizz item ids
 	uniqueBlizzItemIds := make(map[int64]struct{})
-	for _, auction := range self.AuctionDataResponse.GetAuctions() {
+	for _, auction := range self.AuctionDataResponse.Auctions.Auctions {
 		blizzItemId := auction.Item
 		_, valid := uniqueBlizzItemIds[blizzItemId]
 		if !valid {
@@ -42,7 +42,7 @@ func (self DownloadResult) getBlizzItemIds() []int64 {
 func (self DownloadResult) getCharacters() []Entity.Character {
 	// gathering unique character names
 	uniqueCharacterNames := make(map[string]struct{})
-	for _, auction := range self.AuctionDataResponse.GetAuctions() {
+	for _, auction := range self.AuctionDataResponse.Auctions.Auctions {
 		name := auction.Owner
 		_, valid := uniqueCharacterNames[name]
 		if !valid {
@@ -162,7 +162,7 @@ func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out c
 	}
 
 	// gathering auctions for post-itemize processing
-	result.Auctions = downloadResult.AuctionDataResponse.GetAuctions()
+	result.Auctions = downloadResult.AuctionDataResponse.Auctions.Auctions
 
 	// queueing it out
 	out <- result

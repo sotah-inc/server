@@ -11,36 +11,7 @@ import (
 */
 type Response struct {
 	Realm    ResponseRealm `json:realm`
-	Alliance Auctions      `json:alliance`
-	Horde    Auctions      `json:horde`
-	Neutral  Auctions      `json:neutral`
-}
-
-func (self Response) GetAuctions() (auctions []Auction) {
-	// misc
-	groups := [][]Auction{
-		self.Alliance.Auctions,
-		self.Horde.Auctions,
-		self.Neutral.Auctions,
-	}
-
-	// calculating how many auctions there are and instantiating the list accordingly
-	length := 0
-	for _, auctions := range groups {
-		length += len(auctions)
-	}
-	auctions = make([]Auction, length)
-
-	// gathering the auctions
-	i := 0
-	for _, list := range groups {
-		for _, auction := range list {
-			auctions[i] = auction
-			i++
-		}
-	}
-
-	return
+	Auctions Auctions      `json:auctions`
 }
 
 /*
