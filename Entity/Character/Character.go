@@ -5,6 +5,9 @@ import (
 	"github.com/ihsw/go-download/Entity"
 )
 
+/*
+	Character
+*/
 type Character struct {
 	Id    int64
 	Name  string
