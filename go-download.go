@@ -117,16 +117,23 @@ func main() {
 		}
 	}
 
-	// c := time.Tick(5 * time.Minute)
-	output.Write("Starting it up...")
+	output.Write("Running it once to start it up...")
 	err = Work.RunQueue(formattedRealms, downloadIn, itemizeOut, totalRealms, cacheClient)
 	if err != nil {
 		output.Write(fmt.Sprintf("Run.WorkQueue fail: %s", err.Error()))
 		return
 	}
-	// for now := range c {
-	// Work.RunQueue(formattedRealms, downloadIn, itemizeOut, totalRealms, cacheClient)
-	// }
+
+	output.Write("Starting up the timed rotation...")
+	c := time.Tick(5 * time.Second)
+	for {
+		<-c
+		err = Work.RunQueue(formattedRealms, downloadIn, itemizeOut, totalRealms, cacheClient)
+		if err != nil {
+			output.Write(fmt.Sprintf("Run.WorkQueue fail: %s", err.Error()))
+			return
+		}
+	}
 
 	output.Conclude()
 }
