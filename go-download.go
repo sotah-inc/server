@@ -117,38 +117,16 @@ func main() {
 		}
 	}
 
-	/*
-		populating the download queue
-	*/
-	// pushing the realms into the start of the queue
-	output.Write("Queueing up the realms for checking...")
-	for _, realms := range formattedRealms {
-		for _, realm := range realms {
-			downloadIn <- realm
-		}
-	}
-
-	/*
-		reading the itemize queue
-	*/
-	// waiting for the results to drain out
-	output.Write(fmt.Sprintf("Waiting for %d results to drain out...", totalRealms))
-	itemizeResults := Work.ItemizeResults{List: make([]Work.ItemizeResult, totalRealms)}
-	for i := 0; i < totalRealms; i++ {
-		itemizeResults.List[i] = <-itemizeOut
-	}
-
-	// gathering items from the results
-	newItems := itemizeResults.GetUniqueItems()
-
-	// persisting them
-	output.Write(fmt.Sprintf("Persisting %d new items...", len(newItems)))
-	itemManager := Entity.ItemManager{Client: cacheClient}
-	newItems, err = itemManager.PersistAll(newItems)
+	// c := time.Tick(5 * time.Minute)
+	output.Write("Starting it up...")
+	err = Work.RunQueue(formattedRealms, downloadIn, itemizeOut, totalRealms, cacheClient)
 	if err != nil {
-		output.Write(fmt.Sprintf("ItemManager.PersistAll() fail: %s", err.Error()))
+		output.Write(fmt.Sprintf("Run.WorkQueue fail: %s", err.Error()))
 		return
 	}
+	// for now := range c {
+	// Work.RunQueue(formattedRealms, downloadIn, itemizeOut, totalRealms, cacheClient)
+	// }
 
 	output.Conclude()
 }

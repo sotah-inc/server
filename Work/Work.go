@@ -8,6 +8,39 @@ import (
 	"time"
 )
 
+func RunQueue(formattedRealms []map[int64]Entity.Realm, downloadIn chan Entity.Realm, itemizeOut chan ItemizeResult, totalRealms int, cacheClient Cache.Client) (err error) {
+	/*
+		populating the download queue
+	*/
+	// pushing the realms into the start of the queue
+	for _, realms := range formattedRealms {
+		for _, realm := range realms {
+			downloadIn <- realm
+		}
+	}
+
+	/*
+		reading the itemize queue
+	*/
+	// waiting for the results to drain out
+	itemizeResults := ItemizeResults{List: make([]ItemizeResult, totalRealms)}
+	for i := 0; i < totalRealms; i++ {
+		itemizeResults.List[i] = <-itemizeOut
+	}
+
+	// gathering items from the results
+	newItems := itemizeResults.GetUniqueItems()
+
+	// persisting them
+	itemManager := Entity.ItemManager{Client: cacheClient}
+	_, err = itemManager.PersistAll(newItems)
+	if err != nil {
+		return
+	}
+
+	return nil
+}
+
 func DownloadRealm(realm Entity.Realm, cacheClient Cache.Client, out chan DownloadResult) {
 	// misc
 	var auctionResponse Auction.Response
