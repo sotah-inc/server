@@ -60,7 +60,7 @@ func Get(realm Entity.Realm, url string) (response Response, err error) {
 
 	err = json.Unmarshal(b, &response)
 	if err != nil {
-		err = errors.New(fmt.Sprintf("json.Unmarshal() failed (%s)", err.Error()))
+		err = errors.New(fmt.Sprintf("json.Unmarshal() for %s failed (%s)", url, err.Error()))
 		return
 	}
 
