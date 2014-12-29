@@ -36,25 +36,44 @@ func (self DownloadResult) getBlizzItemIds() []int64 {
 }
 
 func (self DownloadResult) getCharacters(existingCharacters []Character.Character) []Character.Character {
-	// gathering unique character names
-	uniqueCharacterNames := make(map[string]struct{})
+	uniqueCharacterNames := make(map[string]int)
+	const (
+		notFound = 0
+		found    = 1
+		done     = 2
+	)
+
+	// doing a first pass to gather unique character names
 	for _, auction := range self.AuctionDataResponse.Auctions.Auctions {
-		name := auction.Owner
-		_, valid := uniqueCharacterNames[name]
-		if !valid {
-			uniqueCharacterNames[name] = struct{}{}
-		}
+		uniqueCharacterNames[auction.Owner] = notFound
+	}
+	for _, character := range existingCharacters {
+		uniqueCharacterNames[character.Name] = found
 	}
 
-	// formatting
+	// doing a second pass to generate new ones where applicable
 	characters := make([]Character.Character, len(uniqueCharacterNames))
 	i := 0
-	for name, _ := range uniqueCharacterNames {
-		characters[i] = Character.Character{
-			Name:  name,
-			Realm: self.Realm,
+	for _, auction := range self.AuctionDataResponse.Auctions.Auctions {
+		name := auction.Owner
+		if uniqueCharacterNames[name] == notFound {
+			characters[i] = Character.Character{
+				Name:  auction.Owner,
+				Realm: self.Realm,
+			}
+			uniqueCharacterNames[name] = done
+
+			i++
 		}
-		i++
+	}
+	for _, character := range existingCharacters {
+		name := character.Name
+		if uniqueCharacterNames[name] == found {
+			characters[i] = character
+			uniqueCharacterNames[name] = done
+
+			i++
+		}
 	}
 
 	return characters

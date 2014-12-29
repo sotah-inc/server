@@ -23,6 +23,13 @@ func (self Manager) PersistAll(realm Entity.Realm, characters []Character) ([]Ch
 	)
 	m := self.Client.Main
 
+	for i, character := range characters {
+		if character.IsValid() {
+			err = errors.New(fmt.Sprintf("Character %s at %d is valid with id %d!", character.Name, i, character.Id))
+			return characters, err
+		}
+	}
+
 	// ids
 	ids, err = m.IncrAll(fmt.Sprintf("realm:%d:character_id", realm.Id), len(characters))
 	if err != nil {

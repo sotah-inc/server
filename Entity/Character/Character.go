@@ -24,6 +24,8 @@ func (self Character) marshal() (string, error) {
 	return characterJson.marshal()
 }
 
+func (self Character) IsValid() bool { return self.Id != 0 }
+
 /*
 	CharacterJson
 */

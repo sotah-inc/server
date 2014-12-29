@@ -127,7 +127,7 @@ func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out c
 		return
 	}
 
-	// gathering new characters
+	// gathering characters
 	result.Characters, err = characterManager.PersistAll(realm, downloadResult.getCharacters(existingCharacters))
 	if err != nil {
 		result.Error = err
