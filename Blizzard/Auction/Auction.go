@@ -30,18 +30,20 @@ func Get(realm Entity.Realm, apiKey string) (response Response, err error) {
 	url := fmt.Sprintf(URL_FORMAT, realm.Region.Host, realm.Slug, apiKey)
 	b, err = Util.Download(url)
 	if err != nil {
+		err = errors.New(fmt.Sprintf("Util.Download() for %s failed (%s)", url, err.Error()))
 		return response, err
 	}
 
 	err = json.Unmarshal(b, &response)
 	if err != nil {
+		err = errors.New(fmt.Sprintf("json.Unmarshal() for %s failed (%s)", url, err.Error()))
 		return response, err
 	}
 
 	if len(response.Files) == 0 {
-		return response, errors.New("Response.Files length was zero")
+		return response, errors.New(fmt.Sprintf("Response.Files length was zero for %s", url))
 	} else if len(response.Files) > 1 {
-		return response, errors.New("Response.Files length was >1")
+		return response, errors.New(fmt.Sprintf("Response.Files length was >1 for %s", url))
 	}
 
 	return response, nil

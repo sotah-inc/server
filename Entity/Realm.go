@@ -220,3 +220,12 @@ func (self RealmManager) FindByRegion(region Region) (realms []Realm, err error)
 
 	return self.unmarshalAll(values)
 }
+
+func (self RealmManager) FindOneById(id int64) (realm Realm, err error) {
+	v, err := self.Client.Main.FetchFromId(self, id)
+	if err != nil {
+		return
+	}
+
+	return self.unmarshal(v)
+}

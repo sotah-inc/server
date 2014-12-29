@@ -1,6 +1,8 @@
 package Work
 
 import (
+	"errors"
+	"fmt"
 	"github.com/ihsw/go-download/Blizzard/Auction"
 	"github.com/ihsw/go-download/Blizzard/AuctionData"
 	"github.com/ihsw/go-download/Cache"
@@ -27,7 +29,8 @@ func RunQueue(formattedRealms []map[int64]Entity.Realm, downloadIn chan Entity.R
 	itemizeResults := ItemizeResults{List: make([]ItemizeResult, totalRealms)}
 	for i := 0; i < totalRealms; i++ {
 		result := <-itemizeOut
-		if err = result.Error; err != nil {
+		if result.Error != nil {
+			err = errors.New(fmt.Sprintf("itemizeOut %s had an error (%s)", result.Realm.Dump(), result.Error.Error()))
 			return
 		}
 
@@ -35,21 +38,24 @@ func RunQueue(formattedRealms []map[int64]Entity.Realm, downloadIn chan Entity.R
 	}
 
 	// gathering items from the results
-	newItems := itemizeResults.GetUniqueItems()
+	// newItems := itemizeResults.GetUniqueItems()
 
 	// persisting them
-	itemManager := Entity.ItemManager{Client: cacheClient}
-	_, err = itemManager.PersistAll(newItems)
-	if err != nil {
-		return
-	}
+	// itemManager := Entity.ItemManager{Client: cacheClient}
+	// _, err = itemManager.PersistAll(newItems)
+	// if err != nil {
+	// 	return
+	// }
 
 	return nil
 }
 
 func DownloadRealm(realm Entity.Realm, cacheClient Cache.Client, out chan DownloadResult) {
 	// misc
-	var auctionResponse Auction.Response
+	var (
+		auctionResponse Auction.Response
+		err             error
+	)
 	realmManager := Entity.RealmManager{Client: cacheClient}
 	result := DownloadResult{
 		Realm:          realm,
@@ -57,16 +63,18 @@ func DownloadRealm(realm Entity.Realm, cacheClient Cache.Client, out chan Downlo
 	}
 
 	// fetching the auction info
-	auctionResponse, result.Error = Auction.Get(realm, cacheClient.ApiKey)
-	if result.Error != nil {
+	auctionResponse, err = Auction.Get(realm, cacheClient.ApiKey)
+	if err != nil {
+		result.Error = errors.New(fmt.Sprintf("Auction.Get() failed (%s)", err.Error()))
 		out <- result
 		return
 	}
 
 	// fetching the actual auction data
 	file := auctionResponse.Files[0]
-	result.AuctionDataResponse, result.Error = AuctionData.Get(realm, file.Url)
-	if result.Error != nil {
+	result.AuctionDataResponse, err = AuctionData.Get(realm, file.Url)
+	if err != nil {
+		result.Error = errors.New(fmt.Sprintf("AuctionData.Get() failed (%s)", err.Error()))
 		out <- result
 		return
 	}
@@ -90,7 +98,7 @@ func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out c
 
 	// optionally halting on error
 	if downloadResult.Error != nil {
-		result.Error = downloadResult.Error
+		result.Error = errors.New(fmt.Sprintf("downloadResult had an error (%s)", downloadResult.Error.Error()))
 		out <- result
 		return
 	}
@@ -105,10 +113,22 @@ func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out c
 	// gathering blizz-item-ids for post-itemize processing
 	result.BlizzItemIds = downloadResult.getBlizzItemIds()
 
-	// gathering characters and persisting them
-	characters := downloadResult.getCharacters()
+	/*
+		character handling
+	*/
 	characterManager := Character.Manager{Client: cacheClient}
-	result.Characters, err = characterManager.PersistAll(realm, characters)
+
+	// gathering existing characters
+	var existingCharacters []Character.Character
+	existingCharacters, err = characterManager.FindByRealm(realm)
+	if err != nil {
+		result.Error = errors.New(fmt.Sprintf("CharacterManager.FindByRealm() failed (%s)", err.Error()))
+		out <- result
+		return
+	}
+
+	// gathering new characters
+	result.Characters, err = characterManager.PersistAll(realm, downloadResult.getCharacters(existingCharacters))
 	if err != nil {
 		result.Error = err
 		out <- result

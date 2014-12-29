@@ -35,7 +35,7 @@ func (self DownloadResult) getBlizzItemIds() []int64 {
 	return blizzItemIds
 }
 
-func (self DownloadResult) getCharacters() []Character.Character {
+func (self DownloadResult) getCharacters(existingCharacters []Character.Character) []Character.Character {
 	// gathering unique character names
 	uniqueCharacterNames := make(map[string]struct{})
 	for _, auction := range self.AuctionDataResponse.Auctions.Auctions {

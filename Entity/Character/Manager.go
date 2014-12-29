@@ -1,6 +1,8 @@
 package Character
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Entity"
@@ -63,4 +65,68 @@ func (self Manager) PersistAll(realm Entity.Realm, characters []Character) ([]Ch
 	}
 
 	return characters, nil
+}
+
+func (self Manager) unmarshal(v string) (character Character, err error) {
+	if v == "" {
+		return
+	}
+
+	// json
+	var characterJson CharacterJson
+	b := []byte(v)
+	err = json.Unmarshal(b, &characterJson)
+	if err != nil {
+		return
+	}
+
+	// initial
+	character = Character{
+		Id:   characterJson.Id,
+		Name: characterJson.Name,
+	}
+
+	// resolving the realm
+	realmManager := Entity.RealmManager{Client: self.Client}
+	realm, err := realmManager.FindOneById(characterJson.RealmId)
+	if err != nil {
+		return
+	}
+	if !realm.IsValid() {
+		err = errors.New(fmt.Sprintf("Realm #%d could not be found!", characterJson.RealmId))
+		return
+	}
+	character.Realm = realm
+
+	return character, nil
+}
+
+func (self Manager) unmarshalAll(values []string) (characters []Character, err error) {
+	characters = make([]Character, len(values))
+	for i, v := range values {
+		characters[i], err = self.unmarshal(v)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+func (self Manager) FindByRealm(realm Entity.Realm) (characters []Character, err error) {
+	main := self.Client.Main
+
+	// fetching ids
+	ids, err := main.FetchIds(fmt.Sprintf("realm:%d:character_ids", realm.Id), 0, -1)
+	if err != nil {
+		return
+	}
+
+	// fetching the values
+	var values []string
+	values, err = main.FetchFromIds(self, ids)
+	if err != nil {
+		return
+	}
+
+	return self.unmarshalAll(values)
 }

@@ -89,13 +89,13 @@ func main() {
 				Work.DownloadRealm(<-in, cacheClient, out)
 			}
 		}(downloadIn, cacheClient, downloadOut)
-
-		go func(in chan Work.DownloadResult, cacheClient Cache.Client, out chan Work.ItemizeResult) {
-			for {
-				Work.ItemizeRealm(<-in, cacheClient, out)
-			}
-		}(downloadOut, cacheClient, itemizeOut)
 	}
+
+	go func(in chan Work.DownloadResult, cacheClient Cache.Client, out chan Work.ItemizeResult) {
+		for {
+			Work.ItemizeRealm(<-in, cacheClient, out)
+		}
+	}(downloadOut, cacheClient, itemizeOut)
 
 	/*
 		preparation for queueing
@@ -120,20 +120,20 @@ func main() {
 	output.Write("Running it once to start it up...")
 	err = Work.RunQueue(formattedRealms, downloadIn, itemizeOut, totalRealms, cacheClient)
 	if err != nil {
-		output.Write(fmt.Sprintf("Run.WorkQueue fail: %s", err.Error()))
+		output.Write(fmt.Sprintf("Run.WorkQueue() failed (%s)", err.Error()))
 		return
 	}
 
-	// output.Write("Starting up the timed rotation...")
-	// c := time.Tick(5 * time.Second)
-	// for {
-	// 	<-c
-	// 	err = Work.RunQueue(formattedRealms, downloadIn, itemizeOut, totalRealms, cacheClient)
-	// 	if err != nil {
-	// 		output.Write(fmt.Sprintf("Run.WorkQueue fail: %s", err.Error()))
-	// 		return
-	// 	}
-	// }
+	output.Write("Starting up the timed rotation...")
+	c := time.Tick(5 * time.Second)
+	for {
+		<-c
+		err = Work.RunQueue(formattedRealms, downloadIn, itemizeOut, totalRealms, cacheClient)
+		if err != nil {
+			output.Write(fmt.Sprintf("Run.WorkQueue() failed (%s)", err.Error()))
+			return
+		}
+	}
 
 	output.Conclude()
 }

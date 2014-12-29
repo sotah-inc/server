@@ -2,6 +2,8 @@ package AuctionData
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/ihsw/go-download/Entity"
 	"github.com/ihsw/go-download/Util"
 )
@@ -52,11 +54,13 @@ func Get(realm Entity.Realm, url string) (response Response, err error) {
 	var b []byte
 	b, err = Util.Download(url)
 	if err != nil {
+		err = errors.New(fmt.Sprintf("Util.Download() failed (%s)", err.Error()))
 		return
 	}
 
 	err = json.Unmarshal(b, &response)
 	if err != nil {
+		err = errors.New(fmt.Sprintf("json.Unmarshal() failed (%s)", err.Error()))
 		return
 	}
 
