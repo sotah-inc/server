@@ -85,7 +85,7 @@ func DownloadRealm(realm Entity.Realm, cacheClient Cache.Client, out chan Downlo
 		return
 	}
 
-	// optionally halting
+	// optionally halting on empty response
 	if auctionResponse == nil {
 		result.pass = true
 		out <- result
@@ -101,8 +101,8 @@ func DownloadRealm(realm Entity.Realm, cacheClient Cache.Client, out chan Downlo
 		return
 	}
 
-	// optionally halting
-	if auctionResponse == nil {
+	// optionally halting on empty response
+	if auctionDataResponse == nil {
 		result.pass = true
 		out <- result
 		return
