@@ -15,33 +15,30 @@ type Manager struct {
 
 func (self Manager) Namespace() string { return "character" }
 
-func (self Manager) PersistAll(realm Entity.Realm, characters []Character) ([]Character, error) {
+func (self Manager) PersistAll(realm Entity.Realm, existingCharacters []Character, newCharacters []Character) (characters []Character, err error) {
 	var (
-		err error
 		ids []int64
 		s   string
 	)
 	m := self.Client.Main
 
-	for i, character := range characters {
-		if character.IsValid() {
-			err = errors.New(fmt.Sprintf("Character %s at %d is valid with id %d!", character.Name, i, character.Id))
-			return characters, err
-		}
+	if len(existingCharacters) > 0 {
+		err = errors.New(fmt.Sprintf("%d existing characters found", len(existingCharacters)))
+		return characters, err
 	}
 
 	// ids
-	ids, err = m.IncrAll(fmt.Sprintf("realm:%d:character_id", realm.Id), len(characters))
+	ids, err = m.IncrAll(fmt.Sprintf("realm:%d:character_id", realm.Id), len(newCharacters))
 	if err != nil {
 		return characters, err
 	}
 	for i, id := range ids {
-		characters[i].Id = id
+		newCharacters[i].Id = id
 	}
 
 	// data
-	values := make([]Cache.PersistValue, len(characters))
-	for i, character := range characters {
+	values := make([]Cache.PersistValue, len(newCharacters))
+	for i, character := range newCharacters {
 		s, err = character.marshal()
 		bucketKey, subKey := Cache.GetBucketKey(character.Id, self.Namespace())
 		values[i] = Cache.PersistValue{
@@ -56,19 +53,31 @@ func (self Manager) PersistAll(realm Entity.Realm, characters []Character) ([]Ch
 	}
 
 	// etc
-	characterIds := make([]string, len(characters))
-	names := make([]string, len(characters))
-	for i, character := range characters {
-		characterIds[i] = strconv.FormatInt(character.Id, 10)
-		names[i] = character.Name
+	newCharacterIds := make([]string, len(newCharacters))
+	newNames := make([]string, len(newCharacters))
+	for i, character := range newCharacters {
+		newCharacterIds[i] = strconv.FormatInt(character.Id, 10)
+		newNames[i] = character.Name
 	}
-	err = m.RPushAll(fmt.Sprintf("realm:%d:character_ids", realm.Id), characterIds)
+	err = m.RPushAll(fmt.Sprintf("realm:%d:character_ids", realm.Id), newCharacterIds)
 	if err != nil {
 		return characters, err
 	}
-	err = m.SAddAll(fmt.Sprintf("realm:%d:character_names", realm.Id), names)
+	err = m.SAddAll(fmt.Sprintf("realm:%d:character_names", realm.Id), newNames)
 	if err != nil {
 		return characters, err
+	}
+
+	// merging them together
+	characters = make([]Character, len(existingCharacters)+len(newCharacters))
+	i := 0
+	for _, character := range existingCharacters {
+		characters[i] = character
+		i++
+	}
+	for _, character := range newCharacters {
+		characters[i] = character
+		i++
 	}
 
 	return characters, nil

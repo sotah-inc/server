@@ -28,7 +28,7 @@ func RunQueue(formattedRealms []map[int64]Entity.Realm, downloadIn chan Entity.R
 	for i := 0; i < totalRealms; i++ {
 		result := <-itemizeOut
 		if result.err != nil {
-			err = errors.New(fmt.Sprintf("itemizeOut %s had an error (%s)", result.realm.Dump(), result.err.Error()))
+			err = errors.New(fmt.Sprintf("itemizeOut %s (%d) had an error (%s)", result.realm.Dump(), result.realm.Id, result.err.Error()))
 			return
 		}
 
@@ -157,7 +157,7 @@ func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out c
 	}
 
 	// merging existing characters in and persisting them all
-	result.characters, err = characterManager.PersistAll(realm, downloadResult.getCharacters(existingCharacters))
+	result.characters, err = characterManager.PersistAll(realm, existingCharacters, downloadResult.getNewCharacters(existingCharacters))
 	if err != nil {
 		result.err = errors.New(fmt.Sprintf("CharacterManager.PersistAll() failed (%s)", err.Error()))
 		out <- result

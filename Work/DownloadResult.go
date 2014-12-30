@@ -35,46 +35,36 @@ func (self DownloadResult) getBlizzItemIds() []int64 {
 	return blizzItemIds
 }
 
-func (self DownloadResult) getCharacters(existingCharacters []Character.Character) []Character.Character {
-	const (
-		notFound = 0
-		found    = 1
-		done     = 2
-	)
+func (self DownloadResult) getNewCharacters(existingCharacters []Character.Character) (newCharacters []Character.Character) {
+	// misc
+	auctions := self.auctionDataResponse.Auctions.Auctions
 
-	// doing a first pass to gather unique character names
-	uniqueCharacterNames := make(map[string]int)
-	for _, auction := range self.auctionDataResponse.Auctions.Auctions {
-		uniqueCharacterNames[auction.Owner] = notFound
-	}
+	// gathering the names for uniqueness
+	existingNames := make(map[string]struct{})
+	newNames := make(map[string]struct{})
 	for _, character := range existingCharacters {
-		uniqueCharacterNames[character.Name] = found
+		existingNames[character.Name] = struct{}{}
 	}
-
-	// doing a second pass to generate new ones where applicable
-	characters := make([]Character.Character, len(uniqueCharacterNames))
-	i := 0
-	for _, auction := range self.auctionDataResponse.Auctions.Auctions {
+	for _, auction := range auctions {
 		name := auction.Owner
-		if uniqueCharacterNames[name] == notFound {
-			characters[i] = Character.Character{
-				Name:  auction.Owner,
-				Realm: self.realm,
-			}
-			uniqueCharacterNames[name] = done
-
-			i++
+		_, ok := existingNames[name]
+		if ok {
+			continue
 		}
-	}
-	for _, character := range existingCharacters {
-		name := character.Name
-		if uniqueCharacterNames[name] == found {
-			characters[i] = character
-			uniqueCharacterNames[name] = done
 
-			i++
-		}
+		newNames[name] = struct{}{}
 	}
 
-	return characters
+	// doing a second pass to fill new ones in
+	newCharacters = make([]Character.Character, len(newNames))
+	i := 0
+	for name, _ := range newNames {
+		newCharacters[i] = Character.Character{
+			Name:  name,
+			Realm: self.realm,
+		}
+		i++
+	}
+
+	return newCharacters
 }
