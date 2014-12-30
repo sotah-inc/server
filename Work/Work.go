@@ -135,7 +135,7 @@ func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out c
 		return
 	}
 
-	// optionally halting on already having been checked
+	// optionally halting due to pass up
 	if downloadResult.pass {
 		result.pass = true
 		out <- result
