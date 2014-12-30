@@ -81,7 +81,7 @@ func main() {
 	itemizeOut := make(chan Work.ItemizeResult, totalRealms)
 
 	// spawning some download and itemize workers
-	downloadWorkerCount := 4
+	downloadWorkerCount := 1
 	output.Write(fmt.Sprintf("Spawning %d download and itemize workers...", downloadWorkerCount))
 	for j := 0; j < downloadWorkerCount; j++ {
 		go func(in chan Entity.Realm, cacheClient Cache.Client, out chan Work.DownloadResult) {

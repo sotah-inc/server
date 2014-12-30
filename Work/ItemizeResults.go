@@ -5,17 +5,17 @@ import (
 )
 
 type ItemizeResults struct {
-	List []ItemizeResult
+	list []ItemizeResult
 }
 
 func (self ItemizeResults) GetUniqueItems() (items []Entity.Item) {
 	blizzItemIds := make(map[int64]struct{})
-	for _, result := range self.List {
-		if result.AlreadyChecked {
+	for _, result := range self.list {
+		if result.pass {
 			continue
 		}
 
-		for _, blizzItemId := range result.BlizzItemIds {
+		for _, blizzItemId := range result.blizzItemIds {
 			_, valid := blizzItemIds[blizzItemId]
 			if !valid {
 				blizzItemIds[blizzItemId] = struct{}{}

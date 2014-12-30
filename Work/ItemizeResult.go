@@ -7,10 +7,10 @@ import (
 )
 
 type ItemizeResult struct {
-	Error          error
-	Realm          Entity.Realm
-	BlizzItemIds   []int64
-	Characters     []Character.Character
-	Auctions       []AuctionData.Auction
-	AlreadyChecked bool
+	err          error
+	realm        Entity.Realm
+	blizzItemIds []int64
+	characters   []Character.Character
+	auctions     []AuctionData.Auction
+	pass         bool
 }

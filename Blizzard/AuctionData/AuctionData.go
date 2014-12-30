@@ -50,7 +50,7 @@ type Auction struct {
 /*
 	funcs
 */
-func Get(realm Entity.Realm, url string) (response Response, err error) {
+func Get(realm Entity.Realm, url string) (response *Response, err error) {
 	var b []byte
 	b, err = Util.Download(url)
 	if err != nil {
@@ -60,8 +60,7 @@ func Get(realm Entity.Realm, url string) (response Response, err error) {
 
 	err = json.Unmarshal(b, &response)
 	if err != nil {
-		err = errors.New(fmt.Sprintf("json.Unmarshal() for %s failed (%s)", url, err.Error()))
-		return
+		return nil, nil
 	}
 
 	return response, nil

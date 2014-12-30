@@ -7,16 +7,16 @@ import (
 )
 
 type DownloadResult struct {
-	AuctionDataResponse AuctionData.Response
-	AlreadyChecked      bool
-	Error               error
-	Realm               Entity.Realm
+	auctionDataResponse *AuctionData.Response
+	pass                bool
+	err                 error
+	realm               Entity.Realm
 }
 
 func (self DownloadResult) getBlizzItemIds() []int64 {
 	// gather unique blizz item ids
 	uniqueBlizzItemIds := make(map[int64]struct{})
-	for _, auction := range self.AuctionDataResponse.Auctions.Auctions {
+	for _, auction := range self.auctionDataResponse.Auctions.Auctions {
 		blizzItemId := auction.Item
 		_, valid := uniqueBlizzItemIds[blizzItemId]
 		if !valid {
@@ -44,7 +44,7 @@ func (self DownloadResult) getCharacters(existingCharacters []Character.Characte
 	)
 
 	// doing a first pass to gather unique character names
-	for _, auction := range self.AuctionDataResponse.Auctions.Auctions {
+	for _, auction := range self.auctionDataResponse.Auctions.Auctions {
 		uniqueCharacterNames[auction.Owner] = notFound
 	}
 	for _, character := range existingCharacters {
@@ -54,12 +54,12 @@ func (self DownloadResult) getCharacters(existingCharacters []Character.Characte
 	// doing a second pass to generate new ones where applicable
 	characters := make([]Character.Character, len(uniqueCharacterNames))
 	i := 0
-	for _, auction := range self.AuctionDataResponse.Auctions.Auctions {
+	for _, auction := range self.auctionDataResponse.Auctions.Auctions {
 		name := auction.Owner
 		if uniqueCharacterNames[name] == notFound {
 			characters[i] = Character.Character{
 				Name:  auction.Owner,
-				Realm: self.Realm,
+				Realm: self.realm,
 			}
 			uniqueCharacterNames[name] = done
 
