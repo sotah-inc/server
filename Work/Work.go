@@ -142,9 +142,6 @@ func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out c
 		return
 	}
 
-	// gathering blizz-item-ids for post-itemize processing
-	result.blizzItemIds = downloadResult.getBlizzItemIds()
-
 	/*
 		character handling
 	*/
@@ -159,7 +156,7 @@ func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out c
 		return
 	}
 
-	// gathering characters
+	// merging existing characters in and persisting them all
 	result.characters, err = characterManager.PersistAll(realm, downloadResult.getCharacters(existingCharacters))
 	if err != nil {
 		result.err = errors.New(fmt.Sprintf("CharacterManager.PersistAll() failed (%s)", err.Error()))
@@ -167,6 +164,14 @@ func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out c
 		return
 	}
 
+	/*
+		item handling
+	*/
+	result.blizzItemIds = downloadResult.getBlizzItemIds()
+
+	/*
+		auction handling
+	*/
 	// gathering auctions for post-itemize processing
 	result.auctions = downloadResult.auctionDataResponse.Auctions.Auctions
 
