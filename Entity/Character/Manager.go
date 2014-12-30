@@ -22,11 +22,6 @@ func (self Manager) PersistAll(realm Entity.Realm, existingCharacters []Characte
 	)
 	m := self.Client.Main
 
-	if len(existingCharacters) > 0 {
-		err = errors.New(fmt.Sprintf("%d existing characters found", len(existingCharacters)))
-		return characters, err
-	}
-
 	// ids
 	ids, err = m.IncrAll(fmt.Sprintf("realm:%d:character_id", realm.Id), len(newCharacters))
 	if err != nil {
