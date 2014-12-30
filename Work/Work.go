@@ -33,6 +33,7 @@ func RunQueue(formattedRealms []map[int64]Entity.Realm, downloadIn chan Entity.R
 		}
 
 		results[i] = result
+
 		if !result.pass {
 			totalValidResults++
 		}
@@ -73,8 +74,10 @@ func DownloadRealm(realm Entity.Realm, cacheClient Cache.Client, out chan Downlo
 	)
 	realmManager := Entity.RealmManager{Client: cacheClient}
 	result := DownloadResult{
-		realm: realm,
-		pass:  false,
+		Result: Result{
+			realm: realm,
+			pass:  true,
+		},
 	}
 
 	// fetching the auction info
@@ -124,8 +127,10 @@ func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out c
 	var err error
 	realm := downloadResult.realm
 	result := ItemizeResult{
-		realm: realm,
-		pass:  false,
+		Result: Result{
+			realm: realm,
+			pass:  false,
+		},
 	}
 
 	// optionally halting on error

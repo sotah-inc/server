@@ -2,15 +2,12 @@ package Work
 
 import (
 	"github.com/ihsw/go-download/Blizzard/AuctionData"
-	"github.com/ihsw/go-download/Entity"
 	"github.com/ihsw/go-download/Entity/Character"
 )
 
 type DownloadResult struct {
+	Result
 	auctionDataResponse *AuctionData.Response
-	pass                bool
-	err                 error
-	realm               Entity.Realm
 }
 
 func (self DownloadResult) getBlizzItemIds() []int64 {
