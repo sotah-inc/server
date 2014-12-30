@@ -36,7 +36,6 @@ func (self DownloadResult) getBlizzItemIds() []int64 {
 }
 
 func (self DownloadResult) getCharacters(existingCharacters []Character.Character) []Character.Character {
-	uniqueCharacterNames := make(map[string]int)
 	const (
 		notFound = 0
 		found    = 1
@@ -44,6 +43,7 @@ func (self DownloadResult) getCharacters(existingCharacters []Character.Characte
 	)
 
 	// doing a first pass to gather unique character names
+	uniqueCharacterNames := make(map[string]int)
 	for _, auction := range self.auctionDataResponse.Auctions.Auctions {
 		uniqueCharacterNames[auction.Owner] = notFound
 	}
