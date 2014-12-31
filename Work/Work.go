@@ -8,6 +8,7 @@ import (
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Entity"
 	"github.com/ihsw/go-download/Entity/Character"
+	"github.com/ihsw/go-download/Util"
 	"time"
 )
 
@@ -94,8 +95,18 @@ func DownloadRealm(realm Entity.Realm, cacheClient Cache.Client, out chan Downlo
 		return
 	}
 
-	// fetching the actual auction data
 	file := auctionResponse.Files[0]
+
+	// checking whether the file has already been downloaded
+	lastModified := time.Unix(file.LastModified/1000, 0)
+	if !realm.LastDownloaded.IsZero() && (realm.LastDownloaded.Equal(lastModified) || realm.LastDownloaded.Before(lastModified)) {
+		result.alreadyChecked = true
+		out <- result
+		return
+	}
+	fmt.Println(fmt.Sprintf("Found last modified for %s: %s", realm.Dump(), lastModified.Format(Util.WriteLayout)))
+
+	// fetching the actual auction data
 	auctionDataResponse, err = AuctionData.Get(realm, file.Url)
 	if err != nil {
 		result.err = errors.New(fmt.Sprintf("AuctionData.Get() failed (%s)", err.Error()))
@@ -114,7 +125,7 @@ func DownloadRealm(realm Entity.Realm, cacheClient Cache.Client, out chan Downlo
 	result.auctionDataResponse = auctionDataResponse
 
 	// flagging the realm as having been downloaded
-	realm.LastDownloaded = time.Now()
+	realm.LastDownloaded = lastModified
 	realmManager.Persist(realm)
 
 	// queueing it out
@@ -126,6 +137,8 @@ func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out c
 	var err error
 	realm := downloadResult.realm
 	result := ItemizeResult{Result: downloadResult.Result}
+	out <- result
+	return
 
 	// optionally halting on error
 	if downloadResult.err != nil {

@@ -20,7 +20,7 @@ type Output struct {
 
 func (self Output) Write(s string) {
 	duration := time.Since(self.StartTime).Seconds()
-	fmt.Println(fmt.Sprintf("[%s %.2fs] %s", time.Now().Format(writeLayout), duration, s))
+	fmt.Println(fmt.Sprintf("[%s %.2fs] %s", time.Now().Format(WriteLayout), duration, s))
 }
 
 func (self Output) Conclude() {
@@ -30,7 +30,7 @@ func (self Output) Conclude() {
 /*
 	misc
 */
-const writeLayout = "2006-01-02 03:04:05PM"
+const WriteLayout = "2006-01-02 03:04:05PM"
 
 /*
 	funcs
