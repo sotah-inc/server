@@ -120,20 +120,27 @@ func main() {
 	output.Write("Running it once to start it up...")
 	err = Work.RunQueue(formattedRealms, downloadIn, itemizeOut, totalRealms, cacheClient)
 	if err != nil {
-		output.Write(fmt.Sprintf("Run.WorkQueue() failed (%s)", err.Error()))
+		output.Write(fmt.Sprintf("Run.WorkQueue() #1 failed (%s)", err.Error()))
 		return
 	}
 
-	output.Write("Starting up the timed rotation...")
-	c := time.Tick(5 * time.Second)
-	for {
-		<-c
-		err = Work.RunQueue(formattedRealms, downloadIn, itemizeOut, totalRealms, cacheClient)
-		if err != nil {
-			output.Write(fmt.Sprintf("Run.WorkQueue() failed (%s)", err.Error()))
-			return
-		}
+	output.Write("Running it again...")
+	err = Work.RunQueue(formattedRealms, downloadIn, itemizeOut, totalRealms, cacheClient)
+	if err != nil {
+		output.Write(fmt.Sprintf("Run.WorkQueue() #2 failed (%s)", err.Error()))
+		return
 	}
+
+	// output.Write("Starting up the timed rotation...")
+	// c := time.Tick(5 * time.Second)
+	// for {
+	// 	<-c
+	// 	err = Work.RunQueue(formattedRealms, downloadIn, itemizeOut, totalRealms, cacheClient)
+	// 	if err != nil {
+	// 		output.Write(fmt.Sprintf("Run.WorkQueue() failed (%s)", err.Error()))
+	// 		return
+	// 	}
+	// }
 
 	output.Conclude()
 }

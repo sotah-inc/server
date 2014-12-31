@@ -31,10 +31,14 @@ func RunQueue(formattedRealms []map[int64]Entity.Realm, downloadIn chan Entity.R
 			err = errors.New(fmt.Sprintf("itemizeOut %s (%d) had an error (%s)", result.realm.Dump(), result.realm.Id, result.err.Error()))
 			return
 		}
+		if result.alreadyChecked {
+			err = errors.New(fmt.Sprintf("Realm %s (%d) has already been checked", result.realm.Dump(), result.realm.Id))
+			return
+		}
 
 		results[i] = result
 
-		if !result.pass {
+		if !result.responseFailed {
 			totalValidResults++
 		}
 	}
@@ -43,7 +47,7 @@ func RunQueue(formattedRealms []map[int64]Entity.Realm, downloadIn chan Entity.R
 	validResults := make([]ItemizeResult, totalValidResults)
 	i := 0
 	for _, result := range results {
-		if !result.pass {
+		if !result.responseFailed {
 			validResults[i] = result
 			i++
 		}
@@ -73,12 +77,7 @@ func DownloadRealm(realm Entity.Realm, cacheClient Cache.Client, out chan Downlo
 		err                 error
 	)
 	realmManager := Entity.RealmManager{Client: cacheClient}
-	result := DownloadResult{
-		Result: Result{
-			realm: realm,
-			pass:  true,
-		},
-	}
+	result := DownloadResult{Result: Result{realm: realm}}
 
 	// fetching the auction info
 	auctionResponse, err = Auction.Get(realm, cacheClient.ApiKey)
@@ -90,7 +89,7 @@ func DownloadRealm(realm Entity.Realm, cacheClient Cache.Client, out chan Downlo
 
 	// optionally halting on empty response
 	if auctionResponse == nil {
-		result.pass = true
+		result.responseFailed = true
 		out <- result
 		return
 	}
@@ -106,7 +105,7 @@ func DownloadRealm(realm Entity.Realm, cacheClient Cache.Client, out chan Downlo
 
 	// optionally halting on empty response
 	if auctionDataResponse == nil {
-		result.pass = true
+		result.responseFailed = true
 		out <- result
 		return
 	}
@@ -126,12 +125,7 @@ func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out c
 	// misc
 	var err error
 	realm := downloadResult.realm
-	result := ItemizeResult{
-		Result: Result{
-			realm: realm,
-			pass:  false,
-		},
-	}
+	result := ItemizeResult{Result: downloadResult.Result}
 
 	// optionally halting on error
 	if downloadResult.err != nil {
@@ -140,9 +134,8 @@ func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out c
 		return
 	}
 
-	// optionally halting due to pass up
-	if downloadResult.pass {
-		result.pass = true
+	// optionally halting for whatever reason
+	if !downloadResult.CanContinue() {
 		out <- result
 		return
 	}
