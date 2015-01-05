@@ -15,17 +15,10 @@ import (
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	output := Util.Output{
-		StartTime: time.Now(),
-	}
+	output := Util.Output{StartTime: time.Now()}
 	output.Write("Starting...")
 
-	var (
-		err          error
-		cacheClient  Cache.Client
-		regions      []Entity.Region
-		regionRealms map[int64][]Entity.Realm
-	)
+	var err error
 	debug := true
 
 	/*
@@ -33,6 +26,10 @@ func main() {
 	*/
 	// gathering a cache client and regions after reading the config
 	output.Write("Initializing the cache-client and regions...")
+	var (
+		cacheClient Cache.Client
+		regions     []Entity.Region
+	)
 	cacheClient, regions, err = Misc.GetCacheClientAndRegions(os.Args, true)
 	if err != nil {
 		output.Write(fmt.Sprintf("Misc.GetCacheClientAndRegions() fail: %s", err.Error()))
@@ -43,6 +40,7 @@ func main() {
 		gathering the realms for each region
 	*/
 	output.Write("Fetching realms for each region...")
+	var regionRealms map[int64][]Entity.Realm
 	regionRealms, err = Misc.GetRealms(cacheClient, regions)
 	if err != nil {
 		output.Write(fmt.Sprintf("Misc.GetRealms() fail: %s", err.Error()))
