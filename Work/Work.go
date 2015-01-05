@@ -42,8 +42,7 @@ func RunQueue(regionRealms map[int64][]Entity.Realm, downloadIn chan Entity.Real
 	}
 
 	// waiting for the results to drain out
-	results := make([]ItemizeResult, totalRealms)
-	totalValidResults := 0
+	results := make([]ItemizeResult, 1)
 	for i := 0; i < totalRealms; i++ {
 		result := <-itemizeOut
 
@@ -53,35 +52,17 @@ func RunQueue(regionRealms map[int64][]Entity.Realm, downloadIn chan Entity.Real
 			return regionRealms, err
 		}
 
-		// skipping where necessary
-		if result.alreadyChecked {
-			err = errors.New(fmt.Sprintf("Realm %s (%d) has already been checked", result.realm.Dump(), result.realm.Id))
-			return regionRealms, err
-		}
-
-		results[i] = result
-
-		if !result.responseFailed {
-			totalValidResults++
+		if result.CanContinue() {
+			results = append(results, result)
+		} else {
+			if result.alreadyChecked {
+				fmt.Println(fmt.Sprintf("Realm %s has already been checked!", result.realm.Dump()))
+			}
 		}
 	}
-
-	// gathering valid results
-	validResults := make([]ItemizeResult, totalValidResults)
-	i := 0
-	for _, result := range results {
-		if !result.responseFailed {
-			validResults[i] = result
-			i++
-		}
-	}
-
-	// debugging
-	fmt.Println(fmt.Sprintf("Total results: %d", len(results)))
-	fmt.Println(fmt.Sprintf("Valid results: %d", len(validResults)))
 
 	// refresing the region-realms list
-	for _, result := range validResults {
+	for _, result := range results {
 		resultRealm := result.realm
 		resultRegion := resultRealm.Region
 		for i, realm := range regionRealms[resultRegion.Id] {
@@ -94,7 +75,7 @@ func RunQueue(regionRealms map[int64][]Entity.Realm, downloadIn chan Entity.Real
 	}
 
 	// gathering items from the results
-	// itemizeResults := ItemizeResults{list: validResults}
+	// itemizeResults := ItemizeResults{list: results}
 	// newItems := itemizeResults.GetUniqueItems()
 
 	// persisting them
