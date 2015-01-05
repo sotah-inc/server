@@ -8,14 +8,15 @@ import (
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Entity"
 	"github.com/ihsw/go-download/Entity/Character"
-	"github.com/ihsw/go-download/Util"
 	"time"
 )
 
 /*
 	error structs
 */
-func RunQueue(regionRealms map[int64][]Entity.Realm, downloadIn chan Entity.Realm, itemizeOut chan ItemizeResult, totalRealms int, cacheClient Cache.Client) (err error) {
+func RunQueue(regionRealms map[int64][]Entity.Realm, downloadIn chan Entity.Realm, itemizeOut chan ItemizeResult, totalRealms int, cacheClient Cache.Client) (map[int64][]Entity.Realm, error) {
+	var err error
+
 	// formatting the realms to be evenly distributed
 	largestRegion := 0
 	for _, realms := range regionRealms {
@@ -45,13 +46,17 @@ func RunQueue(regionRealms map[int64][]Entity.Realm, downloadIn chan Entity.Real
 	totalValidResults := 0
 	for i := 0; i < totalRealms; i++ {
 		result := <-itemizeOut
+
+		// optionally halting on error
 		if result.err != nil {
 			err = errors.New(fmt.Sprintf("itemizeOut %s (%d) had an error (%s)", result.realm.Dump(), result.realm.Id, result.err.Error()))
-			return
+			return regionRealms, err
 		}
+
+		// skipping where necessary
 		if result.alreadyChecked {
 			err = errors.New(fmt.Sprintf("Realm %s (%d) has already been checked", result.realm.Dump(), result.realm.Id))
-			return
+			return regionRealms, err
 		}
 
 		results[i] = result
@@ -70,11 +75,26 @@ func RunQueue(regionRealms map[int64][]Entity.Realm, downloadIn chan Entity.Real
 			i++
 		}
 	}
+
+	// debugging
 	fmt.Println(fmt.Sprintf("Total results: %d", len(results)))
 	fmt.Println(fmt.Sprintf("Valid results: %d", len(validResults)))
-	// itemizeResults := ItemizeResults{list: validResults}
+
+	// refresing the region-realms list
+	for _, result := range validResults {
+		resultRealm := result.realm
+		resultRegion := resultRealm.Region
+		for i, realm := range regionRealms[resultRegion.Id] {
+			if realm.Id != resultRealm.Id {
+				continue
+			}
+
+			regionRealms[result.realm.Region.Id][i] = resultRealm
+		}
+	}
 
 	// gathering items from the results
+	// itemizeResults := ItemizeResults{list: validResults}
 	// newItems := itemizeResults.GetUniqueItems()
 
 	// persisting them
@@ -84,7 +104,7 @@ func RunQueue(regionRealms map[int64][]Entity.Realm, downloadIn chan Entity.Real
 	// 	return
 	// }
 
-	return nil
+	return regionRealms, nil
 }
 
 func DownloadRealm(realm Entity.Realm, cacheClient Cache.Client, out chan DownloadResult) {
@@ -121,7 +141,6 @@ func DownloadRealm(realm Entity.Realm, cacheClient Cache.Client, out chan Downlo
 		out <- result
 		return
 	}
-	fmt.Println(fmt.Sprintf("Found last modified for %s: %s", realm.Dump(), lastModified.Format(Util.WriteLayout)))
 
 	// fetching the actual auction data
 	auctionDataResponse, err = AuctionData.Get(realm, file.Url)
@@ -144,6 +163,7 @@ func DownloadRealm(realm Entity.Realm, cacheClient Cache.Client, out chan Downlo
 	// flagging the realm as having been downloaded
 	realm.LastDownloaded = lastModified
 	realmManager.Persist(realm)
+	result.realm = realm
 
 	// queueing it out
 	out <- result

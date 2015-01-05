@@ -99,18 +99,18 @@ func main() {
 		going over the list
 	*/
 	output.Write("Running it once to start it up...")
-	err = Work.RunQueue(regionRealms, downloadIn, itemizeOut, totalRealms, cacheClient)
+	regionRealms, err = Work.RunQueue(regionRealms, downloadIn, itemizeOut, totalRealms, cacheClient)
 	if err != nil {
 		output.Write(fmt.Sprintf("Run.WorkQueue() #1 failed (%s)", err.Error()))
 		return
 	}
 
-	// output.Write("Running it again...")
-	// err = Work.RunQueue(regionRealms, downloadIn, itemizeOut, totalRealms, cacheClient)
-	// if err != nil {
-	// 	output.Write(fmt.Sprintf("Run.WorkQueue() #2 failed (%s)", err.Error()))
-	// 	return
-	// }
+	output.Write("Running it again...")
+	regionRealms, err = Work.RunQueue(regionRealms, downloadIn, itemizeOut, totalRealms, cacheClient)
+	if err != nil {
+		output.Write(fmt.Sprintf("Run.WorkQueue() #2 failed (%s)", err.Error()))
+		return
+	}
 
 	// output.Write("Starting up the timed rotation...")
 	// c := time.Tick(5 * time.Second)
