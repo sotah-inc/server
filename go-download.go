@@ -98,44 +98,27 @@ func main() {
 	}(downloadOut, cacheClient, itemizeOut)
 
 	/*
-		preparation for queueing
+		going over the list
 	*/
-	// formatting the realms to be evenly distributed
-	largestRegion := 0
-	for _, realms := range regionRealms {
-		if len(realms) > largestRegion {
-			largestRegion = len(realms)
-		}
-	}
-	formattedRealms := make([]map[int64]Entity.Realm, largestRegion)
-	for regionId, realms := range regionRealms {
-		for i, realm := range realms {
-			if formattedRealms[int64(i)] == nil {
-				formattedRealms[int64(i)] = map[int64]Entity.Realm{}
-			}
-			formattedRealms[int64(i)][regionId] = realm
-		}
-	}
-
 	output.Write("Running it once to start it up...")
-	err = Work.RunQueue(formattedRealms, downloadIn, itemizeOut, totalRealms, cacheClient)
+	err = Work.RunQueue(regionRealms, downloadIn, itemizeOut, totalRealms, cacheClient)
 	if err != nil {
 		output.Write(fmt.Sprintf("Run.WorkQueue() #1 failed (%s)", err.Error()))
 		return
 	}
 
-	output.Write("Running it again...")
-	err = Work.RunQueue(formattedRealms, downloadIn, itemizeOut, totalRealms, cacheClient)
-	if err != nil {
-		output.Write(fmt.Sprintf("Run.WorkQueue() #2 failed (%s)", err.Error()))
-		return
-	}
+	// output.Write("Running it again...")
+	// err = Work.RunQueue(regionRealms, downloadIn, itemizeOut, totalRealms, cacheClient)
+	// if err != nil {
+	// 	output.Write(fmt.Sprintf("Run.WorkQueue() #2 failed (%s)", err.Error()))
+	// 	return
+	// }
 
 	// output.Write("Starting up the timed rotation...")
 	// c := time.Tick(5 * time.Second)
 	// for {
 	// 	<-c
-	// 	err = Work.RunQueue(formattedRealms, downloadIn, itemizeOut, totalRealms, cacheClient)
+	// 	err = Work.RunQueue(regionRealms, downloadIn, itemizeOut, totalRealms, cacheClient)
 	// 	if err != nil {
 	// 		output.Write(fmt.Sprintf("Run.WorkQueue() failed (%s)", err.Error()))
 	// 		return

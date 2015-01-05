@@ -15,7 +15,24 @@ import (
 /*
 	error structs
 */
-func RunQueue(formattedRealms []map[int64]Entity.Realm, downloadIn chan Entity.Realm, itemizeOut chan ItemizeResult, totalRealms int, cacheClient Cache.Client) (err error) {
+func RunQueue(regionRealms map[int64][]Entity.Realm, downloadIn chan Entity.Realm, itemizeOut chan ItemizeResult, totalRealms int, cacheClient Cache.Client) (err error) {
+	// formatting the realms to be evenly distributed
+	largestRegion := 0
+	for _, realms := range regionRealms {
+		if len(realms) > largestRegion {
+			largestRegion = len(realms)
+		}
+	}
+	formattedRealms := make([]map[int64]Entity.Realm, largestRegion)
+	for regionId, realms := range regionRealms {
+		for i, realm := range realms {
+			if formattedRealms[int64(i)] == nil {
+				formattedRealms[int64(i)] = map[int64]Entity.Realm{}
+			}
+			formattedRealms[int64(i)][regionId] = realm
+		}
+	}
+
 	// populating the download queue
 	for _, realms := range formattedRealms {
 		for _, realm := range realms {
