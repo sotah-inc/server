@@ -53,18 +53,21 @@ func RunQueue(regionRealms map[int64][]Entity.Realm, downloadIn chan Entity.Real
 			return regionRealms, err
 		}
 
-		if result.CanContinue() {
-			results = append(results, result)
+		if result.responseFailed {
+			fmt.Println(fmt.Sprintf("Realm %s failed!", result.realm.Dump()))
+			continue
+		}
+
+		if result.alreadyChecked {
+			fmt.Println(fmt.Sprintf("Realm %s has already been checked (%s)!", result.realm.Dump(), result.realm.LastDownloaded.Format(Util.WriteLayout)))
 		} else {
-			if result.alreadyChecked {
-				fmt.Println(fmt.Sprintf("Realm %s has already been checked (%s)!", result.realm.Dump(), result.realm.LastDownloaded.Format(Util.WriteLayout)))
+			if haltOnNewData {
+				err = errors.New(fmt.Sprintf("Realm %s has new data!", result.realm.Dump()))
+				return regionRealms, err
 			}
 		}
 
-		if haltOnNewData && !result.alreadyChecked {
-			err = errors.New(fmt.Sprintf("Realm %s has new data!", result.realm.Dump()))
-			return regionRealms, err
-		}
+		results = append(results, result)
 	}
 
 	// refresing the region-realms list
@@ -125,8 +128,8 @@ func DownloadRealm(realm Entity.Realm, cacheClient Cache.Client, out chan Downlo
 	lastModified := time.Unix(file.LastModified/1000, 0)
 	if !realm.LastDownloaded.IsZero() && (realm.LastDownloaded.Equal(lastModified) || realm.LastDownloaded.Before(lastModified)) {
 		result.alreadyChecked = true
-		out <- result
-		return
+		// out <- result
+		// return
 	}
 
 	// fetching the actual auction data
@@ -161,8 +164,6 @@ func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out c
 	var err error
 	realm := downloadResult.realm
 	result := ItemizeResult{Result: downloadResult.Result}
-	out <- result
-	return
 
 	// optionally halting on error
 	if downloadResult.err != nil {
@@ -172,7 +173,7 @@ func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out c
 	}
 
 	// optionally halting for whatever reason
-	if !downloadResult.CanContinue() {
+	if result.responseFailed {
 		out <- result
 		return
 	}
@@ -198,6 +199,8 @@ func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out c
 		out <- result
 		return
 	}
+
+	fmt.Println(fmt.Sprintf("Characters: %d", len(result.characters)))
 
 	/*
 		item handling
