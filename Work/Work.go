@@ -54,7 +54,6 @@ func RunQueue(regionRealms map[int64][]Entity.Realm, downloadIn chan Entity.Real
 		}
 
 		if result.responseFailed {
-			fmt.Println(fmt.Sprintf("Realm %s failed!", result.realm.Dump()))
 			continue
 		}
 
