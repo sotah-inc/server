@@ -200,8 +200,6 @@ func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out c
 		return
 	}
 
-	fmt.Println(fmt.Sprintf("Characters: %d", len(result.characters)))
-
 	/*
 		item handling
 	*/
