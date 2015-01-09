@@ -8,13 +8,14 @@ import (
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Entity"
 	"github.com/ihsw/go-download/Entity/Character"
+	"github.com/ihsw/go-download/Util"
 	"time"
 )
 
 /*
 	error structs
 */
-func RunQueue(regionRealms map[int64][]Entity.Realm, downloadIn chan Entity.Realm, itemizeOut chan ItemizeResult, totalRealms int, cacheClient Cache.Client) (map[int64][]Entity.Realm, error) {
+func RunQueue(regionRealms map[int64][]Entity.Realm, downloadIn chan Entity.Realm, itemizeOut chan ItemizeResult, totalRealms int, cacheClient Cache.Client, haltOnNewData bool) (map[int64][]Entity.Realm, error) {
 	var err error
 
 	// formatting the realms to be evenly distributed
@@ -56,8 +57,13 @@ func RunQueue(regionRealms map[int64][]Entity.Realm, downloadIn chan Entity.Real
 			results = append(results, result)
 		} else {
 			if result.alreadyChecked {
-				fmt.Println(fmt.Sprintf("Realm %s has already been checked!", result.realm.Dump()))
+				fmt.Println(fmt.Sprintf("Realm %s has already been checked (%s)!", result.realm.Dump(), result.realm.LastDownloaded.Format(Util.WriteLayout)))
 			}
+		}
+
+		if haltOnNewData && !result.alreadyChecked {
+			err = errors.New(fmt.Sprintf("Realm %s has new data!", result.realm.Dump()))
+			return regionRealms, err
 		}
 	}
 
