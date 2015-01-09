@@ -24,7 +24,7 @@ func main() {
 		reading the config
 	*/
 	// gathering a cache client and regions after reading the config
-	output.Write("Initializing the cache-client and regions...")
+	output.Write("Initializing the cache-client...")
 	var (
 		cacheClient Cache.Client
 	)
