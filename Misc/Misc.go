@@ -91,6 +91,7 @@ func GetCacheClient(args []string, flushDb bool) (cacheClient Cache.Client, err 
 	if err != nil {
 		return
 	}
+	cacheClient.ApiKey = configFile.ApiKey
 
 	// optionally flushing all of the databases
 	if flushDb {
@@ -115,7 +116,6 @@ func GetCacheClientAndRegions(args []string, flushDb bool) (cacheClient Cache.Cl
 	if err != nil {
 		return
 	}
-	cacheClient.ApiKey = configFile.ApiKey
 
 	// gathering the regions
 	regions, err = getRegions(cacheClient, configFile.Regions)
