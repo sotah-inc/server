@@ -48,8 +48,8 @@ func RunQueue(regionRealms map[int64][]Entity.Realm, downloadIn chan Entity.Real
 		result := <-itemizeOut
 
 		// optionally halting on error
-		if result.err != nil {
-			err = errors.New(fmt.Sprintf("itemizeOut %s (%d) had an error (%s)", result.realm.Dump(), result.realm.Id, result.err.Error()))
+		if result.Err != nil {
+			err = errors.New(fmt.Sprintf("itemizeOut %s (%d) had an error (%s)", result.realm.Dump(), result.realm.Id, result.Err.Error()))
 			return regionRealms, err
 		}
 
@@ -109,7 +109,7 @@ func DownloadRealm(realm Entity.Realm, cacheClient Cache.Client, out chan Downlo
 	// fetching the auction info
 	auctionResponse, err = Auction.Get(realm, cacheClient.ApiKey)
 	if err != nil {
-		result.err = errors.New(fmt.Sprintf("Auction.Get() failed (%s)", err.Error()))
+		result.Err = errors.New(fmt.Sprintf("Auction.Get() failed (%s)", err.Error()))
 		out <- result
 		return
 	}
@@ -134,7 +134,7 @@ func DownloadRealm(realm Entity.Realm, cacheClient Cache.Client, out chan Downlo
 	// fetching the actual auction data
 	auctionDataResponse, err = AuctionData.Get(realm, file.Url)
 	if err != nil {
-		result.err = errors.New(fmt.Sprintf("AuctionData.Get() failed (%s)", err.Error()))
+		result.Err = errors.New(fmt.Sprintf("AuctionData.Get() failed (%s)", err.Error()))
 		out <- result
 		return
 	}
@@ -165,8 +165,8 @@ func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out c
 	result := ItemizeResult{Result: downloadResult.Result}
 
 	// optionally halting on error
-	if downloadResult.err != nil {
-		result.err = errors.New(fmt.Sprintf("downloadResult had an error (%s)", downloadResult.err.Error()))
+	if downloadResult.Err != nil {
+		result.Err = errors.New(fmt.Sprintf("downloadResult had an error (%s)", downloadResult.Err.Error()))
 		out <- result
 		return
 	}
@@ -186,7 +186,7 @@ func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out c
 	var existingCharacters []Character.Character
 	existingCharacters, err = characterManager.FindByRealm(realm)
 	if err != nil {
-		result.err = errors.New(fmt.Sprintf("CharacterManager.FindByRealm() failed (%s)", err.Error()))
+		result.Err = errors.New(fmt.Sprintf("CharacterManager.FindByRealm() failed (%s)", err.Error()))
 		out <- result
 		return
 	}
@@ -194,7 +194,7 @@ func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out c
 	// merging existing characters in and persisting them all
 	result.characters, err = characterManager.PersistAll(realm, existingCharacters, downloadResult.getNewCharacters(existingCharacters))
 	if err != nil {
-		result.err = errors.New(fmt.Sprintf("CharacterManager.PersistAll() failed (%s)", err.Error()))
+		result.Err = errors.New(fmt.Sprintf("CharacterManager.PersistAll() failed (%s)", err.Error()))
 		out <- result
 		return
 	}

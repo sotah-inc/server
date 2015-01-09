@@ -7,7 +7,7 @@ import (
 type Result struct {
 	responseFailed bool
 	alreadyChecked bool
-	err            error
+	Err            error
 	realm          Entity.Realm
 }
 
