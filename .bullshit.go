@@ -37,24 +37,20 @@ func main() {
 	/*
 		bullshit
 	*/
-	realmManager := Entity.RealmManager{Client: cacheClient}
-	downloadIn := make(chan Entity.Realm, 1)
-	downloadOut := make(chan Work.DownloadResult, 1)
-	itemizeOut := make(chan Work.ItemizeResult, 1)
+	// misc
+	queue := Work.Queue{
+		DownloadOut: make(chan Work.DownloadResult, 1),
+		ItemizeOut:  make(chan Work.ItemizeResult, 1),
+		CacheClient: cacheClient,
+	}
 
 	// fetching a realm
+	realmManager := Entity.RealmManager{Client: cacheClient}
 	var realm Entity.Realm
 	realm, err = realmManager.FindOneById(1)
 	if err != nil {
 		output.Write(fmt.Sprintf("RealmManager.FindOneById() fail: %s", err.Error()))
 		return
-	}
-
-	queue := Work.Queue{
-		DownloadIn:  downloadIn,
-		DownloadOut: downloadOut,
-		ItemizeOut:  itemizeOut,
-		CacheClient: cacheClient,
 	}
 
 	output.Write("Manually running queue.DownloadRealm()...")
