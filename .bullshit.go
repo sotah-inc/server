@@ -50,6 +50,7 @@ func main() {
 		return
 	}
 
+	// downloading it
 	output.Write("Manually running queue.DownloadRealm()...")
 	queue.DownloadRealm(realm)
 	downloadResult := <-queue.DownloadOut
@@ -58,6 +59,7 @@ func main() {
 		return
 	}
 
+	// itemizing it
 	output.Write("Manually running queue.ItemizeRealm()...")
 	queue.ItemizeRealm(downloadResult)
 	itemizeResult := <-queue.ItemizeOut
