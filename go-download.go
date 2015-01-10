@@ -78,7 +78,6 @@ func main() {
 
 	// spawning some download and itemize workers
 	downloadWorkerCount := 4
-	output.Write(fmt.Sprintf("Spawning %d download and itemize workers...", downloadWorkerCount))
 	for j := 0; j < downloadWorkerCount; j++ {
 		go func(queue Work.Queue) {
 			for {
@@ -86,7 +85,6 @@ func main() {
 			}
 		}(queue)
 	}
-
 	go func(queue Work.Queue) {
 		for {
 			queue.ItemizeRealm(<-queue.DownloadOut)
