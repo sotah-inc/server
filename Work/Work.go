@@ -178,7 +178,7 @@ func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 		return
 	}
 
-	// optionally halting for whatever reason
+	// optionally skipping failed responses
 	if result.responseFailed {
 		self.ItemizeOut <- result
 		return
