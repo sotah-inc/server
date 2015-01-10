@@ -65,11 +65,6 @@ func main() {
 		totalRealms += len(regionRealms[region.Id])
 	}
 
-	regionMap := map[int64]int64{}
-	for i, region := range regions {
-		regionMap[region.Id] = int64(i)
-	}
-
 	/*
 		making channels and spawning workers
 	*/
