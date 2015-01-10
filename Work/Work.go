@@ -153,7 +153,7 @@ func (self Queue) DownloadRealm(realm Entity.Realm) {
 		return
 	}
 
-	// loading it into the response
+	// loading it into the result
 	result.auctionDataResponse = auctionDataResponse
 
 	// flagging the realm as having been downloaded
