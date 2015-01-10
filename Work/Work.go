@@ -13,9 +13,16 @@ import (
 )
 
 /*
-	error structs
+	structs
 */
-func RunQueue(regionRealms map[int64][]Entity.Realm, downloadIn chan Entity.Realm, itemizeOut chan ItemizeResult, totalRealms int, cacheClient Cache.Client, haltOnNewData bool) (map[int64][]Entity.Realm, error) {
+type Queue struct {
+	DownloadIn  chan Entity.Realm
+	DownloadOut chan DownloadResult
+	ItemizeOut  chan ItemizeResult
+	CacheClient Cache.Client
+}
+
+func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRealms int, haltOnNewData bool) (map[int64][]Entity.Realm, error) {
 	var err error
 
 	// formatting the realms to be evenly distributed
@@ -38,14 +45,14 @@ func RunQueue(regionRealms map[int64][]Entity.Realm, downloadIn chan Entity.Real
 	// populating the download queue
 	for _, realms := range formattedRealms {
 		for _, realm := range realms {
-			downloadIn <- realm
+			self.DownloadIn <- realm
 		}
 	}
 
 	// waiting for the results to drain out
 	results := make([]ItemizeResult, 1)
 	for i := 0; i < totalRealms; i++ {
-		result := <-itemizeOut
+		result := <-self.ItemizeOut
 
 		// optionally halting on error
 		if result.Err != nil {
@@ -87,7 +94,7 @@ func RunQueue(regionRealms map[int64][]Entity.Realm, downloadIn chan Entity.Real
 	// newItems := itemizeResults.GetUniqueItems()
 
 	// persisting them
-	// itemManager := Entity.ItemManager{Client: cacheClient}
+	// itemManager := Entity.ItemManager{Client: self.CacheClient}
 	// _, err = itemManager.PersistAll(newItems)
 	// if err != nil {
 	// 	return
@@ -96,28 +103,28 @@ func RunQueue(regionRealms map[int64][]Entity.Realm, downloadIn chan Entity.Real
 	return regionRealms, nil
 }
 
-func DownloadRealm(realm Entity.Realm, cacheClient Cache.Client, out chan DownloadResult) {
+func (self Queue) DownloadRealm(realm Entity.Realm) {
 	// misc
 	var (
 		auctionResponse     *Auction.Response
 		auctionDataResponse *AuctionData.Response
 		err                 error
 	)
-	realmManager := Entity.RealmManager{Client: cacheClient}
+	realmManager := Entity.RealmManager{Client: self.CacheClient}
 	result := DownloadResult{Result: Result{realm: realm}}
 
 	// fetching the auction info
-	auctionResponse, err = Auction.Get(realm, cacheClient.ApiKey)
+	auctionResponse, err = Auction.Get(realm, self.CacheClient.ApiKey)
 	if err != nil {
 		result.Err = errors.New(fmt.Sprintf("Auction.Get() failed (%s)", err.Error()))
-		out <- result
+		self.DownloadOut <- result
 		return
 	}
 
 	// optionally halting on empty response
 	if auctionResponse == nil {
 		result.responseFailed = true
-		out <- result
+		self.DownloadOut <- result
 		return
 	}
 
@@ -127,7 +134,7 @@ func DownloadRealm(realm Entity.Realm, cacheClient Cache.Client, out chan Downlo
 	lastModified := time.Unix(file.LastModified/1000, 0)
 	if !realm.LastDownloaded.IsZero() && (realm.LastDownloaded.Equal(lastModified) || realm.LastDownloaded.Before(lastModified)) {
 		result.alreadyChecked = true
-		// out <- result
+		// self.DownloadOut <- result
 		// return
 	}
 
@@ -135,14 +142,14 @@ func DownloadRealm(realm Entity.Realm, cacheClient Cache.Client, out chan Downlo
 	auctionDataResponse, err = AuctionData.Get(realm, file.Url)
 	if err != nil {
 		result.Err = errors.New(fmt.Sprintf("AuctionData.Get() failed (%s)", err.Error()))
-		out <- result
+		self.DownloadOut <- result
 		return
 	}
 
 	// optionally halting on empty response
 	if auctionDataResponse == nil {
 		result.responseFailed = true
-		out <- result
+		self.DownloadOut <- result
 		return
 	}
 
@@ -155,10 +162,10 @@ func DownloadRealm(realm Entity.Realm, cacheClient Cache.Client, out chan Downlo
 	result.realm = realm
 
 	// queueing it out
-	out <- result
+	self.DownloadOut <- result
 }
 
-func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out chan ItemizeResult) {
+func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 	// misc
 	var err error
 	realm := downloadResult.realm
@@ -167,27 +174,30 @@ func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out c
 	// optionally halting on error
 	if downloadResult.Err != nil {
 		result.Err = errors.New(fmt.Sprintf("downloadResult had an error (%s)", downloadResult.Err.Error()))
-		out <- result
+		self.ItemizeOut <- result
 		return
 	}
 
 	// optionally halting for whatever reason
 	if result.responseFailed {
-		out <- result
+		self.ItemizeOut <- result
 		return
 	}
+
+	self.ItemizeOut <- result
+	return
 
 	/*
 		character handling
 	*/
-	characterManager := Character.Manager{Client: cacheClient}
+	characterManager := Character.Manager{Client: self.CacheClient}
 
 	// gathering existing characters
 	var existingCharacters []Character.Character
 	existingCharacters, err = characterManager.FindByRealm(realm)
 	if err != nil {
 		result.Err = errors.New(fmt.Sprintf("CharacterManager.FindByRealm() failed (%s)", err.Error()))
-		out <- result
+		self.ItemizeOut <- result
 		return
 	}
 
@@ -195,7 +205,7 @@ func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out c
 	result.characters, err = characterManager.PersistAll(realm, existingCharacters, downloadResult.getNewCharacters(existingCharacters))
 	if err != nil {
 		result.Err = errors.New(fmt.Sprintf("CharacterManager.PersistAll() failed (%s)", err.Error()))
-		out <- result
+		self.ItemizeOut <- result
 		return
 	}
 
@@ -211,5 +221,5 @@ func ItemizeRealm(downloadResult DownloadResult, cacheClient Cache.Client, out c
 	result.auctions = downloadResult.auctionDataResponse.Auctions.Auctions
 
 	// queueing it out
-	out <- result
+	self.ItemizeOut <- result
 }

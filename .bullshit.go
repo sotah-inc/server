@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Entity"
-	"github.com/ihsw/go-download/Entity/Character"
 	"github.com/ihsw/go-download/Misc"
 	"github.com/ihsw/go-download/Util"
+	"github.com/ihsw/go-download/Work"
 	"os"
 	"runtime"
 	"time"
@@ -28,53 +28,49 @@ func main() {
 	var (
 		cacheClient Cache.Client
 	)
-	cacheClient, err = Misc.GetCacheClient(os.Args, false)
+	cacheClient, _, err = Misc.GetCacheClient(os.Args, false)
 	if err != nil {
 		output.Write(fmt.Sprintf("Misc.GetCacheClient() fail: %s", err.Error()))
 		return
 	}
 
-	regionManager := Entity.RegionManager{Client: cacheClient}
-	var regions []Entity.Region
-	regions, err = regionManager.FindAll()
+	/*
+		bullshit
+	*/
+	realmManager := Entity.RealmManager{Client: cacheClient}
+	downloadIn := make(chan Entity.Realm, 1)
+	downloadOut := make(chan Work.DownloadResult, 1)
+	itemizeOut := make(chan Work.ItemizeResult, 1)
+
+	// fetching a realm
+	var realm Entity.Realm
+	realm, err = realmManager.FindOneById(1)
 	if err != nil {
-		output.Write(fmt.Sprintf("RegionManager.FindAll() fail: %s", err.Error()))
+		output.Write(fmt.Sprintf("RealmManager.FindOneById() fail: %s", err.Error()))
 		return
 	}
 
-	realmManager := Entity.RealmManager{Client: cacheClient}
-	characterManager := Character.Manager{Client: cacheClient}
-	var (
-		realms     []Entity.Realm
-		characters []Character.Character
-	)
+	queue := Work.Queue{
+		DownloadIn:  downloadIn,
+		DownloadOut: downloadOut,
+		ItemizeOut:  itemizeOut,
+		CacheClient: cacheClient,
+	}
 
-	output.Write("Starting up the timed rotation...")
-	c := time.Tick(5 * time.Second)
-	for {
-		output.Write("Running the timed rotation...")
+	output.Write("Manually running queue.DownloadRealm()...")
+	queue.DownloadRealm(realm)
+	downloadResult := <-queue.DownloadOut
+	if downloadResult.Err != nil {
+		output.Write(fmt.Sprintf("downloadOut had an error: %s", downloadResult.Err.Error()))
+		return
+	}
 
-		characterCount := 0
-		for _, region := range regions {
-			realms, err = realmManager.FindByRegion(region)
-			if err != nil {
-				output.Write(fmt.Sprintf("RealmManager.FindByRegion() fail: %s", err.Error()))
-				return
-			}
-
-			for _, realm := range realms {
-				characters, err = characterManager.FindByRealm(realm)
-				if err != nil {
-					output.Write(fmt.Sprintf("CharacterManager.FindByRealm() fail: %s", err.Error()))
-					return
-				}
-
-				characterCount += len(characters)
-			}
-		}
-		output.Write(fmt.Sprintf("There are %d characters in the world", characterCount))
-
-		<-c
+	output.Write("Manually running queue.ItemizeRealm()...")
+	queue.ItemizeRealm(downloadResult)
+	itemizeResult := <-queue.ItemizeOut
+	if itemizeResult.Err != nil {
+		output.Write(fmt.Sprintf("itemizeOut had an error: %s", itemizeResult.Err.Error()))
+		return
 	}
 
 	output.Conclude()

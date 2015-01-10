@@ -74,50 +74,38 @@ func main() {
 		making channels and spawning workers
 	*/
 	// misc
-	downloadIn := make(chan Entity.Realm, totalRealms)
-	downloadOut := make(chan Work.DownloadResult, totalRealms)
-	itemizeOut := make(chan Work.ItemizeResult, totalRealms)
+	queue := Work.Queue{
+		DownloadIn:  make(chan Entity.Realm, totalRealms),
+		DownloadOut: make(chan Work.DownloadResult, totalRealms),
+		ItemizeOut:  make(chan Work.ItemizeResult, totalRealms),
+		CacheClient: cacheClient,
+	}
 
 	// spawning some download and itemize workers
 	downloadWorkerCount := 4
 	output.Write(fmt.Sprintf("Spawning %d download and itemize workers...", downloadWorkerCount))
 	for j := 0; j < downloadWorkerCount; j++ {
-		go func(in chan Entity.Realm, cacheClient Cache.Client, out chan Work.DownloadResult) {
+		go func(queue Work.Queue) {
 			for {
-				Work.DownloadRealm(<-in, cacheClient, out)
+				queue.DownloadRealm(<-queue.DownloadIn)
 			}
-		}(downloadIn, cacheClient, downloadOut)
+		}(queue)
 	}
 
-	go func(in chan Work.DownloadResult, cacheClient Cache.Client, out chan Work.ItemizeResult) {
+	go func(queue Work.Queue) {
 		for {
-			Work.ItemizeRealm(<-in, cacheClient, out)
+			queue.ItemizeRealm(<-queue.DownloadOut)
 		}
-	}(downloadOut, cacheClient, itemizeOut)
+	}(queue)
 
 	/*
 		going over the list
 	*/
 	output.Write("Running it once to start it up...")
-	regionRealms, err = Work.RunQueue(regionRealms, downloadIn, itemizeOut, totalRealms, cacheClient, false)
+	regionRealms, err = queue.DownloadRealms(regionRealms, totalRealms, false)
 	if err != nil {
 		output.Write(fmt.Sprintf("Run.WorkQueue() #1 failed (%s)", err.Error()))
 		return
-	}
-
-	output.Write("Starting up the timed rotation...")
-	c := time.Tick(5 * time.Second)
-	for {
-		<-c
-
-		output.Write("Running it again...")
-
-		// err = Work.RunQueue(regionRealms, downloadIn, itemizeOut, totalRealms, cacheClient)
-		regionRealms, err = Work.RunQueue(regionRealms, downloadIn, itemizeOut, totalRealms, cacheClient, true)
-		if err != nil {
-			output.Write(fmt.Sprintf("Run.WorkQueue() failed (%s)", err.Error()))
-			return
-		}
 	}
 
 	output.Conclude()
