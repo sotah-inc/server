@@ -23,11 +23,8 @@ func main() {
 	/*
 		reading the config
 	*/
-	// gathering a cache client and regions after reading the config
-	output.Write("Initializing the cache-client...")
-	var (
-		cacheClient Cache.Client
-	)
+	// gathering a cache client after reading the config
+	var cacheClient Cache.Client
 	cacheClient, _, err = Misc.GetCacheClient(os.Args, false)
 	if err != nil {
 		output.Write(fmt.Sprintf("Misc.GetCacheClient() fail: %s", err.Error()))
