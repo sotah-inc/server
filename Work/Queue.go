@@ -12,9 +12,6 @@ import (
 	"time"
 )
 
-/*
-	structs
-*/
 type Queue struct {
 	DownloadIn  chan Entity.Realm
 	DownloadOut chan DownloadResult
