@@ -29,8 +29,7 @@ func main() {
 		cacheClient Cache.Client
 		regions     []Entity.Region
 	)
-	cacheClient, regions, err = Misc.GetCacheClientAndRegions(os.Args, true)
-	if err != nil {
+	if cacheClient, regions, err = Misc.GetCacheClientAndRegions(os.Args, true); err != nil {
 		output.Write(fmt.Sprintf("Misc.GetCacheClientAndRegions() fail: %s", err.Error()))
 		return
 	}
@@ -40,8 +39,7 @@ func main() {
 	*/
 	output.Write("Fetching realms for each region...")
 	var regionRealms map[int64][]Entity.Realm
-	regionRealms, err = Misc.GetRealms(cacheClient, regions)
-	if err != nil {
+	if regionRealms, err = Misc.GetRealms(cacheClient, regions); err != nil {
 		output.Write(fmt.Sprintf("Misc.GetRealms() fail: %s", err.Error()))
 		return
 	}
@@ -94,8 +92,7 @@ func main() {
 		going over the list
 	*/
 	output.Write("Running it once to start it up...")
-	regionRealms, err = queue.DownloadRealms(regionRealms, totalRealms, false)
-	if err != nil {
+	if regionRealms, err = queue.DownloadRealms(regionRealms, totalRealms, false); err != nil {
 		output.Write(fmt.Sprintf("Run.WorkQueue() #1 failed (%s)", err.Error()))
 		return
 	}
