@@ -237,6 +237,41 @@ func (self Wrapper) SAddAll(key string, values []string) (err error) {
 	return nil
 }
 
+func (self Wrapper) SIsMember(key string, value string) (isMember bool, err error) {
+	values := []string{value}
+	var isMembers []bool
+	if isMembers, err = self.SIsMemberAll(key, values); err != nil {
+		return
+	}
+
+	return isMembers[0], nil
+}
+
+func (self Wrapper) SIsMemberAll(key string, values []string) (isMembers []bool, err error) {
+	var cmds []redis.Cmder
+	pipe := self.Redis.Pipeline()
+
+	// running the pipeline
+	for _, v := range values {
+		pipe.SIsMember(key, v)
+	}
+	if cmds, err = pipe.Exec(); err != nil {
+		return
+	}
+
+	// checking for errors
+	isMembers = make([]bool, len(cmds))
+	for i, cmd := range cmds {
+		if err = cmd.Err(); err != nil {
+			return
+		}
+
+		isMembers[i] = cmd.(*redis.BoolCmd).Val()
+	}
+
+	return isMembers, nil
+}
+
 /*
 	Client
 */

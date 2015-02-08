@@ -141,3 +141,7 @@ func (self Manager) FindByRealm(realm Entity.Realm) (characters []Character, err
 
 	return self.unmarshalAll(values)
 }
+
+func (self Manager) NameExists(realm Entity.Realm, name string) (exists bool, err error) {
+	return self.Client.Main.SIsMember(fmt.Sprintf("realm:%d:character_names", realm.Id), name)
+}
