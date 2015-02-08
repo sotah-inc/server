@@ -181,8 +181,8 @@ func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 		return
 	}
 
-	self.ItemizeOut <- result
-	return
+	// self.ItemizeOut <- result
+	// return
 
 	/*
 		character handling
@@ -197,6 +197,39 @@ func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 		self.ItemizeOut <- result
 		return
 	}
+	existingNames := map[string]struct{}{}
+	for _, character := range existingCharacters {
+		existingNames[character.Name] = struct{}{}
+	}
+
+	// gathering found names
+	foundNames := map[string]struct{}{}
+	for _, auction := range downloadResult.auctionDataResponse.Auctions.Auctions {
+		foundNames[auction.Owner] = struct{}{}
+	}
+
+	erroneousNames := []string{}
+	var sExists bool
+	for name, _ := range foundNames {
+		_, mapExists := existingNames[name]
+		if sExists, err = characterManager.NameExists(realm, name); err != nil {
+			result.Err = errors.New(fmt.Sprintf("CharacterManager.NameExists() failed (%s)", err.Error()))
+			self.ItemizeOut <- result
+			return
+		}
+
+		if mapExists != sExists {
+			erroneousNames = append(erroneousNames, name)
+		}
+	}
+
+	fmt.Println(fmt.Sprintf("Realm %s (%d)", realm.Dump(), realm.Id))
+	fmt.Println(fmt.Sprintf("Existing characters: %d", len(existingCharacters)))
+	fmt.Println(fmt.Sprintf("Found names: %d", len(foundNames)))
+	fmt.Println(fmt.Sprintf("Erroneous found names: %d", len(erroneousNames)))
+
+	self.ItemizeOut <- result
+	return
 
 	// merging existing characters in and persisting them all
 	result.characters, err = characterManager.PersistAll(realm, existingCharacters, downloadResult.getNewCharacters(existingCharacters))

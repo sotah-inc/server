@@ -40,13 +40,18 @@ func main() {
 		ItemizeOut:  make(chan Work.ItemizeResult, 1),
 		CacheClient: cacheClient,
 	}
+	realmId := int64(512)
 
 	// fetching a realm
 	realmManager := Entity.RealmManager{Client: cacheClient}
 	var realm Entity.Realm
-	realm, err = realmManager.FindOneById(1)
+	realm, err = realmManager.FindOneById(realmId)
 	if err != nil {
 		output.Write(fmt.Sprintf("RealmManager.FindOneById() fail: %s", err.Error()))
+		return
+	}
+	if !realm.IsValid() {
+		output.Write(fmt.Sprintf("Realm %d could not be found!", realmId))
 		return
 	}
 
