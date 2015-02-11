@@ -197,16 +197,19 @@ func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 		self.ItemizeOut <- result
 		return
 	}
-	existingNames := map[string]struct{}{}
-	for _, character := range existingCharacters {
-		existingNames[character.Name] = struct{}{}
-	}
 
 	// gathering found names
-	foundNames := map[string]struct{}{}
+	uniqueFoundNames := map[string]struct{}{}
 	for _, auction := range downloadResult.auctionDataResponse.Auctions.Auctions {
-		foundNames[auction.Owner] = struct{}{}
+		uniqueFoundNames[auction.Owner] = struct{}{}
 	}
+	foundNames := []string{}
+	for name, _ := range uniqueFoundNames {
+		foundNames = append(name, foundNames)
+	}
+
+	var namesExist []bool
+	namesExist, err = characterManager.NamesExist(realm, foundNames)
 
 	erroneousNames := []string{}
 	var sExists bool

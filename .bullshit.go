@@ -40,7 +40,7 @@ func main() {
 		ItemizeOut:  make(chan Work.ItemizeResult, 1),
 		CacheClient: cacheClient,
 	}
-	realmId := int64(512)
+	realmId := int64(300)
 
 	// fetching a realm
 	realmManager := Entity.RealmManager{Client: cacheClient}
