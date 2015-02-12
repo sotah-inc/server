@@ -209,7 +209,9 @@ func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 
 	// merging existing characters in and persisting them all
 	newCharacters := downloadResult.getNewCharacters(existingCharacters)
-	fmt.Println(fmt.Sprintf("New characters in realm %s: %d", realm.Dump(), len(newCharacters)))
+	if len(newCharacters) > 0 {
+		fmt.Println(fmt.Sprintf("New characters in realm %s: %d", realm.Dump(), len(newCharacters)))
+	}
 	result.characters, err = characterManager.PersistAll(existingCharacters, newCharacters)
 	if err != nil {
 		result.Err = errors.New(fmt.Sprintf("CharacterManager.PersistAll() failed (%s)", err.Error()))
