@@ -181,9 +181,6 @@ func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 		return
 	}
 
-	// self.ItemizeOut <- result
-	// return
-
 	/*
 		character handling
 	*/
@@ -203,20 +200,11 @@ func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 	for _, auction := range downloadResult.auctionDataResponse.Auctions.Auctions {
 		uniqueFoundNames[auction.Owner] = struct{}{}
 	}
-	foundNames := []string{}
-	for name, _ := range uniqueFoundNames {
-		foundNames = append(foundNames, name)
-	}
-
-	fmt.Println(fmt.Sprintf("Realm %s (%d)", realm.Dump(), realm.Id))
-	fmt.Println(fmt.Sprintf("Existing characters: %d", len(existingCharacters)))
-	fmt.Println(fmt.Sprintf("Found names: %d", len(foundNames)))
-
-	self.ItemizeOut <- result
-	return
 
 	// merging existing characters in and persisting them all
-	result.characters, err = characterManager.PersistAll(existingCharacters, downloadResult.getNewCharacters(existingCharacters))
+	newCharacters := downloadResult.getNewCharacters(existingCharacters)
+	fmt.Println(fmt.Sprintf("New characters in realm %s: %d", realm.Dump(), len(newCharacters)))
+	result.characters, err = characterManager.PersistAll(existingCharacters, newCharacters)
 	if err != nil {
 		result.Err = errors.New(fmt.Sprintf("CharacterManager.PersistAll() failed (%s)", err.Error()))
 		self.ItemizeOut <- result
