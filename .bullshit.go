@@ -56,12 +56,12 @@ func main() {
 		return
 	}
 
-	characterManager := Character.Manager{Client: cacheClient}
+	characterManager := Character.Manager{Client: cacheClient, Realm: realm}
 	var character Character.Character
 	name := "배넘쏘세요"
-	character, err = characterManager.FindOneByRealmAndName(realm, name)
+	character, err = characterManager.FindOneByName(name)
 	if err != nil {
-		output.Write(fmt.Sprintf("CharacterManager.FindOneByRealmAndName() fail: %s", err.Error()))
+		output.Write(fmt.Sprintf("CharacterManager.FindOneByName() fail: %s", err.Error()))
 		return
 	}
 	if !character.IsValid() {

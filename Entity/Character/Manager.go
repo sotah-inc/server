@@ -22,11 +22,12 @@ func characterNameKey(realm Entity.Realm, name string) string {
 */
 type Manager struct {
 	Client Cache.Client
+	Realm  Entity.Realm
 }
 
-func (self Manager) Namespace() string { return "character" }
+func (self Manager) Namespace() string { return fmt.Sprintf("realm:%d:character", self.Realm.Id) }
 
-func (self Manager) PersistAll(realm Entity.Realm, existingCharacters []Character, newCharacters []Character) (characters []Character, err error) {
+func (self Manager) PersistAll(existingCharacters []Character, newCharacters []Character) (characters []Character, err error) {
 	var (
 		ids []int64
 		s   string
@@ -34,7 +35,7 @@ func (self Manager) PersistAll(realm Entity.Realm, existingCharacters []Characte
 	m := self.Client.Main
 
 	// ids
-	ids, err = m.IncrAll(fmt.Sprintf("realm:%d:character_id", realm.Id), len(newCharacters))
+	ids, err = m.IncrAll(fmt.Sprintf("realm:%d:character_id", self.Realm.Id), len(newCharacters))
 	if err != nil {
 		return characters, err
 	}
@@ -68,13 +69,13 @@ func (self Manager) PersistAll(realm Entity.Realm, existingCharacters []Characte
 
 		newCharacterIds[i] = id
 		newNames[i] = name
-		hashedNameKeys[characterNameKey(realm, name)] = id
+		hashedNameKeys[characterNameKey(self.Realm, name)] = id
 	}
-	err = m.RPushAll(fmt.Sprintf("realm:%d:character_ids", realm.Id), newCharacterIds)
+	err = m.RPushAll(fmt.Sprintf("realm:%d:character_ids", self.Realm.Id), newCharacterIds)
 	if err != nil {
 		return characters, err
 	}
-	err = m.SAddAll(fmt.Sprintf("realm:%d:character_names", realm.Id), newNames)
+	err = m.SAddAll(fmt.Sprintf("realm:%d:character_names", self.Realm.Id), newNames)
 	if err != nil {
 		return characters, err
 	}
@@ -143,11 +144,11 @@ func (self Manager) unmarshalAll(values []string) (characters []Character, err e
 	return
 }
 
-func (self Manager) FindByRealm(realm Entity.Realm) (characters []Character, err error) {
+func (self Manager) FindAll() (characters []Character, err error) {
 	main := self.Client.Main
 
 	// fetching ids
-	ids, err := main.FetchIds(fmt.Sprintf("realm:%d:character_ids", realm.Id), 0, -1)
+	ids, err := main.FetchIds(fmt.Sprintf("realm:%d:character_ids", self.Realm.Id), 0, -1)
 	if err != nil {
 		return
 	}
@@ -162,12 +163,12 @@ func (self Manager) FindByRealm(realm Entity.Realm) (characters []Character, err
 	return self.unmarshalAll(values)
 }
 
-func (self Manager) FindOneByRealmAndName(realm Entity.Realm, name string) (character Character, err error) {
+func (self Manager) FindOneByName(name string) (character Character, err error) {
 	m := self.Client.Main
 
 	// checking for an id
 	var v string
-	v, err = m.Get(characterNameKey(realm, name))
+	v, err = m.Get(characterNameKey(self.Realm, name))
 	if err != nil {
 		return
 	}
@@ -189,10 +190,10 @@ func (self Manager) FindOneByRealmAndName(realm Entity.Realm, name string) (char
 	return self.unmarshal(v)
 }
 
-func (self Manager) NameExists(realm Entity.Realm, name string) (exists bool, err error) {
-	return self.Client.Main.SIsMember(fmt.Sprintf("realm:%d:character_names", realm.Id), name)
+func (self Manager) NameExists(name string) (exists bool, err error) {
+	return self.Client.Main.SIsMember(fmt.Sprintf("realm:%d:character_names", self.Realm.Id), name)
 }
 
-func (self Manager) NamesExist(realm Entity.Realm, names []string) (exists []bool, err error) {
-	return self.Client.Main.SIsMemberAll(fmt.Sprintf("realm:%d:character_names", realm.Id), names)
+func (self Manager) NamesExist(names []string) (exists []bool, err error) {
+	return self.Client.Main.SIsMemberAll(fmt.Sprintf("realm:%d:character_names", self.Realm.Id), names)
 }

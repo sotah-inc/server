@@ -187,13 +187,13 @@ func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 	/*
 		character handling
 	*/
-	characterManager := Character.Manager{Client: self.CacheClient}
+	characterManager := Character.Manager{Client: self.CacheClient, Realm: realm}
 
 	// gathering existing characters
 	var existingCharacters []Character.Character
-	existingCharacters, err = characterManager.FindByRealm(realm)
+	existingCharacters, err = characterManager.FindAll()
 	if err != nil {
-		result.Err = errors.New(fmt.Sprintf("CharacterManager.FindByRealm() failed (%s)", err.Error()))
+		result.Err = errors.New(fmt.Sprintf("CharacterManager.FindAll() failed (%s)", err.Error()))
 		self.ItemizeOut <- result
 		return
 	}
@@ -205,37 +205,18 @@ func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 	}
 	foundNames := []string{}
 	for name, _ := range uniqueFoundNames {
-		foundNames = append(name, foundNames)
-	}
-
-	var namesExist []bool
-	namesExist, err = characterManager.NamesExist(realm, foundNames)
-
-	erroneousNames := []string{}
-	var sExists bool
-	for name, _ := range foundNames {
-		_, mapExists := existingNames[name]
-		if sExists, err = characterManager.NameExists(realm, name); err != nil {
-			result.Err = errors.New(fmt.Sprintf("CharacterManager.NameExists() failed (%s)", err.Error()))
-			self.ItemizeOut <- result
-			return
-		}
-
-		if mapExists != sExists {
-			erroneousNames = append(erroneousNames, name)
-		}
+		foundNames = append(foundNames, name)
 	}
 
 	fmt.Println(fmt.Sprintf("Realm %s (%d)", realm.Dump(), realm.Id))
 	fmt.Println(fmt.Sprintf("Existing characters: %d", len(existingCharacters)))
 	fmt.Println(fmt.Sprintf("Found names: %d", len(foundNames)))
-	fmt.Println(fmt.Sprintf("Erroneous found names: %d", len(erroneousNames)))
 
 	self.ItemizeOut <- result
 	return
 
 	// merging existing characters in and persisting them all
-	result.characters, err = characterManager.PersistAll(realm, existingCharacters, downloadResult.getNewCharacters(existingCharacters))
+	result.characters, err = characterManager.PersistAll(existingCharacters, downloadResult.getNewCharacters(existingCharacters))
 	if err != nil {
 		result.Err = errors.New(fmt.Sprintf("CharacterManager.PersistAll() failed (%s)", err.Error()))
 		self.ItemizeOut <- result
