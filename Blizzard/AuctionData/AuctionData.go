@@ -2,8 +2,6 @@ package AuctionData
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
 	"github.com/ihsw/go-download/Entity"
 	"github.com/ihsw/go-download/Util"
 )
@@ -50,18 +48,20 @@ type Auction struct {
 /*
 	funcs
 */
-func Get(realm Entity.Realm, url string) (response *Response, err error) {
-	var b []byte
+func Get(realm Entity.Realm, url string) (response *Response) {
+	var (
+		b   []byte
+		err error
+	)
 	b, err = Util.Download(url)
 	if err != nil {
-		err = errors.New(fmt.Sprintf("Util.Download() failed (%s)", err.Error()))
-		return
+		return nil
 	}
 
 	err = json.Unmarshal(b, &response)
 	if err != nil {
-		return nil, nil
+		return nil
 	}
 
-	return response, nil
+	return response
 }

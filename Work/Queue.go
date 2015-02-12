@@ -136,14 +136,7 @@ func (self Queue) DownloadRealm(realm Entity.Realm) {
 	}
 
 	// fetching the actual auction data
-	auctionDataResponse, err = AuctionData.Get(realm, file.Url)
-	if err != nil {
-		result.Err = errors.New(fmt.Sprintf("AuctionData.Get() failed (%s)", err.Error()))
-		self.DownloadOut <- result
-		return
-	}
-
-	// optionally halting on empty response
+	auctionDataResponse = AuctionData.Get(realm, file.Url)
 	if auctionDataResponse == nil {
 		result.responseFailed = true
 		self.DownloadOut <- result
@@ -212,7 +205,7 @@ func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 	if len(newCharacters) > 0 {
 		fmt.Println(fmt.Sprintf("New characters in realm %s: %d", realm.Dump(), len(newCharacters)))
 	}
-	result.characters, err = characterManager.PersistAll(existingCharacters, newCharacters)
+	_, err = characterManager.PersistAll(existingCharacters, newCharacters)
 	if err != nil {
 		result.Err = errors.New(fmt.Sprintf("CharacterManager.PersistAll() failed (%s)", err.Error()))
 		self.ItemizeOut <- result
@@ -228,7 +221,7 @@ func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 		auction handling
 	*/
 	// gathering auctions for post-itemize processing
-	result.auctions = downloadResult.auctionDataResponse.Auctions.Auctions
+	// result.auctions = downloadResult.auctionDataResponse.Auctions.Auctions
 
 	// queueing it out
 	self.ItemizeOut <- result
