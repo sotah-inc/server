@@ -131,8 +131,8 @@ func (self Queue) DownloadRealm(realm Entity.Realm) {
 	lastModified := time.Unix(file.LastModified/1000, 0)
 	if !realm.LastDownloaded.IsZero() && (realm.LastDownloaded.Equal(lastModified) || realm.LastDownloaded.Before(lastModified)) {
 		result.alreadyChecked = true
-		// self.DownloadOut <- result
-		// return
+		self.DownloadOut <- result
+		return
 	}
 
 	// fetching the actual auction data
@@ -177,6 +177,12 @@ func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 
 	// optionally skipping failed responses
 	if result.responseFailed {
+		self.ItemizeOut <- result
+		return
+	}
+
+	// optionally halting due to already having been checked
+	if result.alreadyChecked {
 		self.ItemizeOut <- result
 		return
 	}

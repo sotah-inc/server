@@ -97,5 +97,18 @@ func main() {
 		return
 	}
 
+	output.Write("Starting up the timed rotation...")
+	c := time.Tick(5 * time.Second)
+	for {
+		<-c
+
+		output.Write("Running it again...")
+
+		if regionRealms, err = queue.DownloadRealms(regionRealms, totalRealms, true); err != nil {
+			output.Write(fmt.Sprintf("Run.WorkQueue() failed (%s)", err.Error()))
+			return
+		}
+	}
+
 	output.Conclude()
 }
