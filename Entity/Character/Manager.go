@@ -10,6 +10,16 @@ import (
 	"strconv"
 )
 
+/*
+	funcs
+*/
+func characterNameKey(realm Entity.Realm, name string) string {
+	return fmt.Sprintf("realm:%d:character:%s:id", realm.Id, Util.Md5Encode(name))
+}
+
+/*
+	manager
+*/
 type Manager struct {
 	Client Cache.Client
 }
@@ -58,7 +68,7 @@ func (self Manager) PersistAll(realm Entity.Realm, existingCharacters []Characte
 
 		newCharacterIds[i] = id
 		newNames[i] = name
-		hashedNameKeys[fmt.Sprintf("realm:%d:character:%s:id", realm.Id, Util.Md5Encode(name))] = id
+		hashedNameKeys[characterNameKey(realm, name)] = id
 	}
 	err = m.RPushAll(fmt.Sprintf("realm:%d:character_ids", realm.Id), newCharacterIds)
 	if err != nil {
@@ -150,6 +160,33 @@ func (self Manager) FindByRealm(realm Entity.Realm) (characters []Character, err
 	}
 
 	return self.unmarshalAll(values)
+}
+
+func (self Manager) FindOneByRealmAndName(realm Entity.Realm, name string) (character Character, err error) {
+	m := self.Client.Main
+
+	// checking for an id
+	var v string
+	v, err = m.Get(characterNameKey(realm, name))
+	if err != nil {
+		return
+	}
+	if len(v) == 0 {
+		return
+	}
+
+	// checking for data
+	var id int64
+	id, err = strconv.ParseInt(v, 10, 64)
+	if err != nil {
+		return
+	}
+	v, err = m.FetchFromId(self, id)
+	if err != nil {
+		return
+	}
+
+	return self.unmarshal(v)
 }
 
 func (self Manager) NameExists(realm Entity.Realm, name string) (exists bool, err error) {

@@ -294,6 +294,15 @@ func (self Wrapper) SetAll(values map[string]string) (err error) {
 	return nil
 }
 
+func (self Wrapper) Get(k string) (v string, err error) {
+	cmd := self.Redis.Get(k)
+	if err = cmd.Err(); err != nil && err != redis.Nil {
+		return
+	}
+
+	return cmd.Val(), nil
+}
+
 /*
 	Client
 */
