@@ -136,8 +136,7 @@ func (self Queue) DownloadRealm(realm Entity.Realm) {
 	}
 
 	// fetching the actual auction data
-	auctionDataResponse = AuctionData.Get(realm, file.Url)
-	if auctionDataResponse == nil {
+	if auctionDataResponse = AuctionData.Get(realm, file.Url); auctionDataResponse == nil {
 		result.responseFailed = true
 		self.DownloadOut <- result
 		return
