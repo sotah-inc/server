@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Entity"
+	"github.com/ihsw/go-download/Entity/Character"
 	"github.com/ihsw/go-download/Misc"
 	"github.com/ihsw/go-download/Util"
 	"github.com/ihsw/go-download/Work"
@@ -40,7 +41,7 @@ func main() {
 		ItemizeOut:  make(chan Work.ItemizeResult, 1),
 		CacheClient: cacheClient,
 	}
-	realmId := int64(300)
+	realmId := int64(537)
 
 	// fetching a realm
 	realmManager := Entity.RealmManager{Client: cacheClient}
@@ -54,6 +55,22 @@ func main() {
 		output.Write(fmt.Sprintf("Realm %d could not be found!", realmId))
 		return
 	}
+
+	characterManager := Character.Manager{Client: cacheClient}
+	var character Character.Character
+	name := "배넘쏘세요"
+	character, err = characterManager.FindOneByRealmAndName(realm, name)
+	if err != nil {
+		output.Write(fmt.Sprintf("CharacterManager.FindOneByRealmAndName() fail: %s", err.Error()))
+		return
+	}
+	if !character.IsValid() {
+		output.Write(fmt.Sprintf("Character %s in realm %d could not be found!", name, realm.Id))
+		return
+	}
+
+	output.Write(fmt.Sprintf("Character %s was found in realm %d with id %d!", name, realm.Id, character.Id))
+	return
 
 	// downloading it
 	output.Write("Manually running queue.DownloadRealm()...")
