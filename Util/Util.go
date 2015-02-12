@@ -3,6 +3,8 @@ package Util
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -106,4 +108,10 @@ func GzipDecode(in []byte) ([]byte, error) {
 	defer reader.Close()
 
 	return ioutil.ReadAll(reader)
+}
+
+func Md5Encode(v string) string {
+	h := md5.New()
+	h.Write([]byte(v))
+	return hex.EncodeToString(h.Sum(nil))
 }

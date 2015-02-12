@@ -272,6 +272,28 @@ func (self Wrapper) SIsMemberAll(key string, values []string) (isMembers []bool,
 	return isMembers, nil
 }
 
+func (self Wrapper) SetAll(values map[string]string) (err error) {
+	var cmds []redis.Cmder
+	pipe := self.Redis.Pipeline()
+
+	// running the pipeline
+	for k, v := range values {
+		pipe.Set(k, v)
+	}
+	if cmds, err = pipe.Exec(); err != nil {
+		return
+	}
+
+	// checking for errors
+	for _, cmd := range cmds {
+		if err = cmd.Err(); err != nil {
+			return
+		}
+	}
+
+	return nil
+}
+
 /*
 	Client
 */

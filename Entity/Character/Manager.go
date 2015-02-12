@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Entity"
+	"github.com/ihsw/go-download/Util"
 	"strconv"
 )
 
@@ -50,15 +51,24 @@ func (self Manager) PersistAll(realm Entity.Realm, existingCharacters []Characte
 	// etc
 	newCharacterIds := make([]string, len(newCharacters))
 	newNames := make([]string, len(newCharacters))
+	hashedNameKeys := map[string]string{}
 	for i, character := range newCharacters {
-		newCharacterIds[i] = strconv.FormatInt(character.Id, 10)
-		newNames[i] = character.Name
+		id := strconv.FormatInt(character.Id, 10)
+		name := character.Name
+
+		newCharacterIds[i] = id
+		newNames[i] = name
+		hashedNameKeys[fmt.Sprintf("realm:%d:character:%s:id", realm.Id, Util.Md5Encode(name))] = id
 	}
 	err = m.RPushAll(fmt.Sprintf("realm:%d:character_ids", realm.Id), newCharacterIds)
 	if err != nil {
 		return characters, err
 	}
 	err = m.SAddAll(fmt.Sprintf("realm:%d:character_names", realm.Id), newNames)
+	if err != nil {
+		return characters, err
+	}
+	err = m.SetAll(hashedNameKeys)
 	if err != nil {
 		return characters, err
 	}
