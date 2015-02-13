@@ -2,9 +2,18 @@ package Entity
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/ihsw/go-download/Cache"
+	"github.com/ihsw/go-download/Util"
 	"strconv"
 )
+
+/*
+	funcs
+*/
+func regionNameKey(name string) string {
+	return fmt.Sprintf("region:%s:id", Util.Md5Encode(name))
+}
 
 /*
 	Region
@@ -82,8 +91,14 @@ func (self RegionManager) Persist(region Region) (Region, error) {
 
 	// etc
 	if isNew {
-		cmd := r.RPush("region_ids", strconv.FormatInt(region.Id, 10))
+		id := strconv.FormatInt(region.Id, 10)
+
+		cmd := r.RPush("region_ids", id)
 		if err = cmd.Err(); err != nil {
+			return region, err
+		}
+		setCmd := r.Set(regionNameKey(region.Name), id)
+		if err = setCmd.Err(); err != nil {
 			return region, err
 		}
 	}
@@ -129,6 +144,16 @@ func (self RegionManager) FindOneById(id int64) (region Region, err error) {
 	if err != nil {
 		return
 	}
+	return self.unmarshal(v)
+}
+
+func (self RegionManager) FindOneByName(name string) (region Region, err error) {
+	var v string
+	v, err = self.Client.Main.FetchFromKey(self, regionNameKey(name))
+	if err != nil {
+		return
+	}
+
 	return self.unmarshal(v)
 }
 
