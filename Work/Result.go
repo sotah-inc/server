@@ -6,11 +6,11 @@ import (
 
 type Result struct {
 	responseFailed bool
-	alreadyChecked bool
+	AlreadyChecked bool
 	Err            error
 	realm          Entity.Realm
 }
 
 func (self Result) CanContinue() bool {
-	return !self.alreadyChecked && !self.responseFailed
+	return !self.AlreadyChecked && !self.responseFailed
 }

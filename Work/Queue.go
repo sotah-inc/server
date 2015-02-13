@@ -62,7 +62,7 @@ func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRea
 			continue
 		}
 
-		if result.alreadyChecked {
+		if result.AlreadyChecked {
 			fmt.Println(fmt.Sprintf("Realm %s has already been checked (%s)!", result.realm.Dump(), result.realm.LastDownloaded.Format(Util.WriteLayout)))
 		} else {
 			if haltOnNewData {
@@ -148,7 +148,7 @@ func (self Queue) DownloadRealm(realm Entity.Realm) {
 	// checking whether the file has already been downloaded
 	lastModified := time.Unix(file.LastModified/1000, 0)
 	if !realm.LastDownloaded.IsZero() && (realm.LastDownloaded.Equal(lastModified) || realm.LastDownloaded.Before(lastModified)) {
-		result.alreadyChecked = true
+		result.AlreadyChecked = true
 		self.DownloadOut <- result
 		return
 	}
@@ -192,7 +192,7 @@ func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 	}
 
 	// optionally halting due to already having been checked
-	if result.alreadyChecked {
+	if result.AlreadyChecked {
 		self.ItemizeOut <- result
 		return
 	}
