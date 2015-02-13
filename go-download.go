@@ -19,7 +19,7 @@ func main() {
 	output.Write("Starting...")
 
 	var err error
-	debug := false
+	debug := true
 
 	/*
 		reading the config
