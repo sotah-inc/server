@@ -19,7 +19,7 @@ func main() {
 	output.Write("Starting...")
 
 	var err error
-	debug := true
+	debug := false
 
 	/*
 		reading the config
@@ -97,8 +97,10 @@ func main() {
 		return
 	}
 
+	return
+
 	output.Write("Starting up the timed rotation...")
-	c := time.Tick(5 * time.Second)
+	c := time.Tick(30 * time.Second)
 	for {
 		<-c
 
@@ -108,6 +110,8 @@ func main() {
 			output.Write(fmt.Sprintf("Run.WorkQueue() failed (%s)", err.Error()))
 			return
 		}
+
+		output.Write("Done!")
 	}
 
 	output.Conclude()

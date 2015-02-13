@@ -40,18 +40,36 @@ func main() {
 		ItemizeOut:  make(chan Work.ItemizeResult, 1),
 		CacheClient: cacheClient,
 	}
-	realmId := int64(537)
 
-	// fetching a realm
+	/*
+		fetching a region and realm
+	*/
+	// misc
+	regionManager := Entity.RegionManager{Client: cacheClient}
 	realmManager := Entity.RealmManager{Client: cacheClient}
-	var realm Entity.Realm
-	realm, err = realmManager.FindOneById(realmId)
+	regionName := "us"
+	realmSlug := "grizzly-hills"
+
+	// region
+	var region Entity.Region
+	region, err = regionManager.FindOneByName(regionName)
 	if err != nil {
-		output.Write(fmt.Sprintf("RealmManager.FindOneById() fail: %s", err.Error()))
+		output.Write(fmt.Sprintf("RealmManager.FindOneByName() fail:  %s", err.Error()))
+		return
+	}
+	if !region.IsValid() {
+		output.Write(fmt.Sprintf("Region %s could not be found!", regionName))
+	}
+
+	// realm
+	var realm Entity.Realm
+	realm, err = realmManager.FindOneByRegionAndSlug(region, realmSlug)
+	if err != nil {
+		output.Write(fmt.Sprintf("RealmManager.FindOneByRegionAndName() fail: %s", err.Error()))
 		return
 	}
 	if !realm.IsValid() {
-		output.Write(fmt.Sprintf("Realm %d could not be found!", realmId))
+		output.Write(fmt.Sprintf("Realm %s in region %s could not be found!", realmSlug, regionName))
 		return
 	}
 

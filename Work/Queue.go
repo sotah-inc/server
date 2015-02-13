@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ihsw/go-download/Blizzard/Auction"
-	"github.com/ihsw/go-download/Blizzard/AuctionData"
+	// "github.com/ihsw/go-download/Blizzard/AuctionData"
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Entity"
 	"github.com/ihsw/go-download/Entity/Character"
@@ -47,7 +47,8 @@ func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRea
 	}
 
 	// waiting for the results to drain out
-	results := make([]ItemizeResult, 1)
+	results := []ItemizeResult{}
+	startTime := time.Now()
 	for i := 0; i < totalRealms; i++ {
 		result := <-self.ItemizeOut
 
@@ -72,6 +73,23 @@ func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRea
 
 		results = append(results, result)
 	}
+
+	// dumping the duration
+	duration := time.Since(startTime).Seconds()
+	fmt.Println(fmt.Sprintf("Finished in %.2fs!", duration))
+
+	// calculating the earliest last-modified
+	earliestRealm := Entity.Realm{}
+	for _, result := range results {
+		realm := result.realm
+		if earliestRealm.LastDownloaded.IsZero() || realm.LastDownloaded.Before(earliestRealm.LastDownloaded) {
+			earliestRealm = realm
+		}
+	}
+	fmt.Println(fmt.Sprintf("Earliest realm: %s, last-modified: %s", earliestRealm.Dump(), earliestRealm.LastDownloaded.Format(Util.WriteLayout)))
+
+	url := fmt.Sprintf(Auction.URL_FORMAT, earliestRealm.Region.Host, earliestRealm.Slug, self.CacheClient.ApiKey)
+	fmt.Println(fmt.Sprintf("Download link for %s: %s", earliestRealm.Dump(), url))
 
 	// refresing the region-realms list
 	for _, result := range results {
@@ -103,9 +121,9 @@ func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRea
 func (self Queue) DownloadRealm(realm Entity.Realm) {
 	// misc
 	var (
-		auctionResponse     *Auction.Response
-		auctionDataResponse *AuctionData.Response
-		err                 error
+		auctionResponse *Auction.Response
+		// auctionDataResponse *AuctionData.Response
+		err error
 	)
 	realmManager := Entity.RealmManager{Client: self.CacheClient}
 	result := DownloadResult{Result: Result{realm: realm}}
@@ -136,14 +154,14 @@ func (self Queue) DownloadRealm(realm Entity.Realm) {
 	}
 
 	// fetching the actual auction data
-	if auctionDataResponse = AuctionData.Get(realm, file.Url); auctionDataResponse == nil {
-		result.responseFailed = true
-		self.DownloadOut <- result
-		return
-	}
+	// if auctionDataResponse = AuctionData.Get(realm, file.Url); auctionDataResponse == nil {
+	// 	result.responseFailed = true
+	// 	self.DownloadOut <- result
+	// 	return
+	// }
 
 	// loading it into the result
-	result.auctionDataResponse = auctionDataResponse
+	// result.auctionDataResponse = auctionDataResponse
 
 	// flagging the realm as having been downloaded
 	realm.LastDownloaded = lastModified
@@ -178,6 +196,9 @@ func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 		self.ItemizeOut <- result
 		return
 	}
+
+	self.ItemizeOut <- result
+	return
 
 	/*
 		character handling
