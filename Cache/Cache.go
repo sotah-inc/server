@@ -151,6 +151,10 @@ func (self Wrapper) SetCacheValue(key string, value string) {
 	self.Cache[key] = value
 }
 
+func (self Wrapper) ClearCache() {
+	self.Cache = map[string]string{}
+}
+
 func (self Wrapper) IncrAll(key string, count int) (ids []int64, err error) {
 	// misc
 	var cmds []redis.Cmder
@@ -347,4 +351,11 @@ func (self Client) FlushDb() (err error) {
 	}
 
 	return nil
+}
+
+func (self Client) ClearCaches() {
+	self.Main.ClearCache()
+	for _, w := range self.Pool {
+		w.ClearCache()
+	}
 }

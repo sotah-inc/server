@@ -111,6 +111,9 @@ func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRea
 	// 	return
 	// }
 
+	// clearing the cache-client cache
+	self.CacheClient.ClearCaches()
+
 	return regionRealms, nil
 }
 
