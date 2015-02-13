@@ -211,7 +211,7 @@ func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 	if len(newCharacters) > 0 {
 		fmt.Println(fmt.Sprintf("New characters in realm %s: %d", realm.Dump(), len(newCharacters)))
 	}
-	_, err = characterManager.PersistAll(existingCharacters, newCharacters)
+	result.characters, err = characterManager.PersistAll(existingCharacters, newCharacters)
 	if err != nil {
 		result.Err = errors.New(fmt.Sprintf("CharacterManager.PersistAll() failed (%s)", err.Error()))
 		self.ItemizeOut <- result
