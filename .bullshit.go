@@ -48,7 +48,7 @@ func main() {
 	regionManager := Entity.RegionManager{Client: cacheClient}
 	realmManager := Entity.RealmManager{Client: cacheClient}
 	regionName := "us"
-	realmSlug := "grizzly-hills"
+	realmSlug := "aegwynn"
 
 	// region
 	var region Entity.Region
@@ -79,6 +79,13 @@ func main() {
 	downloadResult := <-queue.DownloadOut
 	if downloadResult.Err != nil {
 		output.Write(fmt.Sprintf("downloadOut had an error: %s", downloadResult.Err.Error()))
+		return
+	}
+
+	if downloadResult.AlreadyChecked {
+		output.Write(fmt.Sprintf("Realm %s has already been downloaded", realm.Dump()))
+		output.Write(fmt.Sprintf("Realm last-downloaded: %s", realm.LastDownloaded.Format(Util.WriteLayout)))
+		output.Write(fmt.Sprintf("Result last-modified: %s", downloadResult.LastModified.Format(Util.WriteLayout)))
 		return
 	}
 
