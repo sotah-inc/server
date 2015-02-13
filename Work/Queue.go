@@ -146,8 +146,8 @@ func (self Queue) DownloadRealm(realm Entity.Realm) {
 	file := auctionResponse.Files[0]
 
 	// checking whether the file has already been downloaded
-	lastModified := time.Unix(file.LastModified/1000, 0)
-	if !realm.LastDownloaded.IsZero() && (realm.LastDownloaded.Equal(lastModified) || realm.LastDownloaded.Before(lastModified)) {
+	result.LastModified = time.Unix(file.LastModified/1000, 0)
+	if !realm.LastDownloaded.IsZero() && (realm.LastDownloaded.Equal(result.LastModified) || realm.LastDownloaded.Before(result.LastModified)) {
 		result.AlreadyChecked = true
 		self.DownloadOut <- result
 		return
@@ -164,7 +164,7 @@ func (self Queue) DownloadRealm(realm Entity.Realm) {
 	// result.auctionDataResponse = auctionDataResponse
 
 	// flagging the realm as having been downloaded
-	realm.LastDownloaded = lastModified
+	realm.LastDownloaded = result.LastModified
 	realmManager.Persist(realm)
 	result.realm = realm
 

@@ -3,11 +3,13 @@ package Work
 import (
 	"github.com/ihsw/go-download/Blizzard/AuctionData"
 	"github.com/ihsw/go-download/Entity/Character"
+	"time"
 )
 
 type DownloadResult struct {
 	Result
 	auctionDataResponse *AuctionData.Response
+	LastModified        time.Time
 }
 
 func (self DownloadResult) getBlizzItemIds() []int64 {
