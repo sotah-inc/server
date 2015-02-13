@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ihsw/go-download/Blizzard/Auction"
-	// "github.com/ihsw/go-download/Blizzard/AuctionData"
+	"github.com/ihsw/go-download/Blizzard/AuctionData"
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Entity"
 	"github.com/ihsw/go-download/Entity/Character"
@@ -91,6 +91,16 @@ func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRea
 		}
 	}
 
+	// calculating the earliest last-modified
+	earliestRealm := Entity.Realm{}
+	for _, result := range results {
+		realm := result.realm
+		if earliestRealm.LastDownloaded.IsZero() || realm.LastDownloaded.Before(earliestRealm.LastDownloaded) {
+			earliestRealm = realm
+		}
+	}
+	fmt.Println(fmt.Sprintf("Earliest realm: %s, last-modified: %s", earliestRealm.Dump(), earliestRealm.LastDownloaded.Format(Util.WriteLayout)))
+
 	// gathering items from the results
 	// itemizeResults := ItemizeResults{list: results}
 	// newItems := itemizeResults.GetUniqueItems()
@@ -141,14 +151,11 @@ func (self Queue) DownloadRealm(realm Entity.Realm) {
 	}
 
 	// fetching the actual auction data
-	// if auctionDataResponse = AuctionData.Get(realm, file.Url); auctionDataResponse == nil {
-	// 	result.responseFailed = true
-	// 	self.DownloadOut <- result
-	// 	return
-	// }
-
-	// loading it into the result
-	// result.auctionDataResponse = auctionDataResponse
+	if result.auctionDataResponse = AuctionData.Get(realm, file.Url); result.auctionDataResponse == nil {
+		result.responseFailed = true
+		self.DownloadOut <- result
+		return
+	}
 
 	// flagging the realm as having been downloaded
 	realm.LastDownloaded = result.LastModified
@@ -183,9 +190,6 @@ func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 		self.ItemizeOut <- result
 		return
 	}
-
-	self.ItemizeOut <- result
-	return
 
 	/*
 		character handling
@@ -228,7 +232,7 @@ func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 		auction handling
 	*/
 	// gathering auctions for post-itemize processing
-	result.auctions = downloadResult.auctionDataResponse.Auctions.Auctions
+	// result.auctions = downloadResult.auctionDataResponse.Auctions.Auctions
 
 	// queueing it out
 	self.ItemizeOut <- result
