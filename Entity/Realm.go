@@ -13,8 +13,8 @@ import (
 /*
 	funcs
 */
-func realmNameKey(region Region, name string) string {
-	return fmt.Sprintf("region:%d:realm:%s:id", region.Id, Util.Md5Encode(name))
+func realmNameKey(region Region, slug string) string {
+	return fmt.Sprintf("region:%d:realm:%s:id", region.Id, Util.Md5Encode(slug))
 }
 
 /*
@@ -135,7 +135,7 @@ func (self RealmManager) Persist(realm Realm) (Realm, error) {
 		if err = cmd.Err(); err != nil {
 			return realm, err
 		}
-		setCmd := r.Set(realmNameKey(realm.Region, realm.Name), id)
+		setCmd := r.Set(realmNameKey(realm.Region, realm.Slug), id)
 		if err = setCmd.Err(); err != nil {
 			return realm, err
 		}
@@ -242,9 +242,9 @@ func (self RealmManager) FindOneById(id int64) (realm Realm, err error) {
 	return self.unmarshal(v)
 }
 
-func (self RealmManager) FindOneByRegionAndName(region Region, name string) (realm Realm, err error) {
+func (self RealmManager) FindOneByRegionAndSlug(region Region, slug string) (realm Realm, err error) {
 	var v string
-	v, err = self.Client.Main.FetchFromKey(self, realmNameKey(region, name))
+	v, err = self.Client.Main.FetchFromKey(self, realmNameKey(region, slug))
 	if err != nil {
 		return
 	}
