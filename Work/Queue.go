@@ -19,7 +19,7 @@ type Queue struct {
 	CacheClient Cache.Client
 }
 
-func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRealms int, haltOnNewData bool) (map[int64][]Entity.Realm, error) {
+func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRealms int) (map[int64][]Entity.Realm, error) {
 	var err error
 
 	// formatting the realms to be evenly distributed
@@ -63,12 +63,7 @@ func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRea
 		}
 
 		if result.AlreadyChecked {
-			fmt.Println(fmt.Sprintf("Realm %s has already been checked (%s)!", result.realm.Dump(), result.realm.LastDownloaded.Format(Util.WriteLayout)))
-		} else {
-			if haltOnNewData {
-				err = errors.New(fmt.Sprintf("Realm %s has new data!", result.realm.Dump()))
-				return regionRealms, err
-			}
+			continue
 		}
 
 		results = append(results, result)
