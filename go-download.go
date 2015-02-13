@@ -97,8 +97,6 @@ func main() {
 		return
 	}
 
-	return
-
 	output.Write("Starting up the timed rotation...")
 	c := time.Tick(30 * time.Second)
 	for {
