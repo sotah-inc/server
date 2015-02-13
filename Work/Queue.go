@@ -173,14 +173,8 @@ func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 		return
 	}
 
-	// optionally skipping failed responses
-	if result.responseFailed {
-		self.ItemizeOut <- result
-		return
-	}
-
-	// optionally halting due to already having been checked
-	if result.AlreadyChecked {
+	// optionally skipping failed responses oralready having been checked
+	if result.responseFailed || result.AlreadyChecked {
 		self.ItemizeOut <- result
 		return
 	}
