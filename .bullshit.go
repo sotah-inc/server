@@ -82,16 +82,6 @@ func main() {
 		return
 	}
 
-	if downloadResult.AlreadyChecked {
-		output.Write(fmt.Sprintf("Realm %s has already been downloaded", realm.Dump()))
-		output.Write(fmt.Sprintf("Realm last-downloaded: %s", realm.LastDownloaded.Format(Util.WriteLayout)))
-		output.Write(fmt.Sprintf("Result last-modified: %s", downloadResult.LastModified.Format(Util.WriteLayout)))
-		return
-	}
-
-	output.Write(fmt.Sprintf("Successfully downloeded %s!", realm.Dump()))
-	return
-
 	// itemizing it
 	output.Write("Manually running queue.ItemizeRealm()...")
 	queue.ItemizeRealm(downloadResult)
