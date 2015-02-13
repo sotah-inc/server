@@ -89,6 +89,9 @@ func main() {
 		return
 	}
 
+	output.Write(fmt.Sprintf("Successfully downloeded %s!", realm.Dump()))
+	return
+
 	// itemizing it
 	output.Write("Manually running queue.ItemizeRealm()...")
 	queue.ItemizeRealm(downloadResult)
