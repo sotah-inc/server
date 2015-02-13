@@ -164,25 +164,8 @@ func (self Manager) FindAll() (characters []Character, err error) {
 }
 
 func (self Manager) FindOneByName(name string) (character Character, err error) {
-	m := self.Client.Main
-
-	// checking for an id
 	var v string
-	v, err = m.Get(characterNameKey(self.Realm, name))
-	if err != nil {
-		return
-	}
-	if len(v) == 0 {
-		return
-	}
-
-	// checking for data
-	var id int64
-	id, err = strconv.ParseInt(v, 10, 64)
-	if err != nil {
-		return
-	}
-	v, err = m.FetchFromId(self, id)
+	v, err = self.Client.Main.FetchFromKey(self, characterNameKey(self.Realm, name))
 	if err != nil {
 		return
 	}

@@ -118,6 +118,25 @@ func (self Wrapper) FetchFromIds(manager Manager, ids []int64) (values []string,
 	return values, nil
 }
 
+func (self Wrapper) FetchFromKey(manager Manager, k string) (v string, err error) {
+	// checking for an id
+	v, err = self.Get(k)
+	if err != nil {
+		return
+	}
+	if len(v) == 0 {
+		return
+	}
+
+	// checking for data
+	var id int64
+	id, err = strconv.ParseInt(v, 10, 64)
+	if err != nil {
+		return
+	}
+	return self.FetchFromId(manager, id)
+}
+
 func (self Wrapper) Persist(bucketKey string, subKey string, value string) (err error) {
 	cmd := self.Redis.HSet(bucketKey, subKey, value)
 	if err = cmd.Err(); err != nil {

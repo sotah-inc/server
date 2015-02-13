@@ -5,9 +5,17 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ihsw/go-download/Cache"
+	"github.com/ihsw/go-download/Util"
 	"strconv"
 	"time"
 )
+
+/*
+	funcs
+*/
+func realmNameKey(region Region, name string) string {
+	return fmt.Sprintf("region:%d:realm:%s:id", region.Id, Util.Md5Encode(name))
+}
 
 /*
 	Realm
@@ -127,6 +135,10 @@ func (self RealmManager) Persist(realm Realm) (Realm, error) {
 		if err = cmd.Err(); err != nil {
 			return realm, err
 		}
+		setCmd := r.Set(realmNameKey(realm.Region, realm.Name), id)
+		if err = setCmd.Err(); err != nil {
+			return realm, err
+		}
 	}
 
 	return realm, nil
@@ -223,6 +235,16 @@ func (self RealmManager) FindByRegion(region Region) (realms []Realm, err error)
 
 func (self RealmManager) FindOneById(id int64) (realm Realm, err error) {
 	v, err := self.Client.Main.FetchFromId(self, id)
+	if err != nil {
+		return
+	}
+
+	return self.unmarshal(v)
+}
+
+func (self RealmManager) FindOneByRegionAndName(region Region, name string) (realm Realm, err error) {
+	var v string
+	v, err = self.Client.Main.FetchFromKey(self, realmNameKey(region, name))
 	if err != nil {
 		return
 	}
