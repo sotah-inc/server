@@ -119,8 +119,7 @@ func (self Queue) DownloadRealm(realm Entity.Realm) {
 	// misc
 	var (
 		auctionResponse *Auction.Response
-		// auctionDataResponse *AuctionData.Response
-		err error
+		err             error
 	)
 	realmManager := Entity.RealmManager{Client: self.CacheClient}
 	result := DownloadResult{Result: Result{realm: realm}}
