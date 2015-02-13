@@ -94,7 +94,11 @@ func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRea
 			earliestRealm = realm
 		}
 	}
-	fmt.Println(fmt.Sprintf("Earliest realm: %s, last-modified: %s", earliestRealm.Dump(), earliestRealm.LastDownloaded.Format(Util.WriteLayout)))
+	if earliestRealm.IsValid() {
+		fmt.Println(fmt.Sprintf("Earliest realm: %s, last-modified: %s", earliestRealm.Dump(), earliestRealm.LastDownloaded.Format(Util.WriteLayout)))
+	} else {
+		fmt.Println("There is no new realm data!")
+	}
 
 	// gathering items from the results
 	// itemizeResults := ItemizeResults{list: results}
