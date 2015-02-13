@@ -197,9 +197,6 @@ func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 		return
 	}
 
-	self.ItemizeOut <- result
-	return
-
 	/*
 		character handling
 	*/
@@ -241,7 +238,7 @@ func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 		auction handling
 	*/
 	// gathering auctions for post-itemize processing
-	// result.auctions = downloadResult.auctionDataResponse.Auctions.Auctions
+	result.auctions = downloadResult.auctionDataResponse.Auctions.Auctions
 
 	// queueing it out
 	self.ItemizeOut <- result
