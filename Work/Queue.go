@@ -78,19 +78,6 @@ func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRea
 	duration := time.Since(startTime).Seconds()
 	fmt.Println(fmt.Sprintf("Finished in %.2fs!", duration))
 
-	// calculating the earliest last-modified
-	earliestRealm := Entity.Realm{}
-	for _, result := range results {
-		realm := result.realm
-		if earliestRealm.LastDownloaded.IsZero() || realm.LastDownloaded.Before(earliestRealm.LastDownloaded) {
-			earliestRealm = realm
-		}
-	}
-	fmt.Println(fmt.Sprintf("Earliest realm: %s, last-modified: %s", earliestRealm.Dump(), earliestRealm.LastDownloaded.Format(Util.WriteLayout)))
-
-	url := fmt.Sprintf(Auction.URL_FORMAT, earliestRealm.Region.Host, earliestRealm.Slug, self.CacheClient.ApiKey)
-	fmt.Println(fmt.Sprintf("Download link for %s: %s", earliestRealm.Dump(), url))
-
 	// refresing the region-realms list
 	for _, result := range results {
 		resultRealm := result.realm
@@ -147,7 +134,7 @@ func (self Queue) DownloadRealm(realm Entity.Realm) {
 
 	// checking whether the file has already been downloaded
 	result.LastModified = time.Unix(file.LastModified/1000, 0)
-	if !realm.LastDownloaded.IsZero() && (realm.LastDownloaded.Equal(result.LastModified) || realm.LastDownloaded.Before(result.LastModified)) {
+	if !realm.LastDownloaded.IsZero() && (realm.LastDownloaded.Equal(result.LastModified) || realm.LastDownloaded.After(result.LastModified)) {
 		result.AlreadyChecked = true
 		self.DownloadOut <- result
 		return
@@ -196,6 +183,9 @@ func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 		self.ItemizeOut <- result
 		return
 	}
+
+	self.ItemizeOut <- result
+	return
 
 	/*
 		character handling
