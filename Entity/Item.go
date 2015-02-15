@@ -83,7 +83,7 @@ func (self ItemManager) PersistAll(items []Item) ([]Item, error) {
 	for i, item := range items {
 		blizzIds[i] = strconv.FormatInt(int64(item.BlizzId), 10)
 	}
-	err = m.SAddAll("item:blizz_ids", blizzIds)
+	err = m.RPushAll("item:blizz_ids", blizzIds)
 	if err != nil {
 		return items, err
 	}
