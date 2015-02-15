@@ -19,7 +19,7 @@ func main() {
 	output.Write("Starting...")
 
 	var err error
-	debug := true
+	isDebugging := false
 
 	/*
 		reading the config
@@ -55,7 +55,7 @@ func main() {
 		}
 
 		// optionally truncating the lists of realms
-		if debug {
+		if isDebugging {
 			regionRealms[region.Id] = regionRealms[region.Id][:1]
 		}
 
@@ -98,7 +98,7 @@ func main() {
 	}
 
 	output.Write("Starting up the timed rotation...")
-	c := time.Tick(30 * time.Second)
+	c := time.Tick(10 * time.Minute)
 	for {
 		<-c
 
