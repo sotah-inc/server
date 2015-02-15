@@ -35,9 +35,11 @@ func main() {
 		bullshit
 	*/
 	// misc
+	totalRealms := 1
 	queue := Work.Queue{
-		DownloadOut: make(chan Work.DownloadResult, 1),
-		ItemizeOut:  make(chan Work.ItemizeResult, 1),
+		DownloadIn:  make(chan Entity.Realm, totalRealms),
+		DownloadOut: make(chan Work.DownloadResult, totalRealms),
+		ItemizeOut:  make(chan Work.ItemizeResult, totalRealms),
 		CacheClient: cacheClient,
 	}
 
@@ -47,8 +49,8 @@ func main() {
 	// misc
 	regionManager := Entity.RegionManager{Client: cacheClient}
 	realmManager := Entity.RealmManager{Client: cacheClient}
-	regionName := "tw"
-	realmSlug := "銀翼要塞"
+	regionName := "us"
+	realmSlug := "earthen-ring"
 
 	// region
 	var region Entity.Region
@@ -73,27 +75,29 @@ func main() {
 		return
 	}
 
-	// downloading it
-	output.Write("Manually running queue.DownloadRealm()...")
-	queue.DownloadRealm(realm)
-	downloadResult := <-queue.DownloadOut
-	if downloadResult.Err != nil {
-		output.Write(fmt.Sprintf("downloadOut had an error: %s", downloadResult.Err.Error()))
-		return
+	/*
+		queueing stuff up
+	*/
+	// spawning some download and itemize workers
+	downloadWorkerCount := 4
+	for j := 0; j < downloadWorkerCount; j++ {
+		go func(queue Work.Queue) {
+			for {
+				queue.DownloadRealm(<-queue.DownloadIn)
+			}
+		}(queue)
 	}
+	go func(queue Work.Queue) {
+		for {
+			queue.ItemizeRealm(<-queue.DownloadOut)
+		}
+	}(queue)
 
-	// optionally halting
-	if downloadResult.AlreadyChecked {
-		output.Write(fmt.Sprintf("Realm %s has already been checked! Quitting...", realm.Dump()))
-		return
-	}
-
-	// itemizing it
-	output.Write("Manually running queue.ItemizeRealm()...")
-	queue.ItemizeRealm(downloadResult)
-	itemizeResult := <-queue.ItemizeOut
-	if itemizeResult.Err != nil {
-		output.Write(fmt.Sprintf("itemizeOut had an error: %s", itemizeResult.Err.Error()))
+	// formatting the realm into a list
+	regionRealms := map[int64][]Entity.Realm{}
+	regionRealms[region.Id] = append(regionRealms[region.Id], realm)
+	if regionRealms, err = queue.DownloadRealms(regionRealms, totalRealms); err != nil {
+		output.Write(fmt.Sprintf("Queue.DownloadRealms() fail: %s", err.Error()))
 		return
 	}
 
