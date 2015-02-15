@@ -150,6 +150,7 @@ func (self Queue) DownloadRealm(realm Entity.Realm) {
 		return
 	}
 
+	// dumping the auction data for parsing after itemize-results are tabulated
 	if err = result.dumpData(); err != nil {
 		result.Err = errors.New(fmt.Sprintf("DownloadResult.dumpData() failed: %s", err.Error()))
 		self.DownloadOut <- result
