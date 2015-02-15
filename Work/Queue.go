@@ -186,12 +186,6 @@ func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 		return
 	}
 
-	// gathering found names
-	uniqueFoundNames := map[string]struct{}{}
-	for _, auction := range downloadResult.auctionDataResponse.Auctions.Auctions {
-		uniqueFoundNames[auction.Owner] = struct{}{}
-	}
-
 	// merging existing characters in and persisting them all
 	_, err = characterManager.PersistAll(existingCharacters, downloadResult.getNewCharacters(existingCharacters))
 	if err != nil {

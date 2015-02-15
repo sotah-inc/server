@@ -8,6 +8,4 @@ import (
 type ItemizeResult struct {
 	Result
 	blizzItemIds []int64
-	characters   []Character.Character
-	auctions     []AuctionData.Auction
 }
