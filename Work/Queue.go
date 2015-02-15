@@ -89,6 +89,9 @@ func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRea
 	// gathering existing items
 	var existingItems []Entity.Item
 	existingItems, err = itemManager.FindAll()
+	if err != nil {
+		return regionRealms, err
+	}
 
 	// gathering new items
 	itemizeResults := ItemizeResults{list: results}
