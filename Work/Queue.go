@@ -202,12 +202,6 @@ func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 	*/
 	result.blizzItemIds = downloadResult.getBlizzItemIds()
 
-	/*
-		auction handling
-	*/
-	// gathering auctions for post-itemize processing
-	// result.auctions = downloadResult.auctionDataResponse.Auctions.Auctions
-
 	// queueing it out
 	self.ItemizeOut <- result
 }
