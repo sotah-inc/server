@@ -166,7 +166,6 @@ func (self Queue) DownloadRealm(realm Entity.Realm) {
 
 func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 	// misc
-	var err error
 	realm := downloadResult.realm
 	result := ItemizeResult{Result: downloadResult.Result}
 
@@ -189,7 +188,10 @@ func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 	characterManager := Character.Manager{Client: self.CacheClient, Realm: realm}
 
 	// gathering existing characters
-	var existingCharacters []Character.Character
+	var (
+		existingCharacters []Character.Character
+		err                error
+	)
 	if existingCharacters, err = characterManager.FindAll(); err != nil {
 		result.Err = errors.New(fmt.Sprintf("CharacterManager.FindAll() failed (%s)", err.Error()))
 		self.ItemizeOut <- result
