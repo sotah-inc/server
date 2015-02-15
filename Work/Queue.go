@@ -108,14 +108,14 @@ func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRea
 
 func (self Queue) DownloadRealm(realm Entity.Realm) {
 	// misc
-	var (
-		auctionResponse *Auction.Response
-		err             error
-	)
 	realmManager := Entity.RealmManager{Client: self.CacheClient}
 	result := DownloadResult{Result: Result{realm: realm}}
 
 	// fetching the auction info
+	var (
+		auctionResponse *Auction.Response
+		err             error
+	)
 	if auctionResponse, err = Auction.Get(realm, self.CacheClient.ApiKey); err != nil {
 		result.Err = errors.New(fmt.Sprintf("Auction.Get() failed (%s)", err.Error()))
 		self.DownloadOut <- result
