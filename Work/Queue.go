@@ -112,13 +112,7 @@ func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRea
 
 	// gathering new items
 	itemizeResults := ItemizeResults{list: results}
-	newItems := itemizeResults.getNewItems(existingItems)
-
-	fmt.Println(fmt.Sprintf("Existing items: %d", len(existingItems)))
-	fmt.Println(fmt.Sprintf("New items: %d", len(newItems)))
-
-	// persisting them
-	newItems, err = itemManager.PersistAll(newItems)
+	newItems, err = itemManager.PersistAll(itemizeResults.getNewItems(existingItems))
 	if err != nil {
 		return regionRealms, err
 	}
