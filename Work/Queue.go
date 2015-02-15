@@ -118,10 +118,10 @@ func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRea
 	fmt.Println(fmt.Sprintf("New items: %d", len(newItems)))
 
 	// persisting them
-	// _, err = itemManager.PersistAll(newItems)
-	// if err != nil {
-	// 	return
-	// }
+	newItems, err = itemManager.PersistAll(newItems)
+	if err != nil {
+		return regionRealms, err
+	}
 
 	// clearing the cache-client cache
 	self.CacheClient.ClearCaches()
