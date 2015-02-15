@@ -79,11 +79,11 @@ func (self ItemManager) PersistAll(items []Item) ([]Item, error) {
 	}
 
 	// etc
-	blizzIds := make([]string, len(items))
+	newIds := make([]string, len(items))
 	for i, item := range items {
-		blizzIds[i] = strconv.FormatInt(int64(item.BlizzId), 10)
+		newIds[i] = strconv.FormatInt(int64(item.Id), 10)
 	}
-	err = m.RPushAll("item:blizz_ids", blizzIds)
+	err = m.RPushAll("item:ids", newIds)
 	if err != nil {
 		return items, err
 	}
@@ -128,7 +128,7 @@ func (self ItemManager) FindAll() (items []Item, err error) {
 	m := self.Client.Main
 
 	// fetching ids
-	ids, err := m.FetchIds("item:blizz_ids", 0, -1)
+	ids, err := m.FetchIds("item:ids", 0, -1)
 	if err != nil {
 		return
 	}
