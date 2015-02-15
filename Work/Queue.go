@@ -8,7 +8,6 @@ import (
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Entity"
 	"github.com/ihsw/go-download/Entity/Character"
-	"github.com/ihsw/go-download/Util"
 	"time"
 )
 
@@ -48,7 +47,6 @@ func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRea
 
 	// waiting for the results to drain out
 	results := []ItemizeResult{}
-	startTime := time.Now()
 	for i := 0; i < totalRealms; i++ {
 		result := <-self.ItemizeOut
 
@@ -69,10 +67,6 @@ func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRea
 		results = append(results, result)
 	}
 
-	// dumping the duration
-	duration := time.Since(startTime).Seconds()
-	fmt.Println(fmt.Sprintf("Finished in %.2fs!", duration))
-
 	// refresing the region-realms list
 	for _, result := range results {
 		resultRealm := result.realm
@@ -84,20 +78,6 @@ func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRea
 
 			regionRealms[result.realm.Region.Id][i] = resultRealm
 		}
-	}
-
-	// calculating the earliest last-modified
-	earliestRealm := Entity.Realm{}
-	for _, result := range results {
-		realm := result.realm
-		if earliestRealm.LastDownloaded.IsZero() || realm.LastDownloaded.Before(earliestRealm.LastDownloaded) {
-			earliestRealm = realm
-		}
-	}
-	if earliestRealm.IsValid() {
-		fmt.Println(fmt.Sprintf("Earliest realm: %s, last-modified: %s", earliestRealm.Dump(), earliestRealm.LastDownloaded.Format(Util.WriteLayout)))
-	} else {
-		fmt.Println("There is no new realm data!")
 	}
 
 	/*
