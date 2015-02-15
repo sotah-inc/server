@@ -89,15 +89,13 @@ func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRea
 
 	// gathering existing items
 	var existingItems []Entity.Item
-	existingItems, err = itemManager.FindAll()
-	if err != nil {
+	if existingItems, err = itemManager.FindAll(); err != nil {
 		return regionRealms, err
 	}
 
 	// gathering new items
 	itemizeResults := ItemizeResults{list: results}
-	_, err = itemManager.PersistAll(itemizeResults.getNewItems(existingItems))
-	if err != nil {
+	if _, err = itemManager.PersistAll(itemizeResults.getNewItems(existingItems)); err != nil {
 		return regionRealms, err
 	}
 
@@ -118,8 +116,7 @@ func (self Queue) DownloadRealm(realm Entity.Realm) {
 	result := DownloadResult{Result: Result{realm: realm}}
 
 	// fetching the auction info
-	auctionResponse, err = Auction.Get(realm, self.CacheClient.ApiKey)
-	if err != nil {
+	if auctionResponse, err = Auction.Get(realm, self.CacheClient.ApiKey); err != nil {
 		result.Err = errors.New(fmt.Sprintf("Auction.Get() failed (%s)", err.Error()))
 		self.DownloadOut <- result
 		return
