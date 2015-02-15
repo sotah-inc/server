@@ -90,3 +90,55 @@ func (self ItemManager) PersistAll(items []Item) ([]Item, error) {
 
 	return items, nil
 }
+
+func (self ItemManager) unmarshal(v string) (item Item, err error) {
+	if v == "" {
+		return
+	}
+
+	// json
+	var itemJson ItemJson
+	b := []byte(v)
+	err = json.Unmarshal(b, &itemJson)
+	if err != nil {
+		return
+	}
+
+	// initial
+	item = Item{
+		Id:      itemJson.Id,
+		BlizzId: itemJson.BlizzId,
+	}
+
+	return item, nil
+}
+
+func (self ItemManager) unmarshalAll(values []string) (items []Item, err error) {
+	items = make([]Item, len(values))
+	for i, v := range values {
+		items[i], err = self.unmarshal(v)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+func (self ItemManager) FindAll() (items []Item, err error) {
+	m := self.Client.Main
+
+	// fetching ids
+	ids, err := m.FetchIds("item:blizz_ids", 0, -1)
+	if err != nil {
+		return
+	}
+
+	// fetching the values
+	var values []string
+	values, err = m.FetchFromIds(self, ids)
+	if err != nil {
+		return
+	}
+
+	return self.unmarshalAll(values)
+}

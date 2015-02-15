@@ -100,12 +100,24 @@ func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRea
 		fmt.Println("There is no new realm data!")
 	}
 
-	// gathering items from the results
-	// itemizeResults := ItemizeResults{list: results}
-	// newItems := itemizeResults.GetUniqueItems()
+	/*
+		item handling
+	*/
+	// misc
+	itemManager := Entity.ItemManager{Client: self.CacheClient}
+
+	// gathering existing items
+	var existingItems []Entity.Item
+	existingItems, err = itemManager.FindAll()
+
+	// gathering new items
+	itemizeResults := ItemizeResults{list: results}
+	newItems := itemizeResults.getNewItems(existingItems)
+
+	fmt.Println(fmt.Sprintf("Existing items: %d", len(existingItems)))
+	fmt.Println(fmt.Sprintf("New items: %d", len(newItems)))
 
 	// persisting them
-	// itemManager := Entity.ItemManager{Client: self.CacheClient}
 	// _, err = itemManager.PersistAll(newItems)
 	// if err != nil {
 	// 	return
@@ -208,9 +220,6 @@ func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 
 	// merging existing characters in and persisting them all
 	newCharacters := downloadResult.getNewCharacters(existingCharacters)
-	if len(newCharacters) > 0 {
-		fmt.Println(fmt.Sprintf("New characters in realm %s: %d", realm.Dump(), len(newCharacters)))
-	}
 	result.characters, err = characterManager.PersistAll(existingCharacters, newCharacters)
 	if err != nil {
 		result.Err = errors.New(fmt.Sprintf("CharacterManager.PersistAll() failed (%s)", err.Error()))
