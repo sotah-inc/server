@@ -190,8 +190,7 @@ func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 
 	// gathering existing characters
 	var existingCharacters []Character.Character
-	existingCharacters, err = characterManager.FindAll()
-	if err != nil {
+	if existingCharacters, err = characterManager.FindAll(); err != nil {
 		result.Err = errors.New(fmt.Sprintf("CharacterManager.FindAll() failed (%s)", err.Error()))
 		self.ItemizeOut <- result
 		return
