@@ -1,8 +1,12 @@
 package Work
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/ihsw/go-download/Blizzard/AuctionData"
 	"github.com/ihsw/go-download/Entity/Character"
+	"io/ioutil"
+	"os"
 	"time"
 )
 
@@ -66,4 +70,30 @@ func (self DownloadResult) getNewCharacters(existingCharacters []Character.Chara
 	}
 
 	return newCharacters
+}
+
+func (self DownloadResult) dumpData() (err error) {
+	var wd string
+	wd, err = os.Getwd()
+	if err != nil {
+		return
+	}
+
+	folder := fmt.Sprintf("%s/json/%s", wd, self.realm.Region.Name)
+	if _, err = os.Stat(folder); err != nil && os.IsNotExist(err) {
+		if err = os.MkdirAll(folder, 0777); err != nil {
+			return
+		}
+	}
+
+	var data []byte
+	if data, err = json.Marshal(self.auctionDataResponse); err != nil {
+		return
+	}
+	dest := fmt.Sprintf("%s/%s.json", folder, self.realm.Slug)
+	if err = ioutil.WriteFile(dest, data, 0777); err != nil {
+		return
+	}
+
+	return
 }

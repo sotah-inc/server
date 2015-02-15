@@ -150,6 +150,12 @@ func (self Queue) DownloadRealm(realm Entity.Realm) {
 		return
 	}
 
+	if err = result.dumpData(); err != nil {
+		result.Err = errors.New(fmt.Sprintf("DownloadResult.dumpData() failed: %s", err.Error()))
+		self.DownloadOut <- result
+		return
+	}
+
 	// flagging the realm as having been downloaded
 	realm.LastDownloaded = result.LastModified
 	realm.LastChecked = time.Now()
