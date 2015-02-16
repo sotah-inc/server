@@ -27,9 +27,10 @@ type Region struct {
 
 func (self Region) marshal() (string, error) {
 	regionJson := RegionJson{
-		Id:   self.Id,
-		Name: self.Name,
-		Host: self.Host,
+		Id:        self.Id,
+		Name:      self.Name,
+		Host:      self.Host,
+		Queryable: self.Queryable,
 	}
 
 	return regionJson.marshal()
@@ -41,9 +42,10 @@ func (self Region) IsValid() bool { return self.Id != 0 }
 	RegionJson
 */
 type RegionJson struct {
-	Id   int64  `json:"0"`
-	Name string `json:"1"`
-	Host string `json:"2"`
+	Id        int64  `json:"0"`
+	Name      string `json:"1"`
+	Host      string `json:"2"`
+	Queryable bool   `json:"3"`
 }
 
 func (self RegionJson) marshal() (string, error) {
@@ -121,9 +123,10 @@ func (self RegionManager) unmarshal(v string) (region Region, err error) {
 
 	// initial
 	region = Region{
-		Id:   regionJson.Id,
-		Name: regionJson.Name,
-		Host: regionJson.Host,
+		Id:        regionJson.Id,
+		Name:      regionJson.Name,
+		Host:      regionJson.Host,
+		Queryable: regionJson.Queryable,
 	}
 	return region, nil
 }
