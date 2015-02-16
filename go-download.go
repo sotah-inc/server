@@ -8,7 +8,10 @@ import (
 	"github.com/ihsw/go-download/Misc"
 	"github.com/ihsw/go-download/Util"
 	"github.com/ihsw/go-download/Work"
+	"os"
+	"os/signal"
 	"runtime"
+	"syscall"
 	"time"
 )
 
@@ -125,17 +128,25 @@ func main() {
 
 	output.Write("Starting up the timed rotation...")
 	c := time.Tick(10 * time.Minute)
+	sigc := make(chan os.Signal, 1)
+	signal.Notify(sigc, syscall.SIGQUIT)
 	for {
-		<-c
+		select {
+		case <-c:
 
-		output.Write("Running it again...")
+			output.Write("Running it again...")
 
-		if regionRealms, err = queue.DownloadRealms(regionRealms, totalRealms); err != nil {
-			output.Write(fmt.Sprintf("Run.WorkQueue() failed (%s)", err.Error()))
+			if regionRealms, err = queue.DownloadRealms(regionRealms, totalRealms); err != nil {
+				output.Write(fmt.Sprintf("Run.WorkQueue() failed (%s)", err.Error()))
+				return
+			}
+
+			output.Write("Done!")
+		case <-sigc:
+			output.Write("Halting!")
+			output.Conclude()
 			return
 		}
-
-		output.Write("Done!")
 	}
 
 	output.Conclude()
