@@ -1,13 +1,13 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Entity"
 	"github.com/ihsw/go-download/Misc"
 	"github.com/ihsw/go-download/Util"
 	"github.com/ihsw/go-download/Work"
-	"os"
 	"runtime"
 	"time"
 )
@@ -15,11 +15,15 @@ import (
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
+	flushDb := flag.Bool("flush", false, "Clears all redis dbs")
+	configPath := flag.String("config", "", "Config path")
+	flag.Parse()
+
 	output := Util.Output{StartTime: time.Now()}
 	output.Write("Starting...")
 
 	var err error
-	isDebugging := false
+	isDebugging := true
 
 	/*
 		reading the config
@@ -29,7 +33,7 @@ func main() {
 		cacheClient Cache.Client
 		regions     []Entity.Region
 	)
-	if cacheClient, regions, err = Misc.GetCacheClientAndRegions(os.Args, true); err != nil {
+	if cacheClient, regions, err = Misc.GetCacheClientAndRegions(*configPath, *flushDb); err != nil {
 		output.Write(fmt.Sprintf("Misc.GetCacheClientAndRegions() fail: %s", err.Error()))
 		return
 	}
@@ -37,11 +41,21 @@ func main() {
 	/*
 		gathering the realms for each region
 	*/
-	output.Write("Fetching realms for each region...")
 	var regionRealms map[int64][]Entity.Realm
-	if regionRealms, err = Misc.GetRealms(cacheClient, regions); err != nil {
-		output.Write(fmt.Sprintf("Misc.GetRealms() fail: %s", err.Error()))
-		return
+	if *flushDb {
+		output.Write("Fetching realms for each region...")
+		if regionRealms, err = Misc.GetRealms(cacheClient, regions); err != nil {
+			output.Write(fmt.Sprintf("Misc.GetRealms() fail: %s", err.Error()))
+			return
+		}
+	} else {
+		realmManager := Entity.RealmManager{Client: cacheClient}
+		for _, region := range regions {
+			if regionRealms[region.Id], err = realmManager.FindByRegion(region); err != nil {
+				output.Write(fmt.Sprintf("RealmManager.FindByRegion() fail: %s", err.Error()))
+				return
+			}
+		}
 	}
 
 	/*

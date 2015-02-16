@@ -73,14 +73,14 @@ func getRegions(client Cache.Client, configRegions []Config.Region) (regions []E
 	return regions, nil
 }
 
-func GetCacheClient(args []string, flushDb bool) (cacheClient Cache.Client, configFile Config.ConfigFile, err error) {
-	if len(args) == 1 {
+func GetCacheClient(configPath string, flushDb bool) (cacheClient Cache.Client, configFile Config.ConfigFile, err error) {
+	if len(configPath) == 0 {
 		err = errors.New("Expected path to config file, got nothing")
 		return
 	}
 
 	// loading the config-file
-	configFile, err = Config.NewConfigFile(args[1])
+	configFile, err = Config.NewConfigFile(configPath)
 	if err != nil {
 		return
 	}
@@ -103,9 +103,9 @@ func GetCacheClient(args []string, flushDb bool) (cacheClient Cache.Client, conf
 	return cacheClient, configFile, nil
 }
 
-func GetCacheClientAndRegions(args []string, flushDb bool) (cacheClient Cache.Client, regions []Entity.Region, err error) {
+func GetCacheClientAndRegions(configPath string, flushDb bool) (cacheClient Cache.Client, regions []Entity.Region, err error) {
 	var configFile Config.ConfigFile
-	cacheClient, configFile, err = GetCacheClient(args, flushDb)
+	cacheClient, configFile, err = GetCacheClient(configPath, flushDb)
 	if err != nil {
 		return
 	}
