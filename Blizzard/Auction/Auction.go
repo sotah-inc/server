@@ -40,11 +40,7 @@ func Get(realm Entity.Realm, apiKey string) (response *Response, err error) {
 	}
 
 	if len(response.Files) == 0 {
-		err = errors.New(fmt.Sprintf("Response.Files length was zero for %s", url))
-		return
-	} else if len(response.Files) > 1 {
-		err = errors.New(fmt.Sprintf("Response.Files length was >1 for %s", url))
-		return
+		return nil, nil
 	}
 
 	return response, nil
