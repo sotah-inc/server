@@ -17,13 +17,13 @@ func main() {
 
 	flushDb := flag.Bool("flush", false, "Clears all redis dbs")
 	configPath := flag.String("config", "", "Config path")
+	isProd := flag.Bool("prod", false, "Prod mode")
 	flag.Parse()
 
 	output := Util.Output{StartTime: time.Now()}
 	output.Write("Starting...")
 
 	var err error
-	isDebugging := true
 
 	/*
 		reading the config
@@ -41,7 +41,7 @@ func main() {
 	/*
 		gathering the realms for each region
 	*/
-	var regionRealms map[int64][]Entity.Realm
+	regionRealms := map[int64][]Entity.Realm{}
 	if *flushDb {
 		output.Write("Fetching realms for each region...")
 		if regionRealms, err = Misc.GetRealms(cacheClient, regions); err != nil {
@@ -69,7 +69,11 @@ func main() {
 		}
 
 		// optionally truncating the lists of realms
-		if isDebugging {
+		if !*isProd {
+			if len(regionRealms[region.Id]) < 1 {
+				output.Write(fmt.Sprintf("Region %s had fewer than 1 realm", region.Name))
+				return
+			}
 			regionRealms[region.Id] = regionRealms[region.Id][:1]
 		}
 
