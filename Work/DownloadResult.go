@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/ihsw/go-download/Blizzard/AuctionData"
 	"github.com/ihsw/go-download/Entity/Character"
+	"github.com/ihsw/go-download/Util"
 	"io/ioutil"
 	"os"
 	"time"
@@ -86,11 +87,24 @@ func (self DownloadResult) dumpData() (err error) {
 		}
 	}
 
+	// removing the old non-gzipped data
+	oldDest := fmt.Sprintf("%s/%s.json", folder, self.realm.Slug)
+	if _, err = os.Stat(oldDest); err == nil {
+		err = os.Remove(oldDest)
+		if err != nil {
+			return
+		}
+	}
+
+	// writing the data
 	var data []byte
 	if data, err = json.Marshal(self.auctionDataResponse); err != nil {
 		return
 	}
-	dest := fmt.Sprintf("%s/%s.json", folder, self.realm.Slug)
+	if data, err = Util.GzipEncode(data); err != nil {
+		return
+	}
+	dest := fmt.Sprintf("%s/%s.json.gz", folder, self.realm.Slug)
 	if err = ioutil.WriteFile(dest, data, 0777); err != nil {
 		return
 	}
