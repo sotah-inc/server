@@ -26,29 +26,37 @@ func main() {
 	var err error
 
 	/*
-		reading the config
+		gathering a cache client and regions after reading the config
+		gathering the realms for each region
 	*/
-	// gathering a cache client and regions after reading the config
 	var (
 		cacheClient Cache.Client
 		regions     []Entity.Region
 	)
-	if cacheClient, regions, err = Misc.GetCacheClientAndRegions(*configPath, *flushDb); err != nil {
-		output.Write(fmt.Sprintf("Misc.GetCacheClientAndRegions() fail: %s", err.Error()))
-		return
-	}
-
-	/*
-		gathering the realms for each region
-	*/
 	regionRealms := map[int64][]Entity.Realm{}
 	if *flushDb {
+		if cacheClient, regions, err = Misc.GetCacheClientAndRegions(*configPath, *flushDb); err != nil {
+			output.Write(fmt.Sprintf("Misc.GetCacheClientAndRegions() fail: %s", err.Error()))
+			return
+		}
+
 		output.Write("Fetching realms for each region...")
 		if regionRealms, err = Misc.GetRealms(cacheClient, regions); err != nil {
 			output.Write(fmt.Sprintf("Misc.GetRealms() fail: %s", err.Error()))
 			return
 		}
 	} else {
+		if cacheClient, _, err = Misc.GetCacheClient(*configPath, *flushDb); err != nil {
+			output.Write(fmt.Sprintf("Misc.GetCacheClient() fail: %s", err.Error()))
+			return
+		}
+
+		regionManager := Entity.RegionManager{Client: cacheClient}
+		if regions, err = regionManager.FindAll(); err != nil {
+			output.Write(fmt.Sprintf("RegionManager.FindAll() fail: %s", err.Error()))
+			return
+		}
+
 		realmManager := Entity.RealmManager{Client: cacheClient}
 		for _, region := range regions {
 			if regionRealms[region.Id], err = realmManager.FindByRegion(region); err != nil {
