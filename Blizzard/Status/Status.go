@@ -64,26 +64,22 @@ type Result struct {
 	funcs
 */
 func Get(region Entity.Region, apiKey string, c chan Result) {
-	var response Response
 	result := Result{
-		Response: response,
+		Response: Response{},
 		Region:   region,
 		Error:    nil,
 	}
 
 	var b []byte
-	b, result.Error = Util.Download(fmt.Sprintf(URL_FORMAT, region.Host, apiKey))
-	if result.Error != nil {
+	if b, result.Error = Util.Download(fmt.Sprintf(URL_FORMAT, region.Host, apiKey)); result.Error != nil {
 		c <- result
 		return
 	}
 
-	result.Error = json.Unmarshal(b, &response)
-	if result.Error != nil {
+	if result.Error = json.Unmarshal(b, &result.Response); result.Error != nil {
 		c <- result
 		return
 	}
 
-	result.Response = response
 	c <- result
 }
