@@ -8,6 +8,7 @@ import (
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Entity"
 	"github.com/ihsw/go-download/Entity/Character"
+	"runtime/debug"
 	"time"
 )
 
@@ -100,6 +101,7 @@ func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRea
 
 	// clearing the cache-client cache
 	self.CacheClient.ClearCaches()
+	debug.FreeOSMemory()
 
 	return regionRealms, nil
 }
