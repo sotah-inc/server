@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Entity"
+	"github.com/ihsw/go-download/Entity/Character"
 	"github.com/ihsw/go-download/Misc"
 	"github.com/ihsw/go-download/Util"
 	"runtime"
@@ -27,8 +28,7 @@ func main() {
 	*/
 	// gathering a cache client after reading the config
 	var cacheClient Cache.Client
-	cacheClient, _, err = Misc.GetCacheClient(*configPath, false)
-	if err != nil {
+	if cacheClient, _, err = Misc.GetCacheClient(*configPath, false); err != nil {
 		output.Write(fmt.Sprintf("Misc.GetCacheClient() fail: %s", err.Error()))
 		return
 	}
@@ -37,19 +37,31 @@ func main() {
 		bullshit
 	*/
 	regionManager := Entity.RegionManager{Client: cacheClient}
+	realmManager := Entity.RealmManager{Client: cacheClient}
 	var regions []Entity.Region
 	if regions, err = regionManager.FindAll(); err != nil {
 		output.Write(fmt.Sprintf("RegionManager.FindAll() fail: %s", err.Error()))
 		return
 	}
 
+	charactersInTheWorld := 0
+	var realms []Entity.Realm
 	for _, region := range regions {
-		region.Queryable = true
-		if region, err = regionManager.Persist(region); err != nil {
-			output.Write(fmt.Sprintf("RegionManager.Persist() fail: %s", err.Error()))
+		if realms, err = realmManager.FindByRegion(region); err != nil {
+			output.Write(fmt.Sprintf("RealmManager.FindByRegion() fail: %s", err.Error()))
 			return
 		}
+		for _, realm := range realms {
+			characterManager := Character.Manager{Client: cacheClient, Realm: realm}
+			var characters []Character.Character
+			if characters, err = characterManager.FindAll(); err != nil {
+				output.Write(fmt.Sprintf("CharacterManager.FindAll() fail: %s", err.Error()))
+				return
+			}
+			charactersInTheWorld += len(characters)
+		}
 	}
+	output.Write(fmt.Sprintf("Characters in the world: %d", charactersInTheWorld))
 
 	output.Conclude()
 }
