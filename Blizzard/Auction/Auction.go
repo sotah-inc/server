@@ -28,14 +28,12 @@ const URL_FORMAT = "https://%s/wow/auction/data/%s?apikey=%s"
 func Get(realm Entity.Realm, apiKey string) (response *Response, err error) {
 	url := fmt.Sprintf(URL_FORMAT, realm.Region.Host, realm.Slug, apiKey)
 	var b []byte
-	b, err = Util.Download(url)
-	if err != nil {
+	if b, err = Util.Download(url); err != nil {
 		err = errors.New(fmt.Sprintf("Util.Download() for %s failed (%s)", url, err.Error()))
 		return
 	}
 
-	err = json.Unmarshal(b, &response)
-	if err != nil {
+	if err = json.Unmarshal(b, &response); err != nil {
 		return nil, nil
 	}
 
