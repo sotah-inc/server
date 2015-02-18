@@ -45,7 +45,7 @@ type ItemManager struct {
 
 func (self ItemManager) Namespace() string { return "item" }
 
-func (self ItemManager) PersistAll(items []Item) (newItems []Item, err error) {
+func (self ItemManager) PersistAll(items []Item) (err error) {
 	m := self.Client.Main
 
 	// ids
@@ -85,13 +85,13 @@ func (self ItemManager) PersistAll(items []Item) (newItems []Item, err error) {
 		newBlizzIds[i] = strconv.FormatInt(item.BlizzId, 10)
 	}
 	if err = m.RPushAll("item:ids", newIds); err != nil {
-		return items, err
+		return
 	}
 	if err = m.SAddAll("item:blizz_ids", newBlizzIds); err != nil {
-		return items, err
+		return
 	}
 
-	return items, nil
+	return nil
 }
 
 func (self ItemManager) unmarshal(v string) (item Item, err error) {

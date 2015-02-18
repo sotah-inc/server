@@ -94,7 +94,7 @@ func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRea
 
 	// gathering new items
 	itemizeResults := ItemizeResults{list: results}
-	if _, err = itemManager.PersistAll(itemizeResults.getNewItems(existingBlizzIds)); err != nil {
+	if err = itemManager.PersistAll(itemizeResults.getNewItems(existingBlizzIds)); err != nil {
 		return regionRealms, err
 	}
 
@@ -197,9 +197,7 @@ func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 	}
 
 	// gathering new characters
-	var existingCharacters []Character.Character
-	_, err = characterManager.PersistAll(existingCharacters, downloadResult.getNewCharacters(existingNames))
-	if err != nil {
+	if err = characterManager.PersistAll(downloadResult.getNewCharacters(existingNames)); err != nil {
 		result.Err = errors.New(fmt.Sprintf("CharacterManager.PersistAll() failed (%s)", err.Error()))
 		self.ItemizeOut <- result
 		return

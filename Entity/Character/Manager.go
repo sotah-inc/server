@@ -27,7 +27,7 @@ type Manager struct {
 
 func (self Manager) Namespace() string { return fmt.Sprintf("realm:%d:character", self.Realm.Id) }
 
-func (self Manager) PersistAll(existingCharacters []Character, newCharacters []Character) (characters []Character, err error) {
+func (self Manager) PersistAll(newCharacters []Character) (err error) {
 	m := self.Client.Main
 
 	// ids
@@ -81,19 +81,7 @@ func (self Manager) PersistAll(existingCharacters []Character, newCharacters []C
 		return
 	}
 
-	// merging them together
-	characters = make([]Character, len(existingCharacters)+len(newCharacters))
-	i := 0
-	for _, character := range existingCharacters {
-		characters[i] = character
-		i++
-	}
-	for _, character := range newCharacters {
-		characters[i] = character
-		i++
-	}
-
-	return characters, nil
+	return nil
 }
 
 func (self Manager) unmarshal(v string) (character Character, err error) {
