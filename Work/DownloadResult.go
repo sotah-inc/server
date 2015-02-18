@@ -39,19 +39,20 @@ func (self DownloadResult) getBlizzItemIds() []int64 {
 	return blizzItemIds
 }
 
-func (self DownloadResult) getNewCharacters(existingCharacters []Character.Character) (newCharacters []Character.Character) {
+func (self DownloadResult) getNewCharacters(existingNames []string) (newCharacters []Character.Character) {
 	// misc
 	auctions := self.auctionDataResponse.Auctions.Auctions
 
 	// gathering the names for uniqueness
-	existingNames := make(map[string]struct{})
-	newNames := make(map[string]struct{})
-	for _, character := range existingCharacters {
-		existingNames[character.Name] = struct{}{}
+	existingNameFlags := make(map[string]struct{})
+	for _, name := range existingNames {
+		existingNameFlags[name] = struct{}{}
 	}
+
+	newNames := make(map[string]struct{})
 	for _, auction := range auctions {
 		name := auction.Owner
-		_, ok := existingNames[name]
+		_, ok := existingNameFlags[name]
 		if ok {
 			continue
 		}

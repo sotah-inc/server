@@ -189,17 +189,18 @@ func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 
 	// gathering existing characters
 	var (
-		existingCharacters []Character.Character
-		err                error
+		existingNames []string
+		err           error
 	)
-	if existingCharacters, err = characterManager.FindAll(); err != nil {
-		result.Err = errors.New(fmt.Sprintf("CharacterManager.FindAll() failed (%s)", err.Error()))
+	if existingNames, err = characterManager.GetNames(); err != nil {
+		result.Err = errors.New(fmt.Sprintf("CharacterManager.GetNames() failed (%s)", err.Error()))
 		self.ItemizeOut <- result
 		return
 	}
 
 	// gathering new characters
-	_, err = characterManager.PersistAll(existingCharacters, downloadResult.getNewCharacters(existingCharacters))
+	var existingCharacters []Character.Character
+	_, err = characterManager.PersistAll(existingCharacters, downloadResult.getNewCharacters(existingNames))
 	if err != nil {
 		result.Err = errors.New(fmt.Sprintf("CharacterManager.PersistAll() failed (%s)", err.Error()))
 		self.ItemizeOut <- result

@@ -260,6 +260,14 @@ func (self Wrapper) SAddAll(key string, values []string) (err error) {
 	return nil
 }
 
+func (self Wrapper) SMembers(key string) (members []string, err error) {
+	cmd := self.Redis.SMembers(key)
+	if err = cmd.Err(); err != nil {
+		return
+	}
+	return cmd.Val(), nil
+}
+
 func (self Wrapper) SIsMember(key string, value string) (isMember bool, err error) {
 	values := []string{value}
 	var isMembers []bool
