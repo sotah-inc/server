@@ -28,16 +28,12 @@ type Manager struct {
 func (self Manager) Namespace() string { return fmt.Sprintf("realm:%d:character", self.Realm.Id) }
 
 func (self Manager) PersistAll(existingCharacters []Character, newCharacters []Character) (characters []Character, err error) {
-	var (
-		ids []int64
-		s   string
-	)
 	m := self.Client.Main
 
 	// ids
-	ids, err = m.IncrAll(fmt.Sprintf("realm:%d:character_id", self.Realm.Id), len(newCharacters))
-	if err != nil {
-		return characters, err
+	var ids []int64
+	if ids, err = m.IncrAll(fmt.Sprintf("realm:%d:character_id", self.Realm.Id), len(newCharacters)); err != nil {
+		return
 	}
 	for i, id := range ids {
 		newCharacters[i].Id = id
@@ -46,17 +42,21 @@ func (self Manager) PersistAll(existingCharacters []Character, newCharacters []C
 	// data
 	values := make([]Cache.PersistValue, len(newCharacters))
 	for i, character := range newCharacters {
-		s, err = character.marshal()
 		bucketKey, subKey := Cache.GetBucketKey(character.Id, self.Namespace())
+
+		var s string
+		if s, err = character.marshal(); err != nil {
+			return
+		}
+
 		values[i] = Cache.PersistValue{
 			BucketKey: bucketKey,
 			SubKey:    subKey,
 			Value:     s,
 		}
 	}
-	err = m.PersistAll(values)
-	if err != nil {
-		return characters, err
+	if err = m.PersistAll(values); err != nil {
+		return
 	}
 
 	// etc
@@ -71,17 +71,14 @@ func (self Manager) PersistAll(existingCharacters []Character, newCharacters []C
 		newNames[i] = name
 		hashedNameKeys[characterNameKey(self.Realm, name)] = id
 	}
-	err = m.RPushAll(fmt.Sprintf("realm:%d:character_ids", self.Realm.Id), newCharacterIds)
-	if err != nil {
-		return characters, err
+	if err = m.RPushAll(fmt.Sprintf("realm:%d:character_ids", self.Realm.Id), newCharacterIds); err != nil {
+		return
 	}
-	err = m.SAddAll(fmt.Sprintf("realm:%d:character_names", self.Realm.Id), newNames)
-	if err != nil {
-		return characters, err
+	if err = m.SAddAll(fmt.Sprintf("realm:%d:character_names", self.Realm.Id), newNames); err != nil {
+		return
 	}
-	err = m.SetAll(hashedNameKeys)
-	if err != nil {
-		return characters, err
+	if err = m.SetAll(hashedNameKeys); err != nil {
+		return
 	}
 
 	// merging them together
