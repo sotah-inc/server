@@ -80,11 +80,15 @@ func (self ItemManager) PersistAll(items []Item) ([]Item, error) {
 
 	// etc
 	newIds := make([]string, len(items))
+	newBlizzIds := make([]string, len(items))
 	for i, item := range items {
-		newIds[i] = strconv.FormatInt(int64(item.Id), 10)
+		newIds[i] = strconv.FormatInt(item.Id, 10)
+		newBlizzIds[i] = strconv.FormatInt(item.BlizzId, 10)
 	}
-	err = m.RPushAll("item:ids", newIds)
-	if err != nil {
+	if err = m.RPushAll("item:ids", newIds); err != nil {
+		return items, err
+	}
+	if err = m.SAddAll("item:blizz_ids", newBlizzIds); err != nil {
 		return items, err
 	}
 
@@ -141,4 +145,21 @@ func (self ItemManager) FindAll() (items []Item, err error) {
 	}
 
 	return self.unmarshalAll(values)
+}
+
+func (self ItemManager) GetBlizzIds() (blizzIds []int64, err error) {
+	var values []string
+	if values, err = self.Client.Main.SMembers("item:blizz_ids"); err != nil {
+		return
+	}
+
+	blizzIds = make([]int64, len(values))
+	for i, v := range values {
+		var blizzId int
+		if blizzId, err = strconv.Atoi(v); err != nil {
+			return
+		}
+		blizzIds[i] = int64(blizzId)
+	}
+	return
 }

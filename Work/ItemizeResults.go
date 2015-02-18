@@ -8,16 +8,17 @@ type ItemizeResults struct {
 	list []ItemizeResult
 }
 
-func (self ItemizeResults) getNewItems(existingItems []Entity.Item) (newItems []Entity.Item) {
-	// gathering the blizz-item-ids for uniqueness
-	existingBlizzIds := map[int64]struct{}{}
-	newBlizzIds := map[int64]struct{}{}
-	for _, item := range existingItems {
-		existingBlizzIds[item.BlizzId] = struct{}{}
+func (self ItemizeResults) getNewItems(existingBlizzIds []int64) (newItems []Entity.Item) {
+	// gathering the blizz-ids for uniqueness
+	existingBlizzIdFlags := map[int64]struct{}{}
+	for _, blizzId := range existingBlizzIds {
+		existingBlizzIdFlags[blizzId] = struct{}{}
 	}
+
+	newBlizzIds := map[int64]struct{}{}
 	for _, result := range self.list {
 		for _, blizzId := range result.blizzItemIds {
-			_, ok := existingBlizzIds[blizzId]
+			_, ok := existingBlizzIdFlags[blizzId]
 			if ok {
 				continue
 			}

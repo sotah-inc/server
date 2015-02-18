@@ -88,14 +88,14 @@ func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRea
 	itemManager := Entity.ItemManager{Client: self.CacheClient}
 
 	// gathering existing items
-	var existingItems []Entity.Item
-	if existingItems, err = itemManager.FindAll(); err != nil {
+	var existingBlizzIds []int64
+	if existingBlizzIds, err = itemManager.GetBlizzIds(); err != nil {
 		return regionRealms, err
 	}
 
 	// gathering new items
 	itemizeResults := ItemizeResults{list: results}
-	if _, err = itemManager.PersistAll(itemizeResults.getNewItems(existingItems)); err != nil {
+	if _, err = itemManager.PersistAll(itemizeResults.getNewItems(existingBlizzIds)); err != nil {
 		return regionRealms, err
 	}
 
