@@ -85,7 +85,7 @@ func GetCacheClient(configPath string, flushDb bool) (cacheClient Cache.Client, 
 		return
 	}
 
-	// connecting the redis clients
+	// connecting the clients
 	cacheClient, err = newCacheClient(configFile.ConnectionList)
 	if err != nil {
 		return
