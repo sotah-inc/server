@@ -45,18 +45,13 @@ type ItemManager struct {
 
 func (self ItemManager) Namespace() string { return "item" }
 
-func (self ItemManager) PersistAll(items []Item) ([]Item, error) {
-	var (
-		err error
-		ids []int64
-		s   string
-	)
+func (self ItemManager) PersistAll(items []Item) (newItems []Item, err error) {
 	m := self.Client.Main
 
 	// ids
-	ids, err = m.IncrAll("item_id", len(items))
-	if err != nil {
-		return items, err
+	var ids []int64
+	if ids, err = m.IncrAll("item_id", len(items)); err != nil {
+		return
 	}
 	for i, id := range ids {
 		items[i].Id = id
@@ -65,17 +60,21 @@ func (self ItemManager) PersistAll(items []Item) ([]Item, error) {
 	// data
 	values := make([]Cache.PersistValue, len(items))
 	for i, item := range items {
-		s, err = item.marshal()
 		bucketKey, subKey := Cache.GetBucketKey(item.Id, self.Namespace())
+
+		var s string
+		if s, err = item.marshal(); err != nil {
+			return
+		}
+
 		values[i] = Cache.PersistValue{
 			BucketKey: bucketKey,
 			SubKey:    subKey,
 			Value:     s,
 		}
 	}
-	err = m.PersistAll(values)
-	if err != nil {
-		return items, err
+	if err = m.PersistAll(values); err != nil {
+		return
 	}
 
 	// etc
