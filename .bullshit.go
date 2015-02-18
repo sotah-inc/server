@@ -37,14 +37,13 @@ func main() {
 		bullshit
 	*/
 	regionManager := Entity.RegionManager{Client: cacheClient}
-	realmManager := Entity.RealmManager{Client: cacheClient}
 	var regions []Entity.Region
 	if regions, err = regionManager.FindAll(); err != nil {
 		output.Write(fmt.Sprintf("RegionManager.FindAll() fail: %s", err.Error()))
 		return
 	}
 
-	charactersInTheWorld := 0
+	realmManager := Entity.RealmManager{Client: cacheClient}
 	var realms []Entity.Realm
 	for _, region := range regions {
 		if realms, err = realmManager.FindByRegion(region); err != nil {
@@ -53,15 +52,34 @@ func main() {
 		}
 		for _, realm := range realms {
 			characterManager := Character.Manager{Client: cacheClient, Realm: realm}
-			var characters []Character.Character
-			if characters, err = characterManager.FindAll(); err != nil {
-				output.Write(fmt.Sprintf("CharacterManager.FindAll() fail: %s", err.Error()))
+			var (
+				names  []string
+				ids    []int64
+				lastId int64
+			)
+			if names, err = characterManager.GetNames(); err != nil {
+				output.Write(fmt.Sprintf("CharacterManager.GetNames() fail: %s", err.Error()))
 				return
 			}
-			charactersInTheWorld += len(characters)
+			if ids, err = characterManager.GetIds(); err != nil {
+				output.Write(fmt.Sprintf("CharacterManager.GetIds() fail: %s", err.Error()))
+				return
+			}
+			if lastId, err = characterManager.GetLastId(); err != nil {
+				output.Write(fmt.Sprintf("CharacterManager.GetId() fail: %s", err.Error()))
+				return
+			}
+
+			if len(names) != len(ids) {
+				output.Write(fmt.Sprintf("name length != ids length for %s", realm.Dump()))
+				return
+			}
+			if len(ids) != int(lastId) {
+				output.Write(fmt.Sprintf("ids length != last-id for %s", realm.Dump()))
+				return
+			}
 		}
 	}
-	output.Write(fmt.Sprintf("Characters in the world: %d", charactersInTheWorld))
 
 	output.Conclude()
 }
