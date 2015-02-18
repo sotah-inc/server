@@ -180,3 +180,32 @@ func (self Manager) NameExists(name string) (exists bool, err error) {
 func (self Manager) NamesExist(names []string) (exists []bool, err error) {
 	return self.Client.Main.SIsMemberAll(fmt.Sprintf("realm:%d:character_names", self.Realm.Id), names)
 }
+
+func (self Manager) GetNames() (names []string, err error) {
+	return self.Client.Main.SMembers(fmt.Sprintf("realm:%d:character_names", self.Realm.Id))
+}
+
+func (self Manager) GetIds() (ids []int64, err error) {
+	if ids, err = self.Client.Main.FetchIds(fmt.Sprintf("realm:%d:character_ids", self.Realm.Id), 0, -1); err != nil {
+		return
+	}
+
+	return
+}
+
+func (self Manager) GetLastId() (id int64, err error) {
+	var v string
+	if v, err = self.Client.Main.Get(fmt.Sprintf("realm:%d:character_id", self.Realm.Id)); err != nil {
+		return
+	}
+
+	if len(v) == 0 {
+		return 0, nil
+	}
+
+	var i int
+	if i, err = strconv.Atoi(v); err != nil {
+		return
+	}
+	return int64(i), nil
+}
