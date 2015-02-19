@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Entity"
-	"github.com/ihsw/go-download/Entity/Character"
 	"github.com/ihsw/go-download/Misc"
 	"github.com/ihsw/go-download/Util"
+	"github.com/ihsw/go-download/Work"
 	"runtime"
 	"time"
 )
@@ -37,31 +37,37 @@ func main() {
 		bullshit
 	*/
 	regionManager := Entity.RegionManager{Client: cacheClient}
-	var regions []Entity.Region
-	if regions, err = regionManager.FindAll(); err != nil {
-		output.Write(fmt.Sprintf("RegionManager.FindAll() fail: %s", err.Error()))
+	realmManager := Entity.RealmManager{Client: cacheClient}
+	var region Entity.Region
+	if region, err = regionManager.FindOneByName("us"); err != nil {
+		output.Write(fmt.Sprintf("RegionManager.FindOneByName() fail: %s", err.Error()))
+		return
+	}
+	var realm Entity.Realm
+	if realm, err = realmManager.FindOneByRegionAndSlug(region, "earthen-ring"); err != nil {
+		output.Write(fmt.Sprintf("RealmManager.FindOneByRegionAndSlug() fail: %s", err.Error()))
 		return
 	}
 
-	characterCount := 0
-	realmManager := Entity.RealmManager{Client: cacheClient}
-	var realms []Entity.Realm
-	for _, region := range regions {
-		if realms, err = realmManager.FindByRegion(region); err != nil {
-			output.Write(fmt.Sprintf("RealmManager.FindByRegion() fail: %s", err.Error()))
-			return
-		}
-		for _, realm := range realms {
-			characterManager := Character.Manager{Client: cacheClient, Realm: realm}
-			var names []string
-			if names, err = characterManager.GetNames(); err != nil {
-				output.Write(fmt.Sprintf("CharacterManager.GetNames() fail: %s", err.Error()))
-				return
-			}
-			characterCount += len(names)
-		}
+	queue := Work.Queue{
+		CacheClient: cacheClient,
+		DownloadOut: make(chan Work.DownloadResult, 1),
 	}
-	output.Write(fmt.Sprintf("Characters in the world: %d", characterCount))
+	queue.DownloadRealm(realm, false)
+	downloadResult := <-queue.DownloadOut
+	if err = downloadResult.Err; err != nil {
+		output.Write(fmt.Sprintf("downloadResult had an error: %s", err.Error()))
+		return
+	}
+	if downloadResult.AlreadyChecked {
+		output.Write(fmt.Sprintf("Realm %s was already checked!", realm.Dump()))
+		return
+	}
+	if downloadResult.ResponseFailed {
+		output.Write(fmt.Sprintf("Realm %s response failed!", realm.Dump()))
+		return
+	}
+	output.Write(fmt.Sprintf("Realm %s has %d auctions", realm.Dump(), len(downloadResult.AuctionDataResponse.Auctions.Auctions)))
 
 	output.Conclude()
 }
