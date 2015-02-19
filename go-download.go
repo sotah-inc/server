@@ -127,7 +127,7 @@ func main() {
 	}
 
 	output.Write("Starting up the timed rotation...")
-	c := time.Tick(10 * time.Minute)
+	c := time.Tick(20 * time.Minute)
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc, syscall.SIGQUIT, syscall.SIGINT)
 	for {
