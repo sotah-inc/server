@@ -43,6 +43,7 @@ func main() {
 		return
 	}
 
+	characterCount := 0
 	realmManager := Entity.RealmManager{Client: cacheClient}
 	var realms []Entity.Realm
 	for _, region := range regions {
@@ -52,34 +53,15 @@ func main() {
 		}
 		for _, realm := range realms {
 			characterManager := Character.Manager{Client: cacheClient, Realm: realm}
-			var (
-				names  []string
-				ids    []int64
-				lastId int64
-			)
+			var names []string
 			if names, err = characterManager.GetNames(); err != nil {
 				output.Write(fmt.Sprintf("CharacterManager.GetNames() fail: %s", err.Error()))
 				return
 			}
-			if ids, err = characterManager.GetIds(); err != nil {
-				output.Write(fmt.Sprintf("CharacterManager.GetIds() fail: %s", err.Error()))
-				return
-			}
-			if lastId, err = characterManager.GetLastId(); err != nil {
-				output.Write(fmt.Sprintf("CharacterManager.GetId() fail: %s", err.Error()))
-				return
-			}
-
-			if len(names) != len(ids) {
-				output.Write(fmt.Sprintf("name length != ids length for %s", realm.Dump()))
-				return
-			}
-			if len(ids) != int(lastId) {
-				output.Write(fmt.Sprintf("ids length != last-id for %s", realm.Dump()))
-				return
-			}
+			characterCount += len(names)
 		}
 	}
+	output.Write(fmt.Sprintf("Characters in the world: %d", characterCount))
 
 	output.Conclude()
 }
