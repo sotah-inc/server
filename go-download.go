@@ -107,7 +107,7 @@ func main() {
 	for j := 0; j < downloadWorkerCount; j++ {
 		go func(queue Work.Queue) {
 			for {
-				queue.DownloadRealm(<-queue.DownloadIn)
+				queue.DownloadRealm(<-queue.DownloadIn, true)
 			}
 		}(queue)
 	}

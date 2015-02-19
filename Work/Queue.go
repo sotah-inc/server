@@ -56,7 +56,7 @@ func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRea
 			return regionRealms, err
 		}
 
-		if result.responseFailed {
+		if result.ResponseFailed {
 			continue
 		}
 
@@ -104,7 +104,7 @@ func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRea
 	return regionRealms, nil
 }
 
-func (self Queue) DownloadRealm(realm Entity.Realm) {
+func (self Queue) DownloadRealm(realm Entity.Realm, skipAlreadyChecked bool) {
 	// misc
 	realmManager := Entity.RealmManager{Client: self.CacheClient}
 	result := DownloadResult{Result: Result{realm: realm}}
@@ -122,7 +122,7 @@ func (self Queue) DownloadRealm(realm Entity.Realm) {
 
 	// optionally halting on empty response
 	if auctionResponse == nil {
-		result.responseFailed = true
+		result.ResponseFailed = true
 		self.DownloadOut <- result
 		return
 	}
@@ -131,7 +131,7 @@ func (self Queue) DownloadRealm(realm Entity.Realm) {
 
 	// checking whether the file has already been downloaded
 	result.LastModified = time.Unix(file.LastModified/1000, 0)
-	if !realm.LastDownloaded.IsZero() && (realm.LastDownloaded.Equal(result.LastModified) || realm.LastDownloaded.After(result.LastModified)) {
+	if skipAlreadyChecked && !realm.LastDownloaded.IsZero() && (realm.LastDownloaded.Equal(result.LastModified) || realm.LastDownloaded.After(result.LastModified)) {
 		realm.LastChecked = time.Now()
 		result.AlreadyChecked = true
 		self.DownloadOut <- result
@@ -139,8 +139,8 @@ func (self Queue) DownloadRealm(realm Entity.Realm) {
 	}
 
 	// fetching the actual auction data
-	if result.auctionDataResponse = AuctionData.Get(realm, file.Url); result.auctionDataResponse == nil {
-		result.responseFailed = true
+	if result.AuctionDataResponse = AuctionData.Get(realm, file.Url); result.AuctionDataResponse == nil {
+		result.ResponseFailed = true
 		self.DownloadOut <- result
 		return
 	}
@@ -175,7 +175,7 @@ func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 	}
 
 	// optionally skipping failed responses or already having been checked
-	if result.responseFailed || result.AlreadyChecked {
+	if result.ResponseFailed || result.AlreadyChecked {
 		self.ItemizeOut <- result
 		return
 	}

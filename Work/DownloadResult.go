@@ -13,14 +13,14 @@ import (
 
 type DownloadResult struct {
 	Result
-	auctionDataResponse *AuctionData.Response
+	AuctionDataResponse *AuctionData.Response
 	LastModified        time.Time
 }
 
 func (self DownloadResult) getBlizzItemIds() []int64 {
 	// gather unique blizz item ids
 	uniqueBlizzItemIds := make(map[int64]struct{})
-	for _, auction := range self.auctionDataResponse.Auctions.Auctions {
+	for _, auction := range self.AuctionDataResponse.Auctions.Auctions {
 		blizzItemId := auction.Item
 		_, valid := uniqueBlizzItemIds[blizzItemId]
 		if !valid {
@@ -41,7 +41,7 @@ func (self DownloadResult) getBlizzItemIds() []int64 {
 
 func (self DownloadResult) getNewCharacters(existingNames []string) (newCharacters []Character.Character) {
 	// misc
-	auctions := self.auctionDataResponse.Auctions.Auctions
+	auctions := self.AuctionDataResponse.Auctions.Auctions
 
 	// gathering the names for uniqueness
 	existingNameFlags := make(map[string]struct{})
@@ -99,7 +99,7 @@ func (self DownloadResult) dumpData() (err error) {
 
 	// writing the data
 	var data []byte
-	if data, err = json.Marshal(self.auctionDataResponse); err != nil {
+	if data, err = json.Marshal(self.AuctionDataResponse); err != nil {
 		return
 	}
 	if data, err = Util.GzipEncode(data); err != nil {
