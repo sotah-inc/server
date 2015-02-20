@@ -53,12 +53,12 @@ func main() {
 
 		for _, realm := range realms {
 			characterManager := Character.Manager{Realm: realm, RealmManager: realmManager}
-			var names []string
-			if names, err = characterManager.GetNames(); err != nil {
+			var characters []Character.Character
+			if characters, err = characterManager.FindAll(); err != nil {
 				output.Write(fmt.Sprintf("CharacterManager.FindAll() fail: %s", err.Error()))
 				return
 			}
-			characterCount += len(names)
+			characterCount += len(characters)
 		}
 	}
 	output.Write(fmt.Sprintf("Characters in the world: %d", characterCount))
