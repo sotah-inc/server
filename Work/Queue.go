@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/ihsw/go-download/Blizzard/Auction"
 	"github.com/ihsw/go-download/Blizzard/AuctionData"
+	"github.com/ihsw/go-download/Blizzard/CharacterGuild"
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Entity"
 	"github.com/ihsw/go-download/Entity/Character"
@@ -157,7 +158,7 @@ func (self Queue) DownloadRealm(realm Entity.Realm, skipAlreadyChecked bool) {
 
 	// dumping the auction data for parsing after itemize-results are tabulated
 	if err = result.dumpData(); err != nil {
-		result.Err = errors.New(fmt.Sprintf("DownloadResult.dumpData() failed: %s", err.Error()))
+		result.Err = errors.New(fmt.Sprintf("DownloadResult.dumpData() failed (%s)", err.Error()))
 		self.downloadOut(result)
 		return
 	}
@@ -232,6 +233,32 @@ func (self Queue) ResolveCharacterGuilds(downloadResult DownloadResult) {
 		result.Err = errors.New(fmt.Sprintf("downloadResult had an error (%s)", downloadResult.Err.Error()))
 		self.CharacterGuildResultOut <- result
 		return
+	}
+
+	// gathering the list of characters
+	characterManager := Character.NewManager(realm, self.CacheClient)
+	var (
+		characters []Character.Character
+		err        error
+	)
+	if characters, err = characterManager.FindAll(); err != nil {
+		result.Err = errors.New(fmt.Sprintf("CharacterManager.FindAll() failed (%s)", err.Error()))
+		self.CharacterGuildResultOut <- result
+		return
+	}
+
+	// going over the characters to gather the guild name
+	for _, character := range characters {
+		var response *CharacterGuild.Response
+		if response, err = CharacterGuild.Get(character, self.CacheClient.ApiKey); err != nil {
+			result.Err = errors.New(fmt.Sprintf("CharacterGuild.Get() failed (%s)", err.Error()))
+			self.CharacterGuildResultOut <- result
+			return
+		}
+
+		fmt.Println(fmt.Sprintf("%v", response))
+
+		break
 	}
 
 	self.CharacterGuildResultOut <- result
