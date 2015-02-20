@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Entity"
+	"github.com/ihsw/go-download/Entity/Character"
 	"github.com/ihsw/go-download/Misc"
 	"github.com/ihsw/go-download/Util"
 	"runtime"
@@ -42,23 +43,25 @@ func main() {
 		output.Write(fmt.Sprintf("RegionManager.FindAll() fail: %s", err.Error()))
 		return
 	}
-	realmCount := 0
+	characterCount := 0
 	for _, region := range regions {
 		var realms []Entity.Realm
 		if realms, err = realmManager.FindByRegion(region); err != nil {
 			output.Write(fmt.Sprintf("RealmManager.FindByRegion() fail: %s", err.Error()))
 			return
 		}
-		realmCount += len(realms)
 
 		for _, realm := range realms {
-			if !realm.Region.IsValid() {
-				output.Write(fmt.Sprintf("Realm %d region is invalid!", realm.Id))
+			characterManager := Character.Manager{Realm: realm, Client: cacheClient}
+			var characters []Character.Character
+			if characters, err = characterManager.FindAll(); err != nil {
+				output.Write(fmt.Sprintf("CharacterManager.FindAll() fail: %s", err.Error()))
 				return
 			}
+			characterCount += len(characters)
 		}
 	}
-	output.Write(fmt.Sprintf("Realm count: %d", realmCount))
+	output.Write(fmt.Sprintf("Characters in the world: %d", characterCount))
 
 	output.Conclude()
 }
