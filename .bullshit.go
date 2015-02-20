@@ -51,23 +51,28 @@ func main() {
 
 	queue := Work.Queue{
 		CacheClient: cacheClient,
+		DownloadIn:  make(chan Entity.Realm, 1),
 		DownloadOut: make(chan Work.DownloadResult, 1),
+		ItemizeOut:  make(chan Work.ItemizeResult, 1),
 	}
-	queue.DownloadRealm(realm, false)
-	downloadResult := <-queue.DownloadOut
-	if err = downloadResult.Err; err != nil {
-		output.Write(fmt.Sprintf("downloadResult had an error: %s", err.Error()))
+
+	go func(queue Work.Queue) {
+		for {
+			queue.DownloadRealm(<-queue.DownloadIn, false)
+		}
+	}(queue)
+	go func(queue Work.Queue) {
+		for {
+			queue.ItemizeRealm(<-queue.DownloadOut)
+		}
+	}(queue)
+
+	regionRealms := map[int64][]Entity.Realm{}
+	regionRealms[region.Id] = []Entity.Realm{realm}
+	if regionRealms, err = queue.DownloadRealms(regionRealms, 1); err != nil {
+		output.Write(fmt.Sprintf("queue.DownloadRealms() fail: %s", err.Error()))
 		return
 	}
-	if downloadResult.AlreadyChecked {
-		output.Write(fmt.Sprintf("Realm %s was already checked!", realm.Dump()))
-		return
-	}
-	if downloadResult.ResponseFailed {
-		output.Write(fmt.Sprintf("Realm %s response failed!", realm.Dump()))
-		return
-	}
-	output.Write(fmt.Sprintf("Realm %s has %d auctions", realm.Dump(), len(downloadResult.AuctionDataResponse.Auctions.Auctions)))
 
 	output.Conclude()
 }
