@@ -36,7 +36,6 @@ type Manager interface {
 
 type Wrapper struct {
 	Redis *redis.Client
-	Cache map[string]string
 }
 
 func (self Wrapper) getCacheKey(bucketKey string, subKey string) string {
@@ -98,21 +97,11 @@ func (self Wrapper) FetchFromIds(manager Manager, ids []int64) (values []string,
 	values = make([]string, idsLength)
 	for i, id := range ids {
 		bucketKey, subKey := GetBucketKey(id, manager.Namespace())
-
-		// checking the wrapper cache or redis
-		cacheKey := self.getCacheKey(bucketKey, subKey)
-		value, exists := self.Cache[cacheKey]
-		if !exists {
-			cmd := r.HGet(bucketKey, subKey)
-			if err = cmd.Err(); err != nil && err != redis.Nil {
-				return
-			}
-
-			value = cmd.Val()
-			self.SetCacheValue(cacheKey, value)
+		cmd := r.HGet(bucketKey, subKey)
+		if err = cmd.Err(); err != nil && err != redis.Nil {
+			return
 		}
-
-		values[i] = value
+		values[i] = cmd.Val()
 	}
 
 	return values, nil
@@ -143,16 +132,7 @@ func (self Wrapper) Persist(bucketKey string, subKey string, value string) (err 
 		return
 	}
 
-	self.SetCacheValue(self.getCacheKey(bucketKey, subKey), value)
 	return nil
-}
-
-func (self Wrapper) SetCacheValue(key string, value string) {
-	self.Cache[key] = value
-}
-
-func (self Wrapper) ClearCache() {
-	self.Cache = map[string]string{}
 }
 
 func (self Wrapper) IncrAll(key string, count int) (ids []int64, err error) {
@@ -201,12 +181,6 @@ func (self Wrapper) PersistAll(values []PersistValue) (err error) {
 		if err = cmd.Err(); err != nil {
 			return
 		}
-	}
-
-	// updating the cache
-	for i, _ := range cmds {
-		v := values[i]
-		self.SetCacheValue(self.getCacheKey(v.BucketKey, v.SubKey), v.Value)
 	}
 
 	return nil
@@ -359,11 +333,4 @@ func (self Client) FlushDb() (err error) {
 	}
 
 	return nil
-}
-
-func (self Client) ClearCaches() {
-	self.Main.ClearCache()
-	for _, w := range self.Pool {
-		w.ClearCache()
-	}
 }

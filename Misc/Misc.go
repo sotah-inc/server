@@ -24,11 +24,7 @@ func newCacheWrapper(c Config.Connection) (w Cache.Wrapper, err error) {
 		return
 	}
 
-	w = Cache.Wrapper{
-		Redis: r,
-		Cache: make(map[string]string),
-	}
-	return
+	return Cache.Wrapper{Redis: r}, nil
 }
 
 func newCacheClient(c Config.ConnectionList) (client Cache.Client, err error) {
