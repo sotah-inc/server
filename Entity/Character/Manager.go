@@ -2,7 +2,6 @@ package Character
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Entity"
@@ -21,8 +20,9 @@ func characterNameKey(realm Entity.Realm, name string) string {
 	manager
 */
 type Manager struct {
-	Client Cache.Client
-	Realm  Entity.Realm
+	Client       Cache.Client
+	Realm        Entity.Realm
+	RealmManager Entity.RealmManager
 }
 
 func (self Manager) Namespace() string { return fmt.Sprintf("realm:%d:character", self.Realm.Id) }
@@ -85,45 +85,59 @@ func (self Manager) PersistAll(newCharacters []Character) (err error) {
 }
 
 func (self Manager) unmarshal(v string) (character Character, err error) {
-	if v == "" {
+	var characters []Character
+	if characters, err = self.unmarshalAll([]string{v}); err != nil {
 		return
 	}
 
-	// json
-	var characterJson CharacterJson
-	b := []byte(v)
-	err = json.Unmarshal(b, &characterJson)
-	if err != nil {
+	if len(characters) == 0 {
 		return
 	}
 
-	// initial
-	character = Character{
-		Id:   characterJson.Id,
-		Name: characterJson.Name,
-	}
-
-	// resolving the realm
-	realmManager := Entity.RealmManager{Client: self.Client}
-	realm, err := realmManager.FindOneById(characterJson.RealmId)
-	if err != nil {
-		return
-	}
-	if !realm.IsValid() {
-		err = errors.New(fmt.Sprintf("Realm #%d could not be found!", characterJson.RealmId))
-		return
-	}
-	character.Realm = realm
-
-	return character, nil
+	return characters[0], nil
 }
 
 func (self Manager) unmarshalAll(values []string) (characters []Character, err error) {
 	characters = make([]Character, len(values))
+
+	// resolving the characters
+	realmIds := []int64{}
+	realmKeysBack := map[int64][]int64{}
 	for i, v := range values {
-		characters[i], err = self.unmarshal(v)
-		if err != nil {
+		if len(v) == 0 {
+			continue
+		}
+
+		// json
+		characterJson := CharacterJson{}
+		if err = json.Unmarshal([]byte(v), &characterJson); err != nil {
 			return
+		}
+
+		// initial
+		characters[i] = Character{
+			Id:   characterJson.Id,
+			Name: characterJson.Name,
+		}
+
+		// realm
+		realmId := characterJson.RealmId
+		if _, ok := realmKeysBack[realmId]; !ok {
+			realmKeysBack[realmId] = []int64{int64(i)}
+			realmIds = append(realmIds, realmId)
+		} else {
+			realmKeysBack[realmId] = append(realmKeysBack[realmId], int64(i))
+		}
+	}
+
+	// resolving the realms
+	var realms []Entity.Realm
+	if realms, err = self.RealmManager.FindByIds(realmIds); err != nil {
+		return
+	}
+	for _, realm := range realms {
+		for _, i := range realmKeysBack[realm.Id] {
+			characters[i].Realm = realm
 		}
 	}
 	return

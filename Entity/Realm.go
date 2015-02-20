@@ -146,12 +146,12 @@ func (self RealmManager) Persist(realm Realm) (Realm, error) {
 }
 
 func (self RealmManager) unmarshal(v string) (realm Realm, err error) {
-	if v == "" {
+	var realms []Realm
+	if realms, err = self.unmarshalAll([]string{v}); err != nil {
 		return
 	}
 
-	var realms []Realm
-	if realms, err = self.unmarshalAll([]string{v}); err != nil {
+	if len(realms) == 0 {
 		return
 	}
 
