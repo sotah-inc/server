@@ -37,7 +37,7 @@ func main() {
 		bullshit
 	*/
 	regionManager := Entity.RegionManager{Client: cacheClient}
-	realmManager := Entity.RealmManager{Client: cacheClient, RegionManager: regionManager}
+	realmManager := Entity.RealmManager{RegionManager: regionManager}
 	var regions []Entity.Region
 	if regions, err = regionManager.FindAll(); err != nil {
 		output.Write(fmt.Sprintf("RegionManager.FindAll() fail: %s", err.Error()))

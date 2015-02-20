@@ -102,7 +102,7 @@ func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRea
 
 func (self Queue) DownloadRealm(realm Entity.Realm, skipAlreadyChecked bool) {
 	// misc
-	realmManager := Entity.RealmManager{Client: self.CacheClient}
+	realmManager := Entity.RealmManager{RegionManager: Entity.RegionManager{Client: self.CacheClient}}
 	result := DownloadResult{Result: Result{realm: realm}}
 
 	// fetching the auction info

@@ -90,7 +90,6 @@ func (self RealmJson) marshal() (string, error) {
 	RealmManager
 */
 type RealmManager struct {
-	Client        Cache.Client
 	RegionManager RegionManager
 }
 
@@ -101,7 +100,7 @@ func (self RealmManager) Persist(realm Realm) (Realm, error) {
 		err error
 		s   string
 	)
-	w := self.Client.Main
+	w := self.RegionManager.Client.Main
 	r := w.Redis
 
 	// id
@@ -236,7 +235,7 @@ func (self RealmManager) unmarshalAll(values []string) (realms []Realm, err erro
 }
 
 func (self RealmManager) FindByRegion(region Region) (realms []Realm, err error) {
-	main := self.Client.Main
+	main := self.RegionManager.Client.Main
 
 	// fetching ids
 	ids, err := main.FetchIds(fmt.Sprintf("region:%d:realm_ids", region.Id), 0, -1)
@@ -256,7 +255,7 @@ func (self RealmManager) FindByRegion(region Region) (realms []Realm, err error)
 
 func (self RealmManager) FindByIds(ids []int64) (realms []Realm, err error) {
 	var values []string
-	if values, err = self.Client.Main.FetchFromIds(self, ids); err != nil {
+	if values, err = self.RegionManager.Client.Main.FetchFromIds(self, ids); err != nil {
 		return
 	}
 
@@ -264,7 +263,7 @@ func (self RealmManager) FindByIds(ids []int64) (realms []Realm, err error) {
 }
 
 func (self RealmManager) FindOneById(id int64) (realm Realm, err error) {
-	v, err := self.Client.Main.FetchFromId(self, id)
+	v, err := self.RegionManager.Client.Main.FetchFromId(self, id)
 	if err != nil {
 		return
 	}
@@ -274,7 +273,7 @@ func (self RealmManager) FindOneById(id int64) (realm Realm, err error) {
 
 func (self RealmManager) FindOneByRegionAndSlug(region Region, slug string) (realm Realm, err error) {
 	var v string
-	v, err = self.Client.Main.FetchFromKey(self, realmNameKey(region, slug))
+	v, err = self.RegionManager.Client.Main.FetchFromKey(self, realmNameKey(region, slug))
 	if err != nil {
 		return
 	}

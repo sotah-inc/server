@@ -121,7 +121,7 @@ func GetRealms(client Cache.Client, regions []Entity.Region) (map[int64][]Entity
 		err          error
 	)
 	regionRealms = map[int64][]Entity.Realm{}
-	realmManager := Entity.RealmManager{Client: client}
+	realmManager := Entity.RealmManager{RegionManager: Entity.RegionManager{Client: client}}
 
 	// going over the regions to download the statuses
 	c := make(chan Status.Result, len(regions))

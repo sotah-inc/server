@@ -60,7 +60,7 @@ func main() {
 			return
 		}
 
-		realmManager := Entity.RealmManager{Client: cacheClient}
+		realmManager := Entity.RealmManager{RegionManager: regionManager}
 		for _, region := range regions {
 			if regionRealms[region.Id], err = realmManager.FindByRegion(region); err != nil {
 				output.Write(fmt.Sprintf("RealmManager.FindByRegion() fail: %s", err.Error()))
