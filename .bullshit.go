@@ -52,7 +52,7 @@ func main() {
 		}
 
 		for _, realm := range realms {
-			characterManager := Character.Manager{Realm: realm, Client: cacheClient}
+			characterManager := Character.Manager{Realm: realm, RealmManager: realmManager, Client: cacheClient}
 			var characters []Character.Character
 			if characters, err = characterManager.FindAll(); err != nil {
 				output.Write(fmt.Sprintf("CharacterManager.FindAll() fail: %s", err.Error()))
