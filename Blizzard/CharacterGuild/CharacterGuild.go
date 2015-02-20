@@ -26,6 +26,10 @@ type Response struct {
 	TotalHonorableKills int64
 }
 
+func (self Response) IsValid() bool { return self.LastModified != 0 }
+
+func (self Response) HasGuild() bool { return len(self.Guild.Name) > 0 }
+
 /*
 	Guild
 */
