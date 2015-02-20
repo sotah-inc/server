@@ -18,6 +18,8 @@ type Queue struct {
 	ItemizeOut               chan ItemizeResult
 	CharacterGuildsResultIn  chan DownloadResult
 	CharacterGuildsResultOut chan CharacterGuildsResult
+	CharacterGuildResultIn   chan Character.Character
+	CharacterGuildResultOut  chan CharacterGuildResult
 	CacheClient              Cache.Client
 }
 
@@ -247,19 +249,54 @@ func (self Queue) ResolveCharacterGuilds(downloadResult DownloadResult) {
 		return
 	}
 
-	// going over the characters to gather the guild name
+	// re-assigning the character-guild-result channel and queueing them all up
+	self.CharacterGuildResultIn = make(chan Character.Character, len(characters))
 	for _, character := range characters {
-		var response *CharacterGuild.Response
-		if response, err = CharacterGuild.Get(character, self.CacheClient.ApiKey); err != nil {
-			result.Err = errors.New(fmt.Sprintf("CharacterGuild.Get() failed (%s)", err.Error()))
-			self.CharacterGuildsResultOut <- result
-			return
+		fmt.Println(fmt.Sprintf("Resolving guild for %s", character.Name))
+		self.CharacterGuildResultIn <- character
+	}
+
+	// gathering the results
+	outResults := []CharacterGuildResult{}
+	for i := 0; i < len(characters); i++ {
+		outResult := <-self.CharacterGuildResultOut
+
+		response := outResult.Response
+		character := outResult.Character
+		if response.IsValid() && response.HasGuild() {
+			fmt.Println(fmt.Sprintf("Character %s has guild: %s", character.Name, response.Guild.Name))
 		}
 
-		if response.IsValid() && response.HasGuild() {
-			fmt.Println(fmt.Sprintf("Guild: %s", response.Guild.Name))
+		outResults = append(outResults, outResult)
+	}
+
+	// going over the results
+	for _, outResult := range outResults {
+		if err = outResult.Err; err != nil {
+			result.Err = errors.New(fmt.Sprintf("CharacterGuildResultOut had an error (%s)", err.Error()))
+			self.CharacterGuildsResultOut <- result
+			return
 		}
 	}
 
 	self.CharacterGuildsResultOut <- result
+}
+
+func (self Queue) ResolveCharacterGuild(character Character.Character) {
+	// misc
+	result := CharacterGuildResult{Character: character}
+
+	// fetching the character info
+	var (
+		response *CharacterGuild.Response
+		err      error
+	)
+	if response, err = CharacterGuild.Get(character, self.CacheClient.ApiKey); err != nil {
+		result.Err = errors.New(fmt.Sprintf("CharacterGuild.Get() failed (%s)", err.Error()))
+		self.CharacterGuildResultOut <- result
+		return
+	}
+
+	result.Response = response
+	self.CharacterGuildResultOut <- result
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Entity"
+	"github.com/ihsw/go-download/Entity/Character"
 	"github.com/ihsw/go-download/Misc"
 	"github.com/ihsw/go-download/Util"
 	"github.com/ihsw/go-download/Work"
@@ -102,9 +103,11 @@ func main() {
 		ItemizeOut:               make(chan Work.ItemizeResult, totalRealms),
 		CharacterGuildsResultIn:  make(chan Work.DownloadResult, totalRealms),
 		CharacterGuildsResultOut: make(chan Work.CharacterGuildsResult, totalRealms),
+		CharacterGuildResultIn:   make(chan Character.Character),
+		CharacterGuildResultOut:  make(chan Work.CharacterGuildResult),
 	}
 
-	// spawning some download and itemize workers
+	// spawning the workers
 	downloadWorkerCount := 4
 	for j := 0; j < downloadWorkerCount; j++ {
 		go func(queue Work.Queue) {
@@ -121,6 +124,11 @@ func main() {
 	go func(queue Work.Queue) {
 		for {
 			queue.ResolveCharacterGuilds(<-queue.CharacterGuildsResultIn)
+		}
+	}(queue)
+	go func(queue Work.Queue) {
+		for {
+			queue.ResolveCharacterGuild(<-queue.CharacterGuildResultIn)
 		}
 	}(queue)
 
