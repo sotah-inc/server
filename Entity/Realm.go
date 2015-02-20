@@ -207,6 +207,7 @@ func (self RealmManager) unmarshalAll(values []string) (realms []Realm, err erro
 
 		realms[i] = realm
 
+		// region
 		regionId := realmJson.RegionId
 		if _, ok := regionKeysBack[regionId]; !ok {
 			regionKeysBack[regionId] = []int64{int64(i)}
@@ -247,6 +248,15 @@ func (self RealmManager) FindByRegion(region Region) (realms []Realm, err error)
 	var values []string
 	values, err = main.FetchFromIds(self, ids)
 	if err != nil {
+		return
+	}
+
+	return self.unmarshalAll(values)
+}
+
+func (self RealmManager) FindByIds(ids []int64) (realms []Realm, err error) {
+	var values []string
+	if values, err = self.Client.Main.FetchFromIds(self, ids); err != nil {
 		return
 	}
 
