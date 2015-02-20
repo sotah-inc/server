@@ -97,7 +97,7 @@ func main() {
 	// misc
 	queue := Work.Queue{
 		DownloadIn:  make(chan Entity.Realm, totalRealms),
-		DownloadOut: make(chan Work.DownloadResult, totalRealms),
+		ItemizeIn:   make(chan Work.DownloadResult, totalRealms),
 		ItemizeOut:  make(chan Work.ItemizeResult, totalRealms),
 		CacheClient: cacheClient,
 	}
@@ -113,7 +113,7 @@ func main() {
 	}
 	go func(queue Work.Queue) {
 		for {
-			queue.ItemizeRealm(<-queue.DownloadOut)
+			queue.ItemizeRealm(<-queue.ItemizeIn)
 		}
 	}(queue)
 

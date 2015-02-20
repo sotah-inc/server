@@ -12,10 +12,11 @@ import (
 )
 
 type Queue struct {
-	DownloadIn  chan Entity.Realm
-	DownloadOut chan DownloadResult
-	ItemizeOut  chan ItemizeResult
-	CacheClient Cache.Client
+	DownloadIn             chan Entity.Realm
+	ItemizeIn              chan DownloadResult
+	ItemizeOut             chan ItemizeResult
+	CharacterGuildResultIn chan ItemizeResult
+	CacheClient            Cache.Client
 }
 
 func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRealms int) (map[int64][]Entity.Realm, error) {
@@ -112,14 +113,14 @@ func (self Queue) DownloadRealm(realm Entity.Realm, skipAlreadyChecked bool) {
 	)
 	if auctionResponse, err = Auction.Get(realm, self.CacheClient.ApiKey); err != nil {
 		result.Err = errors.New(fmt.Sprintf("Auction.Get() failed (%s)", err.Error()))
-		self.DownloadOut <- result
+		self.ItemizeIn <- result
 		return
 	}
 
 	// optionally halting on empty response
 	if auctionResponse == nil {
 		result.ResponseFailed = true
-		self.DownloadOut <- result
+		self.ItemizeIn <- result
 		return
 	}
 
@@ -130,21 +131,21 @@ func (self Queue) DownloadRealm(realm Entity.Realm, skipAlreadyChecked bool) {
 	if skipAlreadyChecked && !realm.LastDownloaded.IsZero() && (realm.LastDownloaded.Equal(result.LastModified) || realm.LastDownloaded.After(result.LastModified)) {
 		realm.LastChecked = time.Now()
 		result.AlreadyChecked = true
-		self.DownloadOut <- result
+		self.ItemizeIn <- result
 		return
 	}
 
 	// fetching the actual auction data
 	if result.AuctionDataResponse = AuctionData.Get(realm, file.Url); result.AuctionDataResponse == nil {
 		result.ResponseFailed = true
-		self.DownloadOut <- result
+		self.ItemizeIn <- result
 		return
 	}
 
 	// dumping the auction data for parsing after itemize-results are tabulated
 	if err = result.dumpData(); err != nil {
 		result.Err = errors.New(fmt.Sprintf("DownloadResult.dumpData() failed: %s", err.Error()))
-		self.DownloadOut <- result
+		self.ItemizeIn <- result
 		return
 	}
 
@@ -155,7 +156,7 @@ func (self Queue) DownloadRealm(realm Entity.Realm, skipAlreadyChecked bool) {
 	result.realm = realm
 
 	// queueing it out
-	self.DownloadOut <- result
+	self.ItemizeIn <- result
 }
 
 func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
