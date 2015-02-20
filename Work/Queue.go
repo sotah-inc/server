@@ -256,9 +256,9 @@ func (self Queue) ResolveCharacterGuilds(downloadResult DownloadResult) {
 			return
 		}
 
-		fmt.Println(fmt.Sprintf("%v", response))
-
-		break
+		if response.IsValid() && response.HasGuild() {
+			fmt.Println(fmt.Sprintf("Guild: %s", response.Guild.Name))
+		}
 	}
 
 	self.CharacterGuildResultOut <- result
