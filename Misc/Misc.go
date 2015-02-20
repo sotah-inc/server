@@ -46,7 +46,7 @@ func newCacheClient(c Config.ConnectionList) (client Cache.Client, err error) {
 }
 
 func getRegions(client Cache.Client, configRegions []Config.Region) (regions []Entity.Region, err error) {
-	regionManager := Entity.RegionManager{Client: client}
+	regionManager := Entity.NewRegionManager(client)
 	localeManager := Entity.LocaleManager{Client: client}
 
 	for _, configRegion := range configRegions {
@@ -121,7 +121,7 @@ func GetRealms(client Cache.Client, regions []Entity.Region) (map[int64][]Entity
 		err          error
 	)
 	regionRealms = map[int64][]Entity.Realm{}
-	realmManager := Entity.RealmManager{RegionManager: Entity.RegionManager{Client: client}}
+	realmManager := Entity.NewRealmManager(client)
 
 	// going over the regions to download the statuses
 	c := make(chan Status.Result, len(regions))

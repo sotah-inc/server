@@ -36,8 +36,8 @@ func main() {
 	/*
 		bullshit
 	*/
-	regionManager := Entity.RegionManager{Client: cacheClient}
-	realmManager := Entity.RealmManager{RegionManager: regionManager}
+	regionManager := Entity.NewRegionManager(cacheClient)
+	realmManager := Entity.NewRealmManager(cacheClient)
 	var regions []Entity.Region
 	if regions, err = regionManager.FindAll(); err != nil {
 		output.Write(fmt.Sprintf("RegionManager.FindAll() fail: %s", err.Error()))
@@ -52,7 +52,7 @@ func main() {
 		}
 
 		for _, realm := range realms {
-			characterManager := Character.Manager{Realm: realm, RealmManager: realmManager, Client: cacheClient}
+			characterManager := Character.Manager{Realm: realm, RealmManager: realmManager}
 			var names []string
 			if names, err = characterManager.GetNames(); err != nil {
 				output.Write(fmt.Sprintf("CharacterManager.FindAll() fail: %s", err.Error()))

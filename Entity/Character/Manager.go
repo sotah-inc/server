@@ -16,19 +16,27 @@ func characterNameKey(realm Entity.Realm, name string) string {
 	return fmt.Sprintf("realm:%d:character:%s:id", realm.Id, Util.Md5Encode(name))
 }
 
+func NewManager(realm Entity.Realm, client Cache.Client) Manager {
+	return Manager{
+		Realm:        realm,
+		RealmManager: Entity.NewRealmManager(client),
+	}
+}
+
 /*
 	manager
 */
 type Manager struct {
-	Client       Cache.Client
 	Realm        Entity.Realm
 	RealmManager Entity.RealmManager
 }
 
 func (self Manager) Namespace() string { return fmt.Sprintf("realm:%d:character", self.Realm.Id) }
 
+func (self Manager) Client() Cache.Client { return self.RealmManager.Client() }
+
 func (self Manager) PersistAll(newCharacters []Character) (err error) {
-	m := self.Client.Main
+	m := self.Client().Main
 
 	// ids
 	var ids []int64
@@ -144,7 +152,7 @@ func (self Manager) unmarshalAll(values []string) (characters []Character, err e
 }
 
 func (self Manager) FindAll() (characters []Character, err error) {
-	main := self.Client.Main
+	main := self.Client().Main
 
 	// fetching ids
 	ids, err := main.FetchIds(fmt.Sprintf("realm:%d:character_ids", self.Realm.Id), 0, -1)
@@ -164,7 +172,7 @@ func (self Manager) FindAll() (characters []Character, err error) {
 
 func (self Manager) FindOneByName(name string) (character Character, err error) {
 	var v string
-	v, err = self.Client.Main.FetchFromKey(self, characterNameKey(self.Realm, name))
+	v, err = self.Client().Main.FetchFromKey(self, characterNameKey(self.Realm, name))
 	if err != nil {
 		return
 	}
@@ -173,19 +181,19 @@ func (self Manager) FindOneByName(name string) (character Character, err error) 
 }
 
 func (self Manager) NameExists(name string) (exists bool, err error) {
-	return self.Client.Main.SIsMember(fmt.Sprintf("realm:%d:character_names", self.Realm.Id), name)
+	return self.Client().Main.SIsMember(fmt.Sprintf("realm:%d:character_names", self.Realm.Id), name)
 }
 
 func (self Manager) NamesExist(names []string) (exists []bool, err error) {
-	return self.Client.Main.SIsMemberAll(fmt.Sprintf("realm:%d:character_names", self.Realm.Id), names)
+	return self.Client().Main.SIsMemberAll(fmt.Sprintf("realm:%d:character_names", self.Realm.Id), names)
 }
 
 func (self Manager) GetNames() (names []string, err error) {
-	return self.Client.Main.SMembers(fmt.Sprintf("realm:%d:character_names", self.Realm.Id))
+	return self.Client().Main.SMembers(fmt.Sprintf("realm:%d:character_names", self.Realm.Id))
 }
 
 func (self Manager) GetIds() (ids []int64, err error) {
-	if ids, err = self.Client.Main.FetchIds(fmt.Sprintf("realm:%d:character_ids", self.Realm.Id), 0, -1); err != nil {
+	if ids, err = self.Client().Main.FetchIds(fmt.Sprintf("realm:%d:character_ids", self.Realm.Id), 0, -1); err != nil {
 		return
 	}
 
@@ -194,7 +202,7 @@ func (self Manager) GetIds() (ids []int64, err error) {
 
 func (self Manager) GetLastId() (id int64, err error) {
 	var v string
-	if v, err = self.Client.Main.Get(fmt.Sprintf("realm:%d:character_id", self.Realm.Id)); err != nil {
+	if v, err = self.Client().Main.Get(fmt.Sprintf("realm:%d:character_id", self.Realm.Id)); err != nil {
 		return
 	}
 

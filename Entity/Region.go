@@ -15,6 +15,8 @@ func regionNameKey(name string) string {
 	return fmt.Sprintf("region:%s:id", Util.Md5Encode(name))
 }
 
+func NewRegionManager(client Cache.Client) RegionManager { return RegionManager{Client: client} }
+
 /*
 	Region
 */
