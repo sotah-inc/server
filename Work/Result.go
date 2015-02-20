@@ -5,12 +5,6 @@ import (
 )
 
 type Result struct {
-	ResponseFailed bool
-	AlreadyChecked bool
-	Err            error
-	realm          Entity.Realm
-}
-
-func (self Result) CanContinue() bool {
-	return !self.AlreadyChecked && !self.ResponseFailed
+	Err   error
+	realm Entity.Realm
 }

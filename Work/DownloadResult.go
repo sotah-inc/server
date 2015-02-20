@@ -12,7 +12,7 @@ import (
 )
 
 type DownloadResult struct {
-	Result
+	AuctionDataResult
 	AuctionDataResponse *AuctionData.Response
 	LastModified        time.Time
 }

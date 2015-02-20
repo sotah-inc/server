@@ -1,6 +1,6 @@
 package Work
 
 type ItemizeResult struct {
-	Result
+	AuctionDataResult
 	blizzItemIds []int64
 }
