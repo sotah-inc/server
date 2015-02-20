@@ -178,3 +178,11 @@ func (self RegionManager) FindAll() (regions []Region, err error) {
 
 	return self.unmarshalAll(values)
 }
+func (self RegionManager) FindByIds(ids []int64) (regions []Region, err error) {
+	var values []string
+	if values, err = self.Client.Main.FetchFromIds(self, ids); err != nil {
+		return
+	}
+
+	return self.unmarshalAll(values)
+}

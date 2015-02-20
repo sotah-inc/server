@@ -90,7 +90,8 @@ func (self RealmJson) marshal() (string, error) {
 	RealmManager
 */
 type RealmManager struct {
-	Client Cache.Client
+	Client        Cache.Client
+	RegionManager RegionManager
 }
 
 func (self RealmManager) Namespace() string { return "realm" }
@@ -149,68 +150,87 @@ func (self RealmManager) unmarshal(v string) (realm Realm, err error) {
 		return
 	}
 
-	// json
-	var realmJson RealmJson
-	b := []byte(v)
-	err = json.Unmarshal(b, &realmJson)
-	if err != nil {
+	var realms []Realm
+	if realms, err = self.unmarshalAll([]string{v}); err != nil {
 		return
 	}
 
-	// initial
-	realm = Realm{
-		Id:          realmJson.Id,
-		Name:        realmJson.Name,
-		Slug:        realmJson.Slug,
-		Battlegroup: realmJson.Battlegroup,
-		Type:        realmJson.Type,
-		Status:      realmJson.Status,
-		Population:  realmJson.Population,
-	}
-
-	// last-downloaded and last-checked
-	if len(realmJson.LastDownloaded) > 0 {
-		var lastDownloaded int64
-		lastDownloaded, err = strconv.ParseInt(realmJson.LastDownloaded, 10, 64)
-		if err != nil {
-			return
-		}
-
-		realm.LastDownloaded = time.Unix(lastDownloaded, 0)
-	}
-	if len(realmJson.LastChecked) > 0 {
-		var lastChecked int64
-		lastChecked, err = strconv.ParseInt(realmJson.LastChecked, 10, 64)
-		if err != nil {
-			return
-		}
-
-		realm.LastChecked = time.Unix(lastChecked, 0)
-	}
-
-	// resolving the region
-	regionManager := RegionManager{Client: self.Client}
-	region, err := regionManager.FindOneById(realmJson.RegionId)
-	if err != nil {
-		return
-	}
-	if !region.IsValid() {
-		err = errors.New(fmt.Sprintf("Region #%d could not be found!", realmJson.RegionId))
-		return
-	}
-	realm.Region = region
-
-	return realm, nil
+	return realms[0], nil
 }
 
 func (self RealmManager) unmarshalAll(values []string) (realms []Realm, err error) {
+	// misc
 	realms = make([]Realm, len(values))
+
+	// resolving the realms
+	regionIds := []int64{}
+	regionKeysBack := map[int64][]int64{}
 	for i, v := range values {
-		realms[i], err = self.unmarshal(v)
-		if err != nil {
+		if len(v) == 0 {
+			continue
+		}
+
+		// json
+		realmJson := RealmJson{}
+		if err = json.Unmarshal([]byte(v), &realmJson); err != nil {
 			return
 		}
+
+		// initial
+		realm := Realm{
+			Id:          realmJson.Id,
+			Name:        realmJson.Name,
+			Slug:        realmJson.Slug,
+			Battlegroup: realmJson.Battlegroup,
+			Type:        realmJson.Type,
+			Status:      realmJson.Status,
+			Population:  realmJson.Population,
+		}
+
+		// last-downloaded and last-checked
+		if len(realmJson.LastDownloaded) > 0 {
+			var lastDownloaded int64
+			if lastDownloaded, err = strconv.ParseInt(realmJson.LastDownloaded, 10, 64); err != nil {
+				return
+			}
+
+			realm.LastDownloaded = time.Unix(lastDownloaded, 0)
+		}
+		if len(realmJson.LastChecked) > 0 {
+			var lastChecked int64
+			if lastChecked, err = strconv.ParseInt(realmJson.LastChecked, 10, 64); err != nil {
+				return
+			}
+
+			realm.LastChecked = time.Unix(lastChecked, 0)
+		}
+
+		realms[i] = realm
+
+		regionId := realmJson.RegionId
+		if _, ok := regionKeysBack[regionId]; !ok {
+			regionKeysBack[regionId] = []int64{int64(i)}
+			regionIds = append(regionIds, regionId)
+		} else {
+			regionKeysBack[regionId] = append(regionKeysBack[regionId], int64(i))
+		}
 	}
+
+	// resolving the regions
+	var regions []Region
+	if regions, err = self.RegionManager.FindByIds(regionIds); err != nil {
+		return
+	}
+	for _, region := range regions {
+		if !region.IsValid() {
+			err = errors.New("Invalid region found!")
+			return
+		}
+		for _, i := range regionKeysBack[region.Id] {
+			realms[i].Region = region
+		}
+	}
+
 	return
 }
 

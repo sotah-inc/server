@@ -7,7 +7,6 @@ import (
 	"github.com/ihsw/go-download/Entity"
 	"github.com/ihsw/go-download/Misc"
 	"github.com/ihsw/go-download/Util"
-	"github.com/ihsw/go-download/Work"
 	"runtime"
 	"time"
 )
@@ -37,42 +36,29 @@ func main() {
 		bullshit
 	*/
 	regionManager := Entity.RegionManager{Client: cacheClient}
-	realmManager := Entity.RealmManager{Client: cacheClient}
-	var region Entity.Region
-	if region, err = regionManager.FindOneByName("us"); err != nil {
-		output.Write(fmt.Sprintf("RegionManager.FindOneByName() fail: %s", err.Error()))
+	realmManager := Entity.RealmManager{Client: cacheClient, RegionManager: regionManager}
+	var regions []Entity.Region
+	if regions, err = regionManager.FindAll(); err != nil {
+		output.Write(fmt.Sprintf("RegionManager.FindAll() fail: %s", err.Error()))
 		return
 	}
-	var realm Entity.Realm
-	if realm, err = realmManager.FindOneByRegionAndSlug(region, "earthen-ring"); err != nil {
-		output.Write(fmt.Sprintf("RealmManager.FindOneByRegionAndSlug() fail: %s", err.Error()))
-		return
-	}
-
-	queue := Work.Queue{
-		CacheClient: cacheClient,
-		DownloadIn:  make(chan Entity.Realm, 1),
-		DownloadOut: make(chan Work.DownloadResult, 1),
-		ItemizeOut:  make(chan Work.ItemizeResult, 1),
-	}
-
-	go func(queue Work.Queue) {
-		for {
-			queue.DownloadRealm(<-queue.DownloadIn, false)
+	realmCount := 0
+	for _, region := range regions {
+		var realms []Entity.Realm
+		if realms, err = realmManager.FindByRegion(region); err != nil {
+			output.Write(fmt.Sprintf("RealmManager.FindByRegion() fail: %s", err.Error()))
+			return
 		}
-	}(queue)
-	go func(queue Work.Queue) {
-		for {
-			queue.ItemizeRealm(<-queue.DownloadOut)
-		}
-	}(queue)
+		realmCount += len(realms)
 
-	regionRealms := map[int64][]Entity.Realm{}
-	regionRealms[region.Id] = []Entity.Realm{realm}
-	if regionRealms, err = queue.DownloadRealms(regionRealms, 1); err != nil {
-		output.Write(fmt.Sprintf("queue.DownloadRealms() fail: %s", err.Error()))
-		return
+		for _, realm := range realms {
+			if !realm.Region.IsValid() {
+				output.Write(fmt.Sprintf("Realm %d region is invalid!", realm.Id))
+				return
+			}
+		}
 	}
+	output.Write(fmt.Sprintf("Realm count: %d", realmCount))
 
 	output.Conclude()
 }
