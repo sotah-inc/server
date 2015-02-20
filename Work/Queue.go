@@ -12,11 +12,12 @@ import (
 )
 
 type Queue struct {
-	DownloadIn             chan Entity.Realm
-	ItemizeIn              chan DownloadResult
-	ItemizeOut             chan ItemizeResult
-	CharacterGuildResultIn chan ItemizeResult
-	CacheClient            Cache.Client
+	DownloadIn              chan Entity.Realm
+	ItemizeIn               chan DownloadResult
+	ItemizeOut              chan ItemizeResult
+	CharacterGuildResultIn  chan DownloadResult
+	CharacterGuildResultOut chan CharacterGuildResult
+	CacheClient             Cache.Client
 }
 
 func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRealms int) (map[int64][]Entity.Realm, error) {
@@ -48,24 +49,31 @@ func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRea
 
 	// waiting for the results to drain out
 	itemizeResults := ItemizeResults{list: []ItemizeResult{}}
-	for i := 0; i < totalRealms; i++ {
-		result := <-self.ItemizeOut
+	for i := 0; i < totalRealms*2; i++ {
+		select {
+		case result := <-self.ItemizeOut:
+			if result.Err != nil {
+				err = errors.New(fmt.Sprintf("itemizeOut %s (%d) had an error (%s)", result.realm.Dump(), result.realm.Id, result.Err.Error()))
+				return regionRealms, err
+			}
 
-		// optionally halting on error
-		if result.Err != nil {
-			err = errors.New(fmt.Sprintf("itemizeOut %s (%d) had an error (%s)", result.realm.Dump(), result.realm.Id, result.Err.Error()))
-			return regionRealms, err
+			if result.ResponseFailed {
+				continue
+			}
+
+			if result.AlreadyChecked {
+				continue
+			}
+
+			itemizeResults.list = append(itemizeResults.list, result)
+		case result := <-self.CharacterGuildResultOut:
+			if result.Err != nil {
+				err = errors.New(fmt.Sprintf("characterGuildResultOut %s (%d) had an error (%s)", result.realm.Dump(), result.realm.Id, err.Error()))
+				return regionRealms, err
+			}
+
+			fmt.Println(fmt.Sprintf("CharacterGuildResult for %s was success!", result.realm.Dump()))
 		}
-
-		if result.ResponseFailed {
-			continue
-		}
-
-		if result.AlreadyChecked {
-			continue
-		}
-
-		itemizeResults.list = append(itemizeResults.list, result)
 	}
 
 	// refresing the region-realms list
@@ -101,10 +109,15 @@ func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRea
 	return regionRealms, nil
 }
 
+func (self Queue) downloadOut(result DownloadResult) {
+	self.ItemizeIn <- result
+	self.CharacterGuildResultIn <- result
+}
+
 func (self Queue) DownloadRealm(realm Entity.Realm, skipAlreadyChecked bool) {
 	// misc
 	realmManager := Entity.NewRealmManager(self.CacheClient)
-	result := DownloadResult{AuctionDataResult: AuctionDataResult{Result: Result{realm: realm}}}
+	result := NewDownloadResult(realm)
 
 	// fetching the auction info
 	var (
@@ -113,14 +126,14 @@ func (self Queue) DownloadRealm(realm Entity.Realm, skipAlreadyChecked bool) {
 	)
 	if auctionResponse, err = Auction.Get(realm, self.CacheClient.ApiKey); err != nil {
 		result.Err = errors.New(fmt.Sprintf("Auction.Get() failed (%s)", err.Error()))
-		self.ItemizeIn <- result
+		self.downloadOut(result)
 		return
 	}
 
 	// optionally halting on empty response
 	if auctionResponse == nil {
 		result.ResponseFailed = true
-		self.ItemizeIn <- result
+		self.downloadOut(result)
 		return
 	}
 
@@ -131,21 +144,21 @@ func (self Queue) DownloadRealm(realm Entity.Realm, skipAlreadyChecked bool) {
 	if skipAlreadyChecked && !realm.LastDownloaded.IsZero() && (realm.LastDownloaded.Equal(result.LastModified) || realm.LastDownloaded.After(result.LastModified)) {
 		realm.LastChecked = time.Now()
 		result.AlreadyChecked = true
-		self.ItemizeIn <- result
+		self.downloadOut(result)
 		return
 	}
 
 	// fetching the actual auction data
 	if result.AuctionDataResponse = AuctionData.Get(realm, file.Url); result.AuctionDataResponse == nil {
 		result.ResponseFailed = true
-		self.ItemizeIn <- result
+		self.downloadOut(result)
 		return
 	}
 
 	// dumping the auction data for parsing after itemize-results are tabulated
 	if err = result.dumpData(); err != nil {
 		result.Err = errors.New(fmt.Sprintf("DownloadResult.dumpData() failed: %s", err.Error()))
-		self.ItemizeIn <- result
+		self.downloadOut(result)
 		return
 	}
 
@@ -156,13 +169,13 @@ func (self Queue) DownloadRealm(realm Entity.Realm, skipAlreadyChecked bool) {
 	result.realm = realm
 
 	// queueing it out
-	self.ItemizeIn <- result
+	self.downloadOut(result)
 }
 
 func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 	// misc
 	realm := downloadResult.realm
-	result := ItemizeResult{AuctionDataResult: downloadResult.AuctionDataResult}
+	result := NewItemizeResult(downloadResult.AuctionDataResult)
 
 	// optionally halting on error
 	if downloadResult.Err != nil {
@@ -207,4 +220,19 @@ func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 
 	// queueing it out
 	self.ItemizeOut <- result
+}
+
+func (self Queue) ResolveCharacterGuilds(downloadResult DownloadResult) {
+	// misc
+	realm := downloadResult.realm
+	result := NewCharacterGuildResult(realm)
+
+	// optionally halting on error
+	if downloadResult.Err != nil {
+		result.Err = errors.New(fmt.Sprintf("downloadResult had an error (%s)", downloadResult.Err.Error()))
+		self.CharacterGuildResultOut <- result
+		return
+	}
+
+	self.CharacterGuildResultOut <- result
 }

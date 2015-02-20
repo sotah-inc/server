@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ihsw/go-download/Blizzard/AuctionData"
+	"github.com/ihsw/go-download/Entity"
 	"github.com/ihsw/go-download/Entity/Character"
 	"github.com/ihsw/go-download/Util"
 	"io/ioutil"
@@ -11,6 +12,16 @@ import (
 	"time"
 )
 
+/*
+	funcs
+*/
+func NewDownloadResult(realm Entity.Realm) DownloadResult {
+	return DownloadResult{AuctionDataResult: NewAuctionDataResult(realm)}
+}
+
+/*
+	DownloadResult
+*/
 type DownloadResult struct {
 	AuctionDataResult
 	AuctionDataResponse *AuctionData.Response

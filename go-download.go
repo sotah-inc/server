@@ -96,10 +96,12 @@ func main() {
 	*/
 	// misc
 	queue := Work.Queue{
-		DownloadIn:  make(chan Entity.Realm, totalRealms),
-		ItemizeIn:   make(chan Work.DownloadResult, totalRealms),
-		ItemizeOut:  make(chan Work.ItemizeResult, totalRealms),
-		CacheClient: cacheClient,
+		CacheClient:             cacheClient,
+		DownloadIn:              make(chan Entity.Realm, totalRealms),
+		ItemizeIn:               make(chan Work.DownloadResult, totalRealms),
+		ItemizeOut:              make(chan Work.ItemizeResult, totalRealms),
+		CharacterGuildResultIn:  make(chan Work.DownloadResult, totalRealms),
+		CharacterGuildResultOut: make(chan Work.CharacterGuildResult, totalRealms),
 	}
 
 	// spawning some download and itemize workers
@@ -114,6 +116,11 @@ func main() {
 	go func(queue Work.Queue) {
 		for {
 			queue.ItemizeRealm(<-queue.ItemizeIn)
+		}
+	}(queue)
+	go func(queue Work.Queue) {
+		for {
+			queue.ResolveCharacterGuilds(<-queue.CharacterGuildResultIn)
 		}
 	}(queue)
 
