@@ -124,8 +124,9 @@ func (self Manager) unmarshalAll(values []string) (characters []Character, err e
 
 		// initial
 		characters[i] = Character{
-			Id:   characterJson.Id,
-			Name: characterJson.Name,
+			Id:        characterJson.Id,
+			Name:      characterJson.Name,
+			GuildName: characterJson.GuildName,
 		}
 
 		// realm
