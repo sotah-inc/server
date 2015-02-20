@@ -46,7 +46,7 @@ func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRea
 	}
 
 	// waiting for the results to drain out
-	results := []ItemizeResult{}
+	itemizeResults := ItemizeResults{list: []ItemizeResult{}}
 	for i := 0; i < totalRealms; i++ {
 		result := <-self.ItemizeOut
 
@@ -64,11 +64,11 @@ func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRea
 			continue
 		}
 
-		results = append(results, result)
+		itemizeResults.list = append(itemizeResults.list, result)
 	}
 
 	// refresing the region-realms list
-	for _, result := range results {
+	for _, result := range itemizeResults.list {
 		resultRealm := result.realm
 		resultRegion := resultRealm.Region
 		for i, realm := range regionRealms[resultRegion.Id] {
@@ -93,7 +93,6 @@ func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRea
 	}
 
 	// gathering new items
-	itemizeResults := ItemizeResults{list: results}
 	if err = itemManager.PersistAll(itemizeResults.getNewItems(existingBlizzIds)); err != nil {
 		return regionRealms, err
 	}
