@@ -96,12 +96,12 @@ func main() {
 	*/
 	// misc
 	queue := Work.Queue{
-		CacheClient:             cacheClient,
-		DownloadIn:              make(chan Entity.Realm, totalRealms),
-		ItemizeIn:               make(chan Work.DownloadResult, totalRealms),
-		ItemizeOut:              make(chan Work.ItemizeResult, totalRealms),
-		CharacterGuildResultIn:  make(chan Work.DownloadResult, totalRealms),
-		CharacterGuildResultOut: make(chan Work.CharacterGuildResult, totalRealms),
+		CacheClient:              cacheClient,
+		DownloadIn:               make(chan Entity.Realm, totalRealms),
+		ItemizeIn:                make(chan Work.DownloadResult, totalRealms),
+		ItemizeOut:               make(chan Work.ItemizeResult, totalRealms),
+		CharacterGuildsResultIn:  make(chan Work.DownloadResult, totalRealms),
+		CharacterGuildsResultOut: make(chan Work.CharacterGuildsResult, totalRealms),
 	}
 
 	// spawning some download and itemize workers
@@ -120,7 +120,7 @@ func main() {
 	}(queue)
 	go func(queue Work.Queue) {
 		for {
-			queue.ResolveCharacterGuilds(<-queue.CharacterGuildResultIn)
+			queue.ResolveCharacterGuilds(<-queue.CharacterGuildsResultIn)
 		}
 	}(queue)
 
@@ -132,6 +132,9 @@ func main() {
 		output.Write(fmt.Sprintf("Run.WorkQueue() #1 failed (%s)", err.Error()))
 		return
 	}
+
+	output.Conclude()
+	return
 
 	output.Write("Starting up the timed rotation...")
 	c := time.Tick(10 * time.Minute)

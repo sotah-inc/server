@@ -8,14 +8,14 @@ import (
 	funcs
 */
 func NewAuctionDataResult(realm Entity.Realm) AuctionDataResult {
-	return AuctionDataResult{Result: NewResult(realm)}
+	return AuctionDataResult{RealmResult: NewRealmResult(realm)}
 }
 
 /*
 	AuctionDataResult
 */
 type AuctionDataResult struct {
-	Result
+	RealmResult
 	ResponseFailed bool
 	AlreadyChecked bool
 }

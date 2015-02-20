@@ -13,12 +13,12 @@ import (
 )
 
 type Queue struct {
-	DownloadIn              chan Entity.Realm
-	ItemizeIn               chan DownloadResult
-	ItemizeOut              chan ItemizeResult
-	CharacterGuildResultIn  chan DownloadResult
-	CharacterGuildResultOut chan CharacterGuildResult
-	CacheClient             Cache.Client
+	DownloadIn               chan Entity.Realm
+	ItemizeIn                chan DownloadResult
+	ItemizeOut               chan ItemizeResult
+	CharacterGuildsResultIn  chan DownloadResult
+	CharacterGuildsResultOut chan CharacterGuildsResult
+	CacheClient              Cache.Client
 }
 
 func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRealms int) (map[int64][]Entity.Realm, error) {
@@ -67,13 +67,13 @@ func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRea
 			}
 
 			itemizeResults.list = append(itemizeResults.list, result)
-		case result := <-self.CharacterGuildResultOut:
+		case result := <-self.CharacterGuildsResultOut:
 			if result.Err != nil {
-				err = errors.New(fmt.Sprintf("characterGuildResultOut %s (%d) had an error (%s)", result.realm.Dump(), result.realm.Id, err.Error()))
+				err = errors.New(fmt.Sprintf("characterGuildsResultOut %s (%d) had an error (%s)", result.realm.Dump(), result.realm.Id, err.Error()))
 				return regionRealms, err
 			}
 
-			fmt.Println(fmt.Sprintf("CharacterGuildResult for %s was success!", result.realm.Dump()))
+			fmt.Println(fmt.Sprintf("CharacterGuildsResult for %s was success!", result.realm.Dump()))
 		}
 	}
 
@@ -112,7 +112,7 @@ func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRea
 
 func (self Queue) downloadOut(result DownloadResult) {
 	self.ItemizeIn <- result
-	self.CharacterGuildResultIn <- result
+	self.CharacterGuildsResultIn <- result
 }
 
 func (self Queue) DownloadRealm(realm Entity.Realm, skipAlreadyChecked bool) {
@@ -226,12 +226,12 @@ func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 func (self Queue) ResolveCharacterGuilds(downloadResult DownloadResult) {
 	// misc
 	realm := downloadResult.realm
-	result := NewCharacterGuildResult(realm)
+	result := NewCharacterGuildsResult(realm)
 
 	// optionally halting on error
 	if downloadResult.Err != nil {
 		result.Err = errors.New(fmt.Sprintf("downloadResult had an error (%s)", downloadResult.Err.Error()))
-		self.CharacterGuildResultOut <- result
+		self.CharacterGuildsResultOut <- result
 		return
 	}
 
@@ -243,7 +243,7 @@ func (self Queue) ResolveCharacterGuilds(downloadResult DownloadResult) {
 	)
 	if characters, err = characterManager.FindAll(); err != nil {
 		result.Err = errors.New(fmt.Sprintf("CharacterManager.FindAll() failed (%s)", err.Error()))
-		self.CharacterGuildResultOut <- result
+		self.CharacterGuildsResultOut <- result
 		return
 	}
 
@@ -252,7 +252,7 @@ func (self Queue) ResolveCharacterGuilds(downloadResult DownloadResult) {
 		var response *CharacterGuild.Response
 		if response, err = CharacterGuild.Get(character, self.CacheClient.ApiKey); err != nil {
 			result.Err = errors.New(fmt.Sprintf("CharacterGuild.Get() failed (%s)", err.Error()))
-			self.CharacterGuildResultOut <- result
+			self.CharacterGuildsResultOut <- result
 			return
 		}
 
@@ -261,5 +261,5 @@ func (self Queue) ResolveCharacterGuilds(downloadResult DownloadResult) {
 		}
 	}
 
-	self.CharacterGuildResultOut <- result
+	self.CharacterGuildsResultOut <- result
 }
