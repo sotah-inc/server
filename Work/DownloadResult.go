@@ -77,7 +77,7 @@ func (self DownloadResult) getNewCharacters(existingNames []string) (newCharacte
 	for name, _ := range newNames {
 		newCharacters[i] = Character.Character{
 			Name:  name,
-			Realm: self.realm,
+			Realm: self.Realm,
 		}
 		i++
 	}
@@ -86,13 +86,15 @@ func (self DownloadResult) getNewCharacters(existingNames []string) (newCharacte
 }
 
 func (self DownloadResult) dumpData() (err error) {
+	realm := self.Realm
+
 	var wd string
 	wd, err = os.Getwd()
 	if err != nil {
 		return
 	}
 
-	folder := fmt.Sprintf("%s/json/%s", wd, self.realm.Region.Name)
+	folder := fmt.Sprintf("%s/json/%s", wd, realm.Region.Name)
 	if _, err = os.Stat(folder); err != nil && os.IsNotExist(err) {
 		if err = os.MkdirAll(folder, 0777); err != nil {
 			return
@@ -100,7 +102,7 @@ func (self DownloadResult) dumpData() (err error) {
 	}
 
 	// removing the old non-gzipped data
-	oldDest := fmt.Sprintf("%s/%s.json", folder, self.realm.Slug)
+	oldDest := fmt.Sprintf("%s/%s.json", folder, realm.Slug)
 	if _, err = os.Stat(oldDest); err == nil {
 		err = os.Remove(oldDest)
 		if err != nil {
@@ -116,7 +118,7 @@ func (self DownloadResult) dumpData() (err error) {
 	if data, err = Util.GzipEncode(data); err != nil {
 		return
 	}
-	dest := fmt.Sprintf("%s/%s.json.gz", folder, self.realm.Slug)
+	dest := fmt.Sprintf("%s/%s.json.gz", folder, realm.Slug)
 	if err = ioutil.WriteFile(dest, data, 0777); err != nil {
 		return
 	}

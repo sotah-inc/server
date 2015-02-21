@@ -56,7 +56,7 @@ func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRea
 		select {
 		case result := <-self.ItemizeOut:
 			if result.Err != nil {
-				err = errors.New(fmt.Sprintf("itemizeOut %s (%d) had an error (%s)", result.realm.Dump(), result.realm.Id, result.Err.Error()))
+				err = errors.New(fmt.Sprintf("itemizeOut %s (%d) had an error (%s)", result.Realm.Dump(), result.Realm.Id, result.Err.Error()))
 				return regionRealms, err
 			}
 
@@ -71,24 +71,24 @@ func (self Queue) DownloadRealms(regionRealms map[int64][]Entity.Realm, totalRea
 			itemizeResults.list = append(itemizeResults.list, result)
 		case result := <-self.CharacterGuildsResultOut:
 			if result.Err != nil {
-				err = errors.New(fmt.Sprintf("characterGuildsResultOut %s (%d) had an error (%s)", result.realm.Dump(), result.realm.Id, err.Error()))
+				err = errors.New(fmt.Sprintf("characterGuildsResultOut %s (%d) had an error (%s)", result.Realm.Dump(), result.Realm.Id, err.Error()))
 				return regionRealms, err
 			}
 
-			fmt.Println(fmt.Sprintf("CharacterGuildsResult for %s was success!", result.realm.Dump()))
+			fmt.Println(fmt.Sprintf("CharacterGuildsResult for %s was success!", result.Realm.Dump()))
 		}
 	}
 
 	// refresing the region-realms list
 	for _, result := range itemizeResults.list {
-		resultRealm := result.realm
+		resultRealm := result.Realm
 		resultRegion := resultRealm.Region
 		for i, realm := range regionRealms[resultRegion.Id] {
 			if realm.Id != resultRealm.Id {
 				continue
 			}
 
-			regionRealms[result.realm.Region.Id][i] = resultRealm
+			regionRealms[resultRealm.Region.Id][i] = resultRealm
 		}
 	}
 
@@ -169,7 +169,7 @@ func (self Queue) DownloadRealm(realm Entity.Realm, skipAlreadyChecked bool) {
 	realm.LastDownloaded = result.LastModified
 	realm.LastChecked = time.Now()
 	realmManager.Persist(realm)
-	result.realm = realm
+	result.Realm = realm
 
 	// queueing it out
 	self.downloadOut(result)
@@ -177,7 +177,7 @@ func (self Queue) DownloadRealm(realm Entity.Realm, skipAlreadyChecked bool) {
 
 func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 	// misc
-	realm := downloadResult.realm
+	realm := downloadResult.Realm
 	result := NewItemizeResult(downloadResult.AuctionDataResult)
 
 	// optionally halting on error
@@ -227,7 +227,7 @@ func (self Queue) ItemizeRealm(downloadResult DownloadResult) {
 
 func (self Queue) ResolveCharacterGuilds(downloadResult DownloadResult) {
 	// misc
-	realm := downloadResult.realm
+	realm := downloadResult.Realm
 	result := NewCharacterGuildsResult(realm)
 
 	// optionally halting on error

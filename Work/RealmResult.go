@@ -8,7 +8,7 @@ import (
 	funcs
 */
 func NewRealmResult(realm Entity.Realm) RealmResult {
-	return RealmResult{realm: realm}
+	return RealmResult{Realm: realm}
 }
 
 /*
@@ -16,5 +16,5 @@ func NewRealmResult(realm Entity.Realm) RealmResult {
 */
 type RealmResult struct {
 	Result
-	realm Entity.Realm
+	Realm Entity.Realm
 }
