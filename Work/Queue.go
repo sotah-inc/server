@@ -250,16 +250,11 @@ func (self Queue) ResolveCharacterGuilds(itemizeResult ItemizeResult) {
 	}
 
 	// re-assigning the character-guild-result channel and queueing them all up
-	fmt.Println(fmt.Sprintf("%d characters in realm %s", len(characters), realm.Dump()))
-	self.CharacterGuildResultIn = make(chan Character.Character, len(characters))
-	for _, character := range characters {
-		fmt.Println(fmt.Sprintf("Resolving guild for %s", character.Name))
-		self.CharacterGuildResultIn <- character
-	}
-
-	// gathering the results
+	fmt.Println(fmt.Sprintf("Queueing up %d characters for guild resolution", len(characters)))
 	outResults := []CharacterGuildResult{}
-	for i := 0; i < len(characters); i++ {
+	for _, character := range characters {
+		self.CharacterGuildResultIn <- character
+
 		outResult := <-self.CharacterGuildResultOut
 
 		response := outResult.Response
@@ -284,6 +279,7 @@ func (self Queue) ResolveCharacterGuilds(itemizeResult ItemizeResult) {
 }
 
 func (self Queue) ResolveCharacterGuild(character Character.Character) {
+	fmt.Println(fmt.Sprintf("Resolving guild for character %s in realm %s", character.Name, character.Realm.Dump()))
 	// misc
 	result := CharacterGuildResult{Character: character}
 
@@ -298,6 +294,7 @@ func (self Queue) ResolveCharacterGuild(character Character.Character) {
 		return
 	}
 
+	fmt.Println("Pushing out the result...")
 	result.Response = response
 	self.CharacterGuildResultOut <- result
 }

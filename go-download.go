@@ -126,11 +126,14 @@ func main() {
 			queue.ResolveCharacterGuilds(<-queue.CharacterGuildsResultIn)
 		}
 	}(queue)
-	go func(queue Work.Queue) {
-		for {
-			queue.ResolveCharacterGuild(<-queue.CharacterGuildResultIn)
-		}
-	}(queue)
+	characterGuildWorkerCount := 8
+	for j := 0; j < characterGuildWorkerCount; j++ {
+		go func(queue Work.Queue) {
+			for {
+				queue.ResolveCharacterGuild(<-queue.CharacterGuildResultIn)
+			}
+		}(queue)
+	}
 
 	/*
 		going over the list
