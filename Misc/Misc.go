@@ -12,20 +12,6 @@ import (
 /*
 	funcs
 */
-func newCacheWrapper(c Config.Connection) (w Cache.Wrapper, err error) {
-	r := redis.NewTCPClient(&redis.Options{
-		Addr:     c.Host,
-		Password: c.Password,
-		DB:       c.Db,
-	})
-
-	ping := r.Ping()
-	if err = ping.Err(); err != nil {
-		return
-	}
-
-	return Cache.Wrapper{Redis: r}, nil
-}
 
 func newCacheClient(c Config.ConnectionList) (client Cache.Client, err error) {
 	client.Main, err = newCacheWrapper(c.Main)
@@ -75,15 +61,13 @@ func GetCacheClient(configPath string, flushDb bool) (cacheClient Cache.Client, 
 		return
 	}
 
-	// loading the config-file
-	configFile, err = Config.NewConfigFile(configPath)
-	if err != nil {
+	// opening the config
+	if configFile, err = Config.New(configPath); err != nil {
 		return
 	}
 
-	// connecting the clients
-	cacheClient, err = newCacheClient(configFile.ConnectionList)
-	if err != nil {
+	// connecting up the redis clients
+	if cacheClient, err = newCacheClient(configFile.ConnectionList); err != nil {
 		return
 	}
 	cacheClient.ApiKey = configFile.ApiKey

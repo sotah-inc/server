@@ -2,7 +2,7 @@ package Config
 
 import (
 	"encoding/json"
-	"github.com/ihsw/go-download/Entity"
+	redis "gopkg.in/redis.v2"
 	"io/ioutil"
 	"path/filepath"
 )
@@ -16,14 +16,6 @@ type Locale struct {
 	Shortname string
 }
 
-func (self Locale) ToEntity() Entity.Locale {
-	return Entity.Locale{
-		Name:      self.Name,
-		Fullname:  self.Fullname,
-		Shortname: self.Shortname,
-	}
-}
-
 /*
 	Region
 */
@@ -34,16 +26,8 @@ type Region struct {
 	Locales   []Locale
 }
 
-func (self Region) ToEntity() Entity.Region {
-	return Entity.Region{
-		Name:      self.Name,
-		Host:      self.Host,
-		Queryable: self.Queryable,
-	}
-}
-
 /*
-	connection info
+	Connection
 */
 type Connection struct {
 	Host     string
@@ -51,29 +35,47 @@ type Connection struct {
 	Db       int64
 }
 
+func (self Connection) Connect() (r *redis.Client, err error) {
+	r = redis.NewTCPClient(&redis.Options{
+		Addr:     self.Host,
+		Password: self.Password,
+		DB:       self.Db,
+	})
+
+	ping := r.Ping()
+	if err = ping.Err(); err != nil {
+		return
+	}
+
+	return
+}
+
 type ConnectionList struct {
 	Main Connection
 	Pool []Connection
 }
 
-type ConfigFile struct {
+/*
+	File
+*/
+type File struct {
 	ConnectionList ConnectionList `json:"redis"`
 	Regions        []Region
 	ApiKey         string
 }
 
-func NewConfigFile(source string) (configFile ConfigFile, err error) {
-	var sourceFilepath string
-	sourceFilepath, err = filepath.Abs(source)
-	if err != nil {
+func New(configPath string) (configFile File, err error) {
+	var fullConfigPath string
+	if fullConfigPath, err = filepath.Abs(configPath); err != nil {
 		return
 	}
-	b, err := ioutil.ReadFile(sourceFilepath)
-	if err != nil {
+
+	var b []byte
+	if b, err = ioutil.ReadFile(fullConfigPath); err != nil {
 		return
 	}
-	err = json.Unmarshal(b, &configFile)
-	if err != nil {
+
+	if err = json.Unmarshal(b, &configFile); err != nil {
 		return
 	}
 
