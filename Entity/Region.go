@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ihsw/go-download/Cache"
-	"github.com/ihsw/go-download/Config"
 	"github.com/ihsw/go-download/Util"
 	"strconv"
 )
