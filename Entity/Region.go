@@ -73,9 +73,9 @@ type RegionManager struct {
 
 func (self RegionManager) Namespace() string { return "region" }
 
-func (self RegionManager) PersistAll(inRegions []Region) (regions []Region, err error) {
+func (self RegionManager) PersistAll(values []Region) (regions []Region, err error) {
 	m := self.Client.Main
-	regions = inRegions
+	regions = values
 
 	// ids
 	var ids []int64
@@ -87,7 +87,7 @@ func (self RegionManager) PersistAll(inRegions []Region) (regions []Region, err 
 	}
 
 	// data
-	values := make([]Cache.PersistValue, len(regions))
+	persistValues := make([]Cache.PersistValue, len(regions))
 	hashedNameKeys := map[string]string{}
 	newIds := make([]string, len(regions))
 	for i, region := range regions {
@@ -98,7 +98,7 @@ func (self RegionManager) PersistAll(inRegions []Region) (regions []Region, err 
 			return
 		}
 
-		values[i] = Cache.PersistValue{
+		persistValues[i] = Cache.PersistValue{
 			BucketKey: bucketKey,
 			SubKey:    subKey,
 			Value:     s,
@@ -108,7 +108,7 @@ func (self RegionManager) PersistAll(inRegions []Region) (regions []Region, err 
 		hashedNameKeys[regionNameKey(region.Name)] = id
 		newIds[i] = id
 	}
-	if err = m.PersistAll(values); err != nil {
+	if err = m.PersistAll(persistValues); err != nil {
 		return
 	}
 	if err = m.SetAll(hashedNameKeys); err != nil {
