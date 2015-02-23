@@ -7,9 +7,6 @@ import (
 	"github.com/ihsw/go-download/Util"
 )
 
-/*
-	blizzard json response structs
-*/
 type PvpArea struct {
 	Area                int8
 	Controlling_Faction int8
@@ -17,15 +14,6 @@ type PvpArea struct {
 	Next                int64
 }
 
-type Response struct {
-	Realms []Realm
-}
-
-const URL_FORMAT = "https://%s/wow/realm/status?apikey=%s"
-
-/*
-	Realm
-*/
 type Realm struct {
 	Battlegroup string
 	Locale      string
@@ -40,46 +28,22 @@ type Realm struct {
 	Wintergrasp PvpArea
 }
 
-func (self Realm) ToEntity() Entity.Realm {
-	return Entity.Realm{
-		Name:        self.Name,
-		Slug:        self.Slug,
-		Battlegroup: self.Battlegroup,
-		Type:        self.Type,
-		Status:      self.Status,
-		Population:  self.Population,
-	}
+type Response struct {
+	Realms []Realm
 }
 
-/*
-	chan structs
-*/
-type Result struct {
-	Response Response
-	Region   Entity.Region
-	Error    error
-}
+const URL_FORMAT = "https://%s/wow/realm/status?apikey=%s"
 
-/*
-	funcs
-*/
-func Get(region Entity.Region, apiKey string, c chan Result) {
-	result := Result{
-		Response: Response{},
-		Region:   region,
-		Error:    nil,
-	}
-
+func Get(region Entity.Region, apiKey string) (response Response, err error) {
+	url := fmt.Sprintf(URL_FORMAT, region.Host, apiKey)
 	var b []byte
-	if b, result.Error = Util.Download(fmt.Sprintf(URL_FORMAT, region.Host, apiKey)); result.Error != nil {
-		c <- result
+	if b, err = Util.Download(url); err != nil {
 		return
 	}
 
-	if result.Error = json.Unmarshal(b, &result.Response); result.Error != nil {
-		c <- result
+	if err = json.Unmarshal(b, &response); err != nil {
 		return
 	}
 
-	c <- result
+	return
 }

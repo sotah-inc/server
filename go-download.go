@@ -3,8 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/ihsw/go-download/Blizzard/Status"
 	"github.com/ihsw/go-download/Cache"
-	"github.com/ihsw/go-download/Config"
+	"github.com/ihsw/go-download/Entity"
+	"github.com/ihsw/go-download/Misc"
 	"github.com/ihsw/go-download/Util"
 	"runtime"
 	"time"
@@ -15,32 +17,31 @@ func main() {
 
 	flushDb := flag.Bool("flush", false, "Clears all redis dbs")
 	configPath := flag.String("config", "", "Config path")
-	isProd := flag.Bool("prod", false, "Prod mode")
+	// isProd := flag.Bool("prod", false, "Prod mode")
 	flag.Parse()
 
 	output := Util.Output{StartTime: time.Now()}
 	output.Write("Starting...")
 
-	var err error
-
-	// opening the config file
-	var configFile Config.File
-	if configFile, err = Config.New(*configPath); err != nil {
-		output.Write(fmt.Sprintf("Config.New() fail: %s", err.Error()))
+	// init
+	var (
+		client  Cache.Client
+		regions []Entity.Region
+		err     error
+	)
+	if client, regions, err = Misc.Init(*configPath, *flushDb); err != nil {
+		output.Write(fmt.Sprintf("Misc.Init() fail: %s", err.Error()))
 		return
 	}
 
-	// connecting the client
-	var client Cache.Client
-	if client, err = Cache.NewClient(configFile); err != nil {
-		output.Write(fmt.Sprintf("Cache.NewClient() fail: %s", err.Error()))
-		return
-	}
-	if *flushDb {
-		if err = client.FlushDb(); err != nil {
-			output.Write(fmt.Sprintf("CacheClient.FlushDb() fail: %s", err.Error()))
+	for _, region := range regions {
+		var response Status.Response
+		if response, err = Status.Get(region, client.ApiKey); err != nil {
+			output.Write(fmt.Sprintf("Status.Get() fail: %s", err.Error()))
 			return
 		}
+
+		output.Write(fmt.Sprintf("Region %s had %d realms", region.Name, len(response.Realms)))
 	}
 
 	output.Conclude()

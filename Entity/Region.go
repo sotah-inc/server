@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ihsw/go-download/Cache"
+	"github.com/ihsw/go-download/Config"
 	"github.com/ihsw/go-download/Util"
 	"strconv"
 )
@@ -16,6 +17,14 @@ func regionNameKey(name string) string {
 }
 
 func NewRegionManager(client Cache.Client) RegionManager { return RegionManager{Client: client} }
+
+func RegionFromConfig(configRegion Config.Region) Region {
+	return Region{
+		Name:      configRegion.Name,
+		Host:      configRegion.Host,
+		Queryable: configRegion.Queryable,
+	}
+}
 
 /*
 	Region
@@ -64,50 +73,52 @@ type RegionManager struct {
 
 func (self RegionManager) Namespace() string { return "region" }
 
-func (self RegionManager) Persist(region Region) (Region, error) {
-	var (
-		err error
-		s   string
-	)
-	w := self.Client.Main
-	r := w.Redis
+func (self RegionManager) PersistAll(inRegions []Region) (regions []Region, err error) {
+	m := self.Client.Main
+	regions = inRegions
 
-	// id
-	isNew := !region.IsValid()
-	if isNew {
-		cmd := r.Incr("region_id")
-		if err = cmd.Err(); err != nil {
-			return region, err
-		}
-		region.Id = cmd.Val()
+	// ids
+	var ids []int64
+	if ids, err = m.IncrAll("region_id", len(regions)); err != nil {
+		return
+	}
+	for i, id := range ids {
+		regions[i].Id = id
 	}
 
 	// data
-	s, err = region.marshal()
-	if err != nil {
-		return region, err
-	}
-	bucketKey, subKey := Cache.GetBucketKey(region.Id, self.Namespace())
-	err = w.Persist(bucketKey, subKey, s)
-	if err != nil {
-		return region, err
-	}
+	values := make([]Cache.PersistValue, len(regions))
+	hashedNameKeys := map[string]string{}
+	newIds := make([]string, len(regions))
+	for i, region := range regions {
+		bucketKey, subKey := Cache.GetBucketKey(region.Id, self.Namespace())
 
-	// etc
-	if isNew {
+		var s string
+		if s, err = region.marshal(); err != nil {
+			return
+		}
+
+		values[i] = Cache.PersistValue{
+			BucketKey: bucketKey,
+			SubKey:    subKey,
+			Value:     s,
+		}
+
 		id := strconv.FormatInt(region.Id, 10)
-
-		cmd := r.RPush("region_ids", id)
-		if err = cmd.Err(); err != nil {
-			return region, err
-		}
-		setCmd := r.Set(regionNameKey(region.Name), id)
-		if err = setCmd.Err(); err != nil {
-			return region, err
-		}
+		hashedNameKeys[regionNameKey(region.Name)] = id
+		newIds[i] = id
+	}
+	if err = m.PersistAll(values); err != nil {
+		return
+	}
+	if err = m.SetAll(hashedNameKeys); err != nil {
+		return
+	}
+	if err = m.RPushAll("region_ids", newIds); err != nil {
+		return
 	}
 
-	return region, nil
+	return
 }
 
 func (self RegionManager) unmarshal(v string) (region Region, err error) {
