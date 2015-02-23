@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ihsw/go-download/Cache"
-	"github.com/ihsw/go-download/Config"
 	"github.com/ihsw/go-download/Util"
 	"strconv"
 )
@@ -17,14 +16,6 @@ func regionNameKey(name string) string {
 }
 
 func NewRegionManager(client Cache.Client) RegionManager { return RegionManager{Client: client} }
-
-func RegionFromConfig(configRegion Config.Region) Region {
-	return Region{
-		Name:      configRegion.Name,
-		Host:      configRegion.Host,
-		Queryable: configRegion.Queryable,
-	}
-}
 
 /*
 	Region

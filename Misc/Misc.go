@@ -31,7 +31,11 @@ func Init(configPath string, flushDb bool) (client Cache.Client, regions []Entit
 	if flushDb {
 		regions = make([]Entity.Region, len(configFile.Regions))
 		for i, configRegion := range configFile.Regions {
-			regions[i] = Entity.RegionFromConfig(configRegion)
+			regions[i] = Region{
+				Name:      configRegion.Name,
+				Host:      configRegion.Host,
+				Queryable: configRegion.Queryable,
+			}
 		}
 		if regions, err = regionManager.PersistAll(regions); err != nil {
 			return
