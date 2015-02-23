@@ -65,18 +65,9 @@ type RegionManager struct {
 
 func (self RegionManager) Namespace() string { return "region" }
 
-func (self RegionManager) PersistAllFromConfig(configRegions []Config.Region) (regions []Region, err error) {
+func (self RegionManager) PersistAll(values []Region) (regions []Region, err error) {
 	m := self.Client.Main
-
-	// reformatting
-	regions = make([]Region, len(configRegions))
-	for i, configRegion := range configRegions {
-		regions[i] = Region{
-			Name:      configRegion.Name,
-			Host:      configRegion.Host,
-			Queryable: configRegion.Queryable,
-		}
-	}
+	regions = values
 
 	// ids
 	var ids []int64
