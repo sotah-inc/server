@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ihsw/go-download/Cache"
+	"github.com/ihsw/go-download/Config"
 	"github.com/ihsw/go-download/Util"
 	"strconv"
 )
@@ -64,9 +65,18 @@ type RegionManager struct {
 
 func (self RegionManager) Namespace() string { return "region" }
 
-func (self RegionManager) PersistAll(values []Region) (regions []Region, err error) {
+func (self RegionManager) PersistAll(configRegions []Config.Region) (regions []Region, err error) {
 	m := self.Client.Main
-	regions = values
+
+	// reformatting
+	regions = make([]Region, len(configRegions))
+	for i, configRegion := range configRegions {
+		regions[i] = Region{
+			Name:      configRegion.Name,
+			Host:      configRegion.Host,
+			Queryable: configRegion.Queryable,
+		}
+	}
 
 	// ids
 	var ids []int64
