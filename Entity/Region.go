@@ -156,8 +156,8 @@ func (self RegionManager) unmarshalAll(values []string) (regions []Region, err e
 }
 
 func (self RegionManager) FindOneById(id int64) (region Region, err error) {
-	v, err := self.Client.Main.FetchFromId(self, id)
-	if err != nil {
+	var v string
+	if v, err = self.Client.Main.FetchFromId(self, id); err != nil {
 		return
 	}
 	return self.unmarshal(v)
@@ -165,8 +165,7 @@ func (self RegionManager) FindOneById(id int64) (region Region, err error) {
 
 func (self RegionManager) FindOneByName(name string) (region Region, err error) {
 	var v string
-	v, err = self.Client.Main.FetchFromKey(self, regionNameKey(name))
-	if err != nil {
+	if v, err = self.Client.Main.FetchFromKey(self, regionNameKey(name)); err != nil {
 		return
 	}
 
@@ -177,8 +176,8 @@ func (self RegionManager) FindAll() (regions []Region, err error) {
 	main := self.Client.Main
 
 	// fetching ids
-	ids, err := main.FetchIds("region_ids", 0, -1)
-	if err != nil {
+	var ids []int64
+	if ids, err = main.FetchIds("region_ids", 0, -1); err != nil {
 		return
 	}
 
