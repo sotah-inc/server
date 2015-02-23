@@ -65,7 +65,7 @@ type RegionManager struct {
 
 func (self RegionManager) Namespace() string { return "region" }
 
-func (self RegionManager) PersistAll(configRegions []Config.Region) (regions []Region, err error) {
+func (self RegionManager) PersistAllFromConfig(configRegions []Config.Region) (regions []Region, err error) {
 	m := self.Client.Main
 
 	// reformatting

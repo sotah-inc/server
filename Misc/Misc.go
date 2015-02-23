@@ -29,7 +29,7 @@ func Init(configPath string, flushDb bool) (client Cache.Client, regions []Entit
 	// gathering the regions
 	regionManager := Entity.NewRegionManager(client)
 	if flushDb {
-		if regions, err = regionManager.PersistAll(configFile.Regions); err != nil {
+		if regions, err = regionManager.PersistAllFromConfig(configFile.Regions); err != nil {
 			return
 		}
 	} else {
