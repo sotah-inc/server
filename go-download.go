@@ -9,8 +9,15 @@ import (
 	"github.com/ihsw/go-download/Misc"
 	"github.com/ihsw/go-download/Util"
 	"runtime"
+	"sync"
 	"time"
 )
+
+type StatusGetResult struct {
+	region   Entity.Region
+	response Status.Response
+	err      error
+}
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -34,15 +41,51 @@ func main() {
 		return
 	}
 
-	for _, region := range regions {
-		var response Status.Response
-		if response, err = Status.Get(region, client.ApiKey); err != nil {
-			output.Write(fmt.Sprintf("Status.Get() fail: %s", err.Error()))
+	// misc
+	statusGetIn := make(chan Entity.Region)
+	statusGetOut := make(chan StatusGetResult)
+	wg := new(sync.WaitGroup)
+	const statusWorkerCount = 4
+
+	// spawning some workers
+	wg.Add(statusWorkerCount)
+	for i := 0; i < statusWorkerCount; i++ {
+		go func() {
+			for region := range statusGetIn {
+				response, err := Status.Get(region, client.ApiKey)
+				statusGetOut <- StatusGetResult{
+					region:   region,
+					err:      err,
+					response: response,
+				}
+			}
+			wg.Done()
+		}()
+	}
+
+	// queueing up the in channel
+	go func() {
+		for _, region := range regions {
+			statusGetIn <- region
+		}
+		close(statusGetIn)
+	}()
+
+	// waiting for results to drain out
+	go func() {
+		wg.Wait()
+		close(statusGetOut)
+	}()
+
+	// gathering the results
+	for result := range statusGetOut {
+		if err = result.err; err != nil {
+			output.Write(fmt.Sprintf("StatusGet() had an error: %s", err.Error()))
 			return
 		}
 
 		realmManger := Entity.NewRealmManager(client)
-		for _, responseRealm := range response.Realms {
+		for _, responseRealm := range result.response.Realms {
 			realm := Entity.Realm{
 				Name:        responseRealm.Name,
 				Slug:        responseRealm.Slug,
