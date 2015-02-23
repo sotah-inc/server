@@ -41,7 +41,21 @@ func main() {
 			return
 		}
 
-		output.Write(fmt.Sprintf("Region %s had %d realms", region.Name, len(response.Realms)))
+		realmManger := Entity.NewRealmManager(client)
+		for _, responseRealm := range response.Realms {
+			realm := Entity.Realm{
+				Name:        responseRealm.Name,
+				Slug:        responseRealm.Slug,
+				Battlegroup: responseRealm.Battlegroup,
+				Type:        responseRealm.Type,
+				Status:      responseRealm.Status,
+				Population:  responseRealm.Population,
+			}
+			if realm, err = realmManger.Persist(realm); err != nil {
+				output.Write(fmt.Sprintf("RealmManager.Persist() fail: %s", err.Error()))
+				return
+			}
+		}
 	}
 
 	output.Conclude()
