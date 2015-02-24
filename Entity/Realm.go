@@ -17,8 +17,9 @@ func realmNameKey(region Region, slug string) string {
 	return fmt.Sprintf("region:%d:realm:%s:id", region.Id, Util.Md5Encode(slug))
 }
 
-func NewRealmManager(client Cache.Client) RealmManager {
+func NewRealmManager(region Region, client Cache.Client) RealmManager {
 	return RealmManager{
+		Region:        region,
 		RegionManager: RegionManager{Client: client},
 	}
 }
@@ -96,6 +97,7 @@ func (self RealmJson) marshal() (string, error) {
 	RealmManager
 */
 type RealmManager struct {
+	Region        Region
 	RegionManager RegionManager
 }
 
@@ -119,7 +121,7 @@ func (self RealmManager) PersistAll(values []Realm) (realms []Realm, err error) 
 	// data
 	persistValues := make([]Cache.PersistValue, len(realms))
 	hashedNameKeys := map[string]string{}
-	regionNewIds := map[string][]string{}
+	newIds := make([]string, len(realms))
 	for i, realm := range realms {
 		bucketKey, subKey := Cache.GetBucketKey(realm.Id, self.Namespace())
 
@@ -134,20 +136,14 @@ func (self RealmManager) PersistAll(values []Realm) (realms []Realm, err error) 
 			Value:     s,
 		}
 		id := strconv.FormatInt(realm.Id, 10)
+		newIds[i] = id
 		hashedNameKeys[realmNameKey(realm.Region, realm.Slug)] = id
-		regionRealmIdKey := fmt.Sprintf("region:%d:realm_ids", realm.Region.Id)
-		if _, ok := regionNewIds[regionRealmIdKey]; !ok {
-			regionNewIds[regionRealmIdKey] = []string{}
-		}
-		regionNewIds[regionRealmIdKey] = append(regionNewIds[regionRealmIdKey], id)
 	}
 	if err = m.PersistAll(persistValues); err != nil {
 		return
 	}
-	for key, newIds := range regionNewIds {
-		if err = m.RPushAll(key, newIds); err != nil {
-			return
-		}
+	if err = m.RPushAll(fmt.Sprintf("region:%d:realm_ids", self.Region.Id), newIds); err != nil {
+		return
 	}
 	if err = m.SetAll(hashedNameKeys); err != nil {
 		return
@@ -246,11 +242,11 @@ func (self RealmManager) unmarshalAll(values []string) (realms []Realm, err erro
 	return
 }
 
-func (self RealmManager) FindByRegion(region Region) (realms []Realm, err error) {
+func (self RealmManager) FindAll() (realms []Realm, err error) {
 	main := self.Client().Main
 
 	// fetching ids
-	ids, err := main.FetchIds(fmt.Sprintf("region:%d:realm_ids", region.Id), 0, -1)
+	ids, err := main.FetchIds(fmt.Sprintf("region:%d:realm_ids", self.Region.Id), 0, -1)
 	if err != nil {
 		return
 	}
@@ -283,9 +279,9 @@ func (self RealmManager) FindOneById(id int64) (realm Realm, err error) {
 	return self.unmarshal(v)
 }
 
-func (self RealmManager) FindOneByRegionAndSlug(region Region, slug string) (realm Realm, err error) {
+func (self RealmManager) FindOneBySlug(slug string) (realm Realm, err error) {
 	var v string
-	v, err = self.Client().Main.FetchFromKey(self, realmNameKey(region, slug))
+	v, err = self.Client().Main.FetchFromKey(self, realmNameKey(self.Region, slug))
 	if err != nil {
 		return
 	}

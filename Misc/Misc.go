@@ -31,7 +31,6 @@ func Init(configPath string, flushDb bool) (client Cache.Client, regions []Entit
 
 	// gathering the regions and realms
 	regionManager := Entity.NewRegionManager(client)
-	realmManager := Entity.NewRealmManager(client)
 	if flushDb {
 		regions = make([]Entity.Region, len(configFile.Regions))
 		for i, configRegion := range configFile.Regions {
@@ -63,6 +62,7 @@ func Init(configPath string, flushDb bool) (client Cache.Client, regions []Entit
 					Region:      region,
 				}
 			}
+			realmManager := Entity.NewRealmManager(region, client)
 			if regionRealms[region.Id], err = realmManager.PersistAll(realms); err != nil {
 				return
 			}
@@ -72,7 +72,8 @@ func Init(configPath string, flushDb bool) (client Cache.Client, regions []Entit
 			return
 		}
 		for _, region := range regions {
-			if regionRealms[region.Id], err = realmManager.FindByRegion(region); err != nil {
+			realmManager := Entity.NewRealmManager(region, client)
+			if regionRealms[region.Id], err = realmManager.FindAll(); err != nil {
 				return
 			}
 		}
