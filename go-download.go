@@ -85,8 +85,9 @@ func main() {
 		}
 
 		realmManger := Entity.NewRealmManager(client)
-		for _, responseRealm := range result.response.Realms {
-			realm := Entity.Realm{
+		realms := make([]Entity.Realm, len(result.response.Realms))
+		for i, responseRealm := range result.response.Realms {
+			realms[i] = Entity.Realm{
 				Name:        responseRealm.Name,
 				Slug:        responseRealm.Slug,
 				Battlegroup: responseRealm.Battlegroup,
@@ -94,10 +95,10 @@ func main() {
 				Status:      responseRealm.Status,
 				Population:  responseRealm.Population,
 			}
-			if realm, err = realmManger.Persist(realm); err != nil {
-				output.Write(fmt.Sprintf("RealmManager.Persist() fail: %s", err.Error()))
-				return
-			}
+		}
+		if realms, err = realmManger.PersistAll(realms); err != nil {
+			output.Write(fmt.Sprintf("RealmManager.PersistAll() fail: %s", err.Error()))
+			return
 		}
 	}
 

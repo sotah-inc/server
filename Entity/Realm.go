@@ -103,53 +103,51 @@ func (self RealmManager) Namespace() string { return "realm" }
 
 func (self RealmManager) Client() Cache.Client { return self.RegionManager.Client }
 
-func (self RealmManager) Persist(realm Realm) (Realm, error) {
-	var (
-		err error
-		s   string
-	)
-	w := self.Client().Main
-	r := w.Redis
+func (self RealmManager) PersistAll(values []Realm) (realms []Realm, err error) {
+	m := self.Client().Main
+	realms = values
 
-	// id
-	isNew := !realm.IsValid()
-	if isNew {
-		req := r.Incr("realm_id")
-		if err = req.Err(); err != nil {
-			return realm, err
-		}
-		realm.Id = req.Val()
+	// ids
+	var ids []int64
+	if ids, err = m.IncrAll("realm_id", len(realms)); err != nil {
+		return
+	}
+	for i, id := range ids {
+		realms[i].Id = id
 	}
 
 	// data
-	s, err = realm.marshal()
-	if err != nil {
-		return realm, err
-	}
-	bucketKey, subKey := Cache.GetBucketKey(realm.Id, self.Namespace())
-	err = w.Persist(bucketKey, subKey, s)
-	if err != nil {
-		return realm, err
-	}
+	persistValues := make([]Cache.PersistValue, len(realms))
+	hashedNameKeys := map[string]string{}
+	newIds := make([]string, len(realms))
+	for i, realm := range realms {
+		bucketKey, subKey := Cache.GetBucketKey(realm.Id, self.Namespace())
 
-	// etc
-	if isNew {
+		var s string
+		if s, err = realm.marshal(); err != nil {
+			return
+		}
+
+		persistValues[i] = Cache.PersistValue{
+			BucketKey: bucketKey,
+			SubKey:    subKey,
+			Value:     s,
+		}
 		id := strconv.FormatInt(realm.Id, 10)
-		cmd := r.RPush("realm_ids", id)
-		if err = cmd.Err(); err != nil {
-			return realm, err
-		}
-		cmd = r.RPush(fmt.Sprintf("region:%d:realm_ids", realm.Region.Id), id)
-		if err = cmd.Err(); err != nil {
-			return realm, err
-		}
-		setCmd := r.Set(realmNameKey(realm.Region, realm.Slug), id)
-		if err = setCmd.Err(); err != nil {
-			return realm, err
-		}
+		newIds[i] = id
+		hashedNameKeys[realmNameKey(realm.Region, realm.Slug)] = id
+	}
+	if err = m.PersistAll(persistValues); err != nil {
+		return
+	}
+	if err = m.RPushAll("realm_ids", newIds); err != nil {
+		return
+	}
+	if err = m.SetAll(hashedNameKeys); err != nil {
+		return
 	}
 
-	return realm, nil
+	return
 }
 
 func (self RealmManager) unmarshal(v string) (realm Realm, err error) {
