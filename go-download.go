@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/ihsw/go-download/Blizzard/Status"
-	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Entity"
 	"github.com/ihsw/go-download/Misc"
 	"github.com/ihsw/go-download/Util"
@@ -31,38 +30,18 @@ func main() {
 
 	// init
 	var (
-		client  Cache.Client
-		regions []Entity.Region
-		err     error
+		regions      []Entity.Region
+		regionRealms map[int64][]Entity.Realm
+		err          error
 	)
-	if client, regions, err = Misc.Init(*configPath, *flushDb); err != nil {
+	if _, regions, regionRealms, err = Misc.Init(*configPath, *flushDb); err != nil {
 		output.Write(fmt.Sprintf("Misc.Init() fail: %s", err.Error()))
 		return
 	}
 
+	output.Write(fmt.Sprintf("Regions: %d", len(regions)))
 	for _, region := range regions {
-		var response Status.Response
-		if response, err = Status.Get(region, client.ApiKey); err != nil {
-			output.Write(fmt.Sprintf("Status.Get() fail: %s", err.Error()))
-			return
-		}
-
-		realmManger := Entity.NewRealmManager(client)
-		realms := make([]Entity.Realm, len(response.Realms))
-		for i, responseRealm := range response.Realms {
-			realms[i] = Entity.Realm{
-				Name:        responseRealm.Name,
-				Slug:        responseRealm.Slug,
-				Battlegroup: responseRealm.Battlegroup,
-				Type:        responseRealm.Type,
-				Status:      responseRealm.Status,
-				Population:  responseRealm.Population,
-			}
-		}
-		if realms, err = realmManger.PersistAll(realms); err != nil {
-			output.Write(fmt.Sprintf("RealmManager.PersistAll() fail: %s", err.Error()))
-			return
-		}
+		output.Write(fmt.Sprintf("Realms in %s: %d", region.Name, len(regionRealms[region.Id])))
 	}
 
 	output.Conclude()
