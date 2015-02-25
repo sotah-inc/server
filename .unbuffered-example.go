@@ -6,9 +6,28 @@ import (
 	"time"
 )
 
-/*
-	middleJobHandler
-*/
+type jobHandler struct {
+	waitGroup   *sync.WaitGroup
+	in          chan job
+	out         chan job
+	workerCount int
+}
+
+func (self jobHandler) WaitGroup() *sync.WaitGroup { return self.waitGroup }
+func (self jobHandler) In() chan job               { return self.in }
+func (self jobHandler) Out() chan job              { return self.out }
+func (self jobHandler) WorkerCount() int           { return self.workerCount }
+func (self jobHandler) Process(job job) job        { return job }
+
+func newJobHandler(workerCount int, out chan job) jobHandler {
+	return jobHandler{
+		waitGroup:   &sync.WaitGroup{},
+		in:          make(chan job),
+		out:         out,
+		workerCount: workerCount,
+	}
+}
+
 type middleJobHandler struct {
 	jobHandler
 }
@@ -19,16 +38,14 @@ func newMiddleJobHandler(workerCount int, out chan job) middleJobHandler {
 	}
 }
 
-func (self middleJobHandler) process(job job) job {
+func (self middleJobHandler) Process(job job) job {
 	fmt.Println(fmt.Sprintf("middle working on %s", job.url))
 	time.Sleep(time.Second * 5)
 	job.middleFinishTime = time.Now()
+	job.done = true
 	return job
 }
 
-/*
-	inJobHandler
-*/
 type inJobHandler struct {
 	jobHandler
 }
@@ -39,55 +56,40 @@ func newInJobHandler(workerCount int, out chan job) inJobHandler {
 	}
 }
 
-func (self inJobHandler) process(job job) job {
+func (self inJobHandler) Process(job job) job {
 	fmt.Println(fmt.Sprintf("in working on %s", job.url))
 	time.Sleep(time.Second * 2)
 	job.inFinishTime = time.Now()
 	return job
 }
 
-/*
-	jobHandler
-*/
-type jobHandler struct {
-	waitGroup *sync.WaitGroup
-	in        chan job
-	out       chan job
+type jobHandlerInterface interface {
+	WaitGroup() *sync.WaitGroup
+	In() chan job
+	Out() chan job
+	Process(job) job
+	WorkerCount() int
 }
 
-func newJobHandler(workerCount int, out chan job) jobHandler {
-	jobHandler := jobHandler{
-		waitGroup: &sync.WaitGroup{},
-		in:        make(chan job),
-		out:       out,
-	}
-
-	jobHandler.waitGroup.Add(workerCount)
-	for i := 0; i < workerCount; i++ {
+func initializeJobHandler(jobHandler jobHandlerInterface) jobHandlerInterface {
+	jobHandler.WaitGroup().Add(jobHandler.WorkerCount())
+	for i := 0; i < jobHandler.WorkerCount(); i++ {
 		go func() {
-			defer jobHandler.waitGroup.Done()
-			for job := range jobHandler.in {
-				job = jobHandler.process(job)
-				jobHandler.out <- job
+			defer jobHandler.WaitGroup().Done()
+			for job := range jobHandler.In() {
+				job = jobHandler.Process(job)
+				jobHandler.Out() <- job
 			}
 		}()
 	}
 
 	go func() {
-		jobHandler.waitGroup.Wait()
-		close(jobHandler.out)
+		jobHandler.WaitGroup().Wait()
+		close(jobHandler.Out())
 	}()
-
 	return jobHandler
 }
 
-func (self jobHandler) process(job job) job {
-	return job
-}
-
-/*
-	job
-*/
 type job struct {
 	url              string
 	done             bool
@@ -96,14 +98,10 @@ type job struct {
 	middleFinishTime time.Time
 }
 
-/*
-	main
-*/
 func main() {
 	out := make(chan job)
-	outJobHandler := newJobHandler(1, out)
-	middleJobHandler := newMiddleJobHandler(1, outJobHandler.in)
-	inJobHandler := newInJobHandler(4, middleJobHandler.in)
+	middleJobHandler := initializeJobHandler(newMiddleJobHandler(3, out)).(middleJobHandler)
+	inJobHandler := initializeJobHandler(newInJobHandler(3, middleJobHandler.in)).(inJobHandler)
 
 	// queueing up the in channel
 	urls := []string{"http://google.ca/", "http://golang.org/", "http://youtube.com/"}
@@ -119,6 +117,7 @@ func main() {
 	}()
 
 	// consuming the results
+	startTime := time.Now()
 	const WriteLayout = "2006-01-02 03:04:05PM"
 	for job := range out {
 		fmt.Println(fmt.Sprintf("job %s finished: %v", job.url, job.done))
@@ -126,4 +125,5 @@ func main() {
 		fmt.Println(fmt.Sprintf("%s is the in finish time", job.inFinishTime.Format(WriteLayout)))
 		fmt.Println(fmt.Sprintf("%s is the middle finish time", job.middleFinishTime.Format(WriteLayout)))
 	}
+	fmt.Println(fmt.Sprintf("Finished in %.2fs seconds", time.Since(startTime).Seconds()))
 }
