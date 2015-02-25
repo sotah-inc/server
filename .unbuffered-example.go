@@ -12,24 +12,24 @@ import (
 type jobHandler struct {
 	waitGroup   *sync.WaitGroup
 	workerCount int
-	in          chan jobInterface
-	out         chan jobInterface
+	in          chan interface{}
+	out         chan interface{}
 }
 
-func newJobHandler(workerCount int, out chan jobInterface) jobHandler {
+func newJobHandler(workerCount int, out chan interface{}) jobHandler {
 	return jobHandler{
 		waitGroup:   &sync.WaitGroup{},
-		in:          make(chan jobInterface),
+		in:          make(chan interface{}),
 		out:         out,
 		workerCount: workerCount,
 	}
 }
 
-func (self jobHandler) Config() (*sync.WaitGroup, int, chan jobInterface, chan jobInterface) {
+func (self jobHandler) Config() (*sync.WaitGroup, int, chan interface{}, chan interface{}) {
 	return self.waitGroup, self.workerCount, self.in, self.out
 }
 
-func (self jobHandler) Process(job jobInterface) jobInterface { return job }
+func (self jobHandler) Process(job interface{}) interface{} { return job }
 
 /*
 	middleJobHandler
@@ -43,13 +43,13 @@ type middleJob struct {
 	name string
 }
 
-func newMiddleJobHandler(workerCount int, out chan jobInterface) middleJobHandler {
+func newMiddleJobHandler(workerCount int, out chan interface{}) middleJobHandler {
 	return middleJobHandler{
 		jobHandler: newJobHandler(workerCount, out),
 	}
 }
 
-func (self middleJobHandler) Process(j jobInterface) jobInterface {
+func (self middleJobHandler) Process(j interface{}) interface{} {
 	v := middleJob{
 		job: j.(job),
 	}
@@ -68,13 +68,13 @@ type inJobHandler struct {
 	jobHandler
 }
 
-func newInJobHandler(workerCount int, out chan jobInterface) inJobHandler {
+func newInJobHandler(workerCount int, out chan interface{}) inJobHandler {
 	return inJobHandler{
 		jobHandler: newJobHandler(workerCount, out),
 	}
 }
 
-func (self inJobHandler) Process(j jobInterface) jobInterface {
+func (self inJobHandler) Process(j interface{}) interface{} {
 	v := j.(job)
 	fmt.Println(fmt.Sprintf("in working on %s", v.url))
 	time.Sleep(time.Second * 2)
@@ -86,8 +86,8 @@ func (self inJobHandler) Process(j jobInterface) jobInterface {
 	jobHandlerInterface
 */
 type jobHandlerInterface interface {
-	Config() (*sync.WaitGroup, int, chan jobInterface, chan jobInterface)
-	Process(jobInterface) jobInterface
+	Config() (*sync.WaitGroup, int, chan interface{}, chan interface{})
+	Process(interface{}) interface{}
 }
 
 func initializeJobHandler(jobHandler jobHandlerInterface) jobHandlerInterface {
@@ -111,11 +111,6 @@ func initializeJobHandler(jobHandler jobHandlerInterface) jobHandlerInterface {
 }
 
 /*
-	jobInterface
-*/
-type jobInterface interface{}
-
-/*
 	job
 */
 type job struct {
@@ -130,7 +125,7 @@ type job struct {
 	main
 */
 func main() {
-	out := make(chan jobInterface)
+	out := make(chan interface{})
 	middleJobHandler := initializeJobHandler(newMiddleJobHandler(3, out)).(middleJobHandler)
 	inJobHandler := initializeJobHandler(newInJobHandler(3, middleJobHandler.in)).(inJobHandler)
 
