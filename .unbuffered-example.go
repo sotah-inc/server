@@ -51,6 +51,10 @@ func main() {
 			processIn(in, middle)
 		}()
 	}
+	go func() {
+		inWg.Wait()
+		close(middle)
+	}()
 
 	middleWg := &sync.WaitGroup{}
 	const middleWorkerCount = 1
@@ -61,6 +65,10 @@ func main() {
 			processMiddle(middle, out)
 		}()
 	}
+	go func() {
+		middleWg.Wait()
+		close(out)
+	}()
 
 	// queueing up the in channel
 	urls := []string{"http://google.ca/", "http://golang.org/", "http://youtube.com/"}
@@ -73,15 +81,6 @@ func main() {
 			in <- job
 		}
 		close(in)
-	}()
-
-	go func() {
-		inWg.Wait()
-		close(middle)
-	}()
-	go func() {
-		middleWg.Wait()
-		close(out)
 	}()
 
 	// consuming the results
