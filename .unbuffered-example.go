@@ -38,6 +38,11 @@ type middleJobHandler struct {
 	jobHandler
 }
 
+type middleJob struct {
+	job
+	name string
+}
+
 func newMiddleJobHandler(workerCount int, out chan jobInterface) middleJobHandler {
 	return middleJobHandler{
 		jobHandler: newJobHandler(workerCount, out),
@@ -45,7 +50,10 @@ func newMiddleJobHandler(workerCount int, out chan jobInterface) middleJobHandle
 }
 
 func (self middleJobHandler) Process(j jobInterface) jobInterface {
-	v := j.(job)
+	v := middleJob{
+		job: j.(job),
+	}
+	v.name = "lol"
 	fmt.Println(fmt.Sprintf("middle working on %s", v.url))
 	time.Sleep(time.Second * 5)
 	v.middleFinishTime = time.Now()
@@ -143,8 +151,8 @@ func main() {
 	startTime := time.Now()
 	const WriteLayout = "2006-01-02 03:04:05PM"
 	for outJob := range out {
-		job := outJob.(job)
-		fmt.Println(fmt.Sprintf("job %s finished: %v", job.url, job.done))
+		job := outJob.(middleJob)
+		fmt.Println(fmt.Sprintf("job %s (%s) finished: %v", job.name, job.url, job.done))
 		fmt.Println(fmt.Sprintf("%s is the start time", job.startTime.Format(WriteLayout)))
 		fmt.Println(fmt.Sprintf("%s is the in finish time", job.inFinishTime.Format(WriteLayout)))
 		fmt.Println(fmt.Sprintf("%s is the middle finish time", job.middleFinishTime.Format(WriteLayout)))
