@@ -7,63 +7,85 @@ import (
 )
 
 type job struct {
-	url  string
-	done bool
+	url              string
+	done             bool
+	startTime        time.Time
+	inFinishTime     time.Time
+	middleFinishTime time.Time
 }
 
-func process(in chan job, middle chan job, inWg *sync.WaitGroup) {
-	defer inWg.Done()
+func processIn(in chan job, out chan job) {
 	for job := range in {
-		fmt.Println(fmt.Sprintf("working on %s", job.url))
+		fmt.Println(fmt.Sprintf("processIn working on %s", job.url))
+
 		time.Sleep(time.Second * 2)
+		job.inFinishTime = time.Now()
+
+		out <- job
+	}
+}
+
+func processMiddle(in chan job, out chan job) {
+	for job := range in {
+		fmt.Println(fmt.Sprintf("processMiddle working on %s", job.url))
+
+		time.Sleep(time.Second * 1)
+		job.middleFinishTime = time.Now()
 		job.done = true
-		middle <- job
+
+		out <- job
 	}
 }
 
 func main() {
-	// misc
-	inWg := new(sync.WaitGroup)
 	in := make(chan job)
 	middle := make(chan job)
 	out := make(chan job)
 
-	// spawning some workers
+	inWg := &sync.WaitGroup{}
 	const inWorkerCount = 4
 	inWg.Add(inWorkerCount)
 	for i := 0; i < inWorkerCount; i++ {
-		go process(in, middle, inWg)
+		go func() {
+			defer inWg.Done()
+			processIn(in, middle)
+		}()
+	}
+
+	middleWg := &sync.WaitGroup{}
+	const middleWorkerCount = 1
+	middleWg.Add(middleWorkerCount)
+	for i := 0; i < middleWorkerCount; i++ {
+		go func() {
+			defer middleWg.Done()
+			processMiddle(middle, out)
+		}()
 	}
 
 	// queueing up the in channel
 	urls := []string{"http://google.ca/", "http://golang.org/", "http://youtube.com/"}
 	go func() {
 		for _, url := range urls {
-			in <- job{url: url}
+			job := job{
+				url:       url,
+				startTime: time.Now(),
+			}
+			in <- job
 		}
 		close(in)
 	}()
 
-	// waiting for the in to drain
 	go func() {
 		inWg.Wait()
 		close(middle)
 	}()
-
-	// queueing up the middle channel
-	middleWg := new(sync.WaitGroup)
-	inWg.Add(1)
 	go func() {
-		for {
-		}
+		middleWg.Wait()
+		close(out)
 	}()
 
 	// consuming the results
-	jobs := []job{}
-	for job := range middle {
+	for job := range out {
 		fmt.Println(fmt.Sprintf("job %s finished: %v", job.url, job.done))
-		jobs = append(jobs, job)
 	}
-
-	fmt.Println(fmt.Sprintf("done %d jobs", len(jobs)))
 }
