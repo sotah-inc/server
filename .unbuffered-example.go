@@ -59,6 +59,9 @@ type job struct {
 	middleFinishTime time.Time
 }
 
+/*
+	main
+*/
 func main() {
 	out := make(chan job)
 	outJobHandler := newJobHandler(1, out)
