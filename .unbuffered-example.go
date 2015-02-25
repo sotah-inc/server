@@ -6,6 +6,51 @@ import (
 	"time"
 )
 
+/*
+	jobHandler
+*/
+type jobHandler struct {
+	waitGroup *sync.WaitGroup
+	in        chan job
+	out       chan job
+}
+
+func newJobHandler(workerCount int, out chan job) jobHandler {
+	jobHandler := jobHandler{
+		waitGroup: &sync.WaitGroup{},
+		in:        make(chan job),
+		out:       out,
+	}
+
+	jobHandler.waitGroup.Add(workerCount)
+	for i := 0; i < workerCount; i++ {
+		go func() {
+			defer jobHandler.waitGroup.Done()
+			for job := range jobHandler.in {
+				job = jobHandler.process(job)
+				jobHandler.out <- job
+			}
+		}()
+	}
+
+	go func() {
+		jobHandler.waitGroup.Wait()
+		close(jobHandler.out)
+	}()
+
+	return jobHandler
+}
+
+func (self jobHandler) process(job job) job {
+	fmt.Println(fmt.Sprintf("working on %s", job.url))
+	time.Sleep(time.Second * 2)
+	job.inFinishTime = time.Now()
+	return job
+}
+
+/*
+	job
+*/
 type job struct {
 	url              string
 	done             bool
@@ -14,61 +59,11 @@ type job struct {
 	middleFinishTime time.Time
 }
 
-func processIn(in chan job, out chan job) {
-	for job := range in {
-		fmt.Println(fmt.Sprintf("processIn working on %s", job.url))
-
-		time.Sleep(time.Second * 2)
-		job.inFinishTime = time.Now()
-
-		out <- job
-	}
-}
-
-func processMiddle(in chan job, out chan job) {
-	for job := range in {
-		fmt.Println(fmt.Sprintf("processMiddle working on %s", job.url))
-
-		time.Sleep(time.Second * 1)
-		job.middleFinishTime = time.Now()
-		job.done = true
-
-		out <- job
-	}
-}
-
 func main() {
-	in := make(chan job)
-	middle := make(chan job)
 	out := make(chan job)
-
-	inWg := &sync.WaitGroup{}
-	const inWorkerCount = 4
-	inWg.Add(inWorkerCount)
-	for i := 0; i < inWorkerCount; i++ {
-		go func() {
-			defer inWg.Done()
-			processIn(in, middle)
-		}()
-	}
-	go func() {
-		inWg.Wait()
-		close(middle)
-	}()
-
-	middleWg := &sync.WaitGroup{}
-	const middleWorkerCount = 1
-	middleWg.Add(middleWorkerCount)
-	for i := 0; i < middleWorkerCount; i++ {
-		go func() {
-			defer middleWg.Done()
-			processMiddle(middle, out)
-		}()
-	}
-	go func() {
-		middleWg.Wait()
-		close(out)
-	}()
+	outJobHandler := newJobHandler(1, out)
+	middleJobHandler := newJobHandler(1, outJobHandler.in)
+	inJobHandler := newJobHandler(4, middleJobHandler.in)
 
 	// queueing up the in channel
 	urls := []string{"http://google.ca/", "http://golang.org/", "http://youtube.com/"}
@@ -78,9 +73,9 @@ func main() {
 				url:       url,
 				startTime: time.Now(),
 			}
-			in <- job
+			inJobHandler.in <- job
 		}
-		close(in)
+		close(inJobHandler.in)
 	}()
 
 	// consuming the results
