@@ -6,18 +6,15 @@ import (
 	"time"
 )
 
+/*
+	jobHandler
+*/
 type jobHandler struct {
 	waitGroup   *sync.WaitGroup
+	workerCount int
 	in          chan job
 	out         chan job
-	workerCount int
 }
-
-func (self jobHandler) WaitGroup() *sync.WaitGroup { return self.waitGroup }
-func (self jobHandler) In() chan job               { return self.in }
-func (self jobHandler) Out() chan job              { return self.out }
-func (self jobHandler) WorkerCount() int           { return self.workerCount }
-func (self jobHandler) Process(job job) job        { return job }
 
 func newJobHandler(workerCount int, out chan job) jobHandler {
 	return jobHandler{
@@ -28,6 +25,15 @@ func newJobHandler(workerCount int, out chan job) jobHandler {
 	}
 }
 
+func (self jobHandler) Config() (*sync.WaitGroup, int, chan job, chan job) {
+	return self.waitGroup, self.workerCount, self.in, self.out
+}
+
+func (self jobHandler) Process(job job) job { return job }
+
+/*
+	middleJobHandler
+*/
 type middleJobHandler struct {
 	jobHandler
 }
@@ -46,6 +52,9 @@ func (self middleJobHandler) Process(job job) job {
 	return job
 }
 
+/*
+	inJobHandler
+*/
 type inJobHandler struct {
 	jobHandler
 }
@@ -63,33 +72,37 @@ func (self inJobHandler) Process(job job) job {
 	return job
 }
 
+/*
+	jobHandlerInterface
+*/
 type jobHandlerInterface interface {
-	WaitGroup() *sync.WaitGroup
-	In() chan job
-	Out() chan job
+	Config() (*sync.WaitGroup, int, chan job, chan job)
 	Process(job) job
-	WorkerCount() int
 }
 
 func initializeJobHandler(jobHandler jobHandlerInterface) jobHandlerInterface {
-	jobHandler.WaitGroup().Add(jobHandler.WorkerCount())
-	for i := 0; i < jobHandler.WorkerCount(); i++ {
+	waitGroup, workerCount, in, out := jobHandler.Config()
+	waitGroup.Add(workerCount)
+	for i := 0; i < workerCount; i++ {
 		go func() {
-			defer jobHandler.WaitGroup().Done()
-			for job := range jobHandler.In() {
+			defer waitGroup.Done()
+			for job := range in {
 				job = jobHandler.Process(job)
-				jobHandler.Out() <- job
+				out <- job
 			}
 		}()
 	}
 
 	go func() {
-		jobHandler.WaitGroup().Wait()
-		close(jobHandler.Out())
+		waitGroup.Wait()
+		close(out)
 	}()
 	return jobHandler
 }
 
+/*
+	job
+*/
 type job struct {
 	url              string
 	done             bool
@@ -98,6 +111,9 @@ type job struct {
 	middleFinishTime time.Time
 }
 
+/*
+	main
+*/
 func main() {
 	out := make(chan job)
 	middleJobHandler := initializeJobHandler(newMiddleJobHandler(3, out)).(middleJobHandler)
