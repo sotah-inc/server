@@ -12,24 +12,24 @@ import (
 type jobHandler struct {
 	waitGroup   *sync.WaitGroup
 	workerCount int
-	in          chan job
-	out         chan job
+	in          chan jobInterface
+	out         chan jobInterface
 }
 
-func newJobHandler(workerCount int, out chan job) jobHandler {
+func newJobHandler(workerCount int, out chan jobInterface) jobHandler {
 	return jobHandler{
 		waitGroup:   &sync.WaitGroup{},
-		in:          make(chan job),
+		in:          make(chan jobInterface),
 		out:         out,
 		workerCount: workerCount,
 	}
 }
 
-func (self jobHandler) Config() (*sync.WaitGroup, int, chan job, chan job) {
+func (self jobHandler) Config() (*sync.WaitGroup, int, chan jobInterface, chan jobInterface) {
 	return self.waitGroup, self.workerCount, self.in, self.out
 }
 
-func (self jobHandler) Process(job job) job { return job }
+func (self jobHandler) Process(job jobInterface) jobInterface { return job }
 
 /*
 	middleJobHandler
@@ -38,18 +38,19 @@ type middleJobHandler struct {
 	jobHandler
 }
 
-func newMiddleJobHandler(workerCount int, out chan job) middleJobHandler {
+func newMiddleJobHandler(workerCount int, out chan jobInterface) middleJobHandler {
 	return middleJobHandler{
 		jobHandler: newJobHandler(workerCount, out),
 	}
 }
 
-func (self middleJobHandler) Process(job job) job {
-	fmt.Println(fmt.Sprintf("middle working on %s", job.url))
+func (self middleJobHandler) Process(j jobInterface) jobInterface {
+	v := j.(job)
+	fmt.Println(fmt.Sprintf("middle working on %s", v.url))
 	time.Sleep(time.Second * 5)
-	job.middleFinishTime = time.Now()
-	job.done = true
-	return job
+	v.middleFinishTime = time.Now()
+	v.done = true
+	return v
 }
 
 /*
@@ -59,25 +60,26 @@ type inJobHandler struct {
 	jobHandler
 }
 
-func newInJobHandler(workerCount int, out chan job) inJobHandler {
+func newInJobHandler(workerCount int, out chan jobInterface) inJobHandler {
 	return inJobHandler{
 		jobHandler: newJobHandler(workerCount, out),
 	}
 }
 
-func (self inJobHandler) Process(job job) job {
-	fmt.Println(fmt.Sprintf("in working on %s", job.url))
+func (self inJobHandler) Process(j jobInterface) jobInterface {
+	v := j.(job)
+	fmt.Println(fmt.Sprintf("in working on %s", v.url))
 	time.Sleep(time.Second * 2)
-	job.inFinishTime = time.Now()
-	return job
+	v.inFinishTime = time.Now()
+	return v
 }
 
 /*
 	jobHandlerInterface
 */
 type jobHandlerInterface interface {
-	Config() (*sync.WaitGroup, int, chan job, chan job)
-	Process(job) job
+	Config() (*sync.WaitGroup, int, chan jobInterface, chan jobInterface)
+	Process(jobInterface) jobInterface
 }
 
 func initializeJobHandler(jobHandler jobHandlerInterface) jobHandlerInterface {
@@ -101,6 +103,11 @@ func initializeJobHandler(jobHandler jobHandlerInterface) jobHandlerInterface {
 }
 
 /*
+	jobInterface
+*/
+type jobInterface interface{}
+
+/*
 	job
 */
 type job struct {
@@ -115,7 +122,7 @@ type job struct {
 	main
 */
 func main() {
-	out := make(chan job)
+	out := make(chan jobInterface)
 	middleJobHandler := initializeJobHandler(newMiddleJobHandler(3, out)).(middleJobHandler)
 	inJobHandler := initializeJobHandler(newInJobHandler(3, middleJobHandler.in)).(inJobHandler)
 
@@ -135,7 +142,8 @@ func main() {
 	// consuming the results
 	startTime := time.Now()
 	const WriteLayout = "2006-01-02 03:04:05PM"
-	for job := range out {
+	for outJob := range out {
+		job := outJob.(job)
 		fmt.Println(fmt.Sprintf("job %s finished: %v", job.url, job.done))
 		fmt.Println(fmt.Sprintf("%s is the start time", job.startTime.Format(WriteLayout)))
 		fmt.Println(fmt.Sprintf("%s is the in finish time", job.inFinishTime.Format(WriteLayout)))
