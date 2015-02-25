@@ -11,27 +11,28 @@ type job struct {
 	done bool
 }
 
-func process(in chan job, out chan job, wg *sync.WaitGroup) {
-	defer wg.Done()
+func process(in chan job, middle chan job, inWg *sync.WaitGroup) {
+	defer inWg.Done()
 	for job := range in {
 		fmt.Println(fmt.Sprintf("working on %s", job.url))
 		time.Sleep(time.Second * 2)
 		job.done = true
-		out <- job
+		middle <- job
 	}
 }
 
 func main() {
 	// misc
-	wg := new(sync.WaitGroup)
+	inWg := new(sync.WaitGroup)
 	in := make(chan job)
+	middle := make(chan job)
 	out := make(chan job)
-	const workerCount = 4
 
 	// spawning some workers
-	wg.Add(workerCount)
-	for i := 0; i < workerCount; i++ {
-		go process(in, out, wg)
+	const inWorkerCount = 4
+	inWg.Add(inWorkerCount)
+	for i := 0; i < inWorkerCount; i++ {
+		go process(in, middle, inWg)
 	}
 
 	// queueing up the in channel
@@ -43,15 +44,23 @@ func main() {
 		close(in)
 	}()
 
-	// waiting for results to drain out
+	// waiting for the in to drain
 	go func() {
-		wg.Wait()
-		close(out)
+		inWg.Wait()
+		close(middle)
+	}()
+
+	// queueing up the middle channel
+	middleWg := new(sync.WaitGroup)
+	inWg.Add(1)
+	go func() {
+		for {
+		}
 	}()
 
 	// consuming the results
 	jobs := []job{}
-	for job := range out {
+	for job := range middle {
 		fmt.Println(fmt.Sprintf("job %s finished: %v", job.url, job.done))
 		jobs = append(jobs, job)
 	}
