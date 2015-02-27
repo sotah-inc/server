@@ -56,6 +56,7 @@ func main() {
 		}
 	}
 
+	// queueing it up
 	realmsToDo := []interface{}{}
 	for _, realms := range formattedRealms {
 		for _, realm := range realms {
