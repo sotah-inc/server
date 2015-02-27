@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/ihsw/go-download/Blizzard/Status"
 	"github.com/ihsw/go-download/Entity"
+	"github.com/ihsw/go-download/Job"
 	"github.com/ihsw/go-download/Misc"
 	"github.com/ihsw/go-download/Util"
 	"runtime"
@@ -30,18 +31,49 @@ func main() {
 
 	// init
 	var (
-		regions      []Entity.Region
 		regionRealms map[int64][]Entity.Realm
 		err          error
 	)
-	if _, regions, regionRealms, err = Misc.Init(*configPath, *flushDb); err != nil {
+	if _, _, regionRealms, err = Misc.Init(*configPath, *flushDb); err != nil {
 		output.Write(fmt.Sprintf("Misc.Init() fail: %s", err.Error()))
 		return
 	}
 
-	output.Write(fmt.Sprintf("Regions: %d", len(regions)))
-	for _, region := range regions {
-		output.Write(fmt.Sprintf("Realms in %s: %d", region.Name, len(regionRealms[region.Id])))
+	// formatting the realms to be evenly distributed
+	largestRegion := 0
+	for _, realms := range regionRealms {
+		if len(realms) > largestRegion {
+			largestRegion = len(realms)
+		}
+	}
+	formattedRealms := make([]map[int64]Entity.Realm, largestRegion)
+	for regionId, realms := range regionRealms {
+		for i, realm := range realms {
+			if formattedRealms[int64(i)] == nil {
+				formattedRealms[int64(i)] = map[int64]Entity.Realm{}
+			}
+			formattedRealms[int64(i)][regionId] = realm
+		}
+	}
+
+	realmsToDo := []interface{}{}
+	for _, realms := range formattedRealms {
+		for _, realm := range realms {
+			realmsToDo = append(realmsToDo, realm)
+		}
+	}
+	out := Job.DoWork(realmsToDo, func(item interface{}) Job.Job {
+		realm := item.(Entity.Realm)
+		output.Write(fmt.Sprintf("Working on %s", realm.Dump()))
+		return Job.Job{}
+	})
+
+	// waiting for it to drain out
+	for job := range out {
+		if err = job.Err; err != nil {
+			output.Write(fmt.Sprintf("Job failed: %s", err.Error()))
+			return
+		}
 	}
 
 	output.Conclude()
