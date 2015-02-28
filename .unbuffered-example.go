@@ -12,48 +12,35 @@ type Job struct {
 	result string
 }
 
-func work(workerCount int, worker func() bool, postWork func()) {
+func work(workerCount int, worker func(), postWork func()) {
 	wg := &sync.WaitGroup{}
-	alreadyDidPostWork := false
 	wg.Add(workerCount)
 	for i := 0; i < workerCount; i++ {
 		go func() {
 			defer wg.Done()
-			shouldCancel := worker()
-			if !alreadyDidPostWork && shouldCancel {
-				postWork()
-				alreadyDidPostWork = true
-			}
+			worker()
 		}()
 	}
 
 	go func() {
 		wg.Wait()
-		if !alreadyDidPostWork {
-			postWork()
-		}
+		postWork()
 	}()
 }
 
-func DoWork(items []string, process func(string) (string, error)) chan Job {
+func DoWork(items []string, process func(string) Job) chan Job {
 	in := make(chan string)
 	out := make(chan Job)
 
-	worker := func() bool {
+	worker := func() {
 		for item := range in {
-			job := Job{}
-			if job.result, job.err = process(item); job.err != nil {
-				out <- job
-				return true
-			}
-			out <- job
+			out <- process(item)
 		}
-		return false
 	}
 	postWork := func() {
 		close(out)
 	}
-	work(1, worker, postWork)
+	work(4, worker, postWork)
 
 	go func() {
 		for _, item := range items {
@@ -68,20 +55,13 @@ func DoWork(items []string, process func(string) (string, error)) chan Job {
 func DoMoreWork(in chan Job, process func(Job) Job) (out chan Job, alternateOut chan Job) {
 	out = make(chan Job)
 	alternateOut = make(chan Job)
-	putOut := func(job Job) {
-		out <- job
-		alternateOut <- job
-	}
 
-	worker := func() bool {
+	worker := func() {
 		for job := range in {
-			if job = process(job); job.err != nil {
-				putOut(job)
-				return true
-			}
-			putOut(job)
+			job = process(job)
+			out <- job
+			alternateOut <- job
 		}
-		return false
 	}
 	postWork := func() {
 		close(out)
@@ -94,23 +74,19 @@ func DoMoreWork(in chan Job, process func(Job) Job) (out chan Job, alternateOut 
 
 func main() {
 	items := []string{"a", "b", "c", "d", "e"}
-	out := DoWork(items, func(item string) (string, error) {
-		fmt.Println(fmt.Sprintf("Working on %s", item))
-
+	out := DoWork(items, func(item string) (job Job) {
+		job.result = item
 		if item == "b" {
-			return item, errors.New("found the letter b!")
+			job.err = errors.New("found the letter b!")
 		}
-
-		time.Sleep(time.Second)
-
-		return item, nil
+		return
 	})
-	moreOut, alternateMoreOut := DoMoreWork(out, func(job Job) Job {
+	moreOut, alternateMoreOut := DoMoreWork(out, func(item Job) (job Job) {
+		job = item
 		if job.err != nil {
 			return job
 		}
 
-		fmt.Println(fmt.Sprintf("Doing more work on %s", job.result))
 		time.Sleep(time.Second * 2)
 
 		return job
@@ -119,14 +95,18 @@ func main() {
 	// finishing up the alt channel
 	alternateDone := make(chan struct{})
 	go func() {
+		stuff := []string{}
 		for job := range alternateMoreOut {
 			if err := job.err; err != nil {
 				fmt.Println(fmt.Sprintf("alternateMoreOut: job %s had an error (%s)", job.result, err.Error()))
 				continue
 			}
 
-			fmt.Println(fmt.Sprintf("alternateMoreOut: job %s was handled", job.result))
+			stuff = append(stuff, job.result)
 		}
+
+		fmt.Println(fmt.Sprintf("alternateMoreOut stuff: %s", stuff))
+
 		alternateDone <- struct{}{}
 	}()
 
