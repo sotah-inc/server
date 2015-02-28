@@ -11,29 +11,39 @@ type Job struct {
 	result string
 }
 
-func DoWork(items []string, process func(string) Job) chan Job {
-	in := make(chan string)
-	out := make(chan Job)
-
-	const workerCount = 4
+func work(workerCount int, worker func(), postWork func()) {
 	wg := &sync.WaitGroup{}
 	wg.Add(workerCount)
 	for i := 0; i < workerCount; i++ {
 		go func() {
 			defer wg.Done()
-			for item := range in {
-				out <- process(item)
-			}
+			worker()
 		}()
 	}
+
+	go func() {
+		wg.Wait()
+		postWork()
+	}()
+}
+
+func DoWork(items []string, process func(string) Job) chan Job {
+	in := make(chan string)
+	out := make(chan Job)
+
+	worker := func() {
+		for item := range in {
+			out <- process(item)
+		}
+	}
+	postWork := func() { close(out) }
+	work(4, worker, postWork)
 
 	go func() {
 		for _, item := range items {
 			in <- item
 		}
 		close(in)
-		wg.Wait()
-		close(out)
 	}()
 
 	return out
@@ -43,25 +53,18 @@ func DoMoreWork(in chan Job, process func(Job) Job) (out chan Job, alternateOut 
 	out = make(chan Job)
 	alternateOut = make(chan Job)
 
-	const workerCount = 4
-	wg := &sync.WaitGroup{}
-	wg.Add(workerCount)
-	for i := 0; i < workerCount; i++ {
-		go func() {
-			defer wg.Done()
-			for job := range in {
-				job := process(job)
-				out <- job
-				alternateOut <- job
-			}
-		}()
+	worker := func() {
+		for job := range in {
+			job := process(job)
+			out <- job
+			alternateOut <- job
+		}
 	}
-
-	go func() {
-		wg.Wait()
+	postWork := func() {
 		close(out)
 		close(alternateOut)
-	}()
+	}
+	work(4, worker, postWork)
 
 	return out, alternateOut
 }
