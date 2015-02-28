@@ -39,6 +39,29 @@ func DoWork(items []string, process func(string) Job) chan Job {
 	return out
 }
 
+func DoMoreWork(in chan Job, process func(Job) Job) chan Job {
+	out := make(chan Job)
+
+	const workerCount = 4
+	wg := &sync.WaitGroup{}
+	wg.Add(workerCount)
+	for i := 0; i < workerCount; i++ {
+		go func() {
+			defer wg.Done()
+			for item := range in {
+				out <- process(item)
+			}
+		}()
+	}
+
+	go func() {
+		wg.Wait()
+		close(out)
+	}()
+
+	return out
+}
+
 func main() {
 	items := []string{"a", "b", "c", "d", "e"}
 	out := DoWork(items, func(item string) Job {
@@ -46,7 +69,13 @@ func main() {
 		time.Sleep(time.Second)
 		return Job{result: item}
 	})
-	for job := range out {
+	moreOut := DoMoreWork(out, func(job Job) Job {
+		fmt.Println(fmt.Sprintf("Doing more owrk on %s", job.result))
+		time.Sleep(time.Second * 2)
+		return job
+	})
+
+	for job := range moreOut {
 		if err := job.err; err != nil {
 			fmt.Println(fmt.Sprintf("job %s had an error: %s", job.result, err.Error()))
 			continue
