@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/ihsw/go-download/Blizzard/Status"
@@ -60,7 +61,9 @@ func main() {
 	realmsToDo := make(chan Entity.Realm)
 	out := DownloadRealm.DoWork(realmsToDo, func(realm Entity.Realm) (job DownloadRealm.Job) {
 		output.Write(fmt.Sprintf("Working on %s...", realm.Dump()))
-		return DownloadRealm.NewJob(realm)
+		job = DownloadRealm.NewJob(realm)
+		job.Err = errors.New("error!")
+		return job
 	})
 
 	// starting it up
@@ -76,8 +79,8 @@ func main() {
 	// waiting for it to drain out
 	for job := range out {
 		if err = job.Err; err != nil {
-			output.Write(fmt.Sprintf("Job failed: %s", err.Error()))
-			return
+			output.Write(fmt.Sprintf("Job for realm %s failed: %s", job.Realm.Dump(), err.Error()))
+			continue
 		}
 	}
 
