@@ -39,9 +39,9 @@ func DoWork(items []string, process func(string) Job) chan Job {
 	return out
 }
 
-func DoMoreWork(in chan Job, process func(Job) Job) (chan Job, chan Job) {
-	out := make(chan Job)
-	alternateOut := make(chan Job)
+func DoMoreWork(in chan Job, process func(Job) Job) (out chan Job, alternateOut chan Job) {
+	out = make(chan Job)
+	alternateOut = make(chan Job)
 
 	const workerCount = 4
 	wg := &sync.WaitGroup{}
