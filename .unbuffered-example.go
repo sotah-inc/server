@@ -82,20 +82,9 @@ func main() {
 		return job
 	})
 
-	wg := &sync.WaitGroup{}
-	wg.Add(2)
+	// finishing up the alt channel
+	alternateDone := make(chan struct{})
 	go func() {
-		defer wg.Done()
-		for job := range moreOut {
-			if err := job.err; err != nil {
-				fmt.Println(fmt.Sprintf("job %s had an error: %s", job.result, err.Error()))
-				continue
-			}
-			fmt.Println(fmt.Sprintf("Job finished: %s", job.result))
-		}
-	}()
-	go func() {
-		defer wg.Done()
 		for job := range alternateMoreOut {
 			if err := job.err; err != nil {
 				fmt.Println(fmt.Sprintf("job %s had an error: %s", job.result, err.Error()))
@@ -103,8 +92,20 @@ func main() {
 			}
 			fmt.Println(fmt.Sprintf("Doing alternate handling of %s", job.result))
 		}
+		alternateDone <- struct{}{}
 	}()
-	wg.Wait()
+
+	// going over the more results
+	for job := range moreOut {
+		if err := job.err; err != nil {
+			fmt.Println(fmt.Sprintf("job %s had an error: %s", job.result, err.Error()))
+			continue
+		}
+		fmt.Println(fmt.Sprintf("Job finished: %s", job.result))
+	}
+
+	// waiting for alt to drain out
+	<-alternateDone
 
 	fmt.Println("done")
 }
