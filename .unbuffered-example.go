@@ -12,11 +12,11 @@ type Job struct {
 }
 
 func DoWork(items []string, process func(string) Job) chan Job {
-	wg := &sync.WaitGroup{}
 	in := make(chan string)
 	out := make(chan Job)
-	workerCount := 4
 
+	const workerCount = 4
+	wg := &sync.WaitGroup{}
 	wg.Add(workerCount)
 	for i := 0; i < workerCount; i++ {
 		go func() {
@@ -43,7 +43,7 @@ func main() {
 	items := []string{"a", "b", "c", "d", "e"}
 	out := DoWork(items, func(item string) Job {
 		fmt.Println(fmt.Sprintf("Working on %s", item))
-		time.Sleep(time.Second * 5)
+		time.Sleep(time.Second)
 		return Job{result: item}
 	})
 	for job := range out {
