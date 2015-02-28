@@ -59,7 +59,7 @@ func main() {
 
 	// misc
 	realmsToDo := make(chan Entity.Realm)
-	out := DownloadRealm.DoWork(realmsToDo, func(realm Entity.Realm) (job DownloadRealm.Job) {
+	downloadJobs := DownloadRealm.DoWork(realmsToDo, func(realm Entity.Realm) (job DownloadRealm.Job) {
 		output.Write(fmt.Sprintf("Working on %s...", realm.Dump()))
 		job = DownloadRealm.NewJob(realm)
 		job.Err = errors.New("error!")
@@ -77,7 +77,7 @@ func main() {
 	}()
 
 	// waiting for it to drain out
-	for job := range out {
+	for job := range downloadJobs {
 		if err = job.Err; err != nil {
 			output.Write(fmt.Sprintf("Job for realm %s failed: %s", job.Realm.Dump(), err.Error()))
 			continue
