@@ -15,8 +15,7 @@ type Job struct {
 	AuctionDataResponse *AuctionData.Response
 }
 
-func DoWork(realms []Entity.Realm, process func(Entity.Realm) Job) chan Job {
-	in := make(chan Entity.Realm)
+func DoWork(in chan Entity.Realm, process func(Entity.Realm) Job) chan Job {
 	out := make(chan Job)
 
 	worker := func() {
@@ -26,13 +25,6 @@ func DoWork(realms []Entity.Realm, process func(Entity.Realm) Job) chan Job {
 	}
 	postWork := func() { close(out) }
 	Queue.Work(4, worker, postWork)
-
-	go func() {
-		for _, realm := range realms {
-			in <- realm
-		}
-		close(in)
-	}()
 
 	return out
 }

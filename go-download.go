@@ -56,17 +56,22 @@ func main() {
 		}
 	}
 
-	// queueing it up
-	realmsToDo := []Entity.Realm{}
-	for _, realms := range formattedRealms {
-		for _, realm := range realms {
-			realmsToDo = append(realmsToDo, realm)
-		}
-	}
+	// misc
+	realmsToDo := make(chan Entity.Realm)
 	out := DownloadRealm.DoWork(realmsToDo, func(realm Entity.Realm) (job DownloadRealm.Job) {
 		output.Write(fmt.Sprintf("Working on %s...", realm.Dump()))
 		return DownloadRealm.NewJob(realm)
 	})
+
+	// starting it up
+	go func() {
+		for _, realms := range formattedRealms {
+			for _, realm := range realms {
+				realmsToDo <- realm
+			}
+		}
+		close(realmsToDo)
+	}()
 
 	// waiting for it to drain out
 	for job := range out {
