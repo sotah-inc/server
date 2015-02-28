@@ -4,7 +4,10 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/ihsw/go-download/Blizzard/Auction"
+	"github.com/ihsw/go-download/Blizzard/AuctionData"
 	"github.com/ihsw/go-download/Blizzard/Status"
+	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Entity"
 	"github.com/ihsw/go-download/Misc"
 	"github.com/ihsw/go-download/Queue/DownloadRealm"
@@ -34,8 +37,9 @@ func main() {
 	var (
 		regionRealms map[int64][]Entity.Realm
 		err          error
+		cacheClient  Cache.Client
 	)
-	if _, _, regionRealms, err = Misc.Init(*configPath, *flushDb); err != nil {
+	if cacheClient, _, regionRealms, err = Misc.Init(*configPath, *flushDb); err != nil {
 		output.Write(fmt.Sprintf("Misc.Init() fail: %s", err.Error()))
 		return
 	}
@@ -60,10 +64,56 @@ func main() {
 	// misc
 	realmsToDo := make(chan Entity.Realm)
 	downloadJobs := DownloadRealm.DoWork(realmsToDo, func(realm Entity.Realm) (job DownloadRealm.Job) {
-		output.Write(fmt.Sprintf("Working on %s...", realm.Dump()))
+		// misc
+		realmManager := Entity.NewRealmManager(realm.Region, cacheClient)
 		job = DownloadRealm.NewJob(realm)
-		job.Err = errors.New("error!")
-		return job
+
+		// fetching the auction info
+		var (
+			auctionResponse *Auction.Response
+			err             error
+		)
+		if auctionResponse, err = Auction.Get(realm, cacheClient.ApiKey); err != nil {
+			job.Err = errors.New(fmt.Sprintf("Auction.Get() failed (%s)", err.Error()))
+			return
+		}
+
+		// optionally halting on empty response
+		if auctionResponse == nil {
+			job.ResponseFailed = true
+			return
+		}
+
+		file := auctionResponse.Files[0]
+
+		// checking whether the file has already been downloaded
+		lastModified := time.Unix(file.LastModified/1000, 0)
+		if !realm.LastDownloaded.IsZero() && (realm.LastDownloaded.Equal(lastModified) || realm.LastDownloaded.After(lastModified)) {
+			job.AlreadyChecked = true
+			return
+		}
+
+		// fetching the actual auction data
+		if job.AuctionDataResponse = AuctionData.Get(realm, file.Url); job.AuctionDataResponse == nil {
+			job.ResponseFailed = true
+			return
+		}
+
+		// dumping the auction data for parsing after itemize-results are tabulated
+		if err = job.DumpData(); err != nil {
+			job.Err = errors.New(fmt.Sprintf("DownloadResult.dumpData() failed (%s)", err.Error()))
+			return
+		}
+
+		// flagging the realm as having been downloaded
+		realm.LastDownloaded = lastModified
+		realm.LastChecked = time.Now()
+		if realm, err = realmManager.Persist(realm); err != nil {
+			job.Err = errors.New(fmt.Sprintf("RealmManager.Persist() failed (%s)", err.Error()))
+			return
+		}
+
+		return
 	})
 
 	// starting it up
