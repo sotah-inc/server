@@ -28,15 +28,12 @@ func DoWork(items []string, process func(string) Job) chan Job {
 	}
 
 	go func() {
-		wg.Wait()
-		close(out)
-	}()
-
-	go func() {
 		for _, item := range items {
 			in <- item
 		}
 		close(in)
+		wg.Wait()
+		close(out)
 	}()
 
 	return out
