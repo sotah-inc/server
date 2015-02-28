@@ -5,6 +5,28 @@ import (
 	"sync"
 )
 
+/*
+	funcs
+*/
+func Work(workerCount int, worker func(), postWork func()) {
+	wg := &sync.WaitGroup{}
+	wg.Add(workerCount)
+	for i := 0; i < workerCount; i++ {
+		go func() {
+			defer wg.Done()
+			worker()
+		}()
+	}
+
+	go func() {
+		wg.Wait()
+		postWork()
+	}()
+}
+
+/*
+	Jobs
+*/
 func NewJob() Job { return Job{} }
 
 type Job struct {
@@ -31,20 +53,4 @@ type AuctionDataJob struct {
 	RealmJob
 	ResponseFailed bool
 	AlreadyChecked bool
-}
-
-func Work(workerCount int, worker func(), postWork func()) {
-	wg := &sync.WaitGroup{}
-	wg.Add(workerCount)
-	for i := 0; i < workerCount; i++ {
-		go func() {
-			defer wg.Done()
-			worker()
-		}()
-	}
-
-	go func() {
-		wg.Wait()
-		postWork()
-	}()
 }
