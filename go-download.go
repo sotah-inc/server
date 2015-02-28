@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"github.com/ihsw/go-download/Blizzard/Status"
 	"github.com/ihsw/go-download/Entity"
-	"github.com/ihsw/go-download/Job"
 	"github.com/ihsw/go-download/Misc"
+	"github.com/ihsw/go-download/Queue/DownloadRealm"
 	"github.com/ihsw/go-download/Util"
 	"runtime"
 	"time"
@@ -57,16 +57,15 @@ func main() {
 	}
 
 	// queueing it up
-	realmsToDo := []interface{}{}
+	realmsToDo := []Entity.Realm{}
 	for _, realms := range formattedRealms {
 		for _, realm := range realms {
 			realmsToDo = append(realmsToDo, realm)
 		}
 	}
-	out := Job.DoWork(realmsToDo, func(item interface{}) Job.Job {
-		realm := item.(Entity.Realm)
-		output.Write(fmt.Sprintf("Working on %s", realm.Dump()))
-		return Job.Job{}
+	out := DownloadRealm.DoWork(realmsToDo, func(realm Entity.Realm) (job DownloadRealm.Job) {
+		output.Write(fmt.Sprintf("Working on %s...", realm.Dump()))
+		return DownloadRealm.NewJob(realm)
 	})
 
 	// waiting for it to drain out
