@@ -6,156 +6,54 @@ import (
 	"time"
 )
 
-/*
-	jobHandler
-*/
-type jobHandler struct {
-	waitGroup   *sync.WaitGroup
-	workerCount int
-	in          chan jobInterface
-	out         chan jobInterface
+type Job struct {
+	err    error
+	result string
 }
 
-func newJobHandler(workerCount int, out chan jobInterface) jobHandler {
-	return jobHandler{
-		waitGroup:   &sync.WaitGroup{},
-		in:          make(chan jobInterface),
-		out:         out,
-		workerCount: workerCount,
-	}
-}
+func DoWork(items []string, process func(string) Job) chan Job {
+	wg := &sync.WaitGroup{}
+	in := make(chan string)
+	out := make(chan Job)
+	workerCount := 4
 
-func (self jobHandler) Config() (*sync.WaitGroup, int, chan jobInterface, chan jobInterface) {
-	return self.waitGroup, self.workerCount, self.in, self.out
-}
-
-func (self jobHandler) Process(job jobInterface) jobInterface { return job }
-
-/*
-	middleJobHandler
-*/
-type middleJobHandler struct {
-	jobHandler
-}
-
-type middleJob struct {
-	job
-	name string
-}
-
-func newMiddleJobHandler(workerCount int, out chan jobInterface) middleJobHandler {
-	return middleJobHandler{
-		jobHandler: newJobHandler(workerCount, out),
-	}
-}
-
-func (self middleJobHandler) Process(j jobInterface) jobInterface {
-	v := middleJob{
-		job: j.(job),
-	}
-	v.name = "lol"
-	fmt.Println(fmt.Sprintf("middle working on %s", v.url))
-	time.Sleep(time.Second * 5)
-	v.middleFinishTime = time.Now()
-	v.done = true
-	return v
-}
-
-/*
-	inJobHandler
-*/
-type inJobHandler struct {
-	jobHandler
-}
-
-func newInJobHandler(workerCount int, out chan jobInterface) inJobHandler {
-	return inJobHandler{
-		jobHandler: newJobHandler(workerCount, out),
-	}
-}
-
-func (self inJobHandler) Process(j jobInterface) jobInterface {
-	v := j.(job)
-	fmt.Println(fmt.Sprintf("in working on %s", v.url))
-	time.Sleep(time.Second * 2)
-	v.inFinishTime = time.Now()
-	return v
-}
-
-/*
-	jobHandlerInterface
-*/
-type jobHandlerInterface interface {
-	Config() (*sync.WaitGroup, int, chan jobInterface, chan jobInterface)
-	Process(jobInterface) jobInterface
-}
-
-func initializeJobHandler(jobHandler jobHandlerInterface) jobHandlerInterface {
-	waitGroup, workerCount, in, out := jobHandler.Config()
-	waitGroup.Add(workerCount)
+	wg.Add(workerCount)
 	for i := 0; i < workerCount; i++ {
 		go func() {
-			defer waitGroup.Done()
-			for job := range in {
-				job = jobHandler.Process(job)
-				out <- job
+			defer wg.Done()
+			for item := range in {
+				out <- process(item)
 			}
 		}()
 	}
 
 	go func() {
-		waitGroup.Wait()
+		wg.Wait()
 		close(out)
 	}()
-	return jobHandler
-}
 
-/*
-	jobInterface
-*/
-type jobInterface interface{}
-
-/*
-	job
-*/
-type job struct {
-	url              string
-	done             bool
-	startTime        time.Time
-	inFinishTime     time.Time
-	middleFinishTime time.Time
-}
-
-/*
-	main
-*/
-func main() {
-	out := make(chan jobInterface)
-	middleJobHandler := initializeJobHandler(newMiddleJobHandler(3, out)).(middleJobHandler)
-	inJobHandler := initializeJobHandler(newInJobHandler(3, middleJobHandler.in)).(inJobHandler)
-
-	// queueing up the in channel
-	urls := []string{"http://google.ca/", "http://golang.org/", "http://youtube.com/"}
 	go func() {
-		for _, url := range urls {
-			job := job{
-				url:       url,
-				startTime: time.Now(),
-			}
-			inJobHandler.in <- job
+		for _, item := range items {
+			in <- item
 		}
-		close(inJobHandler.in)
+		close(in)
 	}()
 
-	// consuming the results
-	startTime := time.Now()
-	const WriteLayout = "2006-01-02 03:04:05PM"
-	for outJob := range out {
-		job := outJob.(middleJob)
-		fmt.Println(fmt.Sprintf("job %s (%s) finished: %v", job.name, job.url, job.done))
-		fmt.Println(fmt.Sprintf("%s is the start time", job.startTime.Format(WriteLayout)))
-		fmt.Println(fmt.Sprintf("%s is the in finish time", job.inFinishTime.Format(WriteLayout)))
-		fmt.Println(fmt.Sprintf("%s is the middle finish time", job.middleFinishTime.Format(WriteLayout)))
+	return out
+}
+
+func main() {
+	items := []string{"a", "b", "c", "d", "e"}
+	out := DoWork(items, func(item string) Job {
+		fmt.Println(fmt.Sprintf("Working on %s", item))
+		time.Sleep(time.Second * 5)
+		return Job{result: item}
+	})
+	for job := range out {
+		if err := job.err; err != nil {
+			fmt.Println(fmt.Sprintf("job %s had an error: %s", job.result, err.Error()))
+			continue
+		}
+		fmt.Println(fmt.Sprintf("Job finished: %s", job.result))
 	}
-	fmt.Println(fmt.Sprintf("Finished in %.2fs seconds", time.Since(startTime).Seconds()))
 }
