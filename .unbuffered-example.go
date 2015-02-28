@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -11,13 +12,16 @@ type Job struct {
 	result string
 }
 
-func work(workerCount int, worker func(), postWork func()) {
+func work(workerCount int, worker func() bool, postWork func()) {
 	wg := &sync.WaitGroup{}
 	wg.Add(workerCount)
 	for i := 0; i < workerCount; i++ {
 		go func() {
 			defer wg.Done()
-			worker()
+			shouldCancel := worker()
+			if shouldCancel {
+				postWork()
+			}
 		}()
 	}
 
@@ -27,14 +31,19 @@ func work(workerCount int, worker func(), postWork func()) {
 	}()
 }
 
-func DoWork(items []string, process func(string) Job) chan Job {
+func DoWork(items []string, process func(string) (string, error)) chan Job {
 	in := make(chan string)
 	out := make(chan Job)
 
-	worker := func() {
+	worker := func() bool {
 		for item := range in {
-			out <- process(item)
+			var err error
+			if item, err = process(item); err != nil {
+				return true
+			}
+			out <- Job{result: item}
 		}
+		return false
 	}
 	postWork := func() { close(out) }
 	work(4, worker, postWork)
@@ -49,16 +58,20 @@ func DoWork(items []string, process func(string) Job) chan Job {
 	return out
 }
 
-func DoMoreWork(in chan Job, process func(Job) Job) (out chan Job, alternateOut chan Job) {
+func DoMoreWork(in chan Job, process func(Job) (Job, error)) (out chan Job, alternateOut chan Job) {
 	out = make(chan Job)
 	alternateOut = make(chan Job)
 
-	worker := func() {
+	worker := func() bool {
 		for job := range in {
-			job := process(job)
+			var err error
+			if job, err = process(job); err != nil {
+				return true
+			}
 			out <- job
 			alternateOut <- job
 		}
+		return false
 	}
 	postWork := func() {
 		close(out)
@@ -71,15 +84,21 @@ func DoMoreWork(in chan Job, process func(Job) Job) (out chan Job, alternateOut 
 
 func main() {
 	items := []string{"a", "b", "c", "d", "e"}
-	out := DoWork(items, func(item string) Job {
+	out := DoWork(items, func(item string) (string, error) {
 		fmt.Println(fmt.Sprintf("Working on %s", item))
+
+		if item == "b" {
+			return item, errors.New("found the letter b!")
+		}
+
 		time.Sleep(time.Second)
-		return Job{result: item}
+
+		return item, nil
 	})
-	moreOut, alternateMoreOut := DoMoreWork(out, func(job Job) Job {
+	moreOut, alternateMoreOut := DoMoreWork(out, func(job Job) (Job, error) {
 		fmt.Println(fmt.Sprintf("Doing more work on %s", job.result))
 		time.Sleep(time.Second * 2)
-		return job
+		return job, nil
 	})
 
 	// finishing up the alt channel
