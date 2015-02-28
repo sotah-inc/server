@@ -105,6 +105,16 @@ func (self RealmManager) Namespace() string { return "realm" }
 
 func (self RealmManager) Client() Cache.Client { return self.RegionManager.Client }
 
+func (self RealmManager) Persist(v Realm) (realm Realm, err error) {
+	var realms []Realm
+	realms, err = self.PersistAll([]Realm{v})
+	if err != nil {
+		return
+	}
+
+	return realms[0], nil
+}
+
 func (self RealmManager) PersistAll(values []Realm) (realms []Realm, err error) {
 	m := self.Client().Main
 	realms = values
