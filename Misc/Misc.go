@@ -11,8 +11,6 @@ import (
 	funcs
 */
 func Init(configPath string, flushDb bool) (client Cache.Client, regions []Entity.Region, regionRealms map[int64][]Entity.Realm, err error) {
-	regionRealms = make(map[int64][]Entity.Realm)
-
 	// opening the config file
 	var configFile Config.File
 	if configFile, err = Config.New(configPath); err != nil {
@@ -30,6 +28,7 @@ func Init(configPath string, flushDb bool) (client Cache.Client, regions []Entit
 	}
 
 	// gathering the regions and realms
+	regionRealms = make(map[int64][]Entity.Realm)
 	regionManager := Entity.NewRegionManager(client)
 	if flushDb {
 		regions = make([]Entity.Region, len(configFile.Regions))
