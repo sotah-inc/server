@@ -35,7 +35,7 @@ func DoWork(in chan Entity.Realm, cacheClient Cache.Client) chan Job {
 func process(realm Entity.Realm, cacheClient Cache.Client) (job Job) {
 	// misc
 	realmManager := Entity.NewRealmManager(realm.Region, cacheClient)
-	job = NewJob(realm)
+	job = newJob(realm)
 
 	// fetching the auction info
 	var (
@@ -88,7 +88,7 @@ func process(realm Entity.Realm, cacheClient Cache.Client) (job Job) {
 /*
 	Job
 */
-func NewJob(realm Entity.Realm) Job {
+func newJob(realm Entity.Realm) Job {
 	return Job{AuctionDataJob: Queue.NewAuctionDataJob(realm)}
 }
 
