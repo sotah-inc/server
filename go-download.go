@@ -24,7 +24,7 @@ func main() {
 
 	flushDb := flag.Bool("flush", false, "Clears all redis dbs")
 	configPath := flag.String("config", "", "Config path")
-	// isProd := flag.Bool("prod", false, "Prod mode")
+	isProd := flag.Bool("prod", false, "Prod mode")
 	flag.Parse()
 
 	output := Util.Output{StartTime: time.Now()}
@@ -55,6 +55,10 @@ func main() {
 				formattedRealms[int64(i)] = map[int64]Entity.Realm{}
 			}
 			formattedRealms[int64(i)][regionId] = realm
+
+			if !*isProd {
+				break
+			}
 		}
 	}
 
