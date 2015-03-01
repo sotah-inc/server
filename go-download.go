@@ -73,12 +73,26 @@ func main() {
 
 	// waiting for it to drain out
 	for job := range itemizeJobs {
+		// misc
+		realm := job.Realm
+
+		// optionally halting on error
 		if err = job.Err; err != nil {
-			output.Write(fmt.Sprintf("Job for realm %s failed: %s", job.Realm.Dump(), err.Error()))
+			output.Write(fmt.Sprintf("Job for realm %s failed: %s", realm.Dump(), err.Error()))
 			continue
 		}
 
-		output.Write(fmt.Sprintf("Job %s successfully completed", job.Realm.Dump()))
+		if !job.CanContinue() {
+			if job.AlreadyChecked {
+				output.Write(fmt.Sprintf("Realm %s was already checked", realm.Dump()))
+			} else if job.ResponseFailed {
+				output.Write(fmt.Sprintf("Realm %s fetching response failed", realm.Dump()))
+			}
+
+			continue
+		}
+
+		output.Write(fmt.Sprintf("Job %s successfully completed", realm.Dump()))
 	}
 
 	output.Conclude()

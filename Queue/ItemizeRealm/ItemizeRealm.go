@@ -1,7 +1,6 @@
 package ItemizeRealm
 
 import (
-	"fmt"
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Queue"
 	"github.com/ihsw/go-download/Queue/DownloadRealm"
@@ -25,16 +24,21 @@ func DoWork(in chan DownloadRealm.Job, cacheClient Cache.Client) chan Job {
 }
 
 func process(inJob DownloadRealm.Job, cacheClient Cache.Client) (job Job) {
-	fmt.Println(fmt.Sprintf("Working on %s", inJob.Realm.Dump()))
+	// misc
+	job = newJob(inJob)
 
-	return newJob(inJob)
+	if !inJob.CanContinue() {
+		return
+	}
+
+	return
 }
 
 /*
 	Job
 */
 func newJob(inJob DownloadRealm.Job) Job {
-	return Job{AuctionDataJob: Queue.NewAuctionDataJob(inJob.Realm)}
+	return Job{AuctionDataJob: inJob.AuctionDataJob}
 }
 
 type Job struct {
