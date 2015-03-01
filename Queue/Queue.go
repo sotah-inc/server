@@ -54,3 +54,5 @@ type AuctionDataJob struct {
 	ResponseFailed bool
 	AlreadyChecked bool
 }
+
+func (self AuctionDataJob) CanContinue() bool { return !(self.ResponseFailed || self.AlreadyChecked) }
