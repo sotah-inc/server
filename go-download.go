@@ -34,7 +34,6 @@ func main() {
 		output.Write(fmt.Sprintf("Misc.Init() fail: %s", err.Error()))
 		return
 	}
-	return
 
 	// formatting the realms to be evenly distributed
 	largestRegion := 0
