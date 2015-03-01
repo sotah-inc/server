@@ -3,21 +3,15 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/ihsw/go-download/Blizzard/Status"
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Entity"
 	"github.com/ihsw/go-download/Misc"
 	"github.com/ihsw/go-download/Queue/DownloadRealm"
+	"github.com/ihsw/go-download/Queue/ItemizeRealm"
 	"github.com/ihsw/go-download/Util"
 	"runtime"
 	"time"
 )
-
-type StatusGetResult struct {
-	region   Entity.Region
-	response Status.Response
-	err      error
-}
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -40,6 +34,7 @@ func main() {
 		output.Write(fmt.Sprintf("Misc.Init() fail: %s", err.Error()))
 		return
 	}
+	return
 
 	// formatting the realms to be evenly distributed
 	largestRegion := 0
@@ -65,6 +60,7 @@ func main() {
 	// misc
 	realmsToDo := make(chan Entity.Realm)
 	downloadJobs := DownloadRealm.DoWork(realmsToDo, cacheClient)
+	itemizeJobs := ItemizeRealm.DoWork(downloadJobs, cacheClient)
 
 	// starting it up
 	go func() {
@@ -77,11 +73,13 @@ func main() {
 	}()
 
 	// waiting for it to drain out
-	for job := range downloadJobs {
+	for job := range itemizeJobs {
 		if err = job.Err; err != nil {
 			output.Write(fmt.Sprintf("Job for realm %s failed: %s", job.Realm.Dump(), err.Error()))
 			continue
 		}
+
+		output.Write(fmt.Sprintf("Job %s successfully completed", job.Realm.Dump()))
 	}
 
 	output.Conclude()

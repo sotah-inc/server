@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/ihsw/go-download/Cache"
 	"github.com/ihsw/go-download/Entity"
-	"github.com/ihsw/go-download/Entity/Character"
 	"github.com/ihsw/go-download/Misc"
 	"github.com/ihsw/go-download/Util"
 	"runtime"
@@ -16,52 +15,48 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	configPath := flag.String("config", "", "Config path")
+	flushDb := flag.Bool("flush", false, "Clears all redis dbs")
 	flag.Parse()
 
 	output := Util.Output{StartTime: time.Now()}
 	output.Write("Starting...")
 
-	var err error
-
-	/*
-		reading the config
-	*/
-	// gathering a cache client after reading the config
-	var cacheClient Cache.Client
-	if cacheClient, _, err = Misc.GetCacheClient(*configPath, false); err != nil {
-		output.Write(fmt.Sprintf("Misc.GetCacheClient() fail: %s", err.Error()))
+	// init
+	var (
+		err         error
+		cacheClient Cache.Client
+	)
+	if cacheClient, _, _, err = Misc.Init(*configPath, *flushDb); err != nil {
+		output.Write(fmt.Sprintf("Misc.Init() fail: %s", err.Error()))
 		return
 	}
 
-	/*
-		bullshit
-	*/
 	regionManager := Entity.NewRegionManager(cacheClient)
-	realmManager := Entity.NewRealmManager(cacheClient)
-	var regions []Entity.Region
-	if regions, err = regionManager.FindAll(); err != nil {
-		output.Write(fmt.Sprintf("RegionManager.FindAll() fail: %s", err.Error()))
+	var region Entity.Region
+	if region, err = regionManager.FindOneByName("us"); err != nil {
+		output.Write(fmt.Sprintf("RegionManager.FindOneByName() fail: %s", err.Error()))
 		return
 	}
-	characterCount := 0
-	for _, region := range regions {
-		var realms []Entity.Realm
-		if realms, err = realmManager.FindByRegion(region); err != nil {
-			output.Write(fmt.Sprintf("RealmManager.FindByRegion() fail: %s", err.Error()))
-			return
-		}
 
-		for _, realm := range realms {
-			characterManager := Character.Manager{Realm: realm, RealmManager: realmManager}
-			var characters []Character.Character
-			if characters, err = characterManager.FindAll(); err != nil {
-				output.Write(fmt.Sprintf("CharacterManager.FindAll() fail: %s", err.Error()))
-				return
-			}
-			characterCount += len(characters)
-		}
+	if !region.IsValid() {
+		output.Write(fmt.Sprintf("Region us coult not be found!"))
+		return
 	}
-	output.Write(fmt.Sprintf("Characters in the world: %d", characterCount))
+
+	realmManager := Entity.NewRealmManager(region, cacheClient)
+	var realm Entity.Realm
+	if realm, err = realmManager.FindOneBySlug("earthen-ring"); err != nil {
+		output.Write(fmt.Sprintf("RealmManager.FindOneBySlug() fail: %s", err.Error()))
+		return
+	}
+
+	realm.LastDownloaded = time.Now()
+	if realm, err = realmManager.Persist(realm); err != nil {
+		output.Write(fmt.Sprintf("RealmManager.Persist() fail: %s", err.Error()))
+		return
+	}
+
+	output.Write(fmt.Sprintf("Realm: %s", realm.Dump()))
 
 	output.Conclude()
 }
