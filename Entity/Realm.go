@@ -119,19 +119,28 @@ func (self RealmManager) PersistAll(values []Realm) (realms []Realm, err error) 
 	m := self.Client().Main
 	realms = values
 
+	newValueIndexes := make(map[int]int)
+	i := 0
+	for j, value := range values {
+		if !value.IsValid() {
+			newValueIndexes[i] = j
+			i++
+		}
+	}
+
 	// ids
 	var ids []int64
-	if ids, err = m.IncrAll("realm_id", len(realms)); err != nil {
+	if ids, err = m.IncrAll("realm_id", len(newValueIndexes)); err != nil {
 		return
 	}
 	for i, id := range ids {
-		realms[i].Id = id
+		realms[newValueIndexes[i]].Id = id
 	}
 
 	// data
 	persistValues := make([]Cache.PersistValue, len(realms))
+	newIds := make([]string, len(newValueIndexes))
 	hashedNameKeys := map[string]string{}
-	newIds := make([]string, len(realms))
 	for i, realm := range realms {
 		bucketKey, subKey := Cache.GetBucketKey(realm.Id, self.Namespace())
 
@@ -145,9 +154,12 @@ func (self RealmManager) PersistAll(values []Realm) (realms []Realm, err error) 
 			SubKey:    subKey,
 			Value:     s,
 		}
-		id := strconv.FormatInt(realm.Id, 10)
-		newIds[i] = id
-		hashedNameKeys[realmNameKey(realm.Region, realm.Slug)] = id
+		_, isNew := newValueIndexes[i]
+		if isNew {
+			id := strconv.FormatInt(realm.Id, 10)
+			newIds[i] = id
+			hashedNameKeys[realmNameKey(realm.Region, realm.Slug)] = id
+		}
 	}
 	if err = m.PersistAll(persistValues); err != nil {
 		return
