@@ -69,8 +69,8 @@ func process(realm Entity.Realm, cacheClient Cache.Client) (job Job) {
 	}
 
 	// dumping the auction data for parsing after itemize-results are tabulated
-	if err = job.DumpData(); err != nil {
-		job.Err = errors.New(fmt.Sprintf("DownloadResult.dumpData() failed (%s)", err.Error()))
+	if err = job.dumpData(); err != nil {
+		job.Err = errors.New(fmt.Sprintf("DownloadRealm.Job.dumpData() failed (%s)", err.Error()))
 		return
 	}
 
@@ -97,7 +97,7 @@ type Job struct {
 	AuctionDataResponse *AuctionData.Response
 }
 
-func (self Job) DumpData() (err error) {
+func (self Job) dumpData() (err error) {
 	realm := self.Realm
 
 	var wd string
