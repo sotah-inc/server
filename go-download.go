@@ -13,6 +13,42 @@ import (
 	"time"
 )
 
+func work(inRealms []map[int64]Entity.Realm, cacheClient Cache.Client) (formattedRealms []map[int64]Entity.Realm, err error) {
+	// misc
+	formattedRealms = inRealms
+	realmsToDo := make(chan Entity.Realm)
+	downloadJobs := DownloadRealm.DoWork(realmsToDo, cacheClient)
+	itemizeJobs, itemizeAlternateOutDone := ItemizeRealm.DoWork(downloadJobs, cacheClient)
+
+	// starting it up
+	go func() {
+		for _, realms := range formattedRealms {
+			for _, realm := range realms {
+				realmsToDo <- realm
+			}
+		}
+		close(realmsToDo)
+	}()
+
+	// waiting for it to drain out
+	for job := range itemizeJobs {
+		// optionally skipping where there's already an error, or the job was skipped over
+		if err != nil || !job.CanContinue() {
+			continue
+		}
+
+		// optionally checking for an error
+		if err = job.Err; err != nil {
+			continue
+		}
+	}
+
+	// waiting for alternate-out-done to clear
+	<-itemizeAlternateOutDone
+
+	return
+}
+
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
@@ -56,48 +92,28 @@ func main() {
 		}
 	}
 
-	// misc
-	realmsToDo := make(chan Entity.Realm)
-	downloadJobs := DownloadRealm.DoWork(realmsToDo, cacheClient)
-	itemizeJobs, itemizeAlternateOutDone := ItemizeRealm.DoWork(downloadJobs, cacheClient)
-
-	// starting it up
-	go func() {
-		for _, realms := range formattedRealms {
-			for _, realm := range realms {
-				realmsToDo <- realm
+	if !*isProd {
+		output.Write("Running it once due to non-prod mode...")
+		_, err = work(formattedRealms, cacheClient)
+		if err != nil {
+			output.Write(fmt.Sprintf("work() fail: %s", err.Error()))
+			return
+		}
+	} else {
+		output.Write("Starting up the timed rotation...")
+		c := time.Tick(5 * time.Minute)
+		for {
+			output.Write("Running work()...")
+			formattedRealms, err = work(formattedRealms, cacheClient)
+			if err != nil {
+				output.Write(fmt.Sprintf("work() fail: %s", err.Error()))
+				return
 			}
+			output.Write("Done work()!")
+
+			<-c
 		}
-		close(realmsToDo)
-	}()
-
-	// waiting for it to drain out
-	for job := range itemizeJobs {
-		// misc
-		realm := job.Realm
-
-		// optionally halting on error
-		if err = job.Err; err != nil {
-			output.Write(fmt.Sprintf("Job for realm %s failed: %s", realm.Dump(), err.Error()))
-			continue
-		}
-
-		if !job.CanContinue() {
-			if job.AlreadyChecked {
-				output.Write(fmt.Sprintf("Realm %s was already checked", realm.Dump()))
-			} else if job.ResponseFailed {
-				output.Write(fmt.Sprintf("Realm %s fetching response failed", realm.Dump()))
-			}
-
-			continue
-		}
-
-		output.Write(fmt.Sprintf("Job %s successfully completed", realm.Dump()))
 	}
-
-	// waiting for alternate-out-done to clear
-	output.Write("Waiting for itemize-alt-out to clear...")
-	<-itemizeAlternateOutDone
 
 	output.Conclude()
 }
