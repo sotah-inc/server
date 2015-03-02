@@ -96,7 +96,7 @@ func main() {
 	}
 
 	// waiting for alternate-out-done to clear
-	output.Write("Waiting for itemize-alt-out to clear")
+	output.Write("Waiting for itemize-alt-out to clear...")
 	<-itemizeAlternateOutDone
 
 	output.Conclude()
