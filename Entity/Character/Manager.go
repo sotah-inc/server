@@ -19,7 +19,7 @@ func characterNameKey(realm Entity.Realm, name string) string {
 func NewManager(realm Entity.Realm, client Cache.Client) Manager {
 	return Manager{
 		Realm:        realm,
-		RealmManager: Entity.NewRealmManager(client),
+		RealmManager: Entity.NewRealmManager(realm.Region, client),
 	}
 }
 
