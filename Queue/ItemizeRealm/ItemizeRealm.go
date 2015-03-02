@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ihsw/go-download/Cache"
+	"github.com/ihsw/go-download/Entity"
 	"github.com/ihsw/go-download/Entity/Character"
 	"github.com/ihsw/go-download/Queue"
 	"github.com/ihsw/go-download/Queue/DownloadRealm"
@@ -12,18 +13,52 @@ import (
 /*
 	funcs
 */
-func DoWork(in chan DownloadRealm.Job, cacheClient Cache.Client) chan Job {
+func DoWork(in chan DownloadRealm.Job, cacheClient Cache.Client) (chan Job, chan error) {
 	out := make(chan Job)
+	alternateOut := make(chan Job)
+	alternateOutDone := make(chan error)
 
 	worker := func() {
 		for inJob := range in {
-			out <- process(inJob, cacheClient)
+			job := process(inJob, cacheClient)
+			out <- job
+			alternateOut <- job
 		}
 	}
-	postWork := func() { close(out) }
-	Queue.Work(4, worker, postWork)
+	postWork := func() {
+		close(out)
+		close(alternateOut)
+	}
+	Queue.Work(1, worker, postWork)
 
-	return out
+	go func() {
+		// waiting for the alt-out jobs to drain out
+		jobs := Jobs{}
+		for job := range alternateOut {
+			if !job.CanContinue() {
+				continue
+			}
+
+			jobs.list = append(jobs.list, job)
+		}
+
+		// gathering existing items
+		var (
+			existingBlizzIds []int64
+			err              error
+		)
+		itemManager := Entity.ItemManager{Client: cacheClient}
+		if existingBlizzIds, err = itemManager.GetBlizzIds(); err != nil {
+			alternateOutDone <- err
+		}
+		if err = itemManager.PersistAll(jobs.getNewItems(existingBlizzIds)); err != nil {
+			alternateOutDone <- err
+		}
+
+		alternateOutDone <- nil
+	}()
+
+	return out, alternateOutDone
 }
 
 func process(inJob DownloadRealm.Job, cacheClient Cache.Client) (job Job) {
@@ -61,6 +96,11 @@ func process(inJob DownloadRealm.Job, cacheClient Cache.Client) (job Job) {
 		return
 	}
 
+	/*
+		item handling
+	*/
+	job.blizzItemIds = inJob.GetBlizzItemIds()
+
 	return
 }
 
@@ -73,4 +113,41 @@ func newJob(inJob DownloadRealm.Job) Job {
 
 type Job struct {
 	Queue.AuctionDataJob
+	blizzItemIds []int64
+}
+
+/*
+	Jobs
+*/
+type Jobs struct {
+	list []Job
+}
+
+func (self Jobs) getNewItems(existingBlizzIds []int64) (newItems []Entity.Item) {
+	// gathering the blizz-ids for uniqueness
+	existingBlizzIdFlags := map[int64]struct{}{}
+	for _, blizzId := range existingBlizzIds {
+		existingBlizzIdFlags[blizzId] = struct{}{}
+	}
+
+	newBlizzIds := map[int64]struct{}{}
+	for _, result := range self.list {
+		for _, blizzId := range result.blizzItemIds {
+			_, ok := existingBlizzIdFlags[blizzId]
+			if ok {
+				continue
+			}
+
+			newBlizzIds[blizzId] = struct{}{}
+		}
+	}
+
+	newItems = []Entity.Item{}
+	i := 0
+	for blizzId, _ := range newBlizzIds {
+		newItems = append(newItems, Entity.Item{BlizzId: blizzId})
+		i++
+	}
+
+	return newItems
 }

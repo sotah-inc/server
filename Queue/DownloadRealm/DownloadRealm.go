@@ -133,6 +133,28 @@ func (self Job) GetNewCharacters(existingNames []string) (newCharacters []Charac
 	return newCharacters
 }
 
+func (self Job) GetBlizzItemIds() []int64 {
+	// gather unique blizz item ids
+	uniqueBlizzItemIds := make(map[int64]struct{})
+	for _, auction := range self.AuctionDataResponse.Auctions.Auctions {
+		blizzItemId := auction.Item
+		_, valid := uniqueBlizzItemIds[blizzItemId]
+		if !valid {
+			uniqueBlizzItemIds[blizzItemId] = struct{}{}
+		}
+	}
+
+	// formatting
+	blizzItemIds := make([]int64, len(uniqueBlizzItemIds))
+	i := 0
+	for blizzItemId, _ := range uniqueBlizzItemIds {
+		blizzItemIds[i] = blizzItemId
+		i++
+	}
+
+	return blizzItemIds
+}
+
 func (self Job) dumpData() (err error) {
 	realm := self.Realm
 

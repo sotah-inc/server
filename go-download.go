@@ -59,7 +59,7 @@ func main() {
 	// misc
 	realmsToDo := make(chan Entity.Realm)
 	downloadJobs := DownloadRealm.DoWork(realmsToDo, cacheClient)
-	itemizeJobs := ItemizeRealm.DoWork(downloadJobs, cacheClient)
+	itemizeJobs, itemizeAlternateOutDone := ItemizeRealm.DoWork(downloadJobs, cacheClient)
 
 	// starting it up
 	go func() {
@@ -94,6 +94,10 @@ func main() {
 
 		output.Write(fmt.Sprintf("Job %s successfully completed", realm.Dump()))
 	}
+
+	// waiting for alternate-out-done to clear
+	output.Write("Waiting for itemize-alt-out to clear")
+	<-itemizeAlternateOutDone
 
 	output.Conclude()
 }
