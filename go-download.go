@@ -101,7 +101,7 @@ func main() {
 		}
 	} else {
 		output.Write("Starting up the timed rotation...")
-		c := time.Tick(5 * time.Minute)
+		c := time.Tick(15 * time.Minute)
 		for {
 			output.Write("Running work()...")
 			formattedRealms, err = work(formattedRealms, cacheClient)
