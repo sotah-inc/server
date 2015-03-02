@@ -31,8 +31,9 @@ func DoWork(in chan DownloadRealm.Job, cacheClient Cache.Client) (chan Job, chan
 	}
 	Queue.Work(1, worker, postWork)
 
+	// gathering up the list of unique items
 	go func() {
-		// waiting for the alt-out jobs to drain out
+		// waiting for the jobs to drain out
 		jobs := Jobs{}
 		for job := range alternateOut {
 			if !job.CanContinue() {
