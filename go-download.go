@@ -104,12 +104,13 @@ func main() {
 		c := time.Tick(15 * time.Minute)
 		for {
 			output.Write("Running work()...")
+			startTime := time.Now()
 			formattedRealms, err = work(formattedRealms, cacheClient)
 			if err != nil {
 				output.Write(fmt.Sprintf("work() fail: %s", err.Error()))
 				return
 			}
-			output.Write("Done work()!")
+			output.Write(fmt.Sprintf("Done work() in %.2fs!", time.Since(startTime).Seconds()))
 
 			<-c
 		}
