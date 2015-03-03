@@ -46,6 +46,8 @@ func work(inRealms []map[int64]Entity.Realm, cacheClient Cache.Client) (formatte
 	// waiting for alternate-out-done to clear
 	<-itemizeAlternateOutDone
 
+	err = errors.New("YOU AREN'T UPDATING REFORMATTED REALMS WITH THE NEW JOB REALM")
+
 	return
 }
 
