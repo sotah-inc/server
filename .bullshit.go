@@ -57,7 +57,7 @@ func main() {
 			characterCount += len(names)
 		}
 	}
-	output.Write(fmt.Sprintf("Characters in the world: %s", characterCount))
+	output.Write(fmt.Sprintf("Characters in the world: %d", characterCount))
 
 	output.Conclude()
 }
