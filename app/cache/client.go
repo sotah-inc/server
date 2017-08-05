@@ -1,7 +1,7 @@
-package Cache
+package cache
 
 import (
-	"github.com/ihsw/go-download/app/Config"
+	"github.com/ihsw/go-download/app/config"
 	redis "gopkg.in/redis.v2"
 )
 

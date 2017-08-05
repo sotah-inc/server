@@ -1,10 +1,10 @@
-package Entity
+package entity
 
 import (
 	"encoding/json"
 	"strconv"
 
-	"github.com/ihsw/go-download/app/Cache"
+	"github.com/ihsw/go-download/app/cache"
 )
 
 /*
@@ -41,7 +41,7 @@ func (self ItemJson) marshal() (string, error) {
 	ItemManager
 */
 type ItemManager struct {
-	Client Cache.Client
+	Client cache.Client
 }
 
 func (self ItemManager) Namespace() string { return "item" }
@@ -59,16 +59,16 @@ func (self ItemManager) PersistAll(items []Item) (err error) {
 	}
 
 	// data
-	values := make([]Cache.PersistValue, len(items))
+	values := make([]cache.PersistValue, len(items))
 	for i, item := range items {
-		bucketKey, subKey := Cache.GetBucketKey(item.Id, self.Namespace())
+		bucketKey, subKey := cache.GetBucketKey(item.Id, self.Namespace())
 
 		var s string
 		if s, err = item.marshal(); err != nil {
 			return
 		}
 
-		values[i] = Cache.PersistValue{
+		values[i] = cache.PersistValue{
 			BucketKey: bucketKey,
 			SubKey:    subKey,
 			Value:     s,

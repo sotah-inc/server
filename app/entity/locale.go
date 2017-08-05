@@ -1,11 +1,11 @@
-package Entity
+package entity
 
 import (
 	"encoding/json"
 	"fmt"
 	"strconv"
 
-	"github.com/ihsw/go-download/app/Cache"
+	"github.com/ihsw/go-download/app/cache"
 )
 
 /*
@@ -53,7 +53,7 @@ func (self LocaleJson) marshal() (string, error) {
 	LocaleManager
 */
 type LocaleManager struct {
-	Client Cache.Client
+	Client cache.Client
 }
 
 func (self LocaleManager) Namespace() string { return "locale" }
@@ -80,7 +80,7 @@ func (self LocaleManager) Persist(locale Locale) (Locale, error) {
 	if err != nil {
 		return locale, err
 	}
-	bucketKey, subKey := Cache.GetBucketKey(locale.Id, "locale")
+	bucketKey, subKey := cache.GetBucketKey(locale.Id, "locale")
 	req := r.HSet(bucketKey, subKey, s)
 	if err = req.Err(); err != nil {
 		return locale, err

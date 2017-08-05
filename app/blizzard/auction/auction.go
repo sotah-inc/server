@@ -1,12 +1,12 @@
-package Auction
+package auction
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
 
-	"github.com/ihsw/go-download/app/Entity"
-	"github.com/ihsw/go-download/app/Util"
+	"github.com/ihsw/go-download/app/entity"
+	"github.com/ihsw/go-download/app/util"
 )
 
 /*
@@ -26,10 +26,10 @@ const URL_FORMAT = "https://%s/wow/auction/data/%s?apikey=%s"
 /*
 	funcs
 */
-func Get(realm Entity.Realm, apiKey string) (response *Response, err error) {
+func Get(realm entity.Realm, apiKey string) (response *Response, err error) {
 	url := fmt.Sprintf(URL_FORMAT, realm.Region.Host, realm.Slug, apiKey)
 	var b []byte
-	if b, err = Util.Download(url); err != nil {
+	if b, err = util.Download(url); err != nil {
 		err = errors.New(fmt.Sprintf("Util.Download() for %s failed (%s)", url, err.Error()))
 		return
 	}

@@ -1,23 +1,23 @@
-package Character
+package character
 
 import (
 	"encoding/json"
 	"fmt"
 	"strconv"
 
-	"github.com/ihsw/go-download/app/Cache"
-	"github.com/ihsw/go-download/app/Entity"
-	"github.com/ihsw/go-download/app/Util"
+	"github.com/ihsw/go-download/app/cache"
+	"github.com/ihsw/go-download/app/entity"
+	"github.com/ihsw/go-download/app/util"
 )
 
 /*
 	funcs
 */
 func characterNameKey(realm Entity.Realm, name string) string {
-	return fmt.Sprintf("realm:%d:character:%s:id", realm.Id, Util.Md5Encode(name))
+	return fmt.Sprintf("realm:%d:character:%s:id", realm.Id,util.Md5Encode(name))
 }
 
-func NewManager(realm Entity.Realm, client Cache.Client) Manager {
+func NewManager(realm Entity.Realm, client cache.Client) Manager {
 	return Manager{
 		Realm:        realm,
 		RealmManager: Entity.NewRealmManager(realm.Region, client),
@@ -34,7 +34,7 @@ type Manager struct {
 
 func (self Manager) Namespace() string { return fmt.Sprintf("realm:%d:character", self.Realm.Id) }
 
-func (self Manager) Client() Cache.Client { return self.RealmManager.Client() }
+func (self Manager) Client() cache.Client { return self.RealmManager.Client() }
 
 func (self Manager) PersistAll(newCharacters []Character) (err error) {
 	m := self.Client().Main
@@ -49,16 +49,16 @@ func (self Manager) PersistAll(newCharacters []Character) (err error) {
 	}
 
 	// data
-	values := make([]Cache.PersistValue, len(newCharacters))
+	values := make([]cache.PersistValue, len(newCharacters))
 	for i, character := range newCharacters {
-		bucketKey, subKey := Cache.GetBucketKey(character.Id, self.Namespace())
+		bucketKey, subKey := cache.GetBucketKey(character.Id, self.Namespace())
 
 		var s string
 		if s, err = character.marshal(); err != nil {
 			return
 		}
 
-		values[i] = Cache.PersistValue{
+		values[i] = cache.PersistValue{
 			BucketKey: bucketKey,
 			SubKey:    subKey,
 			Value:     s,

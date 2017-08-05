@@ -1,4 +1,4 @@
-package DownloadRealm
+package downloadrealm
 
 import (
 	"encoding/json"
@@ -8,19 +8,18 @@ import (
 	"os"
 	"time"
 
-	"github.com/ihsw/go-download/app/Blizzard/Auction"
-	"github.com/ihsw/go-download/app/Blizzard/AuctionData"
-	"github.com/ihsw/go-download/app/Cache"
-	"github.com/ihsw/go-download/app/Entity"
-	"github.com/ihsw/go-download/app/Entity/Character"
-	"github.com/ihsw/go-download/app/Queue"
-	"github.com/ihsw/go-download/app/Util"
+	"github.com/ihsw/go-download/app/blizzard/auction"
+	"github.com/ihsw/go-download/app/blizzard/auctiondata"
+	"github.com/ihsw/go-download/app/cache"
+	"github.com/ihsw/go-download/app/entity/character"
+	"github.com/ihsw/go-download/app/queue"
+	"github.com/ihsw/go-download/app/util"
 )
 
 /*
 	funcs
 */
-func DoWork(in chan Entity.Realm, cacheClient Cache.Client) chan Job {
+func DoWork(in chan Entity.Realm, cacheClient cache.Client) chan Job {
 	out := make(chan Job)
 
 	worker := func() {
@@ -29,12 +28,12 @@ func DoWork(in chan Entity.Realm, cacheClient Cache.Client) chan Job {
 		}
 	}
 	postWork := func() { close(out) }
-	Queue.Work(4, worker, postWork)
+	queue.Work(4, worker, postWork)
 
 	return out
 }
 
-func process(realm Entity.Realm, cacheClient Cache.Client) (job Job) {
+func process(realm Entity.Realm, cacheClient cache.Client) (job Job) {
 	// misc
 	realmManager := Entity.NewRealmManager(realm.Region, cacheClient)
 	job = newJob(realm)
@@ -91,15 +90,15 @@ func process(realm Entity.Realm, cacheClient Cache.Client) (job Job) {
 	Job
 */
 func newJob(realm Entity.Realm) Job {
-	return Job{AuctionDataJob: Queue.NewAuctionDataJob(realm)}
+	return Job{AuctionDataJob: queue.NewAuctionDataJob(realm)}
 }
 
 type Job struct {
-	Queue.AuctionDataJob
+	queue.AuctionDataJob
 	AuctionDataResponse *AuctionData.Response
 }
 
-func (self Job) GetNewCharacters(existingNames []string) (newCharacters []Character.Character) {
+func (self Job) GetNewCharacters(existingNames []string) (newCharacters []character.Character) {
 	// misc
 	auctions := self.AuctionDataResponse.Auctions.Auctions
 
@@ -121,10 +120,10 @@ func (self Job) GetNewCharacters(existingNames []string) (newCharacters []Charac
 	}
 
 	// doing a second pass to fill new ones in
-	newCharacters = make([]Character.Character, len(newNames))
+	newCharacters = make([]character.Character, len(newNames))
 	i := 0
 	for name, _ := range newNames {
-		newCharacters[i] = Character.Character{
+		newCharacters[i] = character.Character{
 			Name:  name,
 			Realm: self.Realm,
 		}
@@ -186,7 +185,7 @@ func (self Job) dumpData() (err error) {
 	if data, err = json.Marshal(self.AuctionDataResponse); err != nil {
 		return
 	}
-	if data, err = Util.GzipEncode(data); err != nil {
+	if data, err = util.GzipEncode(data); err != nil {
 		return
 	}
 	dest := fmt.Sprintf("%s/%s.json.gz", folder, realm.Slug)

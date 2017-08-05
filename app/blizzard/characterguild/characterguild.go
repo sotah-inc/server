@@ -1,12 +1,12 @@
-package CharacterGuild
+package characterguild
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
 
-	"github.com/ihsw/go-download/app/Entity/Character"
-	"github.com/ihsw/go-download/app/Util"
+	"github.com/ihsw/go-download/app/entity/character"
+	"github.com/ihsw/go-download/app/util"
 )
 
 /*
@@ -59,7 +59,7 @@ const URL_FORMAT = "https://%s/wow/character/%s/%s?fields=guild&apikey=%s"
 /*
 	funcs
 */
-func Get(character Character.Character, apiKey string) (response *Response, err error) {
+func Get(character character.Character, apiKey string) (response *Response, err error) {
 	url := fmt.Sprintf(URL_FORMAT,
 		character.Realm.Region.Host,
 		character.Realm.Slug,
@@ -67,7 +67,7 @@ func Get(character Character.Character, apiKey string) (response *Response, err 
 		apiKey,
 	)
 	var b []byte
-	if b, err = Util.Download(url); err != nil {
+	if b, err = util.Download(url); err != nil {
 		err = errors.New(fmt.Sprintf("Util.Download() for %s failed (%s)", url, err.Error()))
 		return
 	}

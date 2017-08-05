@@ -1,9 +1,7 @@
-package Character
+package character
 
 import (
 	"encoding/json"
-
-	"github.com/ihsw/go-download/app/Entity"
 )
 
 /*

@@ -1,22 +1,22 @@
-package Entity
+package entity
 
 import (
 	"encoding/json"
 	"fmt"
 	"strconv"
 
-	"github.com/ihsw/go-download/app/Cache"
-	"github.com/ihsw/go-download/app/Util"
+	"github.com/ihsw/go-download/app/cache"
+	"github.com/ihsw/go-download/app/util"
 )
 
 /*
 	funcs
 */
 func regionNameKey(name string) string {
-	return fmt.Sprintf("region:%s:id", Util.Md5Encode(name))
+	return fmt.Sprintf("region:%s:id", util.Md5Encode(name))
 }
 
-func NewRegionManager(client Cache.Client) RegionManager { return RegionManager{Client: client} }
+func NewRegionManager(client cache.Client) RegionManager { return RegionManager{Client: client} }
 
 /*
 	Region
@@ -60,7 +60,7 @@ func (self RegionJson) marshal() (string, error) {
 	RegionManager
 */
 type RegionManager struct {
-	Client Cache.Client
+	Client cache.Client
 }
 
 func (self RegionManager) Namespace() string { return "region" }
@@ -79,18 +79,18 @@ func (self RegionManager) PersistAll(values []Region) (regions []Region, err err
 	}
 
 	// data
-	persistValues := make([]Cache.PersistValue, len(regions))
+	persistValues := make([]cache.PersistValue, len(regions))
 	hashedNameKeys := map[string]string{}
 	newIds := make([]string, len(regions))
 	for i, region := range regions {
-		bucketKey, subKey := Cache.GetBucketKey(region.Id, self.Namespace())
+		bucketKey, subKey := cache.GetBucketKey(region.Id, self.Namespace())
 
 		var s string
 		if s, err = region.marshal(); err != nil {
 			return
 		}
 
-		persistValues[i] = Cache.PersistValue{
+		persistValues[i] = cache.PersistValue{
 			BucketKey: bucketKey,
 			SubKey:    subKey,
 			Value:     s,

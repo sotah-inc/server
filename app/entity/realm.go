@@ -1,4 +1,4 @@
-package Entity
+package entity
 
 import (
 	"encoding/json"
@@ -7,18 +7,18 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ihsw/go-download/app/Cache"
-	"github.com/ihsw/go-download/app/Util"
+	"github.com/ihsw/go-download/app/cache"
+	"github.com/ihsw/go-download/app/util"
 )
 
 /*
 	funcs
 */
 func realmNameKey(region Region, slug string) string {
-	return fmt.Sprintf("region:%d:realm:%s:id", region.Id, Util.Md5Encode(slug))
+	return fmt.Sprintf("region:%d:realm:%s:id", region.Id, util.Md5Encode(slug))
 }
 
-func NewRealmManager(region Region, client Cache.Client) RealmManager {
+func NewRealmManager(region Region, client cache.Client) RealmManager {
 	return RealmManager{
 		Region:        region,
 		RegionManager: RegionManager{Client: client},
@@ -104,7 +104,7 @@ type RealmManager struct {
 
 func (self RealmManager) Namespace() string { return "realm" }
 
-func (self RealmManager) Client() Cache.Client { return self.RegionManager.Client }
+func (self RealmManager) Client() cache.Client { return self.RegionManager.Client }
 
 func (self RealmManager) Persist(v Realm) (realm Realm, err error) {
 	var realms []Realm
@@ -139,18 +139,18 @@ func (self RealmManager) PersistAll(values []Realm) (realms []Realm, err error) 
 	}
 
 	// data
-	persistValues := make([]Cache.PersistValue, len(realms))
+	persistValues := make([]cache.PersistValue, len(realms))
 	newIds := make([]string, len(newValueIndexes))
 	hashedNameKeys := map[string]string{}
 	for i, realm := range realms {
-		bucketKey, subKey := Cache.GetBucketKey(realm.Id, self.Namespace())
+		bucketKey, subKey := cache.GetBucketKey(realm.Id, self.Namespace())
 
 		var s string
 		if s, err = realm.marshal(); err != nil {
 			return
 		}
 
-		persistValues[i] = Cache.PersistValue{
+		persistValues[i] = cache.PersistValue{
 			BucketKey: bucketKey,
 			SubKey:    subKey,
 			Value:     s,

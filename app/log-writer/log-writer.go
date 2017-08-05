@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ihsw/go-download/app/Log"
-	"github.com/ihsw/go-download/app/Util"
+	"github.com/ihsw/go-download/app/log"
+	"github.com/ihsw/go-download/app/util"
 )
 
 func main() {

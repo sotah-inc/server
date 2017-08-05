@@ -1,20 +1,18 @@
-package ItemizeRealm
+package itemizerealm
 
 import (
 	"errors"
 	"fmt"
 
-	"github.com/ihsw/go-download/app/Cache"
-	"github.com/ihsw/go-download/app/Entity"
-	"github.com/ihsw/go-download/app/Entity/Character"
-	"github.com/ihsw/go-download/app/Queue"
-	"github.com/ihsw/go-download/app/Queue/DownloadRealm"
+	"github.com/ihsw/go-download/app/cache"
+	"github.com/ihsw/go-download/app/entity/character"
+	"github.com/ihsw/go-download/app/queue"
 )
 
 /*
 	funcs
 */
-func DoWork(in chan DownloadRealm.Job, cacheClient Cache.Client) (chan Job, chan error) {
+func DoWork(in chan DownloadRealm.Job, cacheClient cache.Client) (chan Job, chan error) {
 	out := make(chan Job)
 	alternateOut := make(chan Job)
 	alternateOutDone := make(chan error)
@@ -30,7 +28,7 @@ func DoWork(in chan DownloadRealm.Job, cacheClient Cache.Client) (chan Job, chan
 		close(out)
 		close(alternateOut)
 	}
-	Queue.Work(1, worker, postWork)
+	queue.Work(1, worker, postWork)
 
 	// gathering up the list of unique items
 	go func() {
@@ -63,7 +61,7 @@ func DoWork(in chan DownloadRealm.Job, cacheClient Cache.Client) (chan Job, chan
 	return out, alternateOutDone
 }
 
-func process(inJob DownloadRealm.Job, cacheClient Cache.Client) (job Job) {
+func process(inJob DownloadRealm.Job, cacheClient cache.Client) (job Job) {
 	// misc
 	job = newJob(inJob)
 	realm := inJob.Realm
@@ -80,7 +78,7 @@ func process(inJob DownloadRealm.Job, cacheClient Cache.Client) (job Job) {
 	/*
 		character handling
 	*/
-	characterManager := Character.NewManager(realm, cacheClient)
+	characterManager := character.NewManager(realm, cacheClient)
 
 	// gathering existing characters
 	var (
@@ -114,7 +112,7 @@ func newJob(inJob DownloadRealm.Job) Job {
 }
 
 type Job struct {
-	Queue.AuctionDataJob
+	queue.AuctionDataJob
 	blizzItemIds []int64
 }
 

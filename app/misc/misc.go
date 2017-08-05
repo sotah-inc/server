@@ -1,16 +1,15 @@
-package Misc
+package misc
 
 import (
-	"github.com/ihsw/go-download/app/Blizzard/Status"
-	"github.com/ihsw/go-download/app/Cache"
-	"github.com/ihsw/go-download/app/Config"
-	"github.com/ihsw/go-download/app/Entity"
+	"github.com/ihsw/go-download/app/blizzard/status"
+	"github.com/ihsw/go-download/app/cache"
+	"github.com/ihsw/go-download/app/config"
 )
 
 /*
 	funcs
 */
-func Init(configPath string, flushDb bool) (client Cache.Client, regions []Entity.Region, regionRealms map[int64][]Entity.Realm, err error) {
+func Init(configPath string, flushDb bool) (client cache.Client, regions []Entity.Region, regionRealms map[int64][]Entity.Realm, err error) {
 	// opening the config file
 	var configFile Config.File
 	if configFile, err = Config.New(configPath); err != nil {
@@ -18,7 +17,7 @@ func Init(configPath string, flushDb bool) (client Cache.Client, regions []Entit
 	}
 
 	// connecting the client
-	if client, err = Cache.NewClient(configFile); err != nil {
+	if client, err = cache.NewClient(configFile); err != nil {
 		return
 	}
 	if flushDb {
