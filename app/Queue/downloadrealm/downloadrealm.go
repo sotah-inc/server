@@ -8,9 +8,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/ihsw/go-download/app/blizzard/auction"
-	"github.com/ihsw/go-download/app/blizzard/auctiondata"
 	"github.com/ihsw/go-download/app/cache"
+	"github.com/ihsw/go-download/app/entity"
 	"github.com/ihsw/go-download/app/entity/character"
 	"github.com/ihsw/go-download/app/queue"
 	"github.com/ihsw/go-download/app/util"
@@ -19,7 +18,7 @@ import (
 /*
 	funcs
 */
-func DoWork(in chan Entity.Realm, cacheClient cache.Client) chan Job {
+func DoWork(in chan entity.Realm, cacheClient cache.Client) chan Job {
 	out := make(chan Job)
 
 	worker := func() {
@@ -33,9 +32,9 @@ func DoWork(in chan Entity.Realm, cacheClient cache.Client) chan Job {
 	return out
 }
 
-func process(realm Entity.Realm, cacheClient cache.Client) (job Job) {
+func process(realm entity.Realm, cacheClient cache.Client) (job Job) {
 	// misc
-	realmManager := Entity.NewRealmManager(realm.Region, cacheClient)
+	realmManager := entity.NewRealmManager(realm.Region, cacheClient)
 	job = newJob(realm)
 
 	// fetching the auction info
@@ -89,7 +88,7 @@ func process(realm Entity.Realm, cacheClient cache.Client) (job Job) {
 /*
 	Job
 */
-func newJob(realm Entity.Realm) Job {
+func newJob(realm entity.Realm) Job {
 	return Job{AuctionDataJob: queue.NewAuctionDataJob(realm)}
 }
 

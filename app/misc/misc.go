@@ -1,15 +1,15 @@
 package misc
 
 import (
-	"github.com/ihsw/go-download/app/blizzard/status"
 	"github.com/ihsw/go-download/app/cache"
 	"github.com/ihsw/go-download/app/config"
+	"github.com/ihsw/go-download/app/entity"
 )
 
 /*
 	funcs
 */
-func Init(configPath string, flushDb bool) (client cache.Client, regions []Entity.Region, regionRealms map[int64][]Entity.Realm, err error) {
+func Init(configPath string, flushDb bool) (client cache.Client, regions []entity.Region, regionRealms map[int64][]entity.Realm, err error) {
 	// opening the config file
 	var configFile Config.File
 	if configFile, err = Config.New(configPath); err != nil {
@@ -27,12 +27,12 @@ func Init(configPath string, flushDb bool) (client cache.Client, regions []Entit
 	}
 
 	// gathering the regions and realms
-	regionRealms = make(map[int64][]Entity.Realm)
-	regionManager := Entity.NewRegionManager(client)
+	regionRealms = make(map[int64][]entity.Realm)
+	regionManager := entity.NewRegionManager(client)
 	if flushDb {
-		regions = make([]Entity.Region, len(configFile.Regions))
+		regions = make([]entity.Region, len(configFile.Regions))
 		for i, configRegion := range configFile.Regions {
-			regions[i] = Entity.Region{
+			regions[i] = entity.Region{
 				Name:      configRegion.Name,
 				Host:      configRegion.Host,
 				Queryable: configRegion.Queryable,
@@ -48,9 +48,9 @@ func Init(configPath string, flushDb bool) (client cache.Client, regions []Entit
 				return
 			}
 
-			realms := make([]Entity.Realm, len(response.Realms))
+			realms := make([]entity.Realm, len(response.Realms))
 			for i, responseRealm := range response.Realms {
-				realms[i] = Entity.Realm{
+				realms[i] = entity.Realm{
 					Name:        responseRealm.Name,
 					Slug:        responseRealm.Slug,
 					Battlegroup: responseRealm.Battlegroup,
@@ -60,7 +60,7 @@ func Init(configPath string, flushDb bool) (client cache.Client, regions []Entit
 					Region:      region,
 				}
 			}
-			realmManager := Entity.NewRealmManager(region, client)
+			realmManager := entity.NewRealmManager(region, client)
 			if regionRealms[region.Id], err = realmManager.PersistAll(realms); err != nil {
 				return
 			}
@@ -70,7 +70,7 @@ func Init(configPath string, flushDb bool) (client cache.Client, regions []Entit
 			return
 		}
 		for _, region := range regions {
-			realmManager := Entity.NewRealmManager(region, client)
+			realmManager := entity.NewRealmManager(region, client)
 			if regionRealms[region.Id], err = realmManager.FindAll(); err != nil {
 				return
 			}

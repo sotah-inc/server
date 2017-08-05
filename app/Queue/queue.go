@@ -32,7 +32,7 @@ type Job struct {
 	Err error
 }
 
-func NewRealmJob(realm Entity.Realm) RealmJob {
+func NewRealmJob(realm entity.Realm) RealmJob {
 	return RealmJob{
 		Job:   NewJob(),
 		Realm: realm,
@@ -41,10 +41,10 @@ func NewRealmJob(realm Entity.Realm) RealmJob {
 
 type RealmJob struct {
 	Job
-	Realm Entity.Realm
+	Realm entity.Realm
 }
 
-func NewAuctionDataJob(realm Entity.Realm) AuctionDataJob {
+func NewAuctionDataJob(realm entity.Realm) AuctionDataJob {
 	return AuctionDataJob{RealmJob: NewRealmJob(realm)}
 }
 

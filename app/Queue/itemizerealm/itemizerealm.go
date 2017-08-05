@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/ihsw/go-download/app/cache"
+	"github.com/ihsw/go-download/app/entity"
 	"github.com/ihsw/go-download/app/entity/character"
 	"github.com/ihsw/go-download/app/queue"
 )
@@ -47,7 +48,7 @@ func DoWork(in chan DownloadRealm.Job, cacheClient cache.Client) (chan Job, chan
 			existingBlizzIds []int64
 			err              error
 		)
-		itemManager := Entity.ItemManager{Client: cacheClient}
+		itemManager := entity.ItemManager{Client: cacheClient}
 		if existingBlizzIds, err = itemManager.GetBlizzIds(); err != nil {
 			alternateOutDone <- err
 		}
@@ -123,7 +124,7 @@ type Jobs struct {
 	list []Job
 }
 
-func (self Jobs) getNewItems(existingBlizzIds []int64) (newItems []Entity.Item) {
+func (self Jobs) getNewItems(existingBlizzIds []int64) (newItems []entity.Item) {
 	// gathering the blizz-ids for uniqueness
 	existingBlizzIdFlags := map[int64]struct{}{}
 	for _, blizzId := range existingBlizzIds {
@@ -142,10 +143,10 @@ func (self Jobs) getNewItems(existingBlizzIds []int64) (newItems []Entity.Item) 
 		}
 	}
 
-	newItems = []Entity.Item{}
+	newItems = []entity.Item{}
 	i := 0
 	for blizzId, _ := range newBlizzIds {
-		newItems = append(newItems, Entity.Item{BlizzId: blizzId})
+		newItems = append(newItems, entity.Item{BlizzId: blizzId})
 		i++
 	}
 

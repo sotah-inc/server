@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/ihsw/go-download/app/entity"
 	"github.com/ihsw/go-download/app/util"
 )
 
@@ -15,7 +16,7 @@ const URL_FORMAT = "https://%s/wow/realm/status?apikey=%s"
 /*
 	funcs
 */
-func Get(region Entity.Region, apiKey string) (response Response, err error) {
+func Get(region entity.Region, apiKey string) (response Response, err error) {
 	url := fmt.Sprintf(URL_FORMAT, region.Host, apiKey)
 	var b []byte
 	if b, err = util.Download(url); err != nil {

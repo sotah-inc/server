@@ -13,14 +13,14 @@ import (
 /*
 	funcs
 */
-func characterNameKey(realm Entity.Realm, name string) string {
-	return fmt.Sprintf("realm:%d:character:%s:id", realm.Id,util.Md5Encode(name))
+func characterNameKey(realm entity.Realm, name string) string {
+	return fmt.Sprintf("realm:%d:character:%s:id", realm.Id, util.Md5Encode(name))
 }
 
-func NewManager(realm Entity.Realm, client cache.Client) Manager {
+func NewManager(realm entity.Realm, client cache.Client) Manager {
 	return Manager{
 		Realm:        realm,
-		RealmManager: Entity.NewRealmManager(realm.Region, client),
+		RealmManager: entity.NewRealmManager(realm.Region, client),
 	}
 }
 
@@ -28,8 +28,8 @@ func NewManager(realm Entity.Realm, client cache.Client) Manager {
 	manager
 */
 type Manager struct {
-	Realm        Entity.Realm
-	RealmManager Entity.RealmManager
+	Realm        entity.Realm
+	RealmManager entity.RealmManager
 }
 
 func (self Manager) Namespace() string { return fmt.Sprintf("realm:%d:character", self.Realm.Id) }
@@ -141,7 +141,7 @@ func (self Manager) unmarshalAll(values []string) (characters []Character, err e
 	}
 
 	// resolving the realms
-	var realms []Entity.Realm
+	var realms []entity.Realm
 	if realms, err = self.RealmManager.FindByIds(realmIds); err != nil {
 		return
 	}

@@ -2,6 +2,8 @@ package character
 
 import (
 	"encoding/json"
+
+	"github.com/ihsw/go-download/app/entity"
 )
 
 /*
@@ -10,7 +12,7 @@ import (
 type Character struct {
 	Id        int64
 	Name      string
-	Realm     Entity.Realm
+	Realm     entity.Realm
 	GuildName string
 }
 
