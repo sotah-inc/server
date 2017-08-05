@@ -7,12 +7,12 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/ihsw/go-download/Cache"
-	"github.com/ihsw/go-download/Entity"
-	"github.com/ihsw/go-download/Misc"
-	"github.com/ihsw/go-download/Queue/DownloadRealm"
-	"github.com/ihsw/go-download/Queue/ItemizeRealm"
-	"github.com/ihsw/go-download/Util"
+	"github.com/ihsw/go-download/app/Cache"
+	"github.com/ihsw/go-download/app/Entity"
+	"github.com/ihsw/go-download/app/Misc"
+	"github.com/ihsw/go-download/app/Queue/DownloadRealm"
+	"github.com/ihsw/go-download/app/Queue/ItemizeRealm"
+	"github.com/ihsw/go-download/app/Util"
 )
 
 func work(inRealms []map[int64]Entity.Realm, cacheClient Cache.Client) (formattedRealms []map[int64]Entity.Realm, err error) {
