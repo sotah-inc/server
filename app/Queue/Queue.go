@@ -1,8 +1,9 @@
 package Queue
 
 import (
-	"github.com/ihsw/go-download/Entity"
 	"sync"
+
+	"github.com/ihsw/go-download/app/Entity"
 )
 
 /*
