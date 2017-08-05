@@ -1,0 +1,6 @@
+language: go
+
+before_script:
+- go vet app/...
+script:
+- go test github.com/ihsw/go-download/app/...
