@@ -2,6 +2,7 @@ package Log
 
 import (
 	"errors"
+
 	"github.com/vmihailenco/redis"
 )
 

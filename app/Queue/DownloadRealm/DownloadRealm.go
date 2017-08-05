@@ -4,16 +4,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ihsw/go-download/Blizzard/Auction"
-	"github.com/ihsw/go-download/Blizzard/AuctionData"
-	"github.com/ihsw/go-download/Cache"
-	"github.com/ihsw/go-download/Entity"
-	"github.com/ihsw/go-download/Entity/Character"
-	"github.com/ihsw/go-download/Queue"
-	"github.com/ihsw/go-download/Util"
 	"io/ioutil"
 	"os"
 	"time"
+
+	"github.com/ihsw/go-download/app/Blizzard/Auction"
+	"github.com/ihsw/go-download/app/Blizzard/AuctionData"
+	"github.com/ihsw/go-download/app/Cache"
+	"github.com/ihsw/go-download/app/Entity"
+	"github.com/ihsw/go-download/app/Entity/Character"
+	"github.com/ihsw/go-download/app/Queue"
+	"github.com/ihsw/go-download/app/Util"
 )
 
 /*

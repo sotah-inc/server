@@ -3,9 +3,10 @@ package Entity
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ihsw/go-download/Cache"
-	"github.com/ihsw/go-download/Util"
 	"strconv"
+
+	"github.com/ihsw/go-download/app/Cache"
+	"github.com/ihsw/go-download/app/Util"
 )
 
 /*

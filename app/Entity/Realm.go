@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ihsw/go-download/Cache"
-	"github.com/ihsw/go-download/Util"
 	"strconv"
 	"time"
+
+	"github.com/ihsw/go-download/app/Cache"
+	"github.com/ihsw/go-download/app/Util"
 )
 
 /*

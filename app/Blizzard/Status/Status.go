@@ -3,8 +3,9 @@ package Status
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ihsw/go-download/Entity"
-	"github.com/ihsw/go-download/Util"
+
+	"github.com/ihsw/go-download/app/Entity"
+	"github.com/ihsw/go-download/app/Util"
 )
 
 /*

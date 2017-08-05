@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/ihsw/go-download/Log"
-	"github.com/ihsw/go-download/Util"
 	"os"
+
+	"github.com/ihsw/go-download/app/Log"
+	"github.com/ihsw/go-download/app/Util"
 )
 
 func main() {

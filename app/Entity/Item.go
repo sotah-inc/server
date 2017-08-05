@@ -2,8 +2,9 @@ package Entity
 
 import (
 	"encoding/json"
-	"github.com/ihsw/go-download/Cache"
 	"strconv"
+
+	"github.com/ihsw/go-download/app/Cache"
 )
 
 /*

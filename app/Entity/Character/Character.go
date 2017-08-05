@@ -2,7 +2,8 @@ package Character
 
 import (
 	"encoding/json"
-	"github.com/ihsw/go-download/Entity"
+
+	"github.com/ihsw/go-download/app/Entity"
 )
 
 /*

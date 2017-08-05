@@ -2,9 +2,10 @@ package Cache
 
 import (
 	"fmt"
-	"github.com/ihsw/go-download/Config"
-	redis "gopkg.in/redis.v2"
 	"strconv"
+
+	"github.com/ihsw/go-download/app/Config"
+	redis "gopkg.in/redis.v2"
 )
 
 /*

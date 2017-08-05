@@ -1,10 +1,10 @@
 package Misc
 
 import (
-	"github.com/ihsw/go-download/Blizzard/Status"
-	"github.com/ihsw/go-download/Cache"
-	"github.com/ihsw/go-download/Config"
-	"github.com/ihsw/go-download/Entity"
+	"github.com/ihsw/go-download/app/Blizzard/Status"
+	"github.com/ihsw/go-download/app/Cache"
+	"github.com/ihsw/go-download/app/Config"
+	"github.com/ihsw/go-download/app/Entity"
 )
 
 /*

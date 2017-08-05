@@ -2,9 +2,10 @@ package Config
 
 import (
 	"encoding/json"
-	redis "gopkg.in/redis.v2"
 	"io/ioutil"
 	"path/filepath"
+
+	redis "gopkg.in/redis.v2"
 )
 
 /*

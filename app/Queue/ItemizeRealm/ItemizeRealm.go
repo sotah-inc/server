@@ -3,11 +3,12 @@ package ItemizeRealm
 import (
 	"errors"
 	"fmt"
-	"github.com/ihsw/go-download/Cache"
-	"github.com/ihsw/go-download/Entity"
-	"github.com/ihsw/go-download/Entity/Character"
-	"github.com/ihsw/go-download/Queue"
-	"github.com/ihsw/go-download/Queue/DownloadRealm"
+
+	"github.com/ihsw/go-download/app/Cache"
+	"github.com/ihsw/go-download/app/Entity"
+	"github.com/ihsw/go-download/app/Entity/Character"
+	"github.com/ihsw/go-download/app/Queue"
+	"github.com/ihsw/go-download/app/Queue/DownloadRealm"
 )
 
 /*
