@@ -1,10 +1,1 @@
 language: go
-
-env:
-  - APP_PROJECT=github.com/ihsw/go-download/app
-before_script:
-- go vet $APP_PROJECT/...
-install:
-- go get -t ./src/$APP_PROJECT/...
-script:
-- go test -v $APP_PROJECTS/...
