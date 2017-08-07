@@ -9,12 +9,14 @@ import (
 
 const urlFormat = "https://%s/wow/realm/status"
 
-func newStatus(regionName string) (*status, error) {
-	return getStatus(fmt.Sprintf(urlFormat, regionName))
+type getStatusURLFunc func(string) string
+
+func defaultGetStatusURL(regionName string) string {
+	return fmt.Sprintf(urlFormat, regionName)
 }
 
-func getStatus(url string) (*status, error) {
-	resp, err := http.Get(url)
+func newStatus(regionName string, getStatusURL getStatusURLFunc) (*status, error) {
+	resp, err := http.Get(getStatusURL(regionName))
 	if err != nil {
 		return nil, err
 	}
