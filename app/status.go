@@ -7,12 +7,12 @@ import (
 	"net/http"
 )
 
-const urlFormat = "https://%s/wow/realm/status"
+const statusURLFormat = "https://%s/wow/realm/status"
 
 type getStatusURLFunc func(string) string
 
 func defaultGetStatusURL(regionName string) string {
-	return fmt.Sprintf(urlFormat, regionName)
+	return fmt.Sprintf(statusURLFormat, regionName)
 }
 
 func newStatus(regionName string, getStatusURL getStatusURLFunc) (*status, error) {
