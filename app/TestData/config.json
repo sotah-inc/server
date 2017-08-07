@@ -1,0 +1,9 @@
+{
+    "api_key": "xxx",
+    "regions": [
+        {
+            "name": "us",
+            "hostname": "us.battle.net"
+        }
+    ]
+}
