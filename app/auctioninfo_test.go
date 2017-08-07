@@ -13,7 +13,7 @@ func TestNewAuctions(t *testing.T) {
 		return
 	}
 
-	a, err := newAuctions("", "", func(regionName string, realmName string) string {
+	a, err := newAuctionInfo("", "", func(regionName string, realmName string) string {
 		return ts.URL
 	})
 	if !assert.Nil(t, err) {
