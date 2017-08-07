@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewAuctions(t *testing.T) {
-	ts, err := utiltest.ServeFile("./TestData/auctions.json")
+func TestNewAuctionInfo(t *testing.T) {
+	ts, err := utiltest.ServeFile("./TestData/auctioninfo.json")
 	if !assert.Nil(t, err) {
 		return
 	}
