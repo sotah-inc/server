@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -38,7 +39,19 @@ type auctionInfo struct {
 	Files []auctionFile `json:"files"`
 }
 
+func (a auctionInfo) getFirstAuctions(r resolver) (*auctions, error) {
+	if len(a.Files) == 0 {
+		return nil, errors.New("cannot fetch first auctions with blank files")
+	}
+
+	return a.Files[0].getAuctions(r)
+}
+
 type auctionFile struct {
 	URL          string `json:"url"`
 	LastModified int64  `json:"lastModified"`
+}
+
+func (af auctionFile) getAuctions(r resolver) (*auctions, error) {
+	return newAuctions(af.URL, r)
 }
