@@ -15,8 +15,8 @@ func defaultGetAuctionInfoURL(regionName string, realmName string) string {
 
 type getAuctionInfoURLFunc func(string, string) string
 
-func newAuctionInfo(regionName string, realmName string, getAuctionInfoURL getAuctionInfoURLFunc) (*auctionInfo, error) {
-	resp, err := http.Get(getAuctionInfoURL(regionName, realmName))
+func newAuctionInfo(regionName string, realmName string, r resolver) (*auctionInfo, error) {
+	resp, err := http.Get(r.getAuctionInfoURL(regionName, realmName))
 	if err != nil {
 		return nil, err
 	}

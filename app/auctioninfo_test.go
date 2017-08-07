@@ -13,9 +13,11 @@ func TestNewAuctionInfo(t *testing.T) {
 		return
 	}
 
-	a, err := newAuctionInfo("", "", func(regionName string, realmName string) string {
-		return ts.URL
-	})
+	a, err := newAuctionInfo(
+		"",
+		"",
+		resolver{getAuctionInfoURL: func(regionName string, realmName string) string { return ts.URL }},
+	)
 	if !assert.Nil(t, err) {
 		return
 	}

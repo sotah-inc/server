@@ -12,8 +12,8 @@ func defaultGetAuctionsURL(url string) string {
 
 type getAuctionsURLFunc func(url string) string
 
-func newAuctions(url string, getAuctionsURL getAuctionsURLFunc) (*auctions, error) {
-	resp, err := http.Get(getAuctionsURL(url))
+func newAuctions(url string, r resolver) (*auctions, error) {
+	resp, err := http.Get(r.getAuctionsURL(url))
 	if err != nil {
 		return nil, err
 	}

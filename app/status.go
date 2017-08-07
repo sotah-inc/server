@@ -15,8 +15,8 @@ func defaultGetStatusURL(regionName string) string {
 	return fmt.Sprintf(statusURLFormat, regionName)
 }
 
-func newStatus(regionName string, getStatusURL getStatusURLFunc) (*status, error) {
-	resp, err := http.Get(getStatusURL(regionName))
+func newStatus(regionName string, r resolver) (*status, error) {
+	resp, err := http.Get(r.getStatusURL(regionName))
 	if err != nil {
 		return nil, err
 	}
