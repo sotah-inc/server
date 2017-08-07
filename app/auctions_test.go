@@ -13,7 +13,9 @@ func TestNewAuctions(t *testing.T) {
 		return
 	}
 
-	a, err := newAuctions(ts.URL)
+	a, err := newAuctions(ts.URL, func(url string) string {
+		return url
+	})
 	if !assert.Nil(t, err) {
 		return
 	}

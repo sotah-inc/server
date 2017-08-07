@@ -6,8 +6,14 @@ import (
 	"net/http"
 )
 
-func newAuctions(url string) (*auctions, error) {
-	resp, err := http.Get(url)
+func defaultGetAuctionsURL(url string) string {
+	return url
+}
+
+type getAuctionsURLFunc func(url string) string
+
+func newAuctions(url string, getAuctionsURL getAuctionsURLFunc) (*auctions, error) {
+	resp, err := http.Get(getAuctionsURL(url))
 	if err != nil {
 		return nil, err
 	}
