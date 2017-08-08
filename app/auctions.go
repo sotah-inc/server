@@ -2,8 +2,8 @@ package app
 
 import (
 	"encoding/json"
-	"io/ioutil"
-	"net/http"
+
+	"github.com/ihsw/go-download/app/util"
 )
 
 func defaultGetAuctionsURL(url string) string {
@@ -13,12 +13,7 @@ func defaultGetAuctionsURL(url string) string {
 type getAuctionsURLFunc func(url string) string
 
 func newAuctions(url string, r resolver) (*auctions, error) {
-	resp, err := http.Get(r.getAuctionsURL(url))
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := util.Download(r.getAuctionsURL(url))
 	if err != nil {
 		return nil, err
 	}

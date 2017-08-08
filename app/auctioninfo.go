@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"net/http"
+
+	"github.com/ihsw/go-download/app/util"
 )
 
 const auctionInfoURLFormat = "https://%s.api.battle.net/wow/auction/data/%s"
@@ -17,12 +17,7 @@ func defaultGetAuctionInfoURL(regionHostname string, realmSlug realmSlug) string
 type getAuctionInfoURLFunc func(string, realmSlug) string
 
 func newAuctionInfo(rea realm, r resolver) (*auctionInfo, error) {
-	resp, err := http.Get(r.getAuctionInfoURL(rea.region.Hostname, rea.Slug))
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := util.Download(r.getAuctionInfoURL(rea.region.Hostname, rea.Slug))
 	if err != nil {
 		return nil, err
 	}
