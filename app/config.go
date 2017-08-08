@@ -26,11 +26,15 @@ func newConfig(relativePath string) (*config, error) {
 }
 
 type config struct {
-	APIKey  string         `json:"api_key"`
-	Regions []configRegion `json:"regions"`
+	APIKey  string   `json:"api_key"`
+	Regions []region `json:"regions"`
 }
 
-type configRegion struct {
+type region struct {
 	Name     string `json:"name"`
 	Hostname string `json:"hostname"`
+}
+
+func (reg region) getStatus(res resolver) (*status, error) {
+	return newStatus(reg.Hostname, res)
 }
