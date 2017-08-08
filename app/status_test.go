@@ -13,11 +13,18 @@ func TestNewStatus(t *testing.T) {
 		return
 	}
 
+	reg := region{}
 	s, err := newStatus(
-		region{},
+		reg,
 		resolver{getStatusURL: func(regionHostname string) string { return ts.URL }},
 	)
 	if !assert.NotEmpty(t, s.Realms) {
 		return
+	}
+
+	for _, rea := range s.Realms {
+		if !assert.Equal(t, reg.Hostname, rea.region.Hostname) {
+			return
+		}
 	}
 }
