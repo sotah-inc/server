@@ -1,7 +1,6 @@
 package app
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -86,8 +85,18 @@ func TestRealmsGetAuctions(t *testing.T) {
 		select {
 		case <-timer:
 			t.Fatal("Timed out")
-		case job := <-out:
-			fmt.Printf("Received %s-%s\n", job.realm.region.Hostname, job.realm.Slug)
+		case job, ok := <-out:
+			if !ok {
+				out = nil
+				break
+			}
+
+			if !assert.Nil(t, job.err) {
+				return
+			}
+		}
+
+		if out == nil {
 			break
 		}
 	}

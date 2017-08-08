@@ -1,7 +1,6 @@
 package app
 
 import "github.com/ihsw/go-download/app/util"
-import "fmt"
 
 type getAuctionsJob struct {
 	err      error
@@ -18,27 +17,22 @@ func (reas realms) getAuctions(res resolver) chan getAuctionsJob {
 
 	// spinning up the workers for fetching auctions
 	worker := func() {
-		fmt.Println("Spinning up a worker")
 		for rea := range in {
-			fmt.Printf("Fetching auctions for %s-%s\n", rea.region.Hostname, rea.Slug)
 			aucs, err := rea.getAuctions(res)
 			out <- getAuctionsJob{err: err, realm: rea, auctions: aucs}
 		}
 	}
 	postWork := func() {
-		fmt.Println("Finished pushing out, closing")
 		close(out)
 	}
 	util.Work(4, worker, postWork)
 
 	// queueing up the realms
 	go func() {
-		fmt.Printf("Ingesting %d realms\n", len(reas))
 		for _, rea := range reas {
 			in <- rea
 		}
 
-		fmt.Println("Finished ingesting, closing")
 		close(in)
 	}()
 
