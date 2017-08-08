@@ -3,8 +3,8 @@ package app
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
+
+	"github.com/ihsw/go-download/app/util"
 )
 
 const statusURLFormat = "https://%s/wow/realm/status"
@@ -16,12 +16,7 @@ func defaultGetStatusURL(regionHostname string) string {
 }
 
 func newStatus(reg region, r resolver) (*status, error) {
-	resp, err := http.Get(r.getStatusURL(reg.Hostname))
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := util.Download(r.getStatusURL(reg.Hostname))
 	if err != nil {
 		return nil, err
 	}
@@ -29,6 +24,11 @@ func newStatus(reg region, r resolver) (*status, error) {
 	s := &status{region: reg}
 	if err := json.Unmarshal(body, s); err != nil {
 		return nil, err
+	}
+
+	for i, realm := range s.Realms {
+		realm.region = reg
+		s.Realms[i] = realm
 	}
 
 	return s, nil
