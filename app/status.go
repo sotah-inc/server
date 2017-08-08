@@ -35,12 +35,12 @@ func newStatus(regionHostname string, r resolver) (*status, error) {
 }
 
 type status struct {
-	Realms []realm `json:"realms"`
+	Realms []statusRealm `json:"realms"`
 }
 
 type realmSlug string
 
-type realm struct {
+type statusRealm struct {
 	Type            string      `json:"type"`
 	Population      string      `json:"population"`
 	Queue           bool        `json:"queue"`
