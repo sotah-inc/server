@@ -15,8 +15,8 @@ func defaultGetStatusURL(regionHostname string) string {
 	return fmt.Sprintf(statusURLFormat, regionHostname)
 }
 
-func newStatus(regionHostname string, r resolver) (*status, error) {
-	resp, err := http.Get(r.getStatusURL(regionHostname))
+func newStatus(reg region, r resolver) (*status, error) {
+	resp, err := http.Get(r.getStatusURL(reg.Hostname))
 	if err != nil {
 		return nil, err
 	}
@@ -26,7 +26,7 @@ func newStatus(regionHostname string, r resolver) (*status, error) {
 		return nil, err
 	}
 
-	s := &status{}
+	s := &status{region: reg}
 	if err := json.Unmarshal(body, s); err != nil {
 		return nil, err
 	}
@@ -36,4 +36,6 @@ func newStatus(regionHostname string, r resolver) (*status, error) {
 
 type status struct {
 	Realms realms `json:"realms"`
+
+	region region
 }

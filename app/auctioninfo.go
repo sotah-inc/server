@@ -10,14 +10,14 @@ import (
 
 const auctionInfoURLFormat = "https://%s.api.battle.net/wow/auction/data/%s"
 
-func defaultGetAuctionInfoURL(regionName string, realmName string) string {
-	return fmt.Sprintf(auctionInfoURLFormat, regionName, realmName)
+func defaultGetAuctionInfoURL(regionHostname string, realmSlug realmSlug) string {
+	return fmt.Sprintf(auctionInfoURLFormat, regionHostname, realmSlug)
 }
 
-type getAuctionInfoURLFunc func(string, string) string
+type getAuctionInfoURLFunc func(string, realmSlug) string
 
-func newAuctionInfo(regionName string, realmName string, r resolver) (*auctionInfo, error) {
-	resp, err := http.Get(r.getAuctionInfoURL(regionName, realmName))
+func newAuctionInfo(rea realm, r resolver) (*auctionInfo, error) {
+	resp, err := http.Get(r.getAuctionInfoURL(rea.region.Hostname, rea.Slug))
 	if err != nil {
 		return nil, err
 	}

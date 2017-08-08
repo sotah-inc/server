@@ -14,9 +14,8 @@ func TestNewAuctionInfo(t *testing.T) {
 	}
 
 	a, err := newAuctionInfo(
-		"",
-		"",
-		resolver{getAuctionInfoURL: func(regionName string, realmName string) string { return ts.URL }},
+		realm{},
+		resolver{getAuctionInfoURL: func(regionHostname string, slug realmSlug) string { return ts.URL }},
 	)
 	if !assert.Nil(t, err) {
 		return
@@ -35,7 +34,7 @@ func TestGetAuctions(t *testing.T) {
 	if !assert.Nil(t, err) {
 		return
 	}
-	r.getAuctionInfoURL = func(regionName string, realmName string) string {
+	r.getAuctionInfoURL = func(regionHostname string, slug realmSlug) string {
 		return auctionInfoTs.URL
 	}
 	auctionsTs, err := utiltest.ServeFile("./TestData/auctions.json")
@@ -46,7 +45,7 @@ func TestGetAuctions(t *testing.T) {
 		return auctionsTs.URL
 	}
 
-	auctionInfo, err := newAuctionInfo("", "", r)
+	auctionInfo, err := newAuctionInfo(realm{}, r)
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -72,7 +71,7 @@ func TestGetFirstAuctions(t *testing.T) {
 	if !assert.Nil(t, err) {
 		return
 	}
-	r.getAuctionInfoURL = func(regionName string, realmName string) string {
+	r.getAuctionInfoURL = func(regionHostname string, slug realmSlug) string {
 		return auctionInfoTs.URL
 	}
 	auctionsTs, err := utiltest.ServeFile("./TestData/auctions.json")
@@ -83,7 +82,7 @@ func TestGetFirstAuctions(t *testing.T) {
 		return auctionsTs.URL
 	}
 
-	auctionInfo, err := newAuctionInfo("", "", r)
+	auctionInfo, err := newAuctionInfo(realm{}, r)
 	if !assert.Nil(t, err) {
 		return
 	}
