@@ -15,7 +15,7 @@ func TestNewStatus(t *testing.T) {
 
 	s, err := newStatus(
 		"",
-		resolver{getStatusURL: func(regionName string) string { return ts.URL }},
+		resolver{getStatusURL: func(regionHostname string) string { return ts.URL }},
 	)
 	if !assert.NotEmpty(t, s.Realms) {
 		return
