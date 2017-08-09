@@ -1,1 +1,9 @@
+sudo: required
 language: go
+
+env:
+- NATS_HOST=localhost
+- NATS_PORT=4222
+before_script:
+- docker pull nats
+- docker run --rm -d -p $NATS_PORT:$NATS_PORT nats
