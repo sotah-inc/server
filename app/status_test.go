@@ -7,14 +7,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewStatus(t *testing.T) {
+func TestNewStatusFromHTTP(t *testing.T) {
 	ts, err := utiltest.ServeFile("./TestData/realm-status.json")
 	if !assert.Nil(t, err) {
 		return
 	}
 
 	reg := region{}
-	s, err := newStatus(
+	s, err := newStatusFromHTTP(
 		reg,
 		resolver{getStatusURL: func(regionHostname string) string { return ts.URL }},
 	)

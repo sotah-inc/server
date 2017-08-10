@@ -49,7 +49,7 @@ func TestStatusListen(t *testing.T) {
 		return
 	}
 	reg := region{Hostname: "us.battle.net"}
-	sta, err := newStatus(
+	sta, err := newStatusFromHTTP(
 		reg,
 		resolver{getStatusURL: func(regionHostname string) string { return realmStatusTs.URL }},
 	)

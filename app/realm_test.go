@@ -33,7 +33,7 @@ func TestRealmGetAuctions(t *testing.T) {
 		return auctionsTs.URL
 	}
 
-	s, err := newStatus(region{}, res)
+	s, err := newStatusFromHTTP(region{}, res)
 	if !assert.NotEmpty(t, s.Realms) {
 		return
 	}
@@ -74,7 +74,7 @@ func TestRealmsGetAuctions(t *testing.T) {
 		return auctionsTs.URL
 	}
 
-	s, err := newStatus(region{}, res)
+	s, err := newStatusFromHTTP(region{}, res)
 	if !assert.NotEmpty(t, s.Realms) {
 		return
 	}

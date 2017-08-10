@@ -36,5 +36,5 @@ type region struct {
 }
 
 func (reg region) getStatus(res resolver) (*status, error) {
-	return newStatus(reg, res)
+	return newStatusFromHTTP(reg, res)
 }
