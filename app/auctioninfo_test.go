@@ -7,13 +7,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewAuctionInfo(t *testing.T) {
+func TestNewAuctionInfoFromHTTP(t *testing.T) {
 	ts, err := utiltest.ServeFile("./TestData/auctioninfo.json")
 	if !assert.Nil(t, err) {
 		return
 	}
 
-	a, err := newAuctionInfo(
+	a, err := newAuctionInfoFromHTTP(
 		realm{},
 		resolver{getAuctionInfoURL: func(regionHostname string, slug realmSlug) string { return ts.URL }},
 	)
@@ -45,7 +45,7 @@ func TestGetAuctions(t *testing.T) {
 		return auctionsTs.URL
 	}
 
-	auctionInfo, err := newAuctionInfo(realm{}, r)
+	auctionInfo, err := newAuctionInfoFromHTTP(realm{}, r)
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -82,7 +82,7 @@ func TestGetFirstAuctions(t *testing.T) {
 		return auctionsTs.URL
 	}
 
-	auctionInfo, err := newAuctionInfo(realm{}, r)
+	auctionInfo, err := newAuctionInfoFromHTTP(realm{}, r)
 	if !assert.Nil(t, err) {
 		return
 	}

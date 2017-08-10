@@ -57,7 +57,7 @@ type realm struct {
 }
 
 func (rea realm) getAuctions(res resolver) (*auctions, error) {
-	aucInfo, err := newAuctionInfo(rea, res)
+	aucInfo, err := newAuctionInfoFromHTTP(rea, res)
 	if err != nil {
 		return nil, err
 	}

@@ -16,12 +16,16 @@ func defaultGetAuctionInfoURL(regionHostname string, realmSlug realmSlug) string
 
 type getAuctionInfoURLFunc func(string, realmSlug) string
 
-func newAuctionInfo(rea realm, r resolver) (*auctionInfo, error) {
+func newAuctionInfoFromHTTP(rea realm, r resolver) (*auctionInfo, error) {
 	body, err := util.Download(r.getAuctionInfoURL(rea.region.Hostname, rea.Slug))
 	if err != nil {
 		return nil, err
 	}
 
+	return newAuctionInfo(rea, body)
+}
+
+func newAuctionInfo(rea realm, body []byte) (*auctionInfo, error) {
 	a := &auctionInfo{}
 	if err := json.Unmarshal(body, a); err != nil {
 		return nil, err
