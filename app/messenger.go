@@ -30,40 +30,32 @@ func newMessenger(host string, port int) (messenger, error) {
 }
 
 func (mess messenger) listenForStatus(stop chan interface{}) error {
-	ch := make(chan *nats.Msg, 64)
-	sub, err := mess.conn.ChanSubscribe(subjects.Status, ch)
+	sub, err := mess.conn.Subscribe(subjects.Status, func(natsMsg *nats.Msg) {
+		// encoding the status
+		encodedStatus, err := json.Marshal(mess.status)
+		if err != nil {
+			// catching the error for publishing
+			msg := message{Data: "", Err: err.Error()}
+			body, err := json.Marshal(msg)
+
+			// error on creating an error message should never happen so let's panic
+			if err != nil {
+				panic(err.Error()) // MASS HYSTERIA
+			}
+
+			// publishing out the error message
+			mess.conn.Publish(natsMsg.Reply, body)
+		}
+
+		// publishing the encoded status
+		mess.conn.Publish(natsMsg.Reply, encodedStatus)
+	})
 	if err != nil {
 		return err
 	}
 
 	go func() {
-		for natsMsg := range ch {
-			// encoding the status
-			encodedStatus, err := json.Marshal(mess.status)
-			if err != nil {
-				// catching the error for publishing
-				msg := message{Data: "", Err: err.Error()}
-				body, err := json.Marshal(msg)
-
-				// error on creating an error message should never happen so let's panic
-				if err != nil {
-					panic(err.Error()) // MASS HYSTERIA
-				}
-
-				// publishing out the error message
-				mess.conn.Publish(natsMsg.Reply, body)
-
-				continue
-			}
-
-			// publishing the status
-			mess.conn.Publish(natsMsg.Reply, encodedStatus)
-		}
-	}()
-
-	go func() {
 		<-stop
-		close(ch)
 		sub.Unsubscribe()
 	}()
 

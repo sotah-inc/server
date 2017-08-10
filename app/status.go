@@ -29,24 +29,20 @@ func newStatusFromHTTP(reg region, r resolver) (*status, error) {
 }
 
 func newStatusFromMessenger(reg region, mess messenger) (*status, error) {
-	fmt.Printf("ayy\n")
 	natsMsg, err := mess.conn.Request(subjects.Status, []byte{}, 5*time.Second)
 	if err != nil {
 		return nil, err
 	}
 
 	msg := &message{}
-	fmt.Printf("ayy\n")
 	if err = json.Unmarshal(natsMsg.Data, &msg); err != nil {
 		return nil, err
 	}
 
-	fmt.Printf("ayy\n")
 	if len(msg.Err) > 0 {
 		return nil, errors.New(msg.Err)
 	}
 
-	fmt.Printf("ayy %s\n", msg.Data)
 	return newStatus(reg, []byte(msg.Data))
 }
 
