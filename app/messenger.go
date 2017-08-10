@@ -29,27 +29,22 @@ func newMessenger(host string, port int) (messenger, error) {
 	return mess, nil
 }
 
-func (mess messenger) listenForStatus(stop chan interface{}) error {
-	sub, err := mess.conn.Subscribe(subjects.Status, func(natsMsg *nats.Msg) {
-		// encoding the status
-		encodedStatus, err := json.Marshal(mess.status)
-		if err != nil {
-			// catching the error for publishing
-			msg := message{Data: "", Err: err.Error()}
-			body, err := json.Marshal(msg)
+func (mess messenger) handleError(natsMsg *nats.Msg, err error) {
+	// catching the error for publishing
+	msg := message{Data: "", Err: err.Error()}
+	body, err := json.Marshal(msg)
 
-			// error on creating an error message should never happen so let's panic
-			if err != nil {
-				panic(err.Error()) // MASS HYSTERIA
-			}
+	// error on creating an error message should never happen so let's panic
+	if err != nil {
+		panic(err.Error()) // MASS HYSTERIA
+	}
 
-			// publishing out the error message
-			mess.conn.Publish(natsMsg.Reply, body)
-		}
+	// publishing out the error message
+	mess.conn.Publish(natsMsg.Reply, body)
+}
 
-		// publishing the encoded status
-		mess.conn.Publish(natsMsg.Reply, encodedStatus)
-	})
+func (mess messenger) subscribe(subject string, stop chan interface{}, cb func(*nats.Msg)) error {
+	sub, err := mess.conn.Subscribe(subject, cb)
 	if err != nil {
 		return err
 	}
@@ -58,6 +53,22 @@ func (mess messenger) listenForStatus(stop chan interface{}) error {
 		<-stop
 		sub.Unsubscribe()
 	}()
+
+	return nil
+}
+
+func (mess messenger) listenForStatus(stop chan interface{}) error {
+	err := mess.subscribe(subjects.Status, stop, func(natsMsg *nats.Msg) {
+		encodedStatus, err := json.Marshal(mess.status)
+		if err != nil {
+			mess.handleError(natsMsg, err)
+		}
+
+		mess.conn.Publish(natsMsg.Reply, encodedStatus)
+	})
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
