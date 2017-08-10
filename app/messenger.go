@@ -9,8 +9,9 @@ import (
 )
 
 type messenger struct {
-	conn   *nats.Conn
-	status *status
+	conn     *nats.Conn
+	status   *status
+	auctions map[regionName]map[realmSlug]auctions
 }
 
 type message struct {

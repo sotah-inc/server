@@ -30,9 +30,11 @@ type config struct {
 	Regions []region `json:"regions"`
 }
 
+type regionName string
+
 type region struct {
-	Name     string `json:"name"`
-	Hostname string `json:"hostname"`
+	Name     regionName `json:"name"`
+	Hostname string     `json:"hostname"`
 }
 
 func (reg region) getStatus(res resolver) (*status, error) {
