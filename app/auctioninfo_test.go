@@ -25,6 +25,21 @@ func TestNewAuctionInfoFromHTTP(t *testing.T) {
 	}
 }
 
+func TestNewAuctionInfo(t *testing.T) {
+	body, err := utiltest.ReadFile("./TestData/auctioninfo.json")
+	if !assert.Nil(t, err) {
+		return
+	}
+
+	a, err := newAuctionInfo(realm{}, body)
+	if !assert.Nil(t, err) {
+		return
+	}
+	if !assert.NotEmpty(t, a.Files) {
+		return
+	}
+}
+
 func TestGetAuctions(t *testing.T) {
 	// setting up the initial resolver
 	r := resolver{}
