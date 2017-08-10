@@ -1,7 +1,6 @@
 package app
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 	"testing"
@@ -26,8 +25,8 @@ func TestNewMessenger(t *testing.T) {
 	}
 }
 
-func TestStatusListen(t *testing.T) {
-	// parsing env vars
+func TestListenForStatus(t *testing.T) {
+	// resolving messenger host/port
 	natsHost := os.Getenv("NATS_HOST")
 	if !assert.NotEmpty(t, natsHost) {
 		return
@@ -37,49 +36,37 @@ func TestStatusListen(t *testing.T) {
 		return
 	}
 
-	// connecting the messenger
+	// connecting
 	mess, err := newMessenger(natsHost, natsPort)
 	if !assert.Nil(t, err) {
 		return
 	}
 
-	// fetching a status
-	realmStatusTs, err := utiltest.ServeFile("./TestData/realm-status.json")
+	// fetching test status data
+	body, err := utiltest.ReadFile("./TestData/realm-status.json")
 	if !assert.Nil(t, err) {
 		return
 	}
+
+	// building test status
 	reg := region{Hostname: "us.battle.net"}
-	sta, err := newStatusFromHTTP(
-		reg,
-		resolver{getStatusURL: func(regionHostname string) string { return realmStatusTs.URL }},
-	)
-	if !assert.NotEmpty(t, sta.Realms) {
+	s, err := newStatus(reg, body)
+	if !assert.NotEmpty(t, s.Realms) {
 		return
 	}
+	mess.status = s
 
-	// filling the messenger with the status and listening
-	mess.status = sta
-	_, err = mess.statusListen()
+	// setting up a subscriber that will publish status retrieval requests
+	stop := make(chan interface{})
+	err = mess.listenForStatus(stop)
 	if !assert.Nil(t, err) {
 		return
 	}
 
-	// requesting the status
-	requestedStatus, err := mess.requestStatus()
-	if !assert.Nil(t, err) || !assert.Equal(t, sta.region.Hostname, requestedStatus.region.Hostname) {
+	// subscribing to receive statuses
+	receivedStatus, err := newStatusFromMessenger(reg, mess)
+	if !assert.Nil(t, err) || !assert.Equal(t, s.region.Hostname, receivedStatus.region.Hostname) {
 		return
 	}
-	if !assert.NotZero(t, len(requestedStatus.Realms)) {
-		return
-	}
-	if !assert.Equal(t, len(sta.Realms), len(requestedStatus.Realms)) {
-		return
-	}
-	for i, rea := range sta.Realms {
-		requestedRealm := requestedStatus.Realms[i]
-		fmt.Printf("comparing %s with %s\n", rea.region.Hostname, requestedRealm.region.Hostname)
-		if !assert.Equal(t, rea.region.Hostname, requestedRealm.region.Hostname) {
-			return
-		}
-	}
+	stop <- struct{}{}
 }

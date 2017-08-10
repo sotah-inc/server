@@ -2,7 +2,11 @@ package app
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"time"
+
+	"github.com/ihsw/go-download/app/subjects"
 
 	"github.com/ihsw/go-download/app/util"
 )
@@ -22,6 +26,28 @@ func newStatusFromHTTP(reg region, r resolver) (*status, error) {
 	}
 
 	return newStatus(reg, body)
+}
+
+func newStatusFromMessenger(reg region, mess messenger) (*status, error) {
+	fmt.Printf("ayy\n")
+	natsMsg, err := mess.conn.Request(subjects.Status, []byte{}, 5*time.Second)
+	if err != nil {
+		return nil, err
+	}
+
+	msg := &message{}
+	fmt.Printf("ayy\n")
+	if err = json.Unmarshal(natsMsg.Data, &msg); err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("ayy\n")
+	if len(msg.Err) > 0 {
+		return nil, errors.New(msg.Err)
+	}
+
+	fmt.Printf("ayy %s\n", msg.Data)
+	return newStatus(reg, []byte(msg.Data))
 }
 
 func newStatus(reg region, body []byte) (*status, error) {

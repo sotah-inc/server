@@ -13,11 +13,30 @@ func TestNewStatusFromHTTP(t *testing.T) {
 		return
 	}
 
-	reg := region{}
+	reg := region{Hostname: "us.battle.net"}
 	s, err := newStatusFromHTTP(
 		reg,
 		resolver{getStatusURL: func(regionHostname string) string { return ts.URL }},
 	)
+	if !assert.NotEmpty(t, s.Realms) {
+		return
+	}
+
+	for _, rea := range s.Realms {
+		if !assert.Equal(t, reg.Hostname, rea.region.Hostname) {
+			return
+		}
+	}
+}
+
+func TestNewStatus(t *testing.T) {
+	body, err := utiltest.ReadFile("./TestData/realm-status.json")
+	if !assert.Nil(t, err) {
+		return
+	}
+
+	reg := region{Hostname: "us.battle.net"}
+	s, err := newStatus(reg, body)
 	if !assert.NotEmpty(t, s.Realms) {
 		return
 	}

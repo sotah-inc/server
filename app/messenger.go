@@ -1,17 +1,21 @@
 package app
 
 import (
+	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/ihsw/go-download/app/subjects"
-
 	"github.com/nats-io/go-nats"
 )
 
 type messenger struct {
-	enConn *nats.EncodedConn
+	conn   *nats.Conn
 	status *status
+}
+
+type message struct {
+	Data string `json:"data"`
+	Err  string `json:"error"`
 }
 
 func newMessenger(host string, port int) (messenger, error) {
@@ -20,28 +24,48 @@ func newMessenger(host string, port int) (messenger, error) {
 		return messenger{}, err
 	}
 
-	enConn, err := nats.NewEncodedConn(conn, nats.JSON_ENCODER)
-	if err != nil {
-		return messenger{}, err
-	}
-
-	mess := messenger{enConn: enConn}
+	mess := messenger{conn: conn}
 
 	return mess, nil
 }
 
-func (mess messenger) statusListen() (*nats.Subscription, error) {
-	return mess.enConn.Subscribe(subjects.Status, func(subject, reply string, msg interface{}) {
-		mess.enConn.Publish(reply, mess.status)
-	})
-}
-
-func (mess messenger) requestStatus() (*status, error) {
-	sta := &status{}
-	err := mess.enConn.Request(subjects.Status, struct{}{}, sta, 5*time.Second)
+func (mess messenger) listenForStatus(stop chan interface{}) error {
+	ch := make(chan *nats.Msg, 64)
+	sub, err := mess.conn.ChanSubscribe(subjects.Status, ch)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return sta, nil
+	go func() {
+		for natsMsg := range ch {
+			// encoding the status
+			encodedStatus, err := json.Marshal(mess.status)
+			if err != nil {
+				// catching the error for publishing
+				msg := message{Data: "", Err: err.Error()}
+				body, err := json.Marshal(msg)
+
+				// error on creating an error message should never happen so let's panic
+				if err != nil {
+					panic(err.Error()) // MASS HYSTERIA
+				}
+
+				// publishing out the error message
+				mess.conn.Publish(natsMsg.Reply, body)
+
+				continue
+			}
+
+			// publishing the status
+			mess.conn.Publish(natsMsg.Reply, encodedStatus)
+		}
+	}()
+
+	go func() {
+		<-stop
+		close(ch)
+		sub.Unsubscribe()
+	}()
+
+	return nil
 }
