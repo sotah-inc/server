@@ -52,5 +52,5 @@ type auctionFile struct {
 }
 
 func (af auctionFile) getAuctions(r resolver) (*auctions, error) {
-	return newAuctions(af.URL, r)
+	return newAuctionsFromHTTP(af.URL, r)
 }

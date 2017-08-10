@@ -12,12 +12,16 @@ func defaultGetAuctionsURL(url string) string {
 
 type getAuctionsURLFunc func(url string) string
 
-func newAuctions(url string, r resolver) (*auctions, error) {
+func newAuctionsFromHTTP(url string, r resolver) (*auctions, error) {
 	body, err := util.Download(r.getAuctionsURL(url))
 	if err != nil {
 		return nil, err
 	}
 
+	return newAuctions(body)
+}
+
+func newAuctions(body []byte) (*auctions, error) {
 	a := &auctions{}
 	if err := json.Unmarshal(body, a); err != nil {
 		return nil, err
