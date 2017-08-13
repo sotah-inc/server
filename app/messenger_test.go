@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ihsw/go-download/app/utiltest"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,37 +32,24 @@ func TestNewMessenger(t *testing.T) {
 }
 
 func TestListenForStatus(t *testing.T) {
-	// resolving messenger host/port
-	natsHost := os.Getenv("NATS_HOST")
-	if !assert.NotEmpty(t, natsHost) {
-		return
-	}
-	natsPort, err := strconv.Atoi(os.Getenv("NATS_PORT"))
-	if !assert.Nil(t, err) || !assert.NotEmpty(t, natsPort) {
-		return
-	}
-
 	// connecting
-	mess, err := newMessenger(natsHost, natsPort)
-	if !assert.Nil(t, err) {
-		return
-	}
-
-	// fetching test status data
-	body, err := utiltest.ReadFile("./TestData/realm-status.json")
+	mess, err := newMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
 	if !assert.Nil(t, err) {
 		return
 	}
 
 	// building test status
 	reg := region{Hostname: "us.battle.net"}
-	s, err := newStatus(reg, body)
-	if !assert.NotEmpty(t, s.Realms) {
+	s, err := newStatusFromFilepath(reg, "./TestData/realm-status.json")
+	if !assert.Nil(t, err) {
+		return
+	}
+	if !validateStatus(t, reg, s) {
 		return
 	}
 	mess.status = s
 
-	// setting up a subscriber that will publish status retrieval requests
+	// setting up a listener for responding to status requests
 	stop := make(chan interface{})
 	err = mess.listenForStatus(stop)
 	if !assert.Nil(t, err) {

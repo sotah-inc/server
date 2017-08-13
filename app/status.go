@@ -3,7 +3,6 @@ package app
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/ihsw/go-download/app/subjects"
 
@@ -28,17 +27,7 @@ func newStatusFromHTTP(reg region, r resolver) (*status, error) {
 }
 
 func newStatusFromMessenger(reg region, mess messenger) (*status, error) {
-	natsMsg, err := mess.conn.Request(subjects.Status, []byte{}, 5*time.Second)
-	if err != nil {
-		return nil, err
-	}
-
-	msg := &message{}
-	if err = json.Unmarshal(natsMsg.Data, &msg); err != nil {
-		return nil, err
-	}
-
-	data, err := msg.parse()
+	data, err := mess.request(subjects.Status, []byte{})
 	if err != nil {
 		return nil, err
 	}

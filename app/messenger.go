@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/ihsw/go-download/app/subjects"
 	"github.com/nats-io/go-nats"
@@ -73,6 +74,20 @@ func (mess messenger) replyTo(natsMsg *nats.Msg, m message) error {
 	mess.conn.Publish(natsMsg.Reply, encodedMessage)
 
 	return nil
+}
+
+func (mess messenger) request(subject string, data []byte) ([]byte, error) {
+	natsMsg, err := mess.conn.Request(subject, data, 5*time.Second)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	msg := &message{}
+	if err = json.Unmarshal(natsMsg.Data, &msg); err != nil {
+		return []byte{}, err
+	}
+
+	return msg.parse()
 }
 
 func (mess messenger) listenForStatus(stop chan interface{}) error {
