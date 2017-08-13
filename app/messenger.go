@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/ihsw/go-download/app/subjects"
@@ -19,6 +20,14 @@ type message struct {
 	Err  string `json:"error"`
 }
 
+func (m message) parse() ([]byte, error) {
+	if len(m.Err) > 0 {
+		return []byte{}, errors.New(m.Err)
+	}
+
+	return []byte(m.Data), nil
+}
+
 func newMessenger(host string, port int) (messenger, error) {
 	conn, err := nats.Connect(fmt.Sprintf("nats://%s:%d", host, port))
 	if err != nil {
@@ -28,20 +37,6 @@ func newMessenger(host string, port int) (messenger, error) {
 	mess := messenger{conn: conn}
 
 	return mess, nil
-}
-
-func (mess messenger) handleError(natsMsg *nats.Msg, err error) {
-	// catching the error for publishing
-	msg := message{Data: "", Err: err.Error()}
-	body, err := json.Marshal(msg)
-
-	// error on creating an error message should never happen so let's panic
-	if err != nil {
-		panic(err.Error()) // MASS HYSTERIA
-	}
-
-	// publishing out the error message
-	mess.conn.Publish(natsMsg.Reply, body)
 }
 
 func (mess messenger) subscribe(subject string, stop chan interface{}, cb func(*nats.Msg)) error {
@@ -58,14 +53,28 @@ func (mess messenger) subscribe(subject string, stop chan interface{}, cb func(*
 	return nil
 }
 
+func (mess messenger) publish(subject string, m message) error {
+	encodedMessage, err := json.Marshal(m)
+	if err != nil {
+		return err
+	}
+	mess.conn.Publish(subject, encodedMessage)
+
+	return nil
+}
+
 func (mess messenger) listenForStatus(stop chan interface{}) error {
 	err := mess.subscribe(subjects.Status, stop, func(natsMsg *nats.Msg) {
+		m := message{}
+
 		encodedStatus, err := json.Marshal(mess.status)
 		if err != nil {
-			mess.handleError(natsMsg, err)
+			m.Err = err.Error()
+		} else {
+			m.Data = string(encodedStatus)
 		}
 
-		mess.conn.Publish(natsMsg.Reply, encodedStatus)
+		mess.publish(natsMsg.Reply, m)
 	})
 	if err != nil {
 		return err

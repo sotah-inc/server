@@ -2,7 +2,6 @@ package app
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 
@@ -39,11 +38,12 @@ func newStatusFromMessenger(reg region, mess messenger) (*status, error) {
 		return nil, err
 	}
 
-	if len(msg.Err) > 0 {
-		return nil, errors.New(msg.Err)
+	data, err := msg.parse()
+	if err != nil {
+		return nil, err
 	}
 
-	return newStatus(reg, []byte(msg.Data))
+	return newStatus(reg, data)
 }
 
 func newStatus(reg region, body []byte) (*status, error) {
