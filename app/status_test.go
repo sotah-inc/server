@@ -32,7 +32,7 @@ func TestNewStatusFromHTTP(t *testing.T) {
 		reg,
 		resolver{getStatusURL: func(regionHostname string) string { return ts.URL }},
 	)
-	if !assert.NotNil(t, err) {
+	if !assert.Nil(t, err) {
 		return
 	}
 	if !validateStatus(t, reg, s) {
@@ -43,7 +43,7 @@ func TestNewStatusFromHTTP(t *testing.T) {
 func TestNewStatusFromFilepath(t *testing.T) {
 	reg := region{Hostname: "us.battle.net"}
 	s, err := newStatusFromFilepath(reg, "./TestData/realm-status.json")
-	if !assert.NotNil(t, err) {
+	if !assert.Nil(t, err) {
 		return
 	}
 	if !validateStatus(t, reg, s) {
@@ -91,7 +91,7 @@ func TestNewStatus(t *testing.T) {
 
 	reg := region{Hostname: "us.battle.net"}
 	s, err := newStatus(reg, body)
-	if !assert.NotNil(t, err) {
+	if !assert.Nil(t, err) {
 		return
 	}
 	if !validateStatus(t, reg, s) {
