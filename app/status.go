@@ -46,6 +46,15 @@ func newStatusFromMessenger(reg region, mess messenger) (*status, error) {
 	return newStatus(reg, data)
 }
 
+func newStatusFromFilepath(reg region, relativeFilepath string) (*status, error) {
+	body, err := util.ReadFile(relativeFilepath)
+	if err != nil {
+		return nil, err
+	}
+
+	return newStatus(reg, body)
+}
+
 func newStatus(reg region, body []byte) (*status, error) {
 	s := &status{region: reg}
 	if err := json.Unmarshal(body, s); err != nil {

@@ -9,6 +9,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestNewMessengerFromEnvVars(t *testing.T) {
+	_, err := newMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
+	if !assert.Nil(t, err) {
+		return
+	}
+}
+
 func TestNewMessenger(t *testing.T) {
 	natsHost := os.Getenv("NATS_HOST")
 	if !assert.NotEmpty(t, natsHost) {

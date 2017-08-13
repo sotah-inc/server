@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"path/filepath"
 	"sync"
 )
 
@@ -60,4 +61,14 @@ func Download(url string) (b []byte, err error) {
 	}
 
 	return ioutil.ReadAll(reader)
+}
+
+// ReadFile - reads a file from a relative path
+func ReadFile(relativePath string) ([]byte, error) {
+	path, err := filepath.Abs(relativePath)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return ioutil.ReadFile(path)
 }
