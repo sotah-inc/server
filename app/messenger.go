@@ -8,14 +8,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ihsw/go-download/app/subjects"
 	"github.com/nats-io/go-nats"
 )
 
 type messenger struct {
-	conn     *nats.Conn
-	status   *status
-	auctions map[regionName]map[realmSlug]auctions
+	conn *nats.Conn
 }
 
 type message struct {
@@ -88,24 +85,4 @@ func (mess messenger) request(subject string, data []byte) ([]byte, error) {
 	}
 
 	return msg.parse()
-}
-
-func (mess messenger) listenForStatus(stop chan interface{}) error {
-	err := mess.subscribe(subjects.Status, stop, func(natsMsg *nats.Msg) {
-		m := message{}
-
-		encodedStatus, err := json.Marshal(mess.status)
-		if err != nil {
-			m.Err = err.Error()
-		} else {
-			m.Data = string(encodedStatus)
-		}
-
-		mess.replyTo(natsMsg, m)
-	})
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

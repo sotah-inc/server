@@ -52,11 +52,14 @@ func TestNewStatusFromFilepath(t *testing.T) {
 }
 
 func TestNewStatusFromMessenger(t *testing.T) {
+	sta := state{}
+
 	// connecting
 	mess, err := newMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
 	if !assert.Nil(t, err) {
 		return
 	}
+	sta.messenger = mess
 
 	// building test status
 	reg := region{Hostname: "us.battle.net"}
@@ -67,11 +70,11 @@ func TestNewStatusFromMessenger(t *testing.T) {
 	if !validateStatus(t, reg, s) {
 		return
 	}
-	mess.status = s
+	sta.status = s
 
 	// setting up a subscriber that will publish status retrieval requests
 	stop := make(chan interface{})
-	err = mess.listenForStatus(stop)
+	err = sta.listenForStatus(stop)
 	if !assert.Nil(t, err) {
 		return
 	}
