@@ -39,5 +39,7 @@ func TestListenForStatus(t *testing.T) {
 	if !assert.Nil(t, err) || !assert.Equal(t, s.region.Hostname, receivedStatus.region.Hostname) {
 		return
 	}
+
+	// flagging the status listener to exit
 	stop <- struct{}{}
 }
