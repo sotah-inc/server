@@ -1,4 +1,4 @@
-package app
+package main
 
 import "github.com/ihsw/go-download/app/util"
 import "encoding/json"
