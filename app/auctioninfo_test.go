@@ -25,6 +25,16 @@ func TestNewAuctionInfoFromHTTP(t *testing.T) {
 	}
 }
 
+func TestNewAuctionInfoFromFilepath(t *testing.T) {
+	a, err := newAuctionInfoFromFilepath(realm{}, "./TestData/auctioninfo.json")
+	if !assert.Nil(t, err) {
+		return
+	}
+	if !assert.NotEmpty(t, a.Files) {
+		return
+	}
+}
+
 func TestNewAuctionInfo(t *testing.T) {
 	body, err := utiltest.ReadFile("./TestData/auctioninfo.json")
 	if !assert.Nil(t, err) {

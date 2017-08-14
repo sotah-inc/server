@@ -25,6 +25,15 @@ func newAuctionInfoFromHTTP(rea realm, r resolver) (*auctionInfo, error) {
 	return newAuctionInfo(rea, body)
 }
 
+func newAuctionInfoFromFilepath(rea realm, relativeFilepath string) (*auctionInfo, error) {
+	body, err := util.ReadFile(relativeFilepath)
+	if err != nil {
+		return nil, err
+	}
+
+	return newAuctionInfo(rea, body)
+}
+
 func newAuctionInfo(rea realm, body []byte) (*auctionInfo, error) {
 	a := &auctionInfo{}
 	if err := json.Unmarshal(body, a); err != nil {
