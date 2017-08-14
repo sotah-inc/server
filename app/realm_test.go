@@ -32,11 +32,6 @@ func TestRealmGetAuctions(t *testing.T) {
 	res := resolver{}
 
 	// setting up the resolver urls
-	realmStatusTs, err := utiltest.ServeFile("./TestData/realm-status.json")
-	if !assert.Nil(t, err) {
-		return
-	}
-	res.getStatusURL = func(regionHostname string) string { return realmStatusTs.URL }
 	auctionInfoTs, err := utiltest.ServeFile("./TestData/auctioninfo.json")
 	if !assert.Nil(t, err) {
 		return
@@ -52,7 +47,7 @@ func TestRealmGetAuctions(t *testing.T) {
 		return auctionsTs.URL
 	}
 
-	s, err := newStatusFromHTTP(region{}, res)
+	s, err := newStatusFromFilepath(region{}, "./TestData/realm-status.json")
 	if !assert.NotEmpty(t, s.Realms) {
 		return
 	}
