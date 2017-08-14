@@ -1,6 +1,7 @@
 package app
 
 import "github.com/ihsw/go-download/app/util"
+import "encoding/json"
 
 type getAuctionsJob struct {
 	err      error
@@ -37,6 +38,25 @@ func (reas realms) getAuctions(res resolver) chan getAuctionsJob {
 	}()
 
 	return out
+}
+
+func newRealmFromFilepath(reg region, relativeFilepath string) (*realm, error) {
+	body, err := util.ReadFile(relativeFilepath)
+	if err != nil {
+		return nil, err
+	}
+
+	return newRealm(reg, body)
+}
+
+func newRealm(reg region, body []byte) (*realm, error) {
+	rea := &realm{}
+	if err := json.Unmarshal(body, &rea); err != nil {
+		return nil, err
+	}
+
+	rea.region = reg
+	return rea, nil
 }
 
 type realmSlug string

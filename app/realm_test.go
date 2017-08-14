@@ -8,6 +8,25 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestNewRealmFromFilepath(t *testing.T) {
+	_, err := newRealmFromFilepath(region{}, "./TestData/realm.json")
+	if !assert.Nil(t, err) {
+		return
+	}
+}
+
+func TestNewRealm(t *testing.T) {
+	body, err := utiltest.ReadFile("./TestData/realm.json")
+	if !assert.Nil(t, err) {
+		return
+	}
+
+	_, err = newRealm(region{}, body)
+	if !assert.Nil(t, err) {
+		return
+	}
+}
+
 func TestRealmGetAuctions(t *testing.T) {
 	// initial resolver
 	res := resolver{}
