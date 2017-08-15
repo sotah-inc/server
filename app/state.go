@@ -9,7 +9,7 @@ import (
 
 type state struct {
 	messenger messenger
-	status    *status
+	statuses  map[regionName]*status
 	auctions  map[regionName]map[realmSlug]*auctions
 }
 
