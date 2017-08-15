@@ -2,23 +2,22 @@ package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
-	"path/filepath"
+
+	"github.com/ihsw/go-download/app/util"
 )
 
-func newConfig(relativePath string) (*config, error) {
-	path, err := filepath.Abs(relativePath)
+func newConfigFromFilepath(relativePath string) (*config, error) {
+	body, err := util.ReadFile(relativePath)
 	if err != nil {
 		return nil, err
 	}
 
-	body, err := ioutil.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
+	return newConfig(body)
+}
 
+func newConfig(body []byte) (*config, error) {
 	c := &config{}
-	if err = json.Unmarshal(body, &c); err != nil {
+	if err := json.Unmarshal(body, &c); err != nil {
 		return nil, err
 	}
 

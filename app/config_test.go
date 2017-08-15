@@ -7,14 +7,25 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestNewConfigFromFilepath(t *testing.T) {
+	c, err := newConfigFromFilepath("./TestData/config.json")
+	if !assert.Nil(t, err) || !assert.NotEmpty(t, c.APIKey) {
+		return
+	}
+}
 func TestNewConfig(t *testing.T) {
-	c, err := newConfig("./TestData/config.json")
+	body, err := utiltest.ReadFile("./TestData/config.json")
+	if !assert.Nil(t, err) {
+		return
+	}
+
+	c, err := newConfig(body)
 	if !assert.Nil(t, err) || !assert.NotEmpty(t, c.APIKey) {
 		return
 	}
 }
 func TestGetStatus(t *testing.T) {
-	c, err := newConfig("./TestData/config.json")
+	c, err := newConfigFromFilepath("./TestData/config.json")
 	if !assert.Nil(t, err) || !assert.NotEmpty(t, c.Regions) {
 		return
 	}
