@@ -6,8 +6,9 @@ import (
 	"github.com/ihsw/go-download/app/util"
 )
 
-func newResolver() resolver {
+func newResolver(apiKey string) resolver {
 	return resolver{
+		apiKey:            apiKey,
 		getStatusURL:      defaultGetStatusURL,
 		getAuctionInfoURL: defaultGetAuctionInfoURL,
 		getAuctionsURL:    defaultGetAuctionsURL,
