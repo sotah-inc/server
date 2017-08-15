@@ -3,6 +3,8 @@ package main
 import "github.com/ihsw/go-download/app/util"
 import "encoding/json"
 
+type getAuctionsWhitelist map[realmSlug]interface{}
+
 type getAuctionsJob struct {
 	err      error
 	realm    realm
@@ -11,7 +13,11 @@ type getAuctionsJob struct {
 
 type realms []realm
 
-func (reas realms) getAuctions(res resolver) chan getAuctionsJob {
+func (reas realms) getAllAuctions(res resolver) chan getAuctionsJob {
+	return reas.getAuctions(res, map[realmSlug]interface{}{})
+}
+
+func (reas realms) getAuctions(res resolver, whitelist getAuctionsWhitelist) chan getAuctionsJob {
 	// establishing channels
 	out := make(chan getAuctionsJob)
 	in := make(chan realm)
@@ -31,6 +37,10 @@ func (reas realms) getAuctions(res resolver) chan getAuctionsJob {
 	// queueing up the realms
 	go func() {
 		for _, rea := range reas {
+			if _, ok := whitelist[rea.Slug]; !ok {
+				continue
+			}
+
 			in <- rea
 		}
 
