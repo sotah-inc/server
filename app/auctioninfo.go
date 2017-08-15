@@ -17,7 +17,7 @@ func defaultGetAuctionInfoURL(regionHostname string, realmSlug realmSlug) string
 type getAuctionInfoURLFunc func(string, realmSlug) string
 
 func newAuctionInfoFromHTTP(rea realm, r resolver) (*auctionInfo, error) {
-	body, err := util.Download(r.getAuctionInfoURL(rea.region.Hostname, rea.Slug))
+	body, err := r.get(r.getAuctionInfoURL(rea.region.Hostname, rea.Slug))
 	if err != nil {
 		return nil, err
 	}

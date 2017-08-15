@@ -18,7 +18,7 @@ func defaultGetStatusURL(regionHostname string) string {
 }
 
 func newStatusFromHTTP(reg region, r resolver) (*status, error) {
-	body, err := util.Download(r.getStatusURL(reg.Hostname))
+	body, err := r.get(r.getStatusURL(reg.Hostname))
 	if err != nil {
 		return nil, err
 	}
