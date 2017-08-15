@@ -26,9 +26,12 @@ func newConfig(relativePath string) (*config, error) {
 }
 
 type config struct {
-	APIKey  string   `json:"api_key"`
-	Regions []region `json:"regions"`
+	APIKey    string    `json:"api_key"`
+	Regions   []region  `json:"regions"`
+	Whitelist whitelist `json:"whitelist"`
 }
+
+type whitelist map[regionName]getAuctionsWhitelist
 
 type regionName string
 
