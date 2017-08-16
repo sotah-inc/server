@@ -16,7 +16,7 @@ type state struct {
 }
 
 type listenForStatusMessage struct {
-	RegionName regionName `json:"string"`
+	RegionName regionName `json:"region_name"`
 }
 
 func (sta state) listenForStatus(stop chan interface{}) error {
