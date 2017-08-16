@@ -53,6 +53,8 @@ func main() {
 		return
 	}
 
+	fmt.Printf("Running!\n")
+
 	// catching SIGINT
 	sigIn := make(chan os.Signal, 1)
 	signal.Notify(sigIn, os.Interrupt)
