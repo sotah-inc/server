@@ -22,7 +22,13 @@ func main() {
 
 		return
 	}
-	res := newResolver(c.APIKey)
+	res := newResolver(c)
+
+	// reading the api key from env var
+	apiKey := os.Getenv("API_KEY")
+	if len(apiKey) > 0 {
+		c.APIKey = apiKey
+	}
 
 	// connecting the messenger
 	messenger, err := newMessenger(*natsHost, *natsPort)
