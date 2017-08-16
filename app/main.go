@@ -2,7 +2,10 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
+	"os"
+	"os/signal"
 )
 
 func main() {
@@ -29,8 +32,34 @@ func main() {
 		return
 	}
 
-	// going over the list of regions and loading the status for each one
+	// establishing a state and filling it with statuses
+	sta := state{messenger: messenger, statuses: map[regionName]*status{}}
 	for _, reg := range config.Regions {
-		sta, err := newStatusFromHTTP(reg, res)
+		stat, err := newStatusFromHTTP(reg, res)
+		if err != nil {
+			log.Fatalf("Could not fetch statuses from http: %s\n", err.Error())
+
+			return
+		}
+
+		sta.statuses[reg.Name] = stat
 	}
+
+	// listening for status requests
+	stop := make(chan interface{})
+	if err := sta.listenForStatus(stop); err != nil {
+		log.Fatalf("Could not listen for status requests: %s\n", err.Error())
+
+		return
+	}
+
+	// catching SIGINT
+	sigIn := make(chan os.Signal, 1)
+	signal.Notify(sigIn, os.Interrupt)
+	go func() {
+		<-sigIn
+		fmt.Printf("Caught SIGINT!")
+		stop <- struct{}{}
+		os.Exit(0)
+	}()
 }
