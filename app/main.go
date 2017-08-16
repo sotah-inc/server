@@ -46,9 +46,17 @@ func main() {
 	}
 
 	// listening for status requests
-	stop := make(chan interface{})
-	if err := sta.listenForStatus(stop); err != nil {
+	stopChans := map[string]chan interface{}{
+		"status":  make(chan interface{}),
+		"regions": make(chan interface{}),
+	}
+	if err := sta.listenForStatus(stopChans["status"]); err != nil {
 		log.Fatalf("Could not listen for status requests: %s\n", err.Error())
+
+		return
+	}
+	if err := sta.listenForRegions(stopChans["regions"]); err != nil {
+		log.Fatalf("Could not listen for regions requests: %s\n", err.Error())
 
 		return
 	}
@@ -61,8 +69,10 @@ func main() {
 	<-sigIn
 	fmt.Printf("Caught SIGINT!\n")
 
-	// stopping status listener
-	stop <- struct{}{}
+	// stopping listeners
+	for _, stop := range stopChans {
+		stop <- struct{}{}
+	}
 
 	// exiting
 	os.Exit(0)
