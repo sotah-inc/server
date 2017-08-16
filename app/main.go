@@ -57,7 +57,7 @@ func main() {
 	sigIn := make(chan os.Signal, 1)
 	signal.Notify(sigIn, os.Interrupt)
 	<-sigIn
-	fmt.Printf("Caught SIGINT!")
+	fmt.Printf("Caught SIGINT!\n")
 
 	// stopping status listener
 	stop <- struct{}{}
