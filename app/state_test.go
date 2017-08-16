@@ -25,7 +25,7 @@ func TestListenForStatus(t *testing.T) {
 	if !validateStatus(t, reg, s) {
 		return
 	}
-	sta.status = s
+	sta.statuses = map[regionName]*status{reg.Name: s}
 
 	// setting up a listener for responding to status requests
 	stop := make(chan interface{})

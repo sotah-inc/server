@@ -70,7 +70,7 @@ func TestNewStatusFromMessenger(t *testing.T) {
 	if !validateStatus(t, reg, s) {
 		return
 	}
-	sta.status = s
+	sta.statuses = map[regionName]*status{reg.Name: s}
 
 	// setting up a subscriber that will publish status retrieval requests
 	stop := make(chan interface{})

@@ -27,7 +27,13 @@ func newStatusFromHTTP(reg region, r resolver) (*status, error) {
 }
 
 func newStatusFromMessenger(reg region, mess messenger) (*status, error) {
-	data, err := mess.request(subjects.Status, []byte{})
+	lm := listenForStatusMessage{RegionName: reg.Name}
+	encodedMessage, err := json.Marshal(lm)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := mess.request(subjects.Status, encodedMessage)
 	if err != nil {
 		return nil, err
 	}

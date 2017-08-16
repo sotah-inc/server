@@ -13,17 +13,40 @@ type state struct {
 	auctions  map[regionName]map[realmSlug]*auctions
 }
 
+type listenForStatusMessage struct {
+	RegionName regionName `json:"string"`
+}
+
 func (sta state) listenForStatus(stop chan interface{}) error {
 	err := sta.messenger.subscribe(subjects.Status, stop, func(natsMsg *nats.Msg) {
 		m := message{}
 
-		encodedStatus, err := json.Marshal(sta.status)
+		lm := &listenForStatusMessage{}
+		err := json.Unmarshal(natsMsg.Data, &lm)
 		if err != nil {
 			m.Err = err.Error()
-		} else {
-			m.Data = string(encodedStatus)
+			sta.messenger.replyTo(natsMsg, m)
+
+			return
 		}
 
+		regionStatus, ok := sta.statuses[lm.RegionName]
+		if !ok {
+			m.Err = "Region not found"
+			sta.messenger.replyTo(natsMsg, m)
+
+			return
+		}
+
+		encodedStatus, err := json.Marshal(regionStatus)
+		if err != nil {
+			m.Err = err.Error()
+			sta.messenger.replyTo(natsMsg, m)
+
+			return
+		}
+
+		m.Data = string(encodedStatus)
 		sta.messenger.replyTo(natsMsg, m)
 	})
 	if err != nil {
@@ -33,7 +56,7 @@ func (sta state) listenForStatus(stop chan interface{}) error {
 	return nil
 }
 
-type auctionsMessage struct {
+type listenForAuctionsMessage struct {
 	RegionName regionName `json:"region_name"`
 	RealmSlug  realmSlug  `json:"realm_slug"`
 }
@@ -42,7 +65,7 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 	err := sta.messenger.subscribe(subjects.Auctions, stop, func(natsMsg *nats.Msg) {
 		m := message{}
 
-		am := &auctionsMessage{}
+		am := &listenForAuctionsMessage{}
 		err := json.Unmarshal(natsMsg.Data, &am)
 		if err != nil {
 			m.Err = err.Error()
