@@ -9,8 +9,10 @@ import (
 
 type state struct {
 	messenger messenger
-	statuses  map[regionName]*status
-	auctions  map[regionName]map[realmSlug]*auctions
+
+	config   *config
+	statuses map[regionName]*status
+	auctions map[regionName]map[realmSlug]*auctions
 }
 
 type listenForStatusMessage struct {
@@ -99,6 +101,28 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 		}
 
 		m.Data = string(encodedStatus)
+		sta.messenger.replyTo(natsMsg, m)
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (sta state) listenForRegions(stop chan interface{}) error {
+	err := sta.messenger.subscribe(subjects.Regions, stop, func(natsMsg *nats.Msg) {
+		m := message{}
+
+		encodedRegions, err := json.Marshal(sta.config.Regions)
+		if err != nil {
+			m.Err = err.Error()
+			sta.messenger.replyTo(natsMsg, m)
+
+			return
+		}
+
+		m.Data = string(encodedRegions)
 		sta.messenger.replyTo(natsMsg, m)
 	})
 	if err != nil {

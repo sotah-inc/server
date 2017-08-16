@@ -32,13 +32,3 @@ type config struct {
 
 type whitelist map[regionName]getAuctionsWhitelist
 
-type regionName string
-
-type region struct {
-	Name     regionName `json:"name"`
-	Hostname string     `json:"hostname"`
-}
-
-func (reg region) getStatus(res resolver) (*status, error) {
-	return newStatusFromHTTP(reg, res)
-}
