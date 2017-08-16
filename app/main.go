@@ -16,13 +16,13 @@ func main() {
 	flag.Parse()
 
 	// loading the config file
-	config, err := newConfigFromFilepath(*configFilepath)
+	c, err := newConfigFromFilepath(*configFilepath)
 	if err != nil {
 		log.Fatalf("Could not fetch config: %s\n", err.Error())
 
 		return
 	}
-	res := newResolver(config.APIKey)
+	res := newResolver(c.APIKey)
 
 	// connecting the messenger
 	messenger, err := newMessenger(*natsHost, *natsPort)
@@ -33,8 +33,12 @@ func main() {
 	}
 
 	// establishing a state and filling it with statuses
-	sta := state{messenger: messenger, statuses: map[regionName]*status{}}
-	for _, reg := range config.Regions {
+	sta := state{
+		messenger: messenger,
+		config:    c,
+		statuses:  map[regionName]*status{},
+	}
+	for _, reg := range c.Regions {
 		stat, err := newStatusFromHTTP(reg, res)
 		if err != nil {
 			log.Fatalf("Could not fetch statuses from http: %s\n", err.Error())
