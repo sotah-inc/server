@@ -9,7 +9,7 @@ import (
 	"github.com/ihsw/go-download/app/util"
 )
 
-const statusURLFormat = "https://%s/wow/realm/status"
+const statusURLFormat = "https://%s/wow/realm/status?locale=en_US"
 
 type getStatusURLFunc func(string) string
 

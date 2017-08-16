@@ -56,10 +56,12 @@ func main() {
 	// catching SIGINT
 	sigIn := make(chan os.Signal, 1)
 	signal.Notify(sigIn, os.Interrupt)
-	go func() {
-		<-sigIn
-		fmt.Printf("Caught SIGINT!")
-		stop <- struct{}{}
-		os.Exit(0)
-	}()
+	<-sigIn
+	fmt.Printf("Caught SIGINT!")
+
+	// stopping status listener
+	stop <- struct{}{}
+
+	// exiting
+	os.Exit(0)
 }

@@ -3,7 +3,7 @@
     "regions": [
         {
             "name": "us",
-            "hostname": "us.battle.net"
+            "hostname": "us.api.battle.net"
         }
     ]
 }
