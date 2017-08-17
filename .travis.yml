@@ -5,6 +5,16 @@ env:
   global:
   - NATS_HOST=localhost
   - NATS_PORT=4222
+  - secure: 6I9AOabMXIg7ETlT6ZaIoYgAAv9VwjZUV1lEeKri5y8qBexKPY8bQ7iFTXQcfRqPDurwy936t3YNI5cbvF2vTPNUsW9y/AGcSIcGCbOjP3y2+bI1dPTbtX9Tr7aQlodE5KL37XcfgW+fl7w/aHacwlKHA6TkFrMyhX4c5Oxc47w=
+  - secure: 2aEa3gzOzJ7BIVxMjxTBr0Ma7vTBEoivqI2SiP5uXimHomnao1SMsi5EGpwUAFQ7R1STrXCk3NvS9rzeigBFdgHGVkRP0a1FGrtA10PQXbf9mEmJUS0ueIPs8vYKs2AJ9+5JMP6nT5W7RrX1jMx95r41hAmPNLZXoUQEp79Twok=
+
 before_script:
 - docker pull nats
 - docker run --rm -d -p $NATS_PORT:$NATS_PORT nats
+script:
+- go test github.com/$TRAVIS_REPO_SLUG/app/...
+- docker build -t $TRAVIS_REPO_SLUG .
+
+after_success:
+- docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
+- docker push $TRAVIS_REPO_SLUG
