@@ -1,7 +1,7 @@
 FROM golang
 
 # misc
-ENV APP_PROJECT github.com/ihsw/go-download/app
+ENV APP_PROJECT github.com/ihsw/sotah-server/app
 
 # copying in source
 COPY ./app ./src/$APP_PROJECT
