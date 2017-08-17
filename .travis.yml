@@ -11,6 +11,6 @@ before_script:
 - docker run --rm -d -p $NATS_PORT:$NATS_PORT nats
 script:
 - go test github.com/$TRAVIS_REPO_SLUG/app/...
-- docker build -t $TRAVIS_REPO_SLUG .
-- docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
-- docker push $TRAVIS_REPO_SLUG
+- docker build -t $TRAVIS_REPO_SLUG . \
+  && docker login -u $DOCKER_USER -p $DOCKER_PASSWORD \
+  && docker push $TRAVIS_REPO_SLUG
