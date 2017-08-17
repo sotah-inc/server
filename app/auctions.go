@@ -3,9 +3,9 @@ package main
 import (
 	"encoding/json"
 
-	"github.com/ihsw/go-download/app/subjects"
+	"github.com/ihsw/sotah-server/app/subjects"
 
-	"github.com/ihsw/go-download/app/util"
+	"github.com/ihsw/sotah-server/app/util"
 )
 
 func defaultGetAuctionsURL(url string) string {

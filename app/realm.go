@@ -1,6 +1,6 @@
 package main
 
-import "github.com/ihsw/go-download/app/util"
+import "github.com/ihsw/sotah-server/app/util"
 import "encoding/json"
 
 type getAuctionsWhitelist map[realmSlug]interface{}

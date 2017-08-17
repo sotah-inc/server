@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/ihsw/go-download/app/util"
+	"github.com/ihsw/sotah-server/app/util"
 )
 
 func newResolver(c *config) resolver {

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ihsw/go-download/app/utiltest"
+	"github.com/ihsw/sotah-server/app/utiltest"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 
-	"github.com/ihsw/go-download/app/subjects"
+	"github.com/ihsw/sotah-server/app/subjects"
 	nats "github.com/nats-io/go-nats"
 )
 

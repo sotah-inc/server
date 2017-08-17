@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ihsw/go-download/app/util"
+	"github.com/ihsw/sotah-server/app/util"
 )
 
 const auctionInfoURLFormat = "https://%s.api.battle.net/wow/auction/data/%s"

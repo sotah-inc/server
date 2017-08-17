@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 
-	"github.com/ihsw/go-download/app/util"
+	"github.com/ihsw/sotah-server/app/util"
 )
 
 func newConfigFromFilepath(relativePath string) (*config, error) {

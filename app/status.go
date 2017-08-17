@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/ihsw/go-download/app/subjects"
+	"github.com/ihsw/sotah-server/app/subjects"
 
-	"github.com/ihsw/go-download/app/util"
+	"github.com/ihsw/sotah-server/app/util"
 )
 
 const statusURLFormat = "https://%s/wow/realm/status?locale=en_US"
