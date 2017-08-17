@@ -12,6 +12,5 @@ before_script:
 script:
 - go test github.com/$TRAVIS_REPO_SLUG/app/...
 - docker build -t $TRAVIS_REPO_SLUG .
-after_success:
 - docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
 - docker push $TRAVIS_REPO_SLUG
