@@ -8,7 +8,6 @@ COPY ./app ./src/$APP_PROJECT
 
 # building the project
 RUN go get ./src/$APP_PROJECT/... \
-  && go get -t ./src/$APP_PROJECT
   && go install $APP_PROJECT
 
 # running it out
