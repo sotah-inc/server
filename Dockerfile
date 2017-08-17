@@ -15,9 +15,9 @@ RUN realpath ./bin/app
 
 
 # running it out
-FROM alpine
+FROM debian
 
 # copying in built app
 COPY --from=0 /go/bin/app .
 
-CMD ["./app"]
+ENTRYPOINT ["./app"]
