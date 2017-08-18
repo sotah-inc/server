@@ -1,19 +1,24 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
+
+	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 func main() {
 	// parsing the command flags
-	configFilepath := flag.String("config", "", "Relative path to config json")
-	natsHost := flag.String("nats_host", "", "Hostname of nats server")
-	natsPort := flag.Int("nats_port", 0, "Port number of nats server")
-	flag.Parse()
+	var (
+		app            = kingpin.New("sotah-server", "A command-line Blizzard AH client.")
+		natsHost       = app.Flag("nats_host", "NATS hostname").Default("localhost").OverrideDefaultFromEnvar("NATS_HOST").String()
+		natsPort       = app.Flag("nats_port", "NATS port").Default("4222").OverrideDefaultFromEnvar("NATS_PORT").Int()
+		configFilepath = app.Flag("config", "Relative path to config json").Required().String()
+		apiKey         = app.Flag("api_key", "Blizzard Mashery API key").OverrideDefaultFromEnvar("API_KEY").String()
+	)
+	kingpin.Parse()
 
 	// loading the config file
 	c, err := newConfigFromFilepath(*configFilepath)
@@ -22,12 +27,13 @@ func main() {
 
 		return
 	}
+
+	// loading a resolver with the config
 	res := newResolver(c)
 
-	// reading the api key from env var
-	apiKey := os.Getenv("API_KEY")
-	if len(apiKey) > 0 {
-		c.APIKey = apiKey
+	// optionally overriding api key in config
+	if len(*apiKey) > 0 {
+		c.APIKey = *apiKey
 	}
 
 	// connecting the messenger
