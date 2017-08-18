@@ -12,8 +12,12 @@ RUN go get ./src/$APP_PROJECT/... \
   && go install $APP_PROJECT
 
 
-# running it out
+# running
 FROM debian
+
+# runtime dir
+RUN mkdir /srv/app
+WORKDIR /srv/app
 
 # copying in built app
 COPY --from=0 /go/bin/app .
