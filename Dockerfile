@@ -9,7 +9,7 @@ COPY ./app ./src/$APP_PROJECT
 
 # building the project
 RUN go get ./src/$APP_PROJECT/... \
-  && CGO_ENABLED=0 go install $APP_PROJECT
+  && go install $APP_PROJECT
 
 
 # running
