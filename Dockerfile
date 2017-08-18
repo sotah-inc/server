@@ -15,6 +15,10 @@ RUN go get ./src/$APP_PROJECT/... \
 # running
 FROM debian
 
+# installing ssl libs
+RUN apt-get update -y \
+  && apt-get install -yq ca-certificates
+
 # runtime dir
 RUN mkdir /srv/app
 WORKDIR /srv/app
