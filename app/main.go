@@ -13,10 +13,10 @@ func main() {
 	// parsing the command flags
 	var (
 		app            = kingpin.New("sotah-server", "A command-line Blizzard AH client.")
-		natsHost       = app.Flag("nats_host", "NATS hostname").Default("localhost").OverrideDefaultFromEnvar("NATS_HOST").String()
-		natsPort       = app.Flag("nats_port", "NATS port").Default("4222").OverrideDefaultFromEnvar("NATS_PORT").Int()
-		configFilepath = app.Flag("config", "Relative path to config json").Required().String()
-		apiKey         = app.Flag("api_key", "Blizzard Mashery API key").OverrideDefaultFromEnvar("API_KEY").String()
+		natsHost       = app.Flag("nats-host", "NATS hostname").Default("localhost").OverrideDefaultFromEnvar("NATS_HOST").Short('h').String()
+		natsPort       = app.Flag("nats-port", "NATS port").Default("4222").OverrideDefaultFromEnvar("NATS_PORT").Short('p').Int()
+		configFilepath = app.Flag("config", "Relative path to config json").Required().Short('c').String()
+		apiKey         = app.Flag("api-key", "Blizzard Mashery API key").OverrideDefaultFromEnvar("API_KEY").String()
 	)
 	kingpin.MustParse(app.Parse(os.Args[1:]))
 
