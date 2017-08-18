@@ -39,6 +39,10 @@ func newMessengerFromEnvVars(hostKey string, portKey string) (messenger, error) 
 }
 
 func newMessenger(host string, port int) (messenger, error) {
+	if len(host) == 0 {
+		return messenger{}, errors.New("Host cannot be blank")
+	}
+
 	conn, err := nats.Connect(fmt.Sprintf("nats://%s:%d", host, port))
 	if err != nil {
 		return messenger{}, err
