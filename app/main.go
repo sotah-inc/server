@@ -18,7 +18,7 @@ func main() {
 		configFilepath = app.Flag("config", "Relative path to config json").Required().String()
 		apiKey         = app.Flag("api_key", "Blizzard Mashery API key").OverrideDefaultFromEnvar("API_KEY").String()
 	)
-	kingpin.Parse()
+	kingpin.MustParse(app.Parse(os.Args[1:]))
 
 	// loading the config file
 	c, err := newConfigFromFilepath(*configFilepath)
