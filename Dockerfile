@@ -11,8 +11,6 @@ COPY ./app ./src/$APP_PROJECT
 RUN go get ./src/$APP_PROJECT/... \
   && go install $APP_PROJECT
 
-RUN realpath ./bin/app
-
 
 # running it out
 FROM debian
