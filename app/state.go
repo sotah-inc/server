@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 
+	"github.com/ihsw/sotah-server/app/codes"
+
 	"github.com/ihsw/sotah-server/app/subjects"
 	nats "github.com/nats-io/go-nats"
 )
@@ -21,12 +23,13 @@ type listenForStatusMessage struct {
 
 func (sta state) listenForStatus(stop chan interface{}) error {
 	err := sta.messenger.subscribe(subjects.Status, stop, func(natsMsg *nats.Msg) {
-		m := message{}
+		m := newMessage()
 
 		lm := &listenForStatusMessage{}
 		err := json.Unmarshal(natsMsg.Data, &lm)
 		if err != nil {
 			m.Err = err.Error()
+			m.Code = codes.MsgJSONParseError
 			sta.messenger.replyTo(natsMsg, m)
 
 			return
@@ -35,6 +38,7 @@ func (sta state) listenForStatus(stop chan interface{}) error {
 		regionStatus, ok := sta.statuses[lm.RegionName]
 		if !ok {
 			m.Err = "Region not found"
+			m.Code = codes.NotFound
 			sta.messenger.replyTo(natsMsg, m)
 
 			return
@@ -43,6 +47,7 @@ func (sta state) listenForStatus(stop chan interface{}) error {
 		encodedStatus, err := json.Marshal(regionStatus)
 		if err != nil {
 			m.Err = err.Error()
+			m.Code = codes.GenericError
 			sta.messenger.replyTo(natsMsg, m)
 
 			return
@@ -65,12 +70,13 @@ type listenForAuctionsMessage struct {
 
 func (sta state) listenForAuctions(stop chan interface{}) error {
 	err := sta.messenger.subscribe(subjects.Auctions, stop, func(natsMsg *nats.Msg) {
-		m := message{}
+		m := newMessage()
 
 		am := &listenForAuctionsMessage{}
 		err := json.Unmarshal(natsMsg.Data, &am)
 		if err != nil {
 			m.Err = err.Error()
+			m.Code = codes.MsgJSONParseError
 			sta.messenger.replyTo(natsMsg, m)
 
 			return
@@ -79,6 +85,7 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 		aList, ok := sta.auctions[am.RegionName]
 		if !ok {
 			m.Err = "Invalid region"
+			m.Code = codes.NotFound
 			sta.messenger.replyTo(natsMsg, m)
 
 			return
@@ -87,6 +94,7 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 		a, ok := aList[am.RealmSlug]
 		if !ok {
 			m.Err = "Invalid realm"
+			m.Code = codes.NotFound
 			sta.messenger.replyTo(natsMsg, m)
 
 			return
@@ -95,6 +103,7 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 		encodedStatus, err := json.Marshal(a)
 		if err != nil {
 			m.Err = err.Error()
+			m.Code = codes.GenericError
 			sta.messenger.replyTo(natsMsg, m)
 
 			return
@@ -112,11 +121,12 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 
 func (sta state) listenForRegions(stop chan interface{}) error {
 	err := sta.messenger.subscribe(subjects.Regions, stop, func(natsMsg *nats.Msg) {
-		m := message{}
+		m := newMessage()
 
 		encodedRegions, err := json.Marshal(sta.config.Regions)
 		if err != nil {
 			m.Err = err.Error()
+			m.Code = codes.MsgJSONParseError
 			sta.messenger.replyTo(natsMsg, m)
 
 			return

@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/ihsw/sotah-server/app/codes"
 	"github.com/nats-io/go-nats"
 )
 
@@ -15,9 +16,14 @@ type messenger struct {
 	conn *nats.Conn
 }
 
+func newMessage() message {
+	return message{Code: codes.Ok}
+}
+
 type message struct {
 	Data string `json:"data"`
 	Err  string `json:"error"`
+	Code int    `json:"code"`
 }
 
 func (m message) parse() ([]byte, error) {
@@ -68,6 +74,10 @@ func (mess messenger) subscribe(subject string, stop chan interface{}, cb func(*
 }
 
 func (mess messenger) replyTo(natsMsg *nats.Msg, m message) error {
+	if m.Code == 0 {
+		return errors.New("Code cannot be blank")
+	}
+
 	encodedMessage, err := json.Marshal(m)
 	if err != nil {
 		return err
