@@ -3,6 +3,10 @@ package main
 import (
 	"testing"
 
+	"github.com/ihsw/sotah-server/app/codes"
+
+	"github.com/ihsw/sotah-server/app/subjects"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -140,4 +144,35 @@ func TestListenForRegions(t *testing.T) {
 
 	// flagging the status listener to exit
 	stop <- struct{}{}
+}
+
+func TestListenForGenericTestErrors(t *testing.T) {
+	sta := state{}
+
+	// connecting
+	mess, err := newMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
+	if !assert.Nil(t, err) {
+		return
+	}
+	sta.messenger = mess
+
+	// setting up a listener for responding to status requests
+	stop := make(chan interface{})
+	err = sta.listenForGenericTestErrors(stop)
+	if !assert.Nil(t, err) {
+		return
+	}
+
+	// requesting a message from
+	msg, err := sta.messenger.request(subjects.GenericTestErrors, []byte{})
+	if !assert.Nil(t, err) {
+		return
+	}
+
+	// flagging the status listener to exit
+	stop <- struct{}{}
+
+	if !assert.Equal(t, msg.Code, codes.GenericError) {
+		return
+	}
 }

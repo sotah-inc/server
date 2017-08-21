@@ -2,6 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
+
+	"github.com/ihsw/sotah-server/app/codes"
 
 	"github.com/ihsw/sotah-server/app/subjects"
 
@@ -42,12 +45,16 @@ func newAuctionsFromMessenger(rea *realm, mess messenger) (*auctions, error) {
 		return nil, err
 	}
 
-	data, err := mess.request(subjects.Auctions, encodedMessage)
+	msg, err := mess.request(subjects.Auctions, encodedMessage)
 	if err != nil {
 		return nil, err
 	}
 
-	return newAuctions(data)
+	if msg.Code != codes.Ok {
+		return nil, errors.New(msg.Err)
+	}
+
+	return newAuctions([]byte(msg.Data))
 }
 
 func newAuctions(body []byte) (*auctions, error) {

@@ -2,7 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+
+	"github.com/ihsw/sotah-server/app/codes"
 
 	"github.com/ihsw/sotah-server/app/subjects"
 
@@ -33,12 +36,16 @@ func newStatusFromMessenger(reg region, mess messenger) (*status, error) {
 		return nil, err
 	}
 
-	data, err := mess.request(subjects.Status, encodedMessage)
+	msg, err := mess.request(subjects.Status, encodedMessage)
 	if err != nil {
 		return nil, err
 	}
 
-	return newStatus(reg, data)
+	if msg.Code != codes.Ok {
+		return nil, errors.New(msg.Err)
+	}
+
+	return newStatus(reg, []byte(msg.Data))
 }
 
 func newStatusFromFilepath(reg region, relativeFilepath string) (*status, error) {

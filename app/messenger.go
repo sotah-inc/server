@@ -87,16 +87,16 @@ func (mess messenger) replyTo(natsMsg *nats.Msg, m message) error {
 	return nil
 }
 
-func (mess messenger) request(subject string, data []byte) ([]byte, error) {
+func (mess messenger) request(subject string, data []byte) (*message, error) {
 	natsMsg, err := mess.conn.Request(subject, data, 5*time.Second)
 	if err != nil {
-		return []byte{}, err
+		return nil, err
 	}
 
 	msg := &message{}
 	if err = json.Unmarshal(natsMsg.Data, &msg); err != nil {
-		return []byte{}, err
+		return nil, err
 	}
 
-	return msg.parse()
+	return msg, nil
 }
