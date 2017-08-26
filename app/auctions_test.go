@@ -93,6 +93,9 @@ func TestNewAuctionsFromMessenger(t *testing.T) {
 	if !assert.Equal(t, len(a.Auctions), len(receivedAuctions.Auctions)) {
 		return
 	}
+
+	// flagging the status listener to exit
+	stop <- struct{}{}
 }
 
 func TestNewAuctions(t *testing.T) {
