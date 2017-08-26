@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/ihsw/sotah-server/app/codes"
 	"github.com/nats-io/go-nats"
 )
@@ -49,7 +51,11 @@ func newMessenger(host string, port int) (messenger, error) {
 		return messenger{}, errors.New("Host cannot be blank")
 	}
 
-	conn, err := nats.Connect(fmt.Sprintf("nats://%s:%d", host, port))
+	natsURI := fmt.Sprintf("nats://%s:%d", host, port)
+
+	log.WithField("uri", natsURI).Info("Connecting to nats")
+
+	conn, err := nats.Connect(natsURI)
 	if err != nil {
 		return messenger{}, err
 	}
@@ -60,13 +66,22 @@ func newMessenger(host string, port int) (messenger, error) {
 }
 
 func (mess messenger) subscribe(subject string, stop chan interface{}, cb func(*nats.Msg)) error {
-	sub, err := mess.conn.Subscribe(subject, cb)
+	log.WithField("subject", subject).Info("Subscribing to subject")
+
+	sub, err := mess.conn.Subscribe(subject, func(natsMsg *nats.Msg) {
+		log.WithField("subject", subject).Debug("Received request")
+
+		cb(natsMsg)
+	})
 	if err != nil {
 		return err
 	}
 
 	go func() {
 		<-stop
+
+		log.WithField("subject", subject).Info("Unsubscribing from subject")
+
 		sub.Unsubscribe()
 	}()
 
@@ -74,7 +89,7 @@ func (mess messenger) subscribe(subject string, stop chan interface{}, cb func(*
 }
 
 func (mess messenger) replyTo(natsMsg *nats.Msg, m message) error {
-	if m.Code == 0 {
+	if m.Code == codes.Blank {
 		return errors.New("Code cannot be blank")
 	}
 
@@ -82,12 +97,17 @@ func (mess messenger) replyTo(natsMsg *nats.Msg, m message) error {
 	if err != nil {
 		return err
 	}
+
+	log.WithField("subject", natsMsg.Reply).Debug("Publishing reply")
+
 	mess.conn.Publish(natsMsg.Reply, encodedMessage)
 
 	return nil
 }
 
 func (mess messenger) request(subject string, data []byte) ([]byte, error) {
+	log.WithField("subject", subject).Debug("Requesting message")
+
 	natsMsg, err := mess.conn.Request(subject, data, 5*time.Second)
 	if err != nil {
 		return []byte{}, err
