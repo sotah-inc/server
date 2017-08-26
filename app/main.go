@@ -29,7 +29,7 @@ func main() {
 	}
 
 	// loading a resolver with the config
-	res := newResolver(c)
+	// res := newResolver(c)
 
 	// optionally overriding api key in config
 	if len(*apiKey) > 0 {
@@ -51,7 +51,7 @@ func main() {
 		statuses:  map[regionName]*status{},
 	}
 	for _, reg := range c.Regions {
-		stat, err := newStatusFromHTTP(reg, res)
+		stat, err := newStatusFromFilepath(reg, "./src/github.com/ihsw/sotah-server/app/TestData/realm-status.json")
 		if err != nil {
 			log.Fatalf("Could not fetch statuses from http: %s\n", err.Error())
 
