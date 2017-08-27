@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/ihsw/sotah-server/app/subjects"
+
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -63,16 +65,22 @@ func main() {
 
 	// listening for status requests
 	stopChans := map[string]chan interface{}{
-		"status":  make(chan interface{}),
-		"regions": make(chan interface{}),
+		subjects.Status:            make(chan interface{}),
+		subjects.Regions:           make(chan interface{}),
+		subjects.GenericTestErrors: make(chan interface{}),
 	}
-	if err := sta.listenForStatus(stopChans["status"]); err != nil {
+	if err := sta.listenForStatus(stopChans[subjects.Status]); err != nil {
 		log.Fatalf("Could not listen for status requests: %s\n", err.Error())
 
 		return
 	}
-	if err := sta.listenForRegions(stopChans["regions"]); err != nil {
+	if err := sta.listenForRegions(stopChans[subjects.Regions]); err != nil {
 		log.Fatalf("Could not listen for regions requests: %s\n", err.Error())
+
+		return
+	}
+	if err := sta.listenForGenericTestErrors(stopChans[subjects.GenericTestErrors]); err != nil {
+		log.Fatalf("Could not listen for generic test errors requests: %s\n", err.Error())
 
 		return
 	}
