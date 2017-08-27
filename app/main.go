@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/signal"
 
-	"github.com/ihsw/sotah-server/app/subjects"
+	"github.com/ihsw/sotah-server/app/commands"
 
 	"gopkg.in/alecthomas/kingpin.v2"
 )
@@ -19,8 +18,10 @@ func main() {
 		natsPort       = app.Flag("nats-port", "NATS port").Default("4222").OverrideDefaultFromEnvar("NATS_PORT").Short('p').Int()
 		configFilepath = app.Flag("config", "Relative path to config json").Required().Short('c').String()
 		apiKey         = app.Flag("api-key", "Blizzard Mashery API key").OverrideDefaultFromEnvar("API_KEY").String()
+
+		apiTestCommand = app.Command(commands.APITest, "For running sotah-api tests.")
 	)
-	kingpin.MustParse(app.Parse(os.Args[1:]))
+	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
 
 	// loading the config file
 	c, err := newConfigFromFilepath(*configFilepath)
@@ -29,9 +30,6 @@ func main() {
 
 		return
 	}
-
-	// loading a resolver with the config
-	// res := newResolver(c)
 
 	// optionally overriding api key in config
 	if len(*apiKey) > 0 {
@@ -46,58 +44,18 @@ func main() {
 		return
 	}
 
-	// establishing a state and filling it with statuses
-	sta := state{
-		messenger: mess,
-		config:    c,
-		statuses:  map[regionName]*status{},
-	}
-	for _, reg := range c.Regions {
-		stat, err := newStatusFromFilepath(reg, "./src/github.com/ihsw/sotah-server/app/TestData/realm-status.json")
+	switch cmd {
+	case apiTestCommand.FullCommand():
+		err := apiTest(c, mess)
 		if err != nil {
-			log.Fatalf("Could not fetch statuses from http: %s\n", err.Error())
+			fmt.Printf("Could not run api test command: %s\n", err.Error())
+			os.Exit(1)
 
 			return
 		}
 
-		sta.statuses[reg.Name] = stat
-	}
-
-	// listening for status requests
-	stopChans := map[string]chan interface{}{
-		subjects.Status:            make(chan interface{}),
-		subjects.Regions:           make(chan interface{}),
-		subjects.GenericTestErrors: make(chan interface{}),
-	}
-	if err := sta.listenForStatus(stopChans[subjects.Status]); err != nil {
-		log.Fatalf("Could not listen for status requests: %s\n", err.Error())
+		os.Exit(0)
 
 		return
 	}
-	if err := sta.listenForRegions(stopChans[subjects.Regions]); err != nil {
-		log.Fatalf("Could not listen for regions requests: %s\n", err.Error())
-
-		return
-	}
-	if err := sta.listenForGenericTestErrors(stopChans[subjects.GenericTestErrors]); err != nil {
-		log.Fatalf("Could not listen for generic test errors requests: %s\n", err.Error())
-
-		return
-	}
-
-	fmt.Printf("Running!\n")
-
-	// catching SIGINT
-	sigIn := make(chan os.Signal, 1)
-	signal.Notify(sigIn, os.Interrupt)
-	<-sigIn
-	fmt.Printf("Caught SIGINT!\n")
-
-	// stopping listeners
-	for _, stop := range stopChans {
-		stop <- struct{}{}
-	}
-
-	// exiting
-	os.Exit(0)
 }
