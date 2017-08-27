@@ -46,13 +46,13 @@ func apiTest(c *config, m messenger, dataDir string) error {
 		return err
 	}
 
-	fmt.Printf("Running!\n")
+	fmt.Println("Running!")
 
 	// catching SIGINT
 	sigIn := make(chan os.Signal, 1)
 	signal.Notify(sigIn, os.Interrupt)
 	<-sigIn
-	fmt.Printf("Caught SIGINT!\n")
+	fmt.Println("Caught SIGINT!")
 
 	// stopping listeners
 	for _, stop := range stopChans {
