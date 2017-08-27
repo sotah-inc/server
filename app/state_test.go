@@ -147,7 +147,7 @@ func TestListenForRegions(t *testing.T) {
 }
 
 func TestListenForGenericTestErrors(t *testing.T) {
-	sta := State{}
+	sta := state{}
 
 	// connecting
 	mess, err := newMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
