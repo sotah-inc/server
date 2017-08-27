@@ -48,7 +48,7 @@ func TestRealmGetAuctions(t *testing.T) {
 		return auctionsTs.URL
 	}
 
-	s, err := newStatusFromFilepath(region{}, "./TestData/realm-status.json")
+	s, err := NewStatusFromFilepath(region{}, "./TestData/realm-status.json")
 	if !assert.NotEmpty(t, s.Realms) {
 		return
 	}
@@ -69,7 +69,7 @@ func TestRealmsGetAuctions(t *testing.T) {
 	res := resolver{}
 
 	// setting up a test status
-	s, err := newStatusFromFilepath(region{}, "./TestData/realm-status.json")
+	s, err := NewStatusFromFilepath(region{}, "./TestData/realm-status.json")
 	if !assert.NotEmpty(t, s.Realms) {
 		return
 	}
@@ -126,7 +126,7 @@ func TestRealmsGetAllAuctions(t *testing.T) {
 	res := resolver{}
 
 	// setting up a test status
-	s, err := newStatusFromFilepath(region{}, "./TestData/realm-status.json")
+	s, err := NewStatusFromFilepath(region{}, "./TestData/realm-status.json")
 	if !assert.NotEmpty(t, s.Realms) {
 		return
 	}

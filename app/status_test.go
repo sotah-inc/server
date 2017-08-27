@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func validateStatus(t *testing.T, reg region, s *status) bool {
+func validateStatus(t *testing.T, reg region, s *Status) bool {
 	if !assert.NotEmpty(t, s.Realms) {
 		return false
 	}
@@ -42,7 +42,7 @@ func TestNewStatusFromHTTP(t *testing.T) {
 
 func TestNewStatusFromFilepath(t *testing.T) {
 	reg := region{Hostname: "us.battle.net"}
-	s, err := newStatusFromFilepath(reg, "./TestData/realm-status.json")
+	s, err := NewStatusFromFilepath(reg, "./TestData/realm-status.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -52,7 +52,7 @@ func TestNewStatusFromFilepath(t *testing.T) {
 }
 
 func TestNewStatusFromMessenger(t *testing.T) {
-	sta := state{}
+	sta := State{}
 
 	// connecting
 	mess, err := newMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
@@ -63,18 +63,18 @@ func TestNewStatusFromMessenger(t *testing.T) {
 
 	// building test status
 	reg := region{Hostname: "us.battle.net"}
-	s, err := newStatusFromFilepath(reg, "./TestData/realm-status.json")
+	s, err := NewStatusFromFilepath(reg, "./TestData/realm-status.json")
 	if !assert.Nil(t, err) {
 		return
 	}
 	if !validateStatus(t, reg, s) {
 		return
 	}
-	sta.statuses = map[regionName]*status{reg.Name: s}
+	sta.Statuses = map[regionName]*Status{reg.Name: s}
 
 	// setting up a subscriber that will publish status retrieval requests
 	stop := make(chan interface{})
-	err = sta.listenForStatus(stop)
+	err = sta.ListenForStatus(stop)
 	if !assert.Nil(t, err) {
 		return
 	}

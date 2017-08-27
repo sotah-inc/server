@@ -33,6 +33,6 @@ type region struct {
 	Hostname string     `json:"hostname"`
 }
 
-func (reg region) getStatus(res resolver) (*status, error) {
+func (reg region) getStatus(res resolver) (*Status, error) {
 	return newStatusFromHTTP(reg, res)
 }

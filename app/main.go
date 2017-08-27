@@ -39,7 +39,7 @@ func main() {
 	}
 
 	// connecting the messenger
-	messenger, err := newMessenger(*natsHost, *natsPort)
+	mess, err := newMessenger(*natsHost, *natsPort)
 	if err != nil {
 		log.Fatalf("Could not connect messenger: %s\n", err.Error())
 
@@ -47,20 +47,16 @@ func main() {
 	}
 
 	// establishing a state and filling it with statuses
-	sta := state{
-		messenger: messenger,
-		config:    c,
-		statuses:  map[regionName]*status{},
-	}
+	sta := NewState(c, mess)
 	for _, reg := range c.Regions {
-		stat, err := newStatusFromFilepath(reg, "./src/github.com/ihsw/sotah-server/app/TestData/realm-status.json")
+		stat, err := NewStatusFromFilepath(reg, "./src/github.com/ihsw/sotah-server/app/TestData/realm-status.json")
 		if err != nil {
 			log.Fatalf("Could not fetch statuses from http: %s\n", err.Error())
 
 			return
 		}
 
-		sta.statuses[reg.Name] = stat
+		sta.Statuses[reg.Name] = stat
 	}
 
 	// listening for status requests
@@ -69,7 +65,7 @@ func main() {
 		subjects.Regions:           make(chan interface{}),
 		subjects.GenericTestErrors: make(chan interface{}),
 	}
-	if err := sta.listenForStatus(stopChans[subjects.Status]); err != nil {
+	if err := sta.ListenForStatus(stopChans[subjects.Status]); err != nil {
 		log.Fatalf("Could not listen for status requests: %s\n", err.Error())
 
 		return

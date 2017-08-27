@@ -11,7 +11,7 @@ import (
 )
 
 func TestListenForStatus(t *testing.T) {
-	sta := state{}
+	sta := State{}
 
 	// connecting
 	mess, err := newMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
@@ -22,18 +22,18 @@ func TestListenForStatus(t *testing.T) {
 
 	// building test status
 	reg := region{Hostname: "us.battle.net"}
-	s, err := newStatusFromFilepath(reg, "./TestData/realm-status.json")
+	s, err := NewStatusFromFilepath(reg, "./TestData/realm-status.json")
 	if !assert.Nil(t, err) {
 		return
 	}
 	if !validateStatus(t, reg, s) {
 		return
 	}
-	sta.statuses = map[regionName]*status{reg.Name: s}
+	sta.Statuses = map[regionName]*Status{reg.Name: s}
 
 	// setting up a listener for responding to status requests
 	stop := make(chan interface{})
-	err = sta.listenForStatus(stop)
+	err = sta.ListenForStatus(stop)
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -49,7 +49,7 @@ func TestListenForStatus(t *testing.T) {
 }
 
 func TestListenForAuctions(t *testing.T) {
-	sta := state{}
+	sta := State{}
 
 	// connecting
 	mess, err := newMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
@@ -83,7 +83,7 @@ func TestListenForAuctions(t *testing.T) {
 
 	// setting up a subscriber that will publish auctions
 	stop := make(chan interface{})
-	err = sta.listenForAuctions(stop)
+	err = sta.ListenForAuctions(stop)
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -102,7 +102,7 @@ func TestListenForAuctions(t *testing.T) {
 }
 
 func TestListenForRegions(t *testing.T) {
-	sta := state{}
+	sta := State{}
 
 	// connecting
 	mess, err := newMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
@@ -113,14 +113,14 @@ func TestListenForRegions(t *testing.T) {
 
 	// building test status
 	reg := region{Hostname: "us.battle.net"}
-	s, err := newStatusFromFilepath(reg, "./TestData/realm-status.json")
+	s, err := NewStatusFromFilepath(reg, "./TestData/realm-status.json")
 	if !assert.Nil(t, err) {
 		return
 	}
 	if !validateStatus(t, reg, s) {
 		return
 	}
-	sta.statuses = map[regionName]*status{reg.Name: s}
+	sta.Statuses = map[regionName]*Status{reg.Name: s}
 
 	// building test config
 	c, err := newConfigFromFilepath("./TestData/config.json")
