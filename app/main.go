@@ -39,7 +39,7 @@ func main() {
 	}
 
 	// connecting the messenger
-	messenger, err := newMessenger(*natsHost, *natsPort)
+	mess, err := newMessenger(*natsHost, *natsPort)
 	if err != nil {
 		log.Fatalf("Could not connect messenger: %s\n", err.Error())
 
@@ -48,7 +48,7 @@ func main() {
 
 	// establishing a state and filling it with statuses
 	sta := state{
-		messenger: messenger,
+		messenger: mess,
 		config:    c,
 		statuses:  map[regionName]*status{},
 	}
