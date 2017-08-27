@@ -150,7 +150,7 @@ func (sta State) listenForRegions(stop chan interface{}) error {
 	return nil
 }
 
-func (sta state) listenForGenericTestErrors(stop chan interface{}) error {
+func (sta State) listenForGenericTestErrors(stop chan interface{}) error {
 	err := sta.messenger.subscribe(subjects.GenericTestErrors, stop, func(natsMsg *nats.Msg) {
 		m := newMessage()
 		m.Err = "Test error"
