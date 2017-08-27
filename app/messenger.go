@@ -38,12 +38,17 @@ func (m message) parse() ([]byte, error) {
 
 func newMessengerFromEnvVars(hostKey string, portKey string) (messenger, error) {
 	natsHost := os.Getenv(hostKey)
-	natsPort, err := strconv.Atoi(os.Getenv(portKey))
+	natsPort := os.Getenv(portKey)
+	if len(natsPort) == 0 {
+		return messenger{}, errors.New("Nats port cannot be blank")
+	}
+
+	parsedNatsPort, err := strconv.Atoi(natsPort)
 	if err != nil {
 		return messenger{}, err
 	}
 
-	return newMessenger(natsHost, natsPort)
+	return newMessenger(natsHost, parsedNatsPort)
 }
 
 func newMessenger(host string, port int) (messenger, error) {
