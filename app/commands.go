@@ -4,11 +4,17 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 
 	"github.com/ihsw/sotah-server/app/subjects"
 )
 
-func apiTest(c *config, m messenger) error {
+func apiTest(c *config, m messenger, dataDir string) error {
+	dataDirPath, err := filepath.Abs(dataDir)
+	if err != nil {
+		return err
+	}
+
 	// establishing a state and filling it with statuses
 	sta := state{
 		messenger: m,
@@ -16,7 +22,7 @@ func apiTest(c *config, m messenger) error {
 		statuses:  map[regionName]*status{},
 	}
 	for _, reg := range c.Regions {
-		stat, err := newStatusFromFilepath(reg, "./src/github.com/ihsw/sotah-server/app/TestData/realm-status.json")
+		stat, err := newStatusFromFilepath(reg, fmt.Sprintf("%s/realm-status.json", dataDirPath))
 		if err != nil {
 			return err
 		}

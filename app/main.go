@@ -20,6 +20,7 @@ func main() {
 		apiKey         = app.Flag("api-key", "Blizzard Mashery API key").OverrideDefaultFromEnvar("API_KEY").String()
 
 		apiTestCommand = app.Command(commands.APITest, "For running sotah-api tests.")
+		dataDir        = apiTestCommand.Flag("data-dir", "Directory to load data files from").Required().Short('d').String()
 	)
 	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
 
@@ -46,7 +47,7 @@ func main() {
 
 	switch cmd {
 	case apiTestCommand.FullCommand():
-		err := apiTest(c, mess)
+		err := apiTest(c, mess, *dataDir)
 		if err != nil {
 			fmt.Printf("Could not run api test command: %s\n", err.Error())
 			os.Exit(1)
