@@ -9,19 +9,11 @@ import (
 	nats "github.com/nats-io/go-nats"
 )
 
-func NewState(c *config, m messenger) State {
-	return State{
-		config:    c,
-		messenger: m,
-		Statuses:  map[regionName]*Status{},
-	}
-}
-
-type State struct {
+type state struct {
 	messenger messenger
 
 	config   *config
-	Statuses map[regionName]*Status
+	statuses map[regionName]*status
 	auctions map[regionName]map[realmSlug]*auctions
 }
 
@@ -29,7 +21,7 @@ type listenForStatusMessage struct {
 	RegionName regionName `json:"region_name"`
 }
 
-func (sta State) ListenForStatus(stop chan interface{}) error {
+func (sta state) listenForStatus(stop chan interface{}) error {
 	err := sta.messenger.subscribe(subjects.Status, stop, func(natsMsg *nats.Msg) {
 		m := newMessage()
 
@@ -43,7 +35,7 @@ func (sta State) ListenForStatus(stop chan interface{}) error {
 			return
 		}
 
-		regionStatus, ok := sta.Statuses[lm.RegionName]
+		regionStatus, ok := sta.statuses[lm.RegionName]
 		if !ok {
 			m.Err = "Region not found"
 			m.Code = codes.NotFound
@@ -76,7 +68,7 @@ type listenForAuctionsMessage struct {
 	RealmSlug  realmSlug  `json:"realm_slug"`
 }
 
-func (sta State) ListenForAuctions(stop chan interface{}) error {
+func (sta state) listenForAuctions(stop chan interface{}) error {
 	err := sta.messenger.subscribe(subjects.Auctions, stop, func(natsMsg *nats.Msg) {
 		m := newMessage()
 
@@ -127,7 +119,7 @@ func (sta State) ListenForAuctions(stop chan interface{}) error {
 	return nil
 }
 
-func (sta State) listenForRegions(stop chan interface{}) error {
+func (sta state) listenForRegions(stop chan interface{}) error {
 	err := sta.messenger.subscribe(subjects.Regions, stop, func(natsMsg *nats.Msg) {
 		m := newMessage()
 

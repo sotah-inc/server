@@ -43,7 +43,7 @@ func TestNewAuctionsFromFilepath(t *testing.T) {
 }
 
 func TestNewAuctionsFromMessenger(t *testing.T) {
-	sta := State{}
+	sta := state{}
 
 	// connecting
 	mess, err := newMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
@@ -77,7 +77,7 @@ func TestNewAuctionsFromMessenger(t *testing.T) {
 
 	// setting up a subscriber that will publish auctions
 	stop := make(chan interface{})
-	err = sta.ListenForAuctions(stop)
+	err = sta.listenForAuctions(stop)
 	if !assert.Nil(t, err) {
 		return
 	}

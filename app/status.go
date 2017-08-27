@@ -20,7 +20,7 @@ func defaultGetStatusURL(regionHostname string) string {
 	return fmt.Sprintf(statusURLFormat, regionHostname)
 }
 
-func newStatusFromHTTP(reg region, r resolver) (*Status, error) {
+func newStatusFromHTTP(reg region, r resolver) (*status, error) {
 	body, err := r.get(r.getStatusURL(reg.Hostname))
 	if err != nil {
 		return nil, err
@@ -29,7 +29,7 @@ func newStatusFromHTTP(reg region, r resolver) (*Status, error) {
 	return newStatus(reg, body)
 }
 
-func newStatusFromMessenger(reg region, mess messenger) (*Status, error) {
+func newStatusFromMessenger(reg region, mess messenger) (*status, error) {
 	lm := listenForStatusMessage{RegionName: reg.Name}
 	encodedMessage, err := json.Marshal(lm)
 	if err != nil {
@@ -48,7 +48,7 @@ func newStatusFromMessenger(reg region, mess messenger) (*Status, error) {
 	return newStatus(reg, []byte(msg.Data))
 }
 
-func NewStatusFromFilepath(reg region, relativeFilepath string) (*Status, error) {
+func newStatusFromFilepath(reg region, relativeFilepath string) (*status, error) {
 	body, err := util.ReadFile(relativeFilepath)
 	if err != nil {
 		return nil, err
@@ -57,8 +57,8 @@ func NewStatusFromFilepath(reg region, relativeFilepath string) (*Status, error)
 	return newStatus(reg, body)
 }
 
-func newStatus(reg region, body []byte) (*Status, error) {
-	s := &Status{region: reg}
+func newStatus(reg region, body []byte) (*status, error) {
+	s := &status{region: reg}
 	if err := json.Unmarshal(body, s); err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func newStatus(reg region, body []byte) (*Status, error) {
 	return s, nil
 }
 
-type Status struct {
+type status struct {
 	Realms realms `json:"realms"`
 
 	region region
