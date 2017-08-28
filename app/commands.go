@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/ihsw/sotah-server/app/subjects"
+	log "github.com/sirupsen/logrus"
 )
 
 func apiTest(c *config, m messenger, dataDir string) error {
@@ -46,13 +47,12 @@ func apiTest(c *config, m messenger, dataDir string) error {
 		return err
 	}
 
-	fmt.Println("Running!")
-
 	// catching SIGINT
 	sigIn := make(chan os.Signal, 1)
 	signal.Notify(sigIn, os.Interrupt)
 	<-sigIn
-	fmt.Println("Caught SIGINT!")
+
+	log.Info("Caught SIGINT, exiting")
 
 	// stopping listeners
 	for _, stop := range stopChans {
