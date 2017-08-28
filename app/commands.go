@@ -18,7 +18,7 @@ func apiTest(c *config, m messenger, dataDir string) error {
 	// establishing a state and filling it with statuses
 	sta := state{
 		messenger: m,
-		config:    c,
+		regions:   c.Regions,
 		statuses:  map[regionName]*status{},
 	}
 	for _, reg := range c.Regions {

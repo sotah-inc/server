@@ -12,7 +12,7 @@ import (
 type state struct {
 	messenger messenger
 
-	config   *config
+	regions  []region
 	statuses map[regionName]*status
 	auctions map[regionName]map[realmSlug]*auctions
 }
@@ -123,7 +123,7 @@ func (sta state) listenForRegions(stop chan interface{}) error {
 	err := sta.messenger.subscribe(subjects.Regions, stop, func(natsMsg *nats.Msg) {
 		m := newMessage()
 
-		encodedRegions, err := json.Marshal(sta.config.Regions)
+		encodedRegions, err := json.Marshal(sta.regions)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError

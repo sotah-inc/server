@@ -21,7 +21,7 @@ func TestListenForStatus(t *testing.T) {
 	sta.messenger = mess
 
 	// building test status
-	reg := region{Hostname: "us.battle.net"}
+	reg := region{Name: "us", Hostname: "us.battle.net"}
 	s, err := newStatusFromFilepath(reg, "./TestData/realm-status.json")
 	if !assert.Nil(t, err) {
 		return
@@ -127,7 +127,7 @@ func TestListenForRegions(t *testing.T) {
 	if !assert.Nil(t, err) || !assert.NotEmpty(t, c.APIKey) {
 		return
 	}
-	sta.config = c
+	sta.regions = c.Regions
 
 	// setting up a listener for responding to status requests
 	stop := make(chan interface{})
