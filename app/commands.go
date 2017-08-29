@@ -23,14 +23,25 @@ func apiTest(c *config, m messenger, dataDir string) error {
 		messenger: m,
 		regions:   c.Regions,
 		statuses:  map[regionName]*status{},
+		auctions:  map[regionName]map[realmSlug]*auctions{},
 	}
 	for _, reg := range c.Regions {
+		// loading realm statuses
 		stat, err := newStatusFromFilepath(reg, fmt.Sprintf("%s/realm-status.json", dataDirPath))
 		if err != nil {
 			return err
 		}
-
 		sta.statuses[reg.Name] = stat
+
+		// loading realm auctions
+		auc, err := newAuctionsFromFilepath(fmt.Sprintf("%s/auctions.json", dataDirPath))
+		if err != nil {
+			return err
+		}
+		sta.auctions[reg.Name] = map[realmSlug]*auctions{}
+		for _, rea := range stat.Realms {
+			sta.auctions[reg.Name][rea.Slug] = auc
+		}
 	}
 
 	// listening for status requests
@@ -38,6 +49,7 @@ func apiTest(c *config, m messenger, dataDir string) error {
 		subjects.Status:            make(chan interface{}),
 		subjects.Regions:           make(chan interface{}),
 		subjects.GenericTestErrors: make(chan interface{}),
+		subjects.Auctions:          make(chan interface{}),
 	}
 	if err := sta.listenForStatus(stopChans[subjects.Status]); err != nil {
 		return err
@@ -46,6 +58,9 @@ func apiTest(c *config, m messenger, dataDir string) error {
 		return err
 	}
 	if err := sta.listenForGenericTestErrors(stopChans[subjects.GenericTestErrors]); err != nil {
+		return err
+	}
+	if err := sta.listenForAuctions(stopChans[subjects.Auctions]); err != nil {
 		return err
 	}
 
