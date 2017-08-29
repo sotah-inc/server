@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/ihsw/sotah-server/app/codes"
 
 	"github.com/ihsw/sotah-server/app/subjects"
@@ -49,6 +51,8 @@ func newStatusFromMessenger(reg region, mess messenger) (*status, error) {
 }
 
 func newStatusFromFilepath(reg region, relativeFilepath string) (*status, error) {
+	log.WithFields(log.Fields{"region": reg.Name, "filepath": relativeFilepath}).Info("Reading region status from file")
+
 	body, err := util.ReadFile(relativeFilepath)
 	if err != nil {
 		return nil, err

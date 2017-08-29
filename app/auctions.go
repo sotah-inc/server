@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/ihsw/sotah-server/app/codes"
 
 	"github.com/ihsw/sotah-server/app/subjects"
@@ -27,6 +29,8 @@ func newAuctionsFromHTTP(url string, r resolver) (*auctions, error) {
 }
 
 func newAuctionsFromFilepath(relativeFilepath string) (*auctions, error) {
+	log.WithField("filepath", relativeFilepath).Info("Reading auctions from file")
+
 	body, err := util.ReadFile(relativeFilepath)
 	if err != nil {
 		return nil, err
