@@ -19,11 +19,21 @@ func main() {
 		natsPort       = app.Flag("nats-port", "NATS port").Default("4222").OverrideDefaultFromEnvar("NATS_PORT").Short('p').Int()
 		configFilepath = app.Flag("config", "Relative path to config json").Required().Short('c').String()
 		apiKey         = app.Flag("api-key", "Blizzard Mashery API key").OverrideDefaultFromEnvar("API_KEY").String()
+		verbosity      = app.Flag("verbosity", "Log verbosity").Default("info").Short('v').String()
 
 		apiTestCommand = app.Command(commands.APITest, "For running sotah-api tests.")
 		dataDir        = apiTestCommand.Flag("data-dir", "Directory to load data files from").Required().Short('d').String()
 	)
 	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
+
+	logVerbosity, err := log.ParseLevel(*verbosity)
+	if err != nil {
+		fmt.Print(err.Error())
+
+		return
+	}
+
+	log.SetLevel(logVerbosity)
 
 	log.Info("Starting")
 
