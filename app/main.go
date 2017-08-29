@@ -12,8 +12,6 @@ import (
 )
 
 func main() {
-	log.Info("Starting")
-
 	// parsing the command flags
 	var (
 		app            = kingpin.New("sotah-server", "A command-line Blizzard AH client.")
@@ -26,6 +24,8 @@ func main() {
 		dataDir        = apiTestCommand.Flag("data-dir", "Directory to load data files from").Required().Short('d').String()
 	)
 	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
+
+	log.Info("Starting")
 
 	// loading the config file
 	c, err := newConfigFromFilepath(*configFilepath)
