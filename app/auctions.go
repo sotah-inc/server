@@ -27,7 +27,7 @@ func newAuctionsFromHTTP(url string, r resolver) (*auctions, error) {
 }
 
 func newAuctionsFromFilepath(relativeFilepath string) (*auctions, error) {
-	body, err := util.ReadFile("./TestData/auctions.json")
+	body, err := util.ReadFile(relativeFilepath)
 	if err != nil {
 		return nil, err
 	}
