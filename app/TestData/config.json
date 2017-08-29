@@ -4,6 +4,10 @@
         {
             "name": "us",
             "hostname": "us.api.battle.net"
+        },
+        {
+            "name": "eu",
+            "hostname": "eu.api.battle.net"
         }
     ]
 }
