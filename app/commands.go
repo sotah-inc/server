@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/ihsw/sotah-server/app/subjects"
+	"github.com/ihsw/sotah-server/app/util"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -14,6 +15,16 @@ func apiTest(c *config, m messenger, dataDir string) error {
 	log.Info("Starting api-test")
 
 	dataDirPath, err := filepath.Abs(dataDir)
+	if err != nil {
+		return err
+	}
+
+	// preloading the status file and auctions file
+	statusBody, err := util.ReadFile(fmt.Sprintf("%s/realm-status.json", dataDirPath))
+	if err != nil {
+		return err
+	}
+	auc, err := newAuctionsFromFilepath(fmt.Sprintf("%s/auctions.json", dataDirPath))
 	if err != nil {
 		return err
 	}
@@ -27,17 +38,13 @@ func apiTest(c *config, m messenger, dataDir string) error {
 	}
 	for _, reg := range c.Regions {
 		// loading realm statuses
-		stat, err := newStatusFromFilepath(reg, fmt.Sprintf("%s/realm-status.json", dataDirPath))
+		stat, err := newStatus(reg, statusBody)
 		if err != nil {
 			return err
 		}
 		sta.statuses[reg.Name] = stat
 
 		// loading realm auctions
-		auc, err := newAuctionsFromFilepath(fmt.Sprintf("%s/auctions.json", dataDirPath))
-		if err != nil {
-			return err
-		}
 		sta.auctions[reg.Name] = map[realmSlug]*auctions{}
 		for _, rea := range stat.Realms {
 			sta.auctions[reg.Name][rea.Slug] = auc
