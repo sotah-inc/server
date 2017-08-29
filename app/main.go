@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/ihsw/sotah-server/app/commands"
 
@@ -11,6 +12,8 @@ import (
 )
 
 func main() {
+	log.Info("Starting")
+
 	// parsing the command flags
 	var (
 		app            = kingpin.New("sotah-server", "A command-line Blizzard AH client.")
@@ -34,6 +37,8 @@ func main() {
 
 	// optionally overriding api key in config
 	if len(*apiKey) > 0 {
+		log.WithField("api-key", *apiKey).Info("Overriding api key found in config")
+
 		c.APIKey = *apiKey
 	}
 
@@ -44,6 +49,8 @@ func main() {
 
 		return
 	}
+
+	log.WithField("command", cmd).Info("Attempting to run command")
 
 	switch cmd {
 	case apiTestCommand.FullCommand():

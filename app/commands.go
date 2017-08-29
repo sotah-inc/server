@@ -11,6 +11,8 @@ import (
 )
 
 func apiTest(c *config, m messenger, dataDir string) error {
+	log.Info("Starting api-test")
+
 	dataDirPath, err := filepath.Abs(dataDir)
 	if err != nil {
 		return err

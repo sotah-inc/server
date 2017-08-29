@@ -3,10 +3,14 @@ package main
 import (
 	"encoding/json"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/ihsw/sotah-server/app/util"
 )
 
 func newConfigFromFilepath(relativePath string) (*config, error) {
+	log.WithField("path", relativePath).Info("Reading config")
+
 	body, err := util.ReadFile(relativePath)
 	if err != nil {
 		return nil, err
@@ -31,4 +35,3 @@ type config struct {
 }
 
 type whitelist map[regionName]getAuctionsWhitelist
-
