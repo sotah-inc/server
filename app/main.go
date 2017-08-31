@@ -60,7 +60,7 @@ func main() {
 		return
 	}
 
-	log.WithField("command", cmd).Info("Attempting to run command")
+	log.WithField("command", cmd).Info("Running command")
 
 	switch cmd {
 	case apiTestCommand.FullCommand():
