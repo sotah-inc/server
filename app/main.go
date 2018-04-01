@@ -77,7 +77,7 @@ func main() {
 
 		return
 	case apiCommand.FullCommand():
-		err := api(c, mess, *dataDir)
+		err := api(c, mess)
 		if err != nil {
 			fmt.Printf("Could not run api command: %s\n", err.Error())
 			os.Exit(1)
