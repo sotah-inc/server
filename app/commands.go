@@ -85,3 +85,49 @@ func apiTest(c *config, m messenger, dataDir string) error {
 
 	return nil
 }
+
+func api(c *config, m messenger, dataDir string) error {
+	log.Info("Starting api")
+
+	// establishing a state
+	sta := state{
+		messenger: m,
+		regions:   c.Regions,
+		statuses:  map[regionName]*status{},
+		auctions:  map[regionName]map[realmSlug]*auctions{},
+	}
+
+	// listening for status requests
+	stopChans := map[string]chan interface{}{
+		subjects.Status:            make(chan interface{}),
+		subjects.Regions:           make(chan interface{}),
+		subjects.GenericTestErrors: make(chan interface{}),
+		subjects.Auctions:          make(chan interface{}),
+	}
+	if err := sta.listenForStatus(stopChans[subjects.Status]); err != nil {
+		return err
+	}
+	if err := sta.listenForRegions(stopChans[subjects.Regions]); err != nil {
+		return err
+	}
+	if err := sta.listenForGenericTestErrors(stopChans[subjects.GenericTestErrors]); err != nil {
+		return err
+	}
+	if err := sta.listenForAuctions(stopChans[subjects.Auctions]); err != nil {
+		return err
+	}
+
+	// catching SIGINT
+	sigIn := make(chan os.Signal, 1)
+	signal.Notify(sigIn, os.Interrupt)
+	<-sigIn
+
+	log.Info("Caught SIGINT, exiting")
+
+	// stopping listeners
+	for _, stop := range stopChans {
+		stop <- struct{}{}
+	}
+
+	return nil
+}

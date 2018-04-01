@@ -22,6 +22,7 @@ func main() {
 		verbosity      = app.Flag("verbosity", "Log verbosity").Default("info").Short('v').String()
 
 		apiTestCommand = app.Command(commands.APITest, "For running sotah-api tests.")
+		apiCommand     = app.Command(commands.API, "For running sotah-server.")
 		dataDir        = apiTestCommand.Flag("data-dir", "Directory to load data files from").Required().Short('d').String()
 	)
 	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
@@ -67,6 +68,18 @@ func main() {
 		err := apiTest(c, mess, *dataDir)
 		if err != nil {
 			fmt.Printf("Could not run api test command: %s\n", err.Error())
+			os.Exit(1)
+
+			return
+		}
+
+		os.Exit(0)
+
+		return
+	case apiCommand.FullCommand():
+		err := api(c, mess, *dataDir)
+		if err != nil {
+			fmt.Printf("Could not run api command: %s\n", err.Error())
 			os.Exit(1)
 
 			return
