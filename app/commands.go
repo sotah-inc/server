@@ -90,9 +90,10 @@ func api(c *config, m messenger) error {
 	log.Info("Starting api")
 
 	// establishing a state
+	resolver := newResolver(c)
 	sta := state{
 		messenger: m,
-		resolver:  newResolver(c),
+		resolver:  &resolver,
 		regions:   c.Regions,
 		statuses:  map[regionName]*status{},
 		auctions:  map[regionName]map[realmSlug]*auctions{},

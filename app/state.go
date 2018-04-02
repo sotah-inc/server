@@ -12,7 +12,7 @@ import (
 
 type state struct {
 	messenger messenger
-	resolver  resolver
+	resolver  *resolver
 
 	regions  []region
 	statuses map[regionName]*status
@@ -47,9 +47,25 @@ func (sta state) listenForStatus(stop chan interface{}) error {
 			break
 		}
 
+		if region.Name == "" {
+			m.Err = "Invalid region"
+			m.Code = codes.NotFound
+			sta.messenger.replyTo(natsMsg, m)
+
+			return
+		}
+
 		regionStatus, ok := sta.statuses[lm.RegionName]
 		if !ok {
-			regionStatus, err = region.getStatus(sta.resolver)
+			if sta.resolver == nil {
+				m.Err = "Resolver not defined"
+				m.Code = codes.GenericError
+				sta.messenger.replyTo(natsMsg, m)
+
+				return
+			}
+
+			regionStatus, err = region.getStatus(*sta.resolver)
 			if err != nil {
 				m.Err = fmt.Sprintf("Could not fetch region: %s", err.Error())
 				m.Code = codes.GenericError
@@ -99,7 +115,7 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 			return
 		}
 
-		aList, ok := sta.auctions[am.RegionName]
+		auctionList, ok := sta.auctions[am.RegionName]
 		if !ok {
 			m.Err = "Invalid region"
 			m.Code = codes.NotFound
@@ -108,7 +124,7 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 			return
 		}
 
-		a, ok := aList[am.RealmSlug]
+		auctions, ok := auctionList[am.RealmSlug]
 		if !ok {
 			m.Err = "Invalid realm"
 			m.Code = codes.NotFound
@@ -117,7 +133,7 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 			return
 		}
 
-		encodedStatus, err := json.Marshal(a)
+		encodedStatus, err := json.Marshal(auctions)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError

@@ -49,6 +49,7 @@ func newAuctionsFromMessenger(rea *realm, mess messenger) (*auctions, error) {
 		return nil, err
 	}
 
+	log.WithField("subject", subjects.Auctions).Info("Sending request")
 	msg, err := mess.request(subjects.Auctions, encodedMessage)
 	if err != nil {
 		return nil, err
