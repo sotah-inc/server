@@ -85,12 +85,18 @@ func TestNewAuctionsFromMessenger(t *testing.T) {
 	// subscribing to receive auctions
 	receivedAuctions, err := newAuctionsFromMessenger(rea, mess)
 	if !assert.Nil(t, err) {
+		stop <- struct{}{}
+
 		return
 	}
 	if !assert.NotZero(t, len(receivedAuctions.Auctions)) {
+		stop <- struct{}{}
+
 		return
 	}
 	if !assert.Equal(t, len(a.Auctions), len(receivedAuctions.Auctions)) {
+		stop <- struct{}{}
+
 		return
 	}
 

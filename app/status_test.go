@@ -71,6 +71,7 @@ func TestNewStatusFromMessenger(t *testing.T) {
 		return
 	}
 	sta.statuses = map[regionName]*status{reg.Name: s}
+	sta.regions = []region{reg}
 
 	// setting up a subscriber that will publish status retrieval requests
 	stop := make(chan interface{})
@@ -82,6 +83,7 @@ func TestNewStatusFromMessenger(t *testing.T) {
 	// subscribing to receive statuses
 	receivedStatus, err := newStatusFromMessenger(reg, mess)
 	if !assert.Nil(t, err) || !assert.Equal(t, s.region.Hostname, receivedStatus.region.Hostname) {
+		stop <- struct{}{}
 		return
 	}
 

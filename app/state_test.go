@@ -24,7 +24,7 @@ func TestListenForStatus(t *testing.T) {
 	sta.messenger = mess
 
 	// building test status
-	reg := region{Name: "us", Hostname: "us.battle.net"}
+	reg := region{Name: "test", Hostname: "test"}
 	s, err := newStatusFromFilepath(reg, "./TestData/realm-status.json")
 	if !assert.Nil(t, err) {
 		return
@@ -32,6 +32,7 @@ func TestListenForStatus(t *testing.T) {
 	if !validateStatus(t, reg, s) {
 		return
 	}
+	sta.regions = []region{reg}
 	sta.statuses = map[regionName]*status{reg.Name: s}
 
 	// setting up a listener for responding to status requests
@@ -44,6 +45,8 @@ func TestListenForStatus(t *testing.T) {
 	// subscribing to receive statuses
 	receivedStatus, err := newStatusFromMessenger(reg, mess)
 	if !assert.Nil(t, err) || !assert.Equal(t, s.region.Hostname, receivedStatus.region.Hostname) {
+		stop <- struct{}{}
+
 		return
 	}
 
@@ -72,6 +75,8 @@ func TestListenForNonexistentStatusNoResolver(t *testing.T) {
 	// subscribing to receive statuses
 	_, err = newStatusFromMessenger(region{Name: "test", Hostname: "test"}, mess)
 	if !assert.NotNil(t, err) && assert.Equal(t, "Invalid region", err.Error()) {
+		stop <- struct{}{}
+
 		return
 	}
 
@@ -109,6 +114,8 @@ func TestListenForNonexistentStatus(t *testing.T) {
 	// subscribing to receive statuses
 	_, err = newStatusFromMessenger(region{Name: "test", Hostname: "test"}, mess)
 	if !assert.NotNil(t, err) && assert.Equal(t, "Invalid region", err.Error()) {
+		stop <- struct{}{}
+
 		return
 	}
 
@@ -149,6 +156,8 @@ func TestListenForStatusToFetch(t *testing.T) {
 	// subscribing to receive statuses
 	_, err = newStatusFromMessenger(region{Name: "test", Hostname: "test"}, mess)
 	if !assert.Nil(t, err) {
+		stop <- struct{}{}
+
 		return
 	}
 
@@ -199,14 +208,22 @@ func TestListenForAuctions(t *testing.T) {
 	// subscribing to receive auctions
 	receivedAuctions, err := newAuctionsFromMessenger(rea, mess)
 	if !assert.Nil(t, err) {
+		stop <- struct{}{}
+
 		return
 	}
 	if !assert.NotZero(t, len(receivedAuctions.Auctions)) {
+		stop <- struct{}{}
+
 		return
 	}
 	if !assert.Equal(t, len(a.Auctions), len(receivedAuctions.Auctions)) {
+		stop <- struct{}{}
+
 		return
 	}
+
+	stop <- struct{}{}
 }
 
 func TestListenForRegions(t *testing.T) {
@@ -247,6 +264,8 @@ func TestListenForRegions(t *testing.T) {
 	// subscribing to receive regions
 	regs, err := newRegionsFromMessenger(mess)
 	if !assert.Nil(t, err) || !assert.NotZero(t, len(regs)) {
+		stop <- struct{}{}
+
 		return
 	}
 
@@ -274,13 +293,16 @@ func TestListenForGenericTestErrors(t *testing.T) {
 	// requesting a message from
 	msg, err := sta.messenger.request(subjects.GenericTestErrors, []byte{})
 	if !assert.Nil(t, err) {
+		stop <- struct{}{}
+
+		return
+	}
+
+	// validating the response code
+	if !assert.Equal(t, msg.Code, codes.GenericError) {
 		return
 	}
 
 	// flagging the status listener to exit
 	stop <- struct{}{}
-
-	if !assert.Equal(t, msg.Code, codes.GenericError) {
-		return
-	}
 }
