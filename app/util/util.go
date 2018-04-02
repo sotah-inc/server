@@ -2,6 +2,7 @@ package util
 
 import (
 	"compress/gzip"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -47,6 +48,10 @@ func Download(url string) (b []byte, err error) {
 		return b, err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return b, fmt.Errorf("Response was not OK: %d", resp.StatusCode)
+	}
 
 	// optionally decompressing it
 	switch resp.Header.Get("Content-Encoding") {
