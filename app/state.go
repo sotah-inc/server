@@ -37,17 +37,17 @@ func (sta state) listenForStatus(stop chan interface{}) error {
 			return
 		}
 
-		var region region
+		var reg region
 		for _, r := range sta.regions {
 			if r.Name != lm.RegionName {
 				continue
 			}
 
-			region = r
+			reg = r
 			break
 		}
 
-		if region.Name == "" {
+		if reg.Name == "" {
 			m.Err = "Invalid region"
 			m.Code = codes.NotFound
 			sta.messenger.replyTo(natsMsg, m)
@@ -65,7 +65,7 @@ func (sta state) listenForStatus(stop chan interface{}) error {
 				return
 			}
 
-			regionStatus, err = region.getStatus(*sta.resolver)
+			regionStatus, err = reg.getStatus(*sta.resolver)
 			if err != nil {
 				m.Err = fmt.Sprintf("Could not fetch region: %s", err.Error())
 				m.Code = codes.GenericError
@@ -74,7 +74,15 @@ func (sta state) listenForStatus(stop chan interface{}) error {
 				return
 			}
 
-			sta.statuses[region.Name] = regionStatus
+			if regionStatus == nil {
+				m.Err = "Region-status was nil"
+				m.Code = codes.GenericError
+				sta.messenger.replyTo(natsMsg, m)
+
+				return
+			}
+
+			sta.statuses[reg.Name] = regionStatus
 		}
 
 		encodedStatus, err := json.Marshal(regionStatus)
