@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/ihsw/sotah-server/app/codes"
 
@@ -11,6 +12,7 @@ import (
 
 type state struct {
 	messenger messenger
+	resolver  resolver
 
 	regions  []region
 	statuses map[regionName]*status
@@ -35,13 +37,28 @@ func (sta state) listenForStatus(stop chan interface{}) error {
 			return
 		}
 
+		var region region
+		for _, r := range sta.regions {
+			if r.Name != lm.RegionName {
+				continue
+			}
+
+			region = r
+			break
+		}
+
 		regionStatus, ok := sta.statuses[lm.RegionName]
 		if !ok {
-			m.Err = "Region not found"
-			m.Code = codes.NotFound
-			sta.messenger.replyTo(natsMsg, m)
+			regionStatus, err = region.getStatus(sta.resolver)
+			if err != nil {
+				m.Err = fmt.Sprintf("Could not fetch region: %s", err.Error())
+				m.Code = codes.GenericError
+				sta.messenger.replyTo(natsMsg, m)
 
-			return
+				return
+			}
+
+			sta.statuses[region.Name] = regionStatus
 		}
 
 		encodedStatus, err := json.Marshal(regionStatus)

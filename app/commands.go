@@ -92,6 +92,7 @@ func api(c *config, m messenger) error {
 	// establishing a state
 	sta := state{
 		messenger: m,
+		resolver:  newResolver(c),
 		regions:   c.Regions,
 		statuses:  map[regionName]*status{},
 		auctions:  map[regionName]map[realmSlug]*auctions{},
