@@ -154,8 +154,14 @@ func TestListenForStatusToFetch(t *testing.T) {
 	}
 
 	// subscribing to receive statuses
-	_, err = newStatusFromMessenger(region{Name: "test", Hostname: "test"}, mess)
+	status, err := newStatusFromMessenger(region{Name: "test", Hostname: "test"}, mess)
 	if !assert.Nil(t, err) {
+		stop <- struct{}{}
+
+		return
+	}
+
+	if !assert.True(t, len(status.Realms) > 0) {
 		stop <- struct{}{}
 
 		return
