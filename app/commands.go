@@ -99,6 +99,16 @@ func api(c *config, m messenger) error {
 		auctions:  map[regionName]map[realmSlug]*auctions{},
 	}
 
+	// gathering realms for each region
+	for _, reg := range c.Regions {
+		regionStatus, err := reg.getStatus(resolver)
+		if err != nil {
+			return err
+		}
+
+		sta.statuses[reg.Name] = regionStatus
+	}
+
 	// filling it with blank auctions
 	for _, region := range c.Regions {
 		sta.auctions[region.Name] = map[realmSlug]*auctions{}
