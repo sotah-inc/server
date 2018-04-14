@@ -23,6 +23,8 @@ func defaultGetStatusURL(regionHostname string) string {
 }
 
 func newStatusFromHTTP(reg region, r resolver) (*status, error) {
+	log.WithField("region", reg.Name).Info("Fetching region status")
+
 	body, err := r.get(r.getStatusURL(reg.Hostname))
 	if err != nil {
 		return nil, err

@@ -1,7 +1,11 @@
 package main
 
-import "github.com/ihsw/sotah-server/app/util"
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/ihsw/sotah-server/app/util"
+	log "github.com/sirupsen/logrus"
+)
 
 type getAuctionsWhitelist map[realmSlug]interface{}
 
@@ -25,7 +29,11 @@ func (reas realms) getAuctions(res resolver, whitelist getAuctionsWhitelist) cha
 	// spinning up the workers for fetching auctions
 	worker := func() {
 		for rea := range in {
+			entry := log.WithFields(log.Fields{"region": rea.region.Name, "relam": rea.Slug})
+
+			entry.Info("Fetching auctions")
 			aucs, err := rea.getAuctions(res)
+			entry.Info("Received auctions")
 			out <- getAuctionsJob{err: err, realm: rea, auctions: aucs}
 		}
 	}
