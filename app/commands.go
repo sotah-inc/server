@@ -99,6 +99,11 @@ func api(c *config, m messenger) error {
 		auctions:  map[regionName]map[realmSlug]*auctions{},
 	}
 
+	// filling it with blank auctions
+	for _, region := range c.Regions {
+		sta.auctions[region.Name] = map[realmSlug]*auctions{}
+	}
+
 	// listening for status requests
 	stopChans := map[string]chan interface{}{
 		subjects.Status:            make(chan interface{}),
