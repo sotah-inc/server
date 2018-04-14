@@ -99,7 +99,7 @@ func api(c *config, m messenger) error {
 		auctions:  map[regionName]map[realmSlug]*auctions{},
 	}
 
-	// gathering realms for each region
+	// filling state with region statuses and auctions
 	for _, reg := range c.Regions {
 		regionStatus, err := reg.getStatus(resolver)
 		if err != nil {
@@ -107,11 +107,11 @@ func api(c *config, m messenger) error {
 		}
 
 		sta.statuses[reg.Name] = regionStatus
-	}
 
-	// filling it with blank auctions
-	for _, region := range c.Regions {
-		sta.auctions[region.Name] = map[realmSlug]*auctions{}
+		sta.auctions[reg.Name] = map[realmSlug]*auctions{}
+		for _, rea := range regionStatus.Realms {
+			sta.auctions[reg.Name][rea.Slug] = &auctions{}
+		}
 	}
 
 	// listening for status requests
