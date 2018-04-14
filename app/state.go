@@ -83,6 +83,9 @@ func (sta state) listenForStatus(stop chan interface{}) error {
 			}
 
 			sta.statuses[reg.Name] = regionStatus
+			for _, realm := range regionStatus.Realms {
+				sta.auctions[reg.Name][realm.Slug] = &auctions{}
+			}
 		}
 
 		encodedStatus, err := json.Marshal(regionStatus)
