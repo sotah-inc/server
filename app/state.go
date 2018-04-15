@@ -8,6 +8,7 @@ import (
 
 	"github.com/ihsw/sotah-server/app/subjects"
 	nats "github.com/nats-io/go-nats"
+	log "github.com/sirupsen/logrus"
 )
 
 type state struct {
@@ -154,7 +155,10 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 		}
 
 		m.Data = string(encodedStatus)
-		sta.messenger.replyTo(natsMsg, m)
+		err = sta.messenger.replyTo(natsMsg, m)
+		if err != nil {
+			log.Fatalf("messenger.replyTo() failed: %s", err.Error())
+		}
 	})
 	if err != nil {
 		return err
