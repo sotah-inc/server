@@ -18,7 +18,11 @@ type getAuctionsJob struct {
 type realms []realm
 
 func (reas realms) getAllAuctions(res resolver) chan getAuctionsJob {
-	return reas.getAuctions(res, map[realmSlug]interface{}{})
+	whitelist := map[realmSlug]interface{}{}
+	for _, rea := range reas {
+		whitelist[rea.Slug] = true
+	}
+	return reas.getAuctions(res, whitelist)
 }
 
 func (reas realms) getAuctions(res resolver, whitelist getAuctionsWhitelist) chan getAuctionsJob {
@@ -29,11 +33,11 @@ func (reas realms) getAuctions(res resolver, whitelist getAuctionsWhitelist) cha
 	// spinning up the workers for fetching auctions
 	worker := func() {
 		for rea := range in {
-			entry := log.WithFields(log.Fields{"region": rea.region.Name, "relam": rea.Slug})
-
-			entry.Info("Fetching auctions")
 			aucs, err := rea.getAuctions(res)
-			entry.Info("Received auctions")
+			log.WithFields(log.Fields{
+				"region": rea.region.Name,
+				"realm":  rea.Slug,
+			}).Info("Downloaded realm")
 			out <- getAuctionsJob{err: err, realm: rea, auctions: aucs}
 		}
 	}
@@ -49,6 +53,10 @@ func (reas realms) getAuctions(res resolver, whitelist getAuctionsWhitelist) cha
 				continue
 			}
 
+			log.WithFields(log.Fields{
+				"region": rea.region.Name,
+				"realm":  rea.Slug,
+			}).Info("Downloading realm")
 			in <- rea
 		}
 
