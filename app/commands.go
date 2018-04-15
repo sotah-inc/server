@@ -136,7 +136,7 @@ func api(c *config, m messenger) error {
 
 	// going over the list of auctions
 	for _, reg := range sta.regions {
-		if reg.Name != "tw" {
+		if reg.Name != "us" {
 			continue
 		}
 
