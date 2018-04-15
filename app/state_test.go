@@ -131,12 +131,15 @@ func TestListenForStatusToFetch(t *testing.T) {
 	}
 
 	// loading state with a resolver to the test server and a single region
+	reg := region{Name: "test", Hostname: "test"}
 	sta := state{
 		resolver: &resolver{
 			getStatusURL: func(regionHostname string) string { return ts.URL },
 		},
-		regions: []region{region{Name: "test", Hostname: "test"}},
+		regions:  []region{reg},
+		auctions: map[regionName]map[realmSlug]*auctions{},
 	}
+	sta.auctions[reg.Name] = map[realmSlug]*auctions{}
 
 	// connecting
 	mess, err := newMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
@@ -154,14 +157,14 @@ func TestListenForStatusToFetch(t *testing.T) {
 	}
 
 	// subscribing to receive statuses
-	status, err := newStatusFromMessenger(region{Name: "test", Hostname: "test"}, mess)
+	stat, err := newStatusFromMessenger(reg, mess)
 	if !assert.Nil(t, err) {
 		stop <- struct{}{}
 
 		return
 	}
 
-	if !assert.True(t, len(status.Realms) > 0) {
+	if !assert.True(t, len(stat.Realms) > 0) {
 		stop <- struct{}{}
 
 		return
