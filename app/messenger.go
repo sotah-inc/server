@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -100,19 +101,22 @@ func (mess messenger) replyTo(natsMsg *nats.Msg, m message) error {
 	}
 
 	// json-encoding the message
-	encodedMessage, err := json.Marshal(m)
+	jsonMessage, err := json.Marshal(m)
 	if err != nil {
 		return err
 	}
 
 	// gzipping the message
-	result, err := util.GzipEncode(encodedMessage)
+	gzipMessage, err := util.GzipEncode(jsonMessage)
 	if err != nil {
 		return fmt.Errorf("Could not gzip-encode: %s", err.Error())
 	}
 
+	// base64 encoding the message
+	base64Message := base64.StdEncoding.EncodeToString(gzipMessage)
+
 	// publishing the message
-	mess.conn.Publish(natsMsg.Reply, result)
+	mess.conn.Publish(natsMsg.Reply, []byte(base64Message))
 
 	return nil
 }
@@ -123,11 +127,19 @@ func (mess messenger) request(subject string, data []byte) (*message, error) {
 		return nil, err
 	}
 
-	data, err = util.GzipDecode(natsMsg.Data)
+	// base64 decoding the message
+	base64Message, err := base64.StdEncoding.DecodeString(string(natsMsg.Data))
 	if err != nil {
 		return nil, err
 	}
 
+	// gzip decoding the message
+	data, err = util.GzipDecode([]byte(base64Message))
+	if err != nil {
+		return nil, err
+	}
+
+	// json-decoding the message
 	msg := &message{}
 	if err = json.Unmarshal(data, &msg); err != nil {
 		return nil, err
