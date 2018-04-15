@@ -99,7 +99,7 @@ func api(c *config, m messenger) error {
 		auctions:  map[regionName]map[realmSlug]*auctions{},
 	}
 
-	// filling state with region statuses and auctions
+	// filling state with region statuses and a blank list of auctions
 	for _, reg := range c.Regions {
 		regionStatus, err := reg.getStatus(resolver)
 		if err != nil {
@@ -132,6 +132,29 @@ func api(c *config, m messenger) error {
 	}
 	if err := sta.listenForAuctions(stopChans[subjects.Auctions]); err != nil {
 		return err
+	}
+
+	// going over the list of auctions
+	for _, reg := range sta.regions {
+		if reg.Name != "tw" {
+			continue
+		}
+
+		log.WithFields(log.Fields{
+			"region": reg.Name,
+			"realms": len(sta.statuses[reg.Name].Realms),
+		}).Info("Downloading region")
+		auctionsOut := sta.statuses[reg.Name].Realms.getAllAuctions(*sta.resolver)
+		for job := range auctionsOut {
+			if job.err != nil {
+				return job.err
+			}
+
+			sta.auctions[reg.Name][job.realm.Slug] = job.auctions
+		}
+		log.WithField("region", reg.Name).Info("Downloaded region")
+
+		break
 	}
 
 	// catching SIGINT
