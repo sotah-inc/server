@@ -8,7 +8,7 @@ import (
 	"github.com/ihsw/sotah-server/app/util"
 )
 
-const auctionInfoURLFormat = "https://%s.api.battle.net/wow/auction/data/%s"
+const auctionInfoURLFormat = "https://%s/wow/auction/data/%s"
 
 func defaultGetAuctionInfoURL(regionHostname string, realmSlug realmSlug) string {
 	return fmt.Sprintf(auctionInfoURLFormat, regionHostname, realmSlug)
