@@ -1,6 +1,7 @@
 package util
 
 import (
+	"bytes"
 	"compress/gzip"
 	"fmt"
 	"io"
@@ -76,4 +77,27 @@ func ReadFile(relativePath string) ([]byte, error) {
 	}
 
 	return ioutil.ReadFile(path)
+}
+
+// GzipEncode - gzip encodes a byte array
+func GzipEncode(in []byte) ([]byte, error) {
+	var b bytes.Buffer
+	w := gzip.NewWriter(&b)
+	if _, err := w.Write(in); err != nil {
+		return nil, err
+	}
+	w.Close()
+
+	return b.Bytes(), nil
+}
+
+// GzipDecode - gzip decodes a byte array
+func GzipDecode(in []byte) ([]byte, error) {
+	r, err := gzip.NewReader(bytes.NewReader(in))
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	return ioutil.ReadAll(r)
 }
