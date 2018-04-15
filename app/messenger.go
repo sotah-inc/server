@@ -11,6 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ihsw/sotah-server/app/codes"
+	"github.com/ihsw/sotah-server/app/util"
 	"github.com/nats-io/go-nats"
 )
 
@@ -98,14 +99,20 @@ func (mess messenger) replyTo(natsMsg *nats.Msg, m message) error {
 		return errors.New("Code cannot be blank")
 	}
 
+	// json-encoding the message
 	encodedMessage, err := json.Marshal(m)
 	if err != nil {
 		return err
 	}
 
-	log.WithField("subject", natsMsg.Reply).Debug("Publishing reply")
+	// gzipping the message
+	result, err := util.GzipEncode(encodedMessage)
+	if err != nil {
+		return fmt.Errorf("Could not gzip-encode: %s", err.Error())
+	}
 
-	mess.conn.Publish(natsMsg.Reply, encodedMessage)
+	// publishing the message
+	mess.conn.Publish(natsMsg.Reply, result)
 
 	return nil
 }
@@ -116,8 +123,13 @@ func (mess messenger) request(subject string, data []byte) (*message, error) {
 		return nil, err
 	}
 
+	data, err = util.GzipDecode(natsMsg.Data)
+	if err != nil {
+		return nil, err
+	}
+
 	msg := &message{}
-	if err = json.Unmarshal(natsMsg.Data, &msg); err != nil {
+	if err = json.Unmarshal(data, &msg); err != nil {
 		return nil, err
 	}
 
