@@ -190,7 +190,14 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 			return
 		}
 
-		realmAuctions.Auctions = realmAuctions.Auctions.limit(ar.Count, ar.Page)
+		realmAuctions.Auctions, err = realmAuctions.Auctions.limit(ar.Count, ar.Page)
+		if err != nil {
+			m.Err = err.Error()
+			m.Code = codes.UserError
+			sta.messenger.replyTo(natsMsg, m)
+
+			return
+		}
 
 		data, err := realmAuctions.encodeForMessage()
 		if err != nil {

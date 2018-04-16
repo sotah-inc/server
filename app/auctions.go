@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/ihsw/sotah-server/app/codes"
 	"github.com/ihsw/sotah-server/app/subjects"
@@ -81,8 +82,19 @@ func newAuctions(body []byte) (*auctions, error) {
 
 type auctionList []auction
 
-func (al auctionList) limit(count int, page int) auctionList {
-	return al[page*count : count]
+func (al auctionList) limit(count int, page int) (auctionList, error) {
+	start := page * count
+	alLength := len(al)
+	if start > alLength {
+		return auctionList{}, fmt.Errorf("Start out of range: %d", start)
+	}
+
+	end := start + count
+	if end > alLength {
+		return auctionList{}, fmt.Errorf("End out of range: %d", end)
+	}
+
+	return al[start:end], nil
 }
 
 type auctions struct {
