@@ -159,8 +159,8 @@ func (l auctionsRequest) resolve(sta state) (*auctions, requestError) {
 		return nil, requestError{codes.NotFound, "Invalid realm"}
 	}
 
-	if l.Page == 0 {
-		return nil, requestError{codes.UserError, "Page must be >0"}
+	if l.Page < 0 {
+		return nil, requestError{codes.UserError, "Page must be >=0"}
 	}
 	if l.Count == 0 {
 		return nil, requestError{codes.UserError, "Count must be >0"}
