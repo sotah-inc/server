@@ -79,9 +79,15 @@ func newAuctions(body []byte) (*auctions, error) {
 	return a, nil
 }
 
+type auctionList []auction
+
+func (al auctionList) limit(count int, page int) auctionList {
+	return al[page*count : count]
+}
+
 type auctions struct {
 	Realms   []auctionRealm `json:"realms"`
-	Auctions []auction      `json:"auctions"`
+	Auctions auctionList    `json:"auctions"`
 }
 
 func (au auctions) encodeForMessage() (string, error) {
