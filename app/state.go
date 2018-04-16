@@ -163,6 +163,8 @@ func (ar auctionsRequest) resolve(sta state) (auctions, requestError) {
 	}
 	if ar.Count == 0 {
 		return auctions{}, requestError{codes.UserError, "Count must be >0"}
+	} else if ar.Count > 1000 {
+		return auctions{}, requestError{codes.UserError, "Count must be <=1000"}
 	}
 
 	return *realmAuctions, requestError{codes.Ok, ""}
