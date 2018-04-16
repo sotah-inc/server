@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/ihsw/sotah-server/app/util"
+	log "github.com/sirupsen/logrus"
 )
 
 type getAuctionsWhitelist map[realmSlug]interface{}
@@ -33,6 +34,7 @@ func (reas realms) getAuctions(res resolver, whitelist getAuctionsWhitelist) cha
 	worker := func() {
 		for rea := range in {
 			aucs, err := rea.getAuctions(res)
+			log.WithField("realm", rea.Slug).Debug("Received auctions")
 			out <- getAuctionsJob{err: err, realm: rea, auctions: aucs}
 		}
 	}
@@ -48,6 +50,7 @@ func (reas realms) getAuctions(res resolver, whitelist getAuctionsWhitelist) cha
 				continue
 			}
 
+			log.WithField("realm", rea.Slug).Debug("Queueing up auction for downloading")
 			in <- rea
 		}
 
