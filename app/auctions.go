@@ -91,7 +91,7 @@ func (al auctionList) limit(count int, page int) (auctionList, error) {
 
 	end := start + count
 	if end > alLength {
-		return auctionList{}, fmt.Errorf("End out of range: %d", end)
+		return al[start:], nil
 	}
 
 	return al[start:end], nil
