@@ -1,16 +1,14 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/ihsw/sotah-server/app/codes"
-
 	"github.com/ihsw/sotah-server/app/subjects"
-
 	"github.com/ihsw/sotah-server/app/util"
+	log "github.com/sirupsen/logrus"
 )
 
 func defaultGetAuctionsURL(url string) string {
@@ -59,7 +57,17 @@ func newAuctionsFromMessenger(rea *realm, mess messenger) (*auctions, error) {
 		return nil, errors.New(msg.Err)
 	}
 
-	return newAuctions([]byte(msg.Data))
+	base64DecodedMessage, err := base64.StdEncoding.DecodeString(msg.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	gzipDecodedMessage, err := util.GzipDecode(base64DecodedMessage)
+	if err != nil {
+		return nil, err
+	}
+
+	return newAuctions(gzipDecodedMessage)
 }
 
 func newAuctions(body []byte) (*auctions, error) {

@@ -1,12 +1,14 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 
 	"github.com/ihsw/sotah-server/app/codes"
 
 	"github.com/ihsw/sotah-server/app/subjects"
+	"github.com/ihsw/sotah-server/app/util"
 	nats "github.com/nats-io/go-nats"
 	log "github.com/sirupsen/logrus"
 )
@@ -145,7 +147,7 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 			return
 		}
 
-		encodedStatus, err := json.Marshal(auctions)
+		jsonEncodedAuctions, err := json.Marshal(auctions)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
@@ -154,7 +156,18 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 			return
 		}
 
-		m.Data = string(encodedStatus)
+		gzipEncodedAuctions, err := util.GzipEncode(jsonEncodedAuctions)
+		if err != nil {
+			m.Err = err.Error()
+			m.Code = codes.GenericError
+			sta.messenger.replyTo(natsMsg, m)
+
+			return
+		}
+
+		base64EncodedAuctions := base64.StdEncoding.EncodeToString(gzipEncodedAuctions)
+
+		m.Data = base64EncodedAuctions
 		err = sta.messenger.replyTo(natsMsg, m)
 		if err != nil {
 			log.Fatalf("messenger.replyTo() failed: %s", err.Error())
