@@ -144,6 +144,8 @@ func newAuctionsRequest(payload []byte) (*auctionsRequest, error) {
 type auctionsRequest struct {
 	RegionName regionName `json:"region_name"`
 	RealmSlug  realmSlug  `json:"realm_slug"`
+	Page       int
+	Count      int
 }
 
 func (l auctionsRequest) resolve(sta state) (*auctions, requestError) {
@@ -155,6 +157,13 @@ func (l auctionsRequest) resolve(sta state) (*auctions, requestError) {
 	realmAuctions, ok := regionAuctions[l.RealmSlug]
 	if !ok {
 		return nil, requestError{codes.NotFound, "Invalid realm"}
+	}
+
+	if l.Page == 0 {
+		return nil, requestError{codes.UserError, "Page must be >0"}
+	}
+	if l.Count == 0 {
+		return nil, requestError{codes.UserError, "Count must be >0"}
 	}
 
 	return realmAuctions, requestError{codes.Ok, ""}
@@ -181,6 +190,8 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 
 			return
 		}
+
+		realmAuctions.Auctions = realmAuctions.Auctions.limit(ar.Count, ar.Page)
 
 		data, err := realmAuctions.encodeForMessage()
 		if err != nil {
