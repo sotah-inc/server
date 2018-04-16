@@ -144,20 +144,21 @@ func api(c *config, m messenger) error {
 			"region": reg.Name,
 			"realms": len(sta.statuses[reg.Name].Realms),
 		}).Info("Downloading region")
-		whitelist := map[realmSlug]interface{}{
-			sta.statuses[reg.Name].Realms[0].Slug: true,
-		}
-		auctionsOut := sta.statuses[reg.Name].Realms.getAuctions(*sta.resolver, whitelist)
+		auctionsOut := sta.statuses[reg.Name].Realms.getAllAuctions(*sta.resolver)
 		for job := range auctionsOut {
 			if job.err != nil {
-				return job.err
+				log.WithFields(log.Fields{
+					"region": reg.Name,
+					"realm":  job.realm.Slug,
+					"error":  job.err.Error(),
+				}).Info("Auction fetch failure")
+
+				continue
 			}
 
 			sta.auctions[reg.Name][job.realm.Slug] = job.auctions
 		}
 		log.WithField("region", reg.Name).Info("Downloaded region")
-
-		break
 	}
 
 	// catching SIGINT
