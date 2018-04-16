@@ -101,6 +101,10 @@ func api(c *config, m messenger) error {
 
 	// filling state with region statuses and a blank list of auctions
 	for _, reg := range c.Regions {
+		if reg.Name != "us" {
+			continue
+		}
+
 		regionStatus, err := reg.getStatus(resolver)
 		if err != nil {
 			return err
