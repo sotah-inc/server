@@ -34,7 +34,7 @@ func newStatusFromHTTP(reg region, r resolver) (*status, error) {
 }
 
 func newStatusFromMessenger(reg region, mess messenger) (*status, error) {
-	lm := listenForStatusMessage{RegionName: reg.Name}
+	lm := statusRequest{RegionName: reg.Name}
 	encodedMessage, err := json.Marshal(lm)
 	if err != nil {
 		return nil, err

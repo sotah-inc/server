@@ -38,7 +38,7 @@ func newAuctionsFromFilepath(relativeFilepath string) (*auctions, error) {
 }
 
 func newAuctionsFromMessenger(rea *realm, mess messenger) (*auctions, error) {
-	am := listenForAuctionsMessage{
+	am := auctionsRequest{
 		RegionName: rea.region.Name,
 		RealmSlug:  rea.Slug,
 	}

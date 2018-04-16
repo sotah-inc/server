@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/ihsw/sotah-server/app/codes"
@@ -21,7 +22,7 @@ type state struct {
 	auctions map[regionName]map[realmSlug]*auctions
 }
 
-type listenForStatusMessage struct {
+type statusRequest struct {
 	RegionName regionName `json:"region_name"`
 }
 
@@ -29,8 +30,8 @@ func (sta state) listenForStatus(stop chan interface{}) error {
 	err := sta.messenger.subscribe(subjects.Status, stop, func(natsMsg *nats.Msg) {
 		m := newMessage()
 
-		lm := &listenForStatusMessage{}
-		err := json.Unmarshal(natsMsg.Data, &lm)
+		sr := &statusRequest{}
+		err := json.Unmarshal(natsMsg.Data, &sr)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
@@ -41,7 +42,7 @@ func (sta state) listenForStatus(stop chan interface{}) error {
 
 		var reg region
 		for _, r := range sta.regions {
-			if r.Name != lm.RegionName {
+			if r.Name != sr.RegionName {
 				continue
 			}
 
@@ -57,7 +58,7 @@ func (sta state) listenForStatus(stop chan interface{}) error {
 			return
 		}
 
-		regionStatus, ok := sta.statuses[lm.RegionName]
+		regionStatus, ok := sta.statuses[sr.RegionName]
 		if !ok {
 			if sta.resolver == nil {
 				m.Err = "Resolver not defined"
@@ -109,17 +110,40 @@ func (sta state) listenForStatus(stop chan interface{}) error {
 	return nil
 }
 
-type listenForAuctionsMessage struct {
+func newAuctionsRequest(payload []byte) (*auctionsRequest, error) {
+	ar := &auctionsRequest{}
+	err := json.Unmarshal(payload, &ar)
+	if err != nil {
+		return &auctionsRequest{}, err
+	}
+
+	return ar, nil
+}
+
+type auctionsRequest struct {
 	RegionName regionName `json:"region_name"`
 	RealmSlug  realmSlug  `json:"realm_slug"`
+}
+
+func (l auctionsRequest) validate(sta state) error {
+	regionAuctions, ok := sta.auctions[l.RegionName]
+	if !ok {
+		return errors.New("Invalid region")
+	}
+
+	_, ok = regionAuctions[l.RealmSlug]
+	if !ok {
+		return errors.New("Invalid realm")
+	}
+
+	return nil
 }
 
 func (sta state) listenForAuctions(stop chan interface{}) error {
 	err := sta.messenger.subscribe(subjects.Auctions, stop, func(natsMsg *nats.Msg) {
 		m := newMessage()
 
-		am := &listenForAuctionsMessage{}
-		err := json.Unmarshal(natsMsg.Data, &am)
+		ar, err := newAuctionsRequest(natsMsg.Data)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
@@ -128,16 +152,16 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 			return
 		}
 
-		auctionList, ok := sta.auctions[am.RegionName]
-		if !ok {
-			m.Err = "Invalid region"
+		err = ar.validate(sta)
+		if err != nil {
+			m.Err = err.Error()
 			m.Code = codes.NotFound
 			sta.messenger.replyTo(natsMsg, m)
 
 			return
 		}
 
-		auctions, ok := auctionList[am.RealmSlug]
+		auctions, ok := sta.auctions[ar.RegionName][ar.RealmSlug]
 		if !ok {
 			m.Err = "Invalid realm"
 			m.Code = codes.NotFound
