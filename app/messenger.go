@@ -108,6 +108,11 @@ func (mess messenger) replyTo(natsMsg *nats.Msg, m message) {
 		return
 	}
 
+	log.WithFields(log.Fields{
+		"reply_to":       natsMsg.Reply,
+		"payload_length": len(jsonMessage),
+	}).Debug("Publishing a reply")
+
 	// attempting to publish it
 	err = mess.conn.Publish(natsMsg.Reply, jsonMessage)
 	if err != nil {
