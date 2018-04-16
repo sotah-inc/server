@@ -20,6 +20,11 @@ type state struct {
 	auctions map[regionName]map[realmSlug]*auctions
 }
 
+type requestError struct {
+	code    int
+	message string
+}
+
 func newStatusRequest(payload []byte) (*statusRequest, error) {
 	sr := &statusRequest{}
 	err := json.Unmarshal(payload, &sr)
@@ -141,18 +146,18 @@ type auctionsRequest struct {
 	RealmSlug  realmSlug  `json:"realm_slug"`
 }
 
-func (l auctionsRequest) resolve(sta state) (*auctions, error) {
+func (l auctionsRequest) resolve(sta state) (*auctions, requestError) {
 	regionAuctions, ok := sta.auctions[l.RegionName]
 	if !ok {
-		return nil, errors.New("Invalid region")
+		return nil, requestError{codes.NotFound, "Invalid region"}
 	}
 
 	realmAuctions, ok := regionAuctions[l.RealmSlug]
 	if !ok {
-		return nil, errors.New("Invalid realm")
+		return nil, requestError{codes.NotFound, "Invalid realm"}
 	}
 
-	return realmAuctions, nil
+	return realmAuctions, requestError{codes.Ok, ""}
 }
 
 func (sta state) listenForAuctions(stop chan interface{}) error {
@@ -168,10 +173,10 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 			return
 		}
 
-		realmAuctions, err := ar.resolve(sta)
-		if err != nil {
-			m.Err = err.Error()
-			m.Code = codes.NotFound
+		realmAuctions, reErr := ar.resolve(sta)
+		if reErr.code != codes.Ok {
+			m.Err = reErr.message
+			m.Code = reErr.code
 			sta.messenger.replyTo(natsMsg, m)
 
 			return
