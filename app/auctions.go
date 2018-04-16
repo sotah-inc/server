@@ -83,8 +83,12 @@ func newAuctions(body []byte) (*auctions, error) {
 type auctionList []auction
 
 func (al auctionList) limit(count int, page int) (auctionList, error) {
-	start := page * count
 	alLength := len(al)
+	if alLength == 0 {
+		return al, nil
+	}
+
+	start := page * count
 	if start > alLength {
 		return auctionList{}, fmt.Errorf("Start out of range: %d", start)
 	}
