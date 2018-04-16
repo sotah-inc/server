@@ -22,6 +22,16 @@ type state struct {
 	auctions map[regionName]map[realmSlug]*auctions
 }
 
+func newStatusRequest(payload []byte) (*statusRequest, error) {
+	sr := &statusRequest{}
+	err := json.Unmarshal(payload, &sr)
+	if err != nil {
+		return nil, err
+	}
+
+	return sr, nil
+}
+
 type statusRequest struct {
 	RegionName regionName `json:"region_name"`
 }
@@ -30,8 +40,7 @@ func (sta state) listenForStatus(stop chan interface{}) error {
 	err := sta.messenger.subscribe(subjects.Status, stop, func(natsMsg *nats.Msg) {
 		m := newMessage()
 
-		sr := &statusRequest{}
-		err := json.Unmarshal(natsMsg.Data, &sr)
+		sr, err := newStatusRequest(natsMsg.Data)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
