@@ -93,19 +93,26 @@ func (mess messenger) subscribe(subject string, stop chan interface{}, cb func(*
 	return nil
 }
 
-func (mess messenger) replyTo(natsMsg *nats.Msg, m message) error {
+func (mess messenger) replyTo(natsMsg *nats.Msg, m message) {
 	if m.Code == codes.Blank {
-		return errors.New("Code cannot be blank")
+		log.Fatal("Code cannot be blank")
+
+		return
 	}
 
 	// json-encoding the message
 	jsonMessage, err := json.Marshal(m)
 	if err != nil {
-		return err
-	}
-	mess.conn.Publish(natsMsg.Reply, jsonMessage)
+		log.Fatalf("messenger.replyTo() failed: %s", err.Error())
 
-	return nil
+		return
+	}
+
+	// attempting to publish it
+	err = mess.conn.Publish(natsMsg.Reply, jsonMessage)
+	if err != nil {
+		log.Fatalf("messenger.replyTo() failed: %s", err.Error())
+	}
 }
 
 func (mess messenger) request(subject string, data []byte) (*message, error) {
