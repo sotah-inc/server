@@ -211,14 +211,7 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 		}
 
 		m.Data = data
-		err = sta.messenger.replyTo(natsMsg, m)
-		if err != nil {
-			sta.messenger.replyTo(natsMsg, message{
-				Code: codes.GenericError,
-				Err:  err.Error(),
-				Data: "",
-			})
-		}
+		sta.messenger.replyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err
