@@ -147,25 +147,25 @@ type auctionsRequest struct {
 	Count      int
 }
 
-func (ar auctionsRequest) resolve(sta state) (*auctions, requestError) {
+func (ar auctionsRequest) resolve(sta state) (auctions, requestError) {
 	regionAuctions, ok := sta.auctions[ar.RegionName]
 	if !ok {
-		return nil, requestError{codes.NotFound, "Invalid region"}
+		return auctions{}, requestError{codes.NotFound, "Invalid region"}
 	}
 
 	realmAuctions, ok := regionAuctions[ar.RealmSlug]
 	if !ok {
-		return nil, requestError{codes.NotFound, "Invalid realm"}
+		return auctions{}, requestError{codes.NotFound, "Invalid realm"}
 	}
 
 	if ar.Page < 0 {
-		return nil, requestError{codes.UserError, "Page must be >=0"}
+		return auctions{}, requestError{codes.UserError, "Page must be >=0"}
 	}
 	if ar.Count == 0 {
-		return nil, requestError{codes.UserError, "Count must be >0"}
+		return auctions{}, requestError{codes.UserError, "Count must be >0"}
 	}
 
-	return realmAuctions, requestError{codes.Ok, ""}
+	return *realmAuctions, requestError{codes.Ok, ""}
 }
 
 func (sta state) listenForAuctions(stop chan interface{}) error {
