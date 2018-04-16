@@ -36,6 +36,24 @@ type statusRequest struct {
 	RegionName regionName `json:"region_name"`
 }
 
+func (sr statusRequest) resolve(sta state) (region, error) {
+	var reg region
+	for _, r := range sta.regions {
+		if r.Name != sr.RegionName {
+			continue
+		}
+
+		reg = r
+		break
+	}
+
+	if reg.Name == "" {
+		return region{}, errors.New("Invalid region")
+	}
+
+	return reg, nil
+}
+
 func (sta state) listenForStatus(stop chan interface{}) error {
 	err := sta.messenger.subscribe(subjects.Status, stop, func(natsMsg *nats.Msg) {
 		m := newMessage()
@@ -49,18 +67,9 @@ func (sta state) listenForStatus(stop chan interface{}) error {
 			return
 		}
 
-		var reg region
-		for _, r := range sta.regions {
-			if r.Name != sr.RegionName {
-				continue
-			}
-
-			reg = r
-			break
-		}
-
-		if reg.Name == "" {
-			m.Err = "Invalid region"
+		reg, err := sr.resolve(sta)
+		if err != nil {
+			m.Err = err.Error()
 			m.Code = codes.NotFound
 			sta.messenger.replyTo(natsMsg, m)
 
@@ -134,18 +143,18 @@ type auctionsRequest struct {
 	RealmSlug  realmSlug  `json:"realm_slug"`
 }
 
-func (l auctionsRequest) validate(sta state) error {
+func (l auctionsRequest) resolve(sta state) (*auctions, error) {
 	regionAuctions, ok := sta.auctions[l.RegionName]
 	if !ok {
-		return errors.New("Invalid region")
+		return nil, errors.New("Invalid region")
 	}
 
-	_, ok = regionAuctions[l.RealmSlug]
+	realmAuctions, ok := regionAuctions[l.RealmSlug]
 	if !ok {
-		return errors.New("Invalid realm")
+		return nil, errors.New("Invalid realm")
 	}
 
-	return nil
+	return realmAuctions, nil
 }
 
 func (sta state) listenForAuctions(stop chan interface{}) error {
@@ -161,7 +170,7 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 			return
 		}
 
-		err = ar.validate(sta)
+		realmAuctions, err := ar.resolve(sta)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.NotFound
@@ -170,16 +179,7 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 			return
 		}
 
-		auctions, ok := sta.auctions[ar.RegionName][ar.RealmSlug]
-		if !ok {
-			m.Err = "Invalid realm"
-			m.Code = codes.NotFound
-			sta.messenger.replyTo(natsMsg, m)
-
-			return
-		}
-
-		jsonEncodedAuctions, err := json.Marshal(auctions)
+		jsonEncodedAuctions, err := json.Marshal(realmAuctions)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
