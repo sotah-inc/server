@@ -9,4 +9,5 @@ var (
 	GenericError      = -1
 	MsgJSONParseError = -2
 	NotFound          = -3
+	UserError         = -4
 )
