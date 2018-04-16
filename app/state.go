@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/ihsw/sotah-server/app/codes"
-
 	"github.com/ihsw/sotah-server/app/subjects"
 	nats "github.com/nats-io/go-nats"
 )
@@ -148,21 +147,21 @@ type auctionsRequest struct {
 	Count      int
 }
 
-func (l auctionsRequest) resolve(sta state) (*auctions, requestError) {
-	regionAuctions, ok := sta.auctions[l.RegionName]
+func (ar auctionsRequest) resolve(sta state) (*auctions, requestError) {
+	regionAuctions, ok := sta.auctions[ar.RegionName]
 	if !ok {
 		return nil, requestError{codes.NotFound, "Invalid region"}
 	}
 
-	realmAuctions, ok := regionAuctions[l.RealmSlug]
+	realmAuctions, ok := regionAuctions[ar.RealmSlug]
 	if !ok {
 		return nil, requestError{codes.NotFound, "Invalid realm"}
 	}
 
-	if l.Page < 0 {
+	if ar.Page < 0 {
 		return nil, requestError{codes.UserError, "Page must be >=0"}
 	}
-	if l.Count == 0 {
+	if ar.Count == 0 {
 		return nil, requestError{codes.UserError, "Count must be >0"}
 	}
 
