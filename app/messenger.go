@@ -18,18 +18,17 @@ type messenger struct {
 	conn *nats.Conn
 }
 
-func newMessage() Message {
-	return Message{Code: codes.Ok}
+func newMessage() message {
+	return message{Code: codes.Ok}
 }
 
-// Message - messenger message to send to NATS
-type Message struct {
+type message struct {
 	Data string `json:"data"`
 	Err  string `json:"error"`
 	Code int    `json:"code"`
 }
 
-func (m Message) parse() ([]byte, error) {
+func (m message) parse() ([]byte, error) {
 	if len(m.Err) > 0 {
 		return []byte{}, errors.New(m.Err)
 	}
@@ -94,7 +93,7 @@ func (mess messenger) subscribe(subject string, stop chan interface{}, cb func(*
 	return nil
 }
 
-func (mess messenger) replyTo(natsMsg *nats.Msg, m Message) {
+func (mess messenger) replyTo(natsMsg *nats.Msg, m message) {
 	if m.Code == codes.Blank {
 		log.Fatal("Code cannot be blank")
 
@@ -121,14 +120,14 @@ func (mess messenger) replyTo(natsMsg *nats.Msg, m Message) {
 	}
 }
 
-func (mess messenger) request(subject string, data []byte) (*Message, error) {
+func (mess messenger) request(subject string, data []byte) (*message, error) {
 	natsMsg, err := mess.conn.Request(subject, data, 5*time.Second)
 	if err != nil {
 		return nil, err
 	}
 
 	// json-decoding the message
-	msg := &Message{}
+	msg := &message{}
 	if err = json.Unmarshal(natsMsg.Data, &msg); err != nil {
 		return nil, err
 	}
