@@ -10,7 +10,6 @@ import (
 	"github.com/ihsw/sotah-server/app/subjects"
 	"github.com/ihsw/sotah-server/app/util"
 	nats "github.com/nats-io/go-nats"
-	log "github.com/sirupsen/logrus"
 )
 
 type state struct {
@@ -168,10 +167,7 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 		base64EncodedAuctions := base64.StdEncoding.EncodeToString(gzipEncodedAuctions)
 
 		m.Data = base64EncodedAuctions
-		err = sta.messenger.replyTo(natsMsg, m)
-		if err != nil {
-			log.Fatalf("messenger.replyTo() failed: %s", err.Error())
-		}
+		sta.messenger.replyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err
