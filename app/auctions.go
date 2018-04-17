@@ -129,7 +129,7 @@ type auction struct {
 	Auc        int64  `json:"auc"`
 	Item       int64  `json:"item"`
 	Owner      string `json:"owner"`
-	PwnerRealm string `json:"ownerRealm"`
+	OwnerRealm string `json:"ownerRealm"`
 	Bid        int64  `json:"bid"`
 	Buyout     int64  `json:"buyout"`
 	Quantity   int64  `json:"quantity"`
