@@ -96,23 +96,29 @@ func newAuctions(body []byte) (*auctions, error) {
 
 type auctionList []auction
 
-func (al auctionList) limit(count int, page int) (auctionList, error) {
-	alLength := len(al)
-	if alLength == 0 {
-		return al, nil
+func (al auctionList) minimize() miniAuctionList {
+	// gathering a map of all mini-auctions
+	mAuctions := miniAuctions{}
+	for _, a := range al {
+		maHash := a.toMiniAuctionHash()
+		if mAuction, ok := mAuctions[maHash]; ok {
+			mAuction.AucList = append(mAuction.AucList, a.Auc)
+			mAuctions[maHash] = mAuction
+
+			continue
+		}
+
+		mAuction := a.toMiniAuction()
+		mAuction.AucList = append(mAuction.AucList, a.Auc)
+		mAuctions[maHash] = mAuction
 	}
 
-	start := page * count
-	if start > alLength {
-		return auctionList{}, fmt.Errorf("Start out of range: %d", start)
+	mAuctionList := miniAuctionList{}
+	for _, mAuction := range mAuctions {
+		mAuctionList = append(mAuctionList, mAuction)
 	}
 
-	end := start + count
-	if end > alLength {
-		return al[start:], nil
-	}
-
-	return al[start:end], nil
+	return mAuctionList
 }
 
 type auctions struct {
@@ -137,4 +143,65 @@ type auction struct {
 	Rand       int64  `json:"rand"`
 	Seed       int64  `json:"seed"`
 	Context    int64  `json:"context"`
+}
+
+func (auc auction) toMiniAuctionHash() miniAuctionHash {
+	return miniAuctionHash(fmt.Sprintf(
+		"%d-%s-%s-%d-%d-%d-%s",
+		auc.Item,
+		auc.Owner,
+		auc.OwnerRealm,
+		auc.Bid,
+		auc.Buyout,
+		auc.Quantity,
+		auc.TimeLeft,
+	))
+}
+
+func (auc auction) toMiniAuction() miniAuction {
+	return miniAuction{
+		auc.Item,
+		auc.Owner,
+		auc.OwnerRealm,
+		auc.Bid,
+		auc.Buyout,
+		auc.Quantity,
+		auc.TimeLeft,
+		[]int64{},
+	}
+}
+
+type miniAuctionList []miniAuction
+
+func (mAuctionList miniAuctionList) limit(count int, page int) (miniAuctionList, error) {
+	alLength := len(mAuctionList)
+	if alLength == 0 {
+		return mAuctionList, nil
+	}
+
+	start := page * count
+	if start > alLength {
+		return miniAuctionList{}, fmt.Errorf("Start out of range: %d", start)
+	}
+
+	end := start + count
+	if end > alLength {
+		return mAuctionList[start:], nil
+	}
+
+	return mAuctionList[start:end], nil
+}
+
+type miniAuctions map[miniAuctionHash]miniAuction
+type miniAuctionHash string
+
+type miniAuction struct {
+	Item       int64   `json:"item"`
+	Owner      string  `json:"owner"`
+	OwnerRealm string  `json:"ownerRealm"`
+	Bid        int64   `json:"bid"`
+	Buyout     int64   `json:"buyout"`
+	Quantity   int64   `json:"quantity"`
+	TimeLeft   string  `json:"timeLeft"`
+	AucList    []int64 `json:"aucList"`
 }

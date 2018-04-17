@@ -18,7 +18,7 @@ type state struct {
 
 	regions  []region
 	statuses map[regionName]*status
-	auctions map[regionName]map[realmSlug]*auctions
+	auctions map[regionName]map[realmSlug]miniAuctionList
 }
 
 type requestError struct {
@@ -109,7 +109,7 @@ func (sta state) listenForStatus(stop chan interface{}) error {
 
 			sta.statuses[reg.Name] = regionStatus
 			for _, realm := range regionStatus.Realms {
-				sta.auctions[reg.Name][realm.Slug] = &auctions{}
+				sta.auctions[reg.Name][realm.Slug] = miniAuctionList{}
 			}
 		}
 
@@ -149,32 +149,33 @@ type auctionsRequest struct {
 	Count      int
 }
 
-func (ar auctionsRequest) resolve(sta state) (auctions, requestError) {
+func (ar auctionsRequest) resolve(sta state) (miniAuctionList, requestError) {
 	regionAuctions, ok := sta.auctions[ar.RegionName]
 	if !ok {
-		return auctions{}, requestError{codes.NotFound, "Invalid region"}
+		return miniAuctionList{}, requestError{codes.NotFound, "Invalid region"}
 	}
 
 	realmAuctions, ok := regionAuctions[ar.RealmSlug]
 	if !ok {
-		return auctions{}, requestError{codes.NotFound, "Invalid realm"}
+		return miniAuctionList{}, requestError{codes.NotFound, "Invalid realm"}
 	}
 
 	if ar.Page < 0 {
-		return auctions{}, requestError{codes.UserError, "Page must be >=0"}
+		return miniAuctionList{}, requestError{codes.UserError, "Page must be >=0"}
 	}
 	if ar.Count == 0 {
-		return auctions{}, requestError{codes.UserError, "Count must be >0"}
+		return miniAuctionList{}, requestError{codes.UserError, "Count must be >0"}
 	} else if ar.Count > 1000 {
-		return auctions{}, requestError{codes.UserError, "Count must be <=1000"}
+		return miniAuctionList{}, requestError{codes.UserError, "Count must be <=1000"}
 	}
 
-	return *realmAuctions, requestError{codes.Ok, ""}
+	return realmAuctions, requestError{codes.Ok, ""}
 }
 
 type auctionsResponse struct {
-	AuctionList auctionList `json:"auctions"`
-	Total       int         `json:"total"`
+	AuctionList miniAuctionList `json:"auctions"`
+	Total       int             `json:"total"`
+	TotalCount  int             `json:"total_count"`
 }
 
 func (ar auctionsResponse) encodeForMessage() (string, error) {
@@ -213,8 +214,13 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 			return
 		}
 
-		aResponse := auctionsResponse{Total: len(realmAuctions.Auctions)}
-		aResponse.AuctionList, err = realmAuctions.Auctions.limit(aRequest.Count, aRequest.Page)
+		totalCount := 0
+		for _, mAuction := range realmAuctions {
+			totalCount += len(mAuction.AucList)
+		}
+
+		aResponse := auctionsResponse{Total: len(realmAuctions), TotalCount: totalCount}
+		aResponse.AuctionList, err = realmAuctions.limit(aRequest.Count, aRequest.Page)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.UserError

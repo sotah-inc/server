@@ -34,7 +34,7 @@ func apiTest(c *config, m messenger, dataDir string) error {
 		messenger: m,
 		regions:   c.Regions,
 		statuses:  map[regionName]*status{},
-		auctions:  map[regionName]map[realmSlug]*auctions{},
+		auctions:  map[regionName]map[realmSlug]miniAuctionList{},
 	}
 	for _, reg := range c.Regions {
 		// loading realm statuses
@@ -45,9 +45,9 @@ func apiTest(c *config, m messenger, dataDir string) error {
 		sta.statuses[reg.Name] = stat
 
 		// loading realm auctions
-		sta.auctions[reg.Name] = map[realmSlug]*auctions{}
+		sta.auctions[reg.Name] = map[realmSlug]miniAuctionList{}
 		for _, rea := range stat.Realms {
-			sta.auctions[reg.Name][rea.Slug] = auc
+			sta.auctions[reg.Name][rea.Slug] = auc.Auctions.minimize()
 		}
 	}
 
@@ -96,7 +96,7 @@ func api(c *config, m messenger) error {
 		resolver:  &resolver,
 		regions:   c.Regions,
 		statuses:  map[regionName]*status{},
-		auctions:  map[regionName]map[realmSlug]*auctions{},
+		auctions:  map[regionName]map[realmSlug]miniAuctionList{},
 	}
 
 	// ensuring auctions cache-dir exists
@@ -141,9 +141,9 @@ func api(c *config, m messenger) error {
 
 		sta.statuses[reg.Name] = regionStatus
 
-		sta.auctions[reg.Name] = map[realmSlug]*auctions{}
+		sta.auctions[reg.Name] = map[realmSlug]miniAuctionList{}
 		for _, rea := range regionStatus.Realms {
-			sta.auctions[reg.Name][rea.Slug] = &auctions{}
+			sta.auctions[reg.Name][rea.Slug] = miniAuctionList{}
 		}
 	}
 
@@ -192,7 +192,7 @@ func api(c *config, m messenger) error {
 				continue
 			}
 
-			sta.auctions[reg.Name][job.realm.Slug] = job.auctions
+			sta.auctions[reg.Name][job.realm.Slug] = job.auctions.Auctions.minimize()
 		}
 		log.WithField("region", reg.Name).Info("Downloaded region")
 	}
