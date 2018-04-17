@@ -134,10 +134,6 @@ func api(c *config, m messenger) error {
 
 	// filling state with region statuses and a blank list of auctions
 	for _, reg := range c.Regions {
-		if reg.Name != "us" {
-			continue
-		}
-
 		regionStatus, err := reg.getStatus(resolver)
 		if err != nil {
 			return err
@@ -173,10 +169,6 @@ func api(c *config, m messenger) error {
 
 	// going over the list of auctions
 	for _, reg := range sta.regions {
-		if reg.Name != "us" {
-			continue
-		}
-
 		whitelist := getAuctionsWhitelist{}
 		if _, ok := c.Whitelist[reg.Name]; ok {
 			whitelist = c.Whitelist[reg.Name]
