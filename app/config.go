@@ -32,7 +32,7 @@ type config struct {
 	APIKey    string    `json:"api_key"`
 	Regions   []region  `json:"regions"`
 	Whitelist whitelist `json:"whitelist"`
-	DataDir   string    `json:"data_dir"`
+	CacheDir  string    `json:"cache_dir"`
 }
 
 type whitelist map[regionName]getAuctionsWhitelist

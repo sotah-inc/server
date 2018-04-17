@@ -38,6 +38,20 @@ func newAuctionsFromFilepath(relativeFilepath string) (*auctions, error) {
 	return newAuctions(body)
 }
 
+func newAuctionsFromGzFilepath(rea realm, relativeFilepath string) (*auctions, error) {
+	body, err := util.ReadFile(relativeFilepath)
+	if err != nil {
+		return nil, err
+	}
+
+	decodedBody, err := util.GzipDecode(body)
+	if err != nil {
+		return nil, err
+	}
+
+	return newAuctions(decodedBody)
+}
+
 func newAuctionsFromMessenger(rea *realm, mess messenger) (*auctions, error) {
 	am := auctionsRequest{
 		RegionName: rea.region.Name,

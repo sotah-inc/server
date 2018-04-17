@@ -2,6 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/ihsw/sotah-server/app/util"
 	log "github.com/sirupsen/logrus"
@@ -96,11 +100,55 @@ type realm struct {
 	region region
 }
 
+func (rea realm) LogEntry() *log.Entry {
+	return log.WithFields(log.Fields{"region": rea.region.Name, "realm": rea.Slug})
+}
+
 func (rea realm) getAuctions(res resolver) (*auctions, error) {
 	aucInfo, err := newAuctionInfoFromHTTP(rea, res)
 	if err != nil {
 		return nil, err
 	}
 
-	return aucInfo.getFirstAuctions(res)
+	if len(aucInfo.Files) == 0 {
+		return nil, errors.New("Cannot fetch auctions with blank files")
+	}
+
+	af := aucInfo.Files[0]
+	auctionsFilepath, err := filepath.Abs(
+		fmt.Sprintf("%s/auctions/%s/%s.json.gz", res.config.CacheDir, rea.region.Name, rea.Slug),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := os.Stat(auctionsFilepath); err != nil {
+		if !os.IsNotExist(err) {
+			return nil, err
+		}
+
+		body, err := res.get(res.getAuctionsURL(af.URL))
+		if err != nil {
+			return nil, err
+		}
+
+		encodedBody, err := util.GzipEncode(body)
+		if err != nil {
+			return nil, err
+		}
+
+		log.WithFields(log.Fields{
+			"region":           rea.region.Name,
+			"realm":            rea.Slug,
+			"auctionsFilepath": auctionsFilepath,
+		}).Debug("Writing auction data to cache dir")
+		if err := util.WriteFile(auctionsFilepath, encodedBody); err != nil {
+			return nil, err
+		}
+
+		return newAuctions(body)
+	}
+
+	rea.LogEntry().Debug("Loading auction data from cache dir")
+	return newAuctionsFromGzFilepath(rea, auctionsFilepath)
 }

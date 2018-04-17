@@ -20,7 +20,7 @@ func main() {
 		configFilepath = app.Flag("config", "Relative path to config json").Required().Short('c').String()
 		apiKey         = app.Flag("api-key", "Blizzard Mashery API key").OverrideDefaultFromEnvar("API_KEY").String()
 		verbosity      = app.Flag("verbosity", "Log verbosity").Default("info").Short('v').String()
-		dataDir        = app.Flag("data-dir", "Directory to load data files from").Short('d').String()
+		cacheDir       = app.Flag("cache-dir", "Directory to cache data files to").Required().String()
 
 		apiTestCommand = app.Command(commands.APITest, "For running sotah-api tests.")
 		apiCommand     = app.Command(commands.API, "For running sotah-server.")
@@ -54,11 +54,18 @@ func main() {
 		c.APIKey = *apiKey
 	}
 
-	// optionally overriding data-dir in config
-	if len(*dataDir) > 0 {
-		log.WithField("data-dir", *dataDir).Info("Overriding data-dir found in config")
+	// optionally overriding cache-dir in config
+	if len(*cacheDir) > 0 {
+		log.WithField("cache-dir", *cacheDir).Info("Overriding cache-dir found in config")
 
-		c.DataDir = *dataDir
+		c.CacheDir = *cacheDir
+	}
+
+	// validating the cache dir
+	if c.CacheDir == "" {
+		log.Fatal("Cache-dir cannot be blank")
+
+		return
 	}
 
 	// connecting the messenger
