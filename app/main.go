@@ -20,10 +20,11 @@ func main() {
 		configFilepath = app.Flag("config", "Relative path to config json").Required().Short('c').String()
 		apiKey         = app.Flag("api-key", "Blizzard Mashery API key").OverrideDefaultFromEnvar("API_KEY").String()
 		verbosity      = app.Flag("verbosity", "Log verbosity").Default("info").Short('v').String()
+		dataDir        = app.Flag("data-dir", "Directory to load data files from").Short('d').String()
 
 		apiTestCommand = app.Command(commands.APITest, "For running sotah-api tests.")
 		apiCommand     = app.Command(commands.API, "For running sotah-server.")
-		dataDir        = apiTestCommand.Flag("data-dir", "Directory to load data files from").Required().Short('d').String()
+		apiTestDataDir = apiTestCommand.Flag("data-dir", "Directory to load test fixtures from").Required().Short('d').String()
 	)
 	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
 
@@ -53,6 +54,13 @@ func main() {
 		c.APIKey = *apiKey
 	}
 
+	// optionally overriding data-dir in config
+	if len(*dataDir) > 0 {
+		log.WithField("data-dir", *dataDir).Info("Overriding data-dir found in config")
+
+		c.DataDir = *dataDir
+	}
+
 	// connecting the messenger
 	mess, err := newMessenger(*natsHost, *natsPort)
 	if err != nil {
@@ -65,7 +73,7 @@ func main() {
 
 	switch cmd {
 	case apiTestCommand.FullCommand():
-		err := apiTest(c, mess, *dataDir)
+		err := apiTest(c, mess, *apiTestDataDir)
 		if err != nil {
 			fmt.Printf("Could not run api test command: %s\n", err.Error())
 			os.Exit(1)
