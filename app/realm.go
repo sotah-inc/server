@@ -138,9 +138,8 @@ func (rea realm) getAuctions(res resolver) (*auctions, error) {
 		}
 
 		log.WithFields(log.Fields{
-			"region":           rea.region.Name,
-			"realm":            rea.Slug,
-			"auctionsFilepath": auctionsFilepath,
+			"region": rea.region.Name,
+			"realm":  rea.Slug,
 		}).Debug("Writing auction data to cache dir")
 		if err := util.WriteFile(auctionsFilepath, encodedBody); err != nil {
 			return nil, err
