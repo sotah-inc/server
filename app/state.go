@@ -1,12 +1,14 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 
 	"github.com/ihsw/sotah-server/app/codes"
 	"github.com/ihsw/sotah-server/app/subjects"
+	"github.com/ihsw/sotah-server/app/util"
 	nats "github.com/nats-io/go-nats"
 )
 
@@ -170,11 +172,30 @@ func (ar auctionsRequest) resolve(sta state) (auctions, requestError) {
 	return *realmAuctions, requestError{codes.Ok, ""}
 }
 
+type auctionsResponse struct {
+	AuctionList auctionList `json:"auctions"`
+	Total       int         `json:"total"`
+}
+
+func (ar auctionsResponse) encodeForMessage() (string, error) {
+	jsonEncodedAuctions, err := json.Marshal(ar)
+	if err != nil {
+		return "", err
+	}
+
+	gzipEncodedAuctions, err := util.GzipEncode(jsonEncodedAuctions)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(gzipEncodedAuctions), nil
+}
+
 func (sta state) listenForAuctions(stop chan interface{}) error {
 	err := sta.messenger.subscribe(subjects.Auctions, stop, func(natsMsg *nats.Msg) {
 		m := newMessage()
 
-		ar, err := newAuctionsRequest(natsMsg.Data)
+		aRequest, err := newAuctionsRequest(natsMsg.Data)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
@@ -183,7 +204,7 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 			return
 		}
 
-		realmAuctions, reErr := ar.resolve(sta)
+		realmAuctions, reErr := aRequest.resolve(sta)
 		if reErr.code != codes.Ok {
 			m.Err = reErr.message
 			m.Code = reErr.code
@@ -192,7 +213,8 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 			return
 		}
 
-		realmAuctions.Auctions, err = realmAuctions.Auctions.limit(ar.Count, ar.Page)
+		aResponse := auctionsResponse{Total: len(realmAuctions.Auctions)}
+		aResponse.AuctionList, err = realmAuctions.Auctions.limit(aRequest.Count, aRequest.Page)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.UserError
@@ -201,7 +223,7 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 			return
 		}
 
-		data, err := realmAuctions.encodeForMessage()
+		data, err := aResponse.encodeForMessage()
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError

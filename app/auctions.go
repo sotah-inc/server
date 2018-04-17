@@ -106,20 +106,6 @@ type auctions struct {
 	Auctions auctionList    `json:"auctions"`
 }
 
-func (au auctions) encodeForMessage() (string, error) {
-	jsonEncodedAuctions, err := json.Marshal(au)
-	if err != nil {
-		return "", err
-	}
-
-	gzipEncodedAuctions, err := util.GzipEncode(jsonEncodedAuctions)
-	if err != nil {
-		return "", err
-	}
-
-	return base64.StdEncoding.EncodeToString(gzipEncodedAuctions), nil
-}
-
 type auctionRealm struct {
 	Name string    `json:"name"`
 	Slug realmSlug `json:"slug"`
