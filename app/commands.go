@@ -148,7 +148,7 @@ func api(c *config, m messenger) error {
 			"region": reg.Name,
 			"realms": len(sta.statuses[reg.Name].Realms),
 		}).Info("Downloading region")
-		auctionsOut := sta.statuses[reg.Name].Realms.getAuctions(*sta.resolver, map[realmSlug]interface{}{"dalaran": true})
+		auctionsOut := sta.statuses[reg.Name].Realms.getAuctions(*sta.resolver, map[realmSlug]interface{}{"aegwynn": true})
 		for job := range auctionsOut {
 			if job.err != nil {
 				log.WithFields(log.Fields{
