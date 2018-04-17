@@ -144,11 +144,16 @@ func api(c *config, m messenger) error {
 			continue
 		}
 
+		whitelist := getAuctionsWhitelist{}
+		if _, ok := c.Whitelist[reg.Name]; ok {
+			whitelist = c.Whitelist[reg.Name]
+		}
+
 		log.WithFields(log.Fields{
 			"region": reg.Name,
 			"realms": len(sta.statuses[reg.Name].Realms),
 		}).Info("Downloading region")
-		auctionsOut := sta.statuses[reg.Name].Realms.getAuctions(*sta.resolver, c.Whitelist[reg.Name])
+		auctionsOut := sta.statuses[reg.Name].Realms.getAuctions(*sta.resolver, whitelist)
 		for job := range auctionsOut {
 			if job.err != nil {
 				log.WithFields(log.Fields{
