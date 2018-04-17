@@ -79,6 +79,20 @@ func ReadFile(relativePath string) ([]byte, error) {
 	return ioutil.ReadFile(path)
 }
 
+// WriteFile - writes a file using a relative path
+func WriteFile(relativePath string, data []byte) error {
+	path, err := filepath.Abs(relativePath)
+	if err != nil {
+		return err
+	}
+
+	if err := ioutil.WriteFile(path, data, 0644); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // GzipEncode - gzip encodes a byte array
 func GzipEncode(in []byte) ([]byte, error) {
 	var b bytes.Buffer
