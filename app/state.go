@@ -145,8 +145,8 @@ func newAuctionsRequest(payload []byte) (*auctionsRequest, error) {
 type auctionsRequest struct {
 	RegionName regionName `json:"region_name"`
 	RealmSlug  realmSlug  `json:"realm_slug"`
-	Page       int
-	Count      int
+	Page       int        `json:"page"`
+	Count      int        `json:"count"`
 }
 
 func (ar auctionsRequest) resolve(sta state) (miniAuctionList, requestError) {
