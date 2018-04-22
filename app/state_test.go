@@ -137,9 +137,9 @@ func TestListenForStatusToFetch(t *testing.T) {
 			getStatusURL: func(regionHostname string) string { return ts.URL },
 		},
 		regions:  []region{reg},
-		auctions: map[regionName]map[realmSlug]*auctions{},
+		auctions: map[regionName]map[realmSlug]miniAuctionList{},
 	}
-	sta.auctions[reg.Name] = map[realmSlug]*auctions{}
+	sta.auctions[reg.Name] = map[realmSlug]miniAuctionList{}
 
 	// connecting
 	mess, err := newMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
@@ -201,9 +201,9 @@ func TestListenForAuctions(t *testing.T) {
 	}
 
 	// attaching the auctions to the state
-	sta.auctions = map[regionName]map[realmSlug]*auctions{
-		reg.Name: map[realmSlug]*auctions{
-			rea.Slug: a,
+	sta.auctions = map[regionName]map[realmSlug]miniAuctionList{
+		reg.Name: map[realmSlug]miniAuctionList{
+			rea.Slug: a.Auctions.minimize(),
 		},
 	}
 
