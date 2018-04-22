@@ -176,6 +176,29 @@ func (ar auctionsRequest) resolve(sta state) (miniAuctionList, requestError) {
 	return realmAuctions, requestError{codes.Ok, ""}
 }
 
+func newAuctionsResponseFromEncoded(body []byte) (auctionsResponse, error) {
+	base64Decoded, err := base64.StdEncoding.DecodeString(string(body))
+	if err != nil {
+		return auctionsResponse{}, err
+	}
+
+	gzipDecoded, err := util.GzipDecode(base64Decoded)
+	if err != nil {
+		return auctionsResponse{}, err
+	}
+
+	return newAuctionsResponse(gzipDecoded)
+}
+
+func newAuctionsResponse(body []byte) (auctionsResponse, error) {
+	ar := &auctionsResponse{}
+	if err := json.Unmarshal(body, ar); err != nil {
+		return auctionsResponse{}, err
+	}
+
+	return *ar, nil
+}
+
 type auctionsResponse struct {
 	AuctionList miniAuctionList `json:"auctions"`
 	Total       int             `json:"total"`

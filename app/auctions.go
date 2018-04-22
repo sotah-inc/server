@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -165,30 +164,12 @@ func newMiniAuctionsFromMessenger(rea *realm, mess messenger) (miniAuctionList, 
 		return miniAuctionList{}, errors.New(msg.Err)
 	}
 
-	return newMiniAuctionsFromEncoded([]byte(msg.Data))
-}
-
-func newMiniAuctionsFromEncoded(body []byte) (miniAuctionList, error) {
-	base64Decoded, err := base64.StdEncoding.DecodeString(string(body))
+	ar, err := newAuctionsResponseFromEncoded([]byte(msg.Data))
 	if err != nil {
 		return miniAuctionList{}, err
 	}
 
-	gzipDecoded, err := util.GzipDecode(base64Decoded)
-	if err != nil {
-		return miniAuctionList{}, err
-	}
-
-	return newMiniAuctions(gzipDecoded)
-}
-
-func newMiniAuctions(body []byte) (miniAuctionList, error) {
-	al := &miniAuctionList{}
-	if err := json.Unmarshal(body, al); err != nil {
-		return nil, err
-	}
-
-	return *al, nil
+	return ar.AuctionList, nil
 }
 
 type miniAuctionList []miniAuction
