@@ -7,6 +7,8 @@ import (
 	"fmt"
 
 	"github.com/ihsw/sotah-server/app/codes"
+	"github.com/ihsw/sotah-server/app/sortdirections"
+	"github.com/ihsw/sotah-server/app/sortkinds"
 	"github.com/ihsw/sotah-server/app/subjects"
 	"github.com/ihsw/sotah-server/app/util"
 	nats "github.com/nats-io/go-nats"
@@ -22,7 +24,7 @@ type state struct {
 }
 
 type requestError struct {
-	code    int
+	code    codes.Code
 	message string
 }
 
@@ -143,10 +145,12 @@ func newAuctionsRequest(payload []byte) (*auctionsRequest, error) {
 }
 
 type auctionsRequest struct {
-	RegionName regionName `json:"region_name"`
-	RealmSlug  realmSlug  `json:"realm_slug"`
-	Page       int        `json:"page"`
-	Count      int        `json:"count"`
+	RegionName    regionName                   `json:"region_name"`
+	RealmSlug     realmSlug                    `json:"realm_slug"`
+	Page          int                          `json:"page"`
+	Count         int                          `json:"count"`
+	SortDirection sortdirections.SortDirection `json:"sort_direction"`
+	SortKind      sortkinds.SortKind           `json:"sort_kind"`
 }
 
 func (ar auctionsRequest) resolve(sta state) (miniAuctionList, requestError) {

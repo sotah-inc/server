@@ -1,13 +1,16 @@
 package codes
 
+// Code - typehint for these enums
+type Code int
+
 /*
 Codes - message response codes
 */
 var (
-	Ok                = 1
-	Blank             = 0
-	GenericError      = -1
-	MsgJSONParseError = -2
-	NotFound          = -3
-	UserError         = -4
+	Ok                Code = 1
+	Blank             Code
+	GenericError      Code = -1
+	MsgJSONParseError Code = -2
+	NotFound          Code = -3
+	UserError         Code = -4
 )

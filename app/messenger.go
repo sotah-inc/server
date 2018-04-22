@@ -23,9 +23,9 @@ func newMessage() message {
 }
 
 type message struct {
-	Data string `json:"data"`
-	Err  string `json:"error"`
-	Code int    `json:"code"`
+	Data string     `json:"data"`
+	Err  string     `json:"error"`
+	Code codes.Code `json:"code"`
 }
 
 func (m message) parse() ([]byte, error) {
