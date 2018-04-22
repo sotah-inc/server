@@ -6,6 +6,9 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ihsw/sotah-server/app/sortdirections"
+	"github.com/ihsw/sotah-server/app/sortkinds"
+
 	"github.com/ihsw/sotah-server/app/codes"
 	"github.com/ihsw/sotah-server/app/subjects"
 	"github.com/ihsw/sotah-server/app/util"
@@ -50,39 +53,6 @@ func newAuctionsFromGzFilepath(rea realm, relativeFilepath string) (*auctions, e
 	}
 
 	return newAuctions(decodedBody)
-}
-
-func newAuctionsFromMessenger(rea *realm, mess messenger) (*auctions, error) {
-	am := auctionsRequest{
-		RegionName: rea.region.Name,
-		RealmSlug:  rea.Slug,
-	}
-	encodedMessage, err := json.Marshal(am)
-	if err != nil {
-		return nil, err
-	}
-
-	log.WithField("subject", subjects.Auctions).Info("Sending request")
-	msg, err := mess.request(subjects.Auctions, encodedMessage)
-	if err != nil {
-		return nil, err
-	}
-
-	if msg.Code != codes.Ok {
-		return nil, errors.New(msg.Err)
-	}
-
-	base64DecodedMessage, err := base64.StdEncoding.DecodeString(msg.Data)
-	if err != nil {
-		return nil, err
-	}
-
-	gzipDecodedMessage, err := util.GzipDecode(base64DecodedMessage)
-	if err != nil {
-		return nil, err
-	}
-
-	return newAuctions(gzipDecodedMessage)
 }
 
 func newAuctions(body []byte) (*auctions, error) {
@@ -169,6 +139,56 @@ func (auc auction) toMiniAuction() miniAuction {
 		auc.TimeLeft,
 		[]int64{},
 	}
+}
+
+func newMiniAuctionsFromMessenger(rea *realm, mess messenger) (miniAuctionList, error) {
+	am := auctionsRequest{
+		RegionName:    rea.region.Name,
+		RealmSlug:     rea.Slug,
+		Count:         10,
+		Page:          0,
+		SortDirection: sortdirections.None,
+		SortKind:      sortkinds.None,
+	}
+	encodedMessage, err := json.Marshal(am)
+	if err != nil {
+		return miniAuctionList{}, err
+	}
+
+	log.WithField("subject", subjects.Auctions).Info("Sending request")
+	msg, err := mess.request(subjects.Auctions, encodedMessage)
+	if err != nil {
+		return miniAuctionList{}, err
+	}
+
+	if msg.Code != codes.Ok {
+		return miniAuctionList{}, errors.New(msg.Err)
+	}
+
+	return newMiniAuctionsFromEncoded([]byte(msg.Data))
+}
+
+func newMiniAuctionsFromEncoded(body []byte) (miniAuctionList, error) {
+	base64Decoded, err := base64.StdEncoding.DecodeString(string(body))
+	if err != nil {
+		return miniAuctionList{}, err
+	}
+
+	gzipDecoded, err := util.GzipDecode(base64Decoded)
+	if err != nil {
+		return miniAuctionList{}, err
+	}
+
+	return newMiniAuctions(gzipDecoded)
+}
+
+func newMiniAuctions(body []byte) (miniAuctionList, error) {
+	al := &miniAuctionList{}
+	if err := json.Unmarshal(body, al); err != nil {
+		return nil, err
+	}
+
+	return *al, nil
 }
 
 type miniAuctionList []miniAuction
