@@ -29,10 +29,11 @@ func newConfig(body []byte) (*config, error) {
 }
 
 type config struct {
-	APIKey    string    `json:"api_key"`
-	Regions   []region  `json:"regions"`
-	Whitelist whitelist `json:"whitelist"`
-	CacheDir  string    `json:"cache_dir"`
+	APIKey      string    `json:"api_key"`
+	Regions     []region  `json:"regions"`
+	Whitelist   whitelist `json:"whitelist"`
+	CacheDir    string    `json:"cache_dir"`
+	UseCacheDir bool      `json:"use_cache_dir"`
 }
 
 type whitelist map[regionName]getAuctionsWhitelist

@@ -30,7 +30,7 @@ func TestNewRealm(t *testing.T) {
 
 func TestRealmGetAuctions(t *testing.T) {
 	// initial resolver
-	res := resolver{}
+	res := resolver{config: &config{UseCacheDir: false}}
 
 	// setting up the resolver urls
 	auctionInfoTs, err := utiltest.ServeFile("./TestData/auctioninfo.json")
@@ -66,7 +66,7 @@ func TestRealmGetAuctions(t *testing.T) {
 
 func TestRealmsGetAuctions(t *testing.T) {
 	// initial resolver
-	res := resolver{}
+	res := resolver{config: &config{UseCacheDir: false}}
 
 	// setting up a test status
 	s, err := newStatusFromFilepath(region{}, "./TestData/realm-status.json")
@@ -123,7 +123,7 @@ func TestRealmsGetAuctions(t *testing.T) {
 
 func TestRealmsGetAllAuctions(t *testing.T) {
 	// initial resolver
-	res := resolver{}
+	res := resolver{config: &config{UseCacheDir: false}}
 
 	// setting up a test status
 	s, err := newStatusFromFilepath(region{}, "./TestData/realm-status.json")
