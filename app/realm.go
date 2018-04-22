@@ -114,6 +114,14 @@ func (rea realm) getAuctions(res resolver) (*auctions, error) {
 		return nil, errors.New("Cannot fetch auctions with blank files")
 	}
 
+	if res.config == nil {
+		return nil, errors.New("Config cannot be nil")
+	}
+
+	if res.config.CacheDir == "" {
+		return nil, errors.New("Cache dir cannot be blank")
+	}
+
 	af := aucInfo.Files[0]
 	auctionsFilepath, err := filepath.Abs(
 		fmt.Sprintf("%s/auctions/%s/%s.json.gz", res.config.CacheDir, rea.region.Name, rea.Slug),
