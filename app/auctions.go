@@ -140,6 +140,15 @@ func (auc auction) toMiniAuction() miniAuction {
 	}
 }
 
+func newMiniAuctionsFromFilepath(relativeFilepath string) (miniAuctionList, error) {
+	body, err := util.ReadFile(relativeFilepath)
+	if err != nil {
+		return nil, err
+	}
+
+	return newMiniAuctions(body)
+}
+
 func newMiniAuctionsFromMessenger(rea *realm, mess messenger) (miniAuctionList, error) {
 	am := auctionsRequest{
 		RegionName:    rea.region.Name,
@@ -170,6 +179,15 @@ func newMiniAuctionsFromMessenger(rea *realm, mess messenger) (miniAuctionList, 
 	}
 
 	return ar.AuctionList, nil
+}
+
+func newMiniAuctions(body []byte) (miniAuctionList, error) {
+	mal := &miniAuctionList{}
+	if err := json.Unmarshal(body, mal); err != nil {
+		return nil, err
+	}
+
+	return *mal, nil
 }
 
 type miniAuctionList []miniAuction
