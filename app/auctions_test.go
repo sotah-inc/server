@@ -42,6 +42,12 @@ func TestNewAuctionsFromFilepath(t *testing.T) {
 	}
 }
 
+func TestNewMiniAuctionsDataFromFilepath(t *testing.T) {
+	if _, err := newMiniAuctionsDataFromFilepath("./TestData/mini-auctions.json"); !assert.Nil(t, err) {
+		return
+	}
+}
+
 func TestNewMiniAuctionsFromMessenger(t *testing.T) {
 	sta := state{}
 

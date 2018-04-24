@@ -140,13 +140,26 @@ func (auc auction) toMiniAuction() miniAuction {
 	}
 }
 
-func newMiniAuctionsFromFilepath(relativeFilepath string) (miniAuctionList, error) {
+func newMiniAuctionsDataFromFilepath(relativeFilepath string) (*miniAuctionsData, error) {
 	body, err := util.ReadFile(relativeFilepath)
 	if err != nil {
 		return nil, err
 	}
 
-	return newMiniAuctions(body)
+	return newMiniAuctionsData(body)
+}
+
+func newMiniAuctionsData(body []byte) (*miniAuctionsData, error) {
+	mad := &miniAuctionsData{}
+	if err := json.Unmarshal(body, mad); err != nil {
+		return mad, err
+	}
+
+	return mad, nil
+}
+
+type miniAuctionsData struct {
+	auctions miniAuctionList
 }
 
 func newMiniAuctionsFromMessenger(rea *realm, mess messenger) (miniAuctionList, error) {
