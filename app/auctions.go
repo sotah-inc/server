@@ -159,7 +159,7 @@ func newMiniAuctionsData(body []byte) (*miniAuctionsData, error) {
 }
 
 type miniAuctionsData struct {
-	auctions miniAuctionList
+	Auctions miniAuctionList `json:"auctions"`
 }
 
 func newMiniAuctionsFromMessenger(rea *realm, mess messenger) (miniAuctionList, error) {

@@ -43,7 +43,14 @@ func TestNewAuctionsFromFilepath(t *testing.T) {
 }
 
 func TestNewMiniAuctionsDataFromFilepath(t *testing.T) {
-	if _, err := newMiniAuctionsDataFromFilepath("./TestData/mini-auctions.json"); !assert.Nil(t, err) {
+	mad, err := newMiniAuctionsDataFromFilepath("./TestData/mini-auctions.json")
+	if !assert.Nil(t, err) {
+		return
+	}
+
+	if assert.NotEqual(t, 3, len(mad.Auctions)) {
+		assert.Fail(t, "Auctions count did not match")
+
 		return
 	}
 }
