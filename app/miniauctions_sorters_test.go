@@ -12,7 +12,8 @@ func TestMiniAuctionsSortByItem(t *testing.T) {
 		return
 	}
 
-	sortedMad := mad.Auctions.sortByItem()
+	sorter := getMiniAuctionSorter()
+	sortedMad := sorter["item"](mad.Auctions)
 	expectedSortedMad, err := newMiniAuctionsDataFromFilepath("./TestData/mini-auctions-sort-by-item.json")
 	if !assert.Nil(t, err) {
 		return
