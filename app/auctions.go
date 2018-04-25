@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"sort"
 
 	"github.com/ihsw/sotah-server/app/sortdirections"
 	"github.com/ihsw/sotah-server/app/sortkinds"
@@ -163,18 +162,6 @@ type miniAuctionsData struct {
 	Auctions miniAuctionList `json:"auctions"`
 }
 
-// ByItem - sorting an auction list by item
-type ByItem miniAuctionList
-
-// Len - sort interface func
-func (bi ByItem) Len() int { return len(bi) }
-
-// Swap - sort interface func
-func (bi ByItem) Swap(i, j int) { bi[i], bi[j] = bi[j], bi[i] }
-
-// Less - sort interface func
-func (bi ByItem) Less(i, j int) bool { return bi[i].Item < bi[j].Item }
-
 func newMiniAuctionsFromMessenger(rea *realm, mess messenger) (miniAuctionList, error) {
 	am := auctionsRequest{
 		RegionName:    rea.region.Name,
@@ -235,11 +222,6 @@ func (mAuctionList miniAuctionList) limit(count int, page int) (miniAuctionList,
 	}
 
 	return mAuctionList[start:end], nil
-}
-
-func (mAuctionList miniAuctionList) sortByItem() miniAuctionList {
-	sort.Sort(ByItem(mAuctionList))
-	return mAuctionList
 }
 
 type miniAuctions map[miniAuctionHash]miniAuction
