@@ -48,7 +48,7 @@ func TestNewMiniAuctionsDataFromFilepath(t *testing.T) {
 		return
 	}
 
-	if assert.NotEqual(t, 3, len(mad.Auctions)) {
+	if !assert.Equal(t, 3, len(mad.Auctions)) {
 		assert.Fail(t, "Auctions count did not match")
 
 		return
