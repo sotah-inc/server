@@ -1,6 +1,9 @@
 package main
 
-import "sort"
+import (
+	"errors"
+	"sort"
+)
 
 type miniAuctionSortFn func(miniAuctionList) miniAuctionList
 
@@ -18,6 +21,15 @@ func newMiniAuctionSorter() miniAuctionSorter {
 }
 
 type miniAuctionSorter map[string]miniAuctionSortFn
+
+func (mas miniAuctionSorter) sort(sorterName string, data miniAuctionList) (miniAuctionList, error) {
+	sortFn, ok := mas[sorterName]
+	if !ok {
+		return miniAuctionList{}, errors.New("Sorter not found")
+	}
+
+	return sortFn(data), nil
+}
 
 type byItem miniAuctionList
 
