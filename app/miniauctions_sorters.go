@@ -9,15 +9,14 @@ type miniAuctionSorter map[string]miniAuctionSortFn
 func getMiniAuctionSorter() miniAuctionSorter {
 	return miniAuctionSorter{
 		"item": func(mAuctionList miniAuctionList) miniAuctionList {
-			sort.Sort(ByItem(mAuctionList))
+			sort.Sort(byItem(mAuctionList))
 			return mAuctionList
 		},
 	}
 }
 
-// ByItem - sorting an auction list by item
-type ByItem miniAuctionList
+type byItem miniAuctionList
 
-func (bi ByItem) Len() int           { return len(bi) }
-func (bi ByItem) Swap(i, j int)      { bi[i], bi[j] = bi[j], bi[i] }
-func (bi ByItem) Less(i, j int) bool { return bi[i].Item < bi[j].Item }
+func (bi byItem) Len() int           { return len(bi) }
+func (bi byItem) Swap(i, j int)      { bi[i], bi[j] = bi[j], bi[i] }
+func (bi byItem) Less(i, j int) bool { return bi[i].Item < bi[j].Item }
