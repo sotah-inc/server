@@ -2,7 +2,11 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"sort"
+
+	"github.com/ihsw/sotah-server/app/sortdirections"
+	"github.com/ihsw/sotah-server/app/sortkinds"
 )
 
 type miniAuctionSortFn func(miniAuctionList) miniAuctionList
@@ -22,8 +26,22 @@ func newMiniAuctionSorter() miniAuctionSorter {
 
 type miniAuctionSorter map[string]miniAuctionSortFn
 
-func (mas miniAuctionSorter) sort(sorterName string, data miniAuctionList) (miniAuctionList, error) {
-	sortFn, ok := mas[sorterName]
+func (mas miniAuctionSorter) sort(kind sortkinds.SortKind, direction sortdirections.SortDirection, data miniAuctionList) (miniAuctionList, error) {
+	// resolving the sort kind as a string
+	kindMap := map[sortkinds.SortKind]string{
+		sortkinds.Item: "item",
+	}
+	resolvedKind, ok := kindMap[kind]
+	if !ok {
+		return miniAuctionList{}, errors.New("Invalid sort kind")
+	}
+
+	if direction == sortdirections.Down {
+		resolvedKind = fmt.Sprintf("%s-r", resolvedKind)
+	}
+
+	// resolving the sort func
+	sortFn, ok := mas[resolvedKind]
 	if !ok {
 		return miniAuctionList{}, errors.New("Sorter not found")
 	}
