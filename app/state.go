@@ -256,6 +256,15 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 			return
 		}
 
+		aResponse.AuctionList, err = aResponse.AuctionList.sort(aRequest.SortKind, aRequest.SortDirection)
+		if err != nil {
+			m.Err = err.Error()
+			m.Code = codes.UserError
+			sta.messenger.replyTo(natsMsg, m)
+
+			return
+		}
+
 		data, err := aResponse.encodeForMessage()
 		if err != nil {
 			m.Err = err.Error()
