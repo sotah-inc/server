@@ -179,8 +179,8 @@ func api(c *config, m messenger) error {
 			"realms":    len(sta.statuses[reg.Name].Realms),
 			"whitelist": whitelist,
 		}).Info("Downloading region")
-		// auctionsOut := sta.statuses[reg.Name].Realms.getAuctions(*sta.resolver, whitelist)
-		auctionsOut := sta.statuses[reg.Name].Realms.getAllAuctions(*sta.resolver)
+		auctionsOut := sta.statuses[reg.Name].Realms.getAuctions(*sta.resolver, whitelist)
+		// auctionsOut := sta.statuses[reg.Name].Realms.getAllAuctions(*sta.resolver)
 		for job := range auctionsOut {
 			if job.err != nil {
 				log.WithFields(log.Fields{

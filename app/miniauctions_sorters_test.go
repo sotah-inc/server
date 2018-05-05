@@ -16,7 +16,7 @@ func TestMiniAuctionsSortByItem(t *testing.T) {
 	}
 
 	sorter := newMiniAuctionSorter()
-	err = sorter.sort(sortkinds.Item, sortdirections.Up, mad.Auctions)
+	sortedData, err := sorter.sort(sortkinds.Item, sortdirections.Up, mad.Auctions)
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -26,7 +26,7 @@ func TestMiniAuctionsSortByItem(t *testing.T) {
 		return
 	}
 
-	if !assert.Equal(t, expectedSortedMad.Auctions, mad.Auctions) {
+	if !assert.Equal(t, expectedSortedMad.Auctions, sortedData) {
 		return
 	}
 }
@@ -38,13 +38,13 @@ func TestMiniAuctionsSortByItemReversed(t *testing.T) {
 	}
 
 	sorter := newMiniAuctionSorter()
-	err = sorter.sort(sortkinds.Item, sortdirections.Down, mad.Auctions)
+	sortedData, err := sorter.sort(sortkinds.Item, sortdirections.Down, mad.Auctions)
 	expectedSortedMad, err := newMiniAuctionsDataFromFilepath("./TestData/mini-auctions-sort-by-item-reversed.json")
 	if !assert.Nil(t, err) {
 		return
 	}
 
-	if !assert.Equal(t, expectedSortedMad.Auctions, mad.Auctions) {
+	if !assert.Equal(t, expectedSortedMad.Auctions, sortedData) {
 		return
 	}
 }

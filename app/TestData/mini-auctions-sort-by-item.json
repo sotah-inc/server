@@ -1,17 +1,7 @@
 {
 	"auctions": [
 		{
-			"item": 121075,
-			"owner": "Turngoat",
-			"ownerRealm": "Medivh",
-			"bid": 3759805,
-			"buyout": 3800000,
-			"quantity": 1,
-            "timeLeft": "LONG",
-            "aucList": [1442076145]
-		},
-		{
-			"item": 124104,
+			"item": 14267,
 			"owner": "Niomii",
 			"ownerRealm": "Exodar",
 			"bid": 1250000,
@@ -21,14 +11,24 @@
             "aucList": [1441945078]
 		},
 		{
-			"item": 124105,
+			"item": 74719,
 			"owner": "Niomii",
 			"ownerRealm": "Exodar",
 			"bid": 1250000,
 			"buyout": 1250000,
 			"quantity": 5,
             "timeLeft": "LONG",
-            "aucList": [1441945082, 1441945061]
+            "aucList": [1441945078]
+		},
+		{
+			"item": 82800,
+			"owner": "Niomii",
+			"ownerRealm": "Exodar",
+			"bid": 1250000,
+			"buyout": 1250000,
+			"quantity": 5,
+            "timeLeft": "LONG",
+            "aucList": [1441945078]
 		}
 	]
 }
