@@ -247,7 +247,8 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 		}
 
 		aResponse := auctionsResponse{Total: len(realmAuctions), TotalCount: totalCount}
-		aResponse.AuctionList, err = realmAuctions.limit(aRequest.Count, aRequest.Page)
+
+		aResponse.AuctionList, err = aResponse.AuctionList.sort(aRequest.SortKind, aRequest.SortDirection)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.UserError
@@ -256,7 +257,7 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 			return
 		}
 
-		aResponse.AuctionList, err = aResponse.AuctionList.sort(aRequest.SortKind, aRequest.SortDirection)
+		aResponse.AuctionList, err = realmAuctions.limit(aRequest.Count, aRequest.Page)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.UserError
