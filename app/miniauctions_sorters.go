@@ -26,6 +26,18 @@ func newMiniAuctionSorter() miniAuctionSorter {
 
 			return mAuctionList
 		},
+		"quantity": func(mAuctionList miniAuctionList) miniAuctionList {
+			log.WithField("sort-kind", "quantity").Info("Sorting")
+			sort.Sort(byQuantity(mAuctionList))
+
+			return mAuctionList
+		},
+		"quantity-r": func(mAuctionList miniAuctionList) miniAuctionList {
+			log.WithField("sort-kind", "quantity-r").Info("Sorting")
+			sort.Sort(byQuantityReversed(mAuctionList))
+
+			return mAuctionList
+		},
 	}
 }
 
@@ -34,7 +46,8 @@ type miniAuctionSorter map[string]miniAuctionSortFn
 func (mas miniAuctionSorter) sort(kind sortkinds.SortKind, direction sortdirections.SortDirection, data miniAuctionList) (miniAuctionList, error) {
 	// resolving the sort kind as a string
 	kindMap := map[sortkinds.SortKind]string{
-		sortkinds.Item: "item",
+		sortkinds.Item:     "item",
+		sortkinds.Quantity: "quantity",
 	}
 	resolvedKind, ok := kindMap[kind]
 	if !ok {
@@ -56,12 +69,24 @@ func (mas miniAuctionSorter) sort(kind sortkinds.SortKind, direction sortdirecti
 
 type byItem miniAuctionList
 
-func (bi byItem) Len() int           { return len(bi) }
-func (bi byItem) Swap(i, j int)      { bi[i], bi[j] = bi[j], bi[i] }
-func (bi byItem) Less(i, j int) bool { return bi[i].Item < bi[j].Item }
+func (by byItem) Len() int           { return len(by) }
+func (by byItem) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
+func (by byItem) Less(i, j int) bool { return by[i].Item < by[j].Item }
 
 type byItemReversed miniAuctionList
 
-func (bi byItemReversed) Len() int           { return len(bi) }
-func (bi byItemReversed) Swap(i, j int)      { bi[i], bi[j] = bi[j], bi[i] }
-func (bi byItemReversed) Less(i, j int) bool { return bi[i].Item > bi[j].Item }
+func (by byItemReversed) Len() int           { return len(by) }
+func (by byItemReversed) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
+func (by byItemReversed) Less(i, j int) bool { return by[i].Item > by[j].Item }
+
+type byQuantity miniAuctionList
+
+func (by byQuantity) Len() int           { return len(by) }
+func (by byQuantity) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
+func (by byQuantity) Less(i, j int) bool { return by[i].Quantity < by[j].Quantity }
+
+type byQuantityReversed miniAuctionList
+
+func (by byQuantityReversed) Len() int           { return len(by) }
+func (by byQuantityReversed) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
+func (by byQuantityReversed) Less(i, j int) bool { return by[i].Quantity > by[j].Quantity }
