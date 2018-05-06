@@ -94,7 +94,11 @@ func TestNewMiniAuctionsFromMessenger(t *testing.T) {
 	}
 
 	// subscribing to receive auctions
-	receivedMiniAuctions, err := newMiniAuctionsFromMessenger(newMiniAuctionsFromMessengerConfig{realm: rea, messenger: mess})
+	receivedMiniAuctions, err := newMiniAuctionsFromMessenger(newMiniAuctionsFromMessengerConfig{
+		realm:     rea,
+		messenger: mess,
+		count:     10,
+	})
 	if !assert.Nil(t, err) {
 		stop <- struct{}{}
 
