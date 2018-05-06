@@ -238,10 +238,6 @@ func (mAuctionList miniAuctionList) limit(count int, page int) (miniAuctionList,
 }
 
 func (mAuctionList miniAuctionList) sort(kind sortkinds.SortKind, direction sortdirections.SortDirection) (miniAuctionList, error) {
-	if kind == sortkinds.None {
-		return mAuctionList, nil
-	}
-
 	mas := newMiniAuctionSorter()
 	return mas.sort(kind, direction, mAuctionList)
 }
