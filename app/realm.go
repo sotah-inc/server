@@ -21,6 +21,14 @@ type getAuctionsJob struct {
 
 type realms []realm
 
+func (reas realms) getAuctionsOrAll(res resolver, whitelist getAuctionsWhitelist) chan getAuctionsJob {
+	if whitelist == nil {
+		return reas.getAllAuctions(res)
+	}
+
+	return reas.getAuctions(res, whitelist)
+}
+
 func (reas realms) getAllAuctions(res resolver) chan getAuctionsJob {
 	whitelist := map[realmSlug]interface{}{}
 	for _, rea := range reas {

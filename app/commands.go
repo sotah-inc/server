@@ -169,7 +169,8 @@ func api(c *config, m messenger) error {
 
 	// going over the list of auctions
 	for _, reg := range sta.regions {
-		whitelist := getAuctionsWhitelist{}
+		var whitelist getAuctionsWhitelist
+		whitelist = nil
 		if _, ok := c.Whitelist[reg.Name]; ok {
 			whitelist = c.Whitelist[reg.Name]
 		}
@@ -179,8 +180,7 @@ func api(c *config, m messenger) error {
 			"realms":    len(sta.statuses[reg.Name].Realms),
 			"whitelist": whitelist,
 		}).Info("Downloading region")
-		auctionsOut := sta.statuses[reg.Name].Realms.getAuctions(*sta.resolver, whitelist)
-		// auctionsOut := sta.statuses[reg.Name].Realms.getAllAuctions(*sta.resolver)
+		auctionsOut := sta.statuses[reg.Name].Realms.getAuctionsOrAll(*sta.resolver, whitelist)
 		for job := range auctionsOut {
 			if job.err != nil {
 				log.WithFields(log.Fields{
