@@ -162,22 +162,35 @@ type miniAuctionsData struct {
 	Auctions miniAuctionList `json:"auctions"`
 }
 
-func newMiniAuctionsFromMessenger(rea *realm, mess messenger) (miniAuctionList, error) {
-	am := auctionsRequest{
-		RegionName:    rea.region.Name,
-		RealmSlug:     rea.Slug,
-		Count:         10,
-		Page:          0,
-		SortDirection: sortdirections.None,
-		SortKind:      sortkinds.None,
+type newMiniAuctionsFromMessengerConfig struct {
+	realm         *realm
+	messenger     messenger
+	count         int
+	page          int
+	sortDirection sortdirections.SortDirection
+	sortKind      sortkinds.SortKind
+}
+
+func (config newMiniAuctionsFromMessengerConfig) toAuctionsRequest() auctionsRequest {
+	return auctionsRequest{
+		RegionName:    config.realm.region.Name,
+		RealmSlug:     config.realm.Slug,
+		Count:         config.count,
+		Page:          config.page,
+		SortDirection: config.sortDirection,
+		SortKind:      config.sortKind,
 	}
+}
+
+func newMiniAuctionsFromMessenger(config newMiniAuctionsFromMessengerConfig) (miniAuctionList, error) {
+	am := config.toAuctionsRequest()
 	encodedMessage, err := json.Marshal(am)
 	if err != nil {
 		return miniAuctionList{}, err
 	}
 
 	log.WithField("subject", subjects.Auctions).Info("Sending request")
-	msg, err := mess.request(subjects.Auctions, encodedMessage)
+	msg, err := config.messenger.request(subjects.Auctions, encodedMessage)
 	if err != nil {
 		return miniAuctionList{}, err
 	}
