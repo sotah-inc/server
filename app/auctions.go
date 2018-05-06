@@ -237,7 +237,7 @@ func (mAuctionList miniAuctionList) limit(count int, page int) (miniAuctionList,
 	return mAuctionList[start:end], nil
 }
 
-func (mAuctionList miniAuctionList) sort(kind sortkinds.SortKind, direction sortdirections.SortDirection) (miniAuctionList, error) {
+func (mAuctionList miniAuctionList) sort(kind sortkinds.SortKind, direction sortdirections.SortDirection) error {
 	mas := newMiniAuctionSorter()
 	return mas.sort(kind, direction, mAuctionList)
 }

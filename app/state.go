@@ -173,7 +173,10 @@ func (ar auctionsRequest) resolve(sta state) (miniAuctionList, requestError) {
 		return miniAuctionList{}, requestError{codes.UserError, "Count must be <=1000"}
 	}
 
-	return realmAuctions, requestError{codes.Ok, ""}
+	result := make(miniAuctionList, len(realmAuctions))
+	copy(result, realmAuctions)
+
+	return result, requestError{codes.Ok, ""}
 }
 
 func newAuctionsResponseFromEncoded(body []byte) (auctionsResponse, error) {
@@ -249,7 +252,7 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 		aResponse := auctionsResponse{Total: len(realmAuctions), TotalCount: totalCount, AuctionList: realmAuctions}
 
 		if aRequest.SortKind != sortkinds.None && aRequest.SortDirection != sortdirections.None {
-			aResponse.AuctionList, err = aResponse.AuctionList.sort(aRequest.SortKind, aRequest.SortDirection)
+			err = aResponse.AuctionList.sort(aRequest.SortKind, aRequest.SortDirection)
 			if err != nil {
 				m.Err = err.Error()
 				m.Code = codes.UserError

@@ -7,43 +7,30 @@ import (
 
 	"github.com/ihsw/sotah-server/app/sortdirections"
 	"github.com/ihsw/sotah-server/app/sortkinds"
-	log "github.com/sirupsen/logrus"
 )
 
-type miniAuctionSortFn func(miniAuctionList) miniAuctionList
+type miniAuctionSortFn func(miniAuctionList)
 
 func newMiniAuctionSorter() miniAuctionSorter {
 	return miniAuctionSorter{
-		"item": func(mAuctionList miniAuctionList) miniAuctionList {
-			log.WithField("sort-kind", "item").Info("Sorting")
+		"item": func(mAuctionList miniAuctionList) {
 			sort.Sort(byItem(mAuctionList))
-
-			return mAuctionList
 		},
-		"item-r": func(mAuctionList miniAuctionList) miniAuctionList {
-			log.WithField("sort-kind", "item-r").Info("Sorting")
+		"item-r": func(mAuctionList miniAuctionList) {
 			sort.Sort(byItemReversed(mAuctionList))
-
-			return mAuctionList
 		},
-		"quantity": func(mAuctionList miniAuctionList) miniAuctionList {
-			log.WithField("sort-kind", "quantity").Info("Sorting")
+		"quantity": func(mAuctionList miniAuctionList) {
 			sort.Sort(byQuantity(mAuctionList))
-
-			return mAuctionList
 		},
-		"quantity-r": func(mAuctionList miniAuctionList) miniAuctionList {
-			log.WithField("sort-kind", "quantity-r").Info("Sorting")
+		"quantity-r": func(mAuctionList miniAuctionList) {
 			sort.Sort(byQuantityReversed(mAuctionList))
-
-			return mAuctionList
 		},
 	}
 }
 
 type miniAuctionSorter map[string]miniAuctionSortFn
 
-func (mas miniAuctionSorter) sort(kind sortkinds.SortKind, direction sortdirections.SortDirection, data miniAuctionList) (miniAuctionList, error) {
+func (mas miniAuctionSorter) sort(kind sortkinds.SortKind, direction sortdirections.SortDirection, data miniAuctionList) error {
 	// resolving the sort kind as a string
 	kindMap := map[sortkinds.SortKind]string{
 		sortkinds.Item:     "item",
@@ -51,7 +38,7 @@ func (mas miniAuctionSorter) sort(kind sortkinds.SortKind, direction sortdirecti
 	}
 	resolvedKind, ok := kindMap[kind]
 	if !ok {
-		return miniAuctionList{}, errors.New("Invalid sort kind")
+		return errors.New("Invalid sort kind")
 	}
 
 	if direction == sortdirections.Down {
@@ -61,10 +48,12 @@ func (mas miniAuctionSorter) sort(kind sortkinds.SortKind, direction sortdirecti
 	// resolving the sort func
 	sortFn, ok := mas[resolvedKind]
 	if !ok {
-		return miniAuctionList{}, errors.New("Sorter not found")
+		return errors.New("Sorter not found")
 	}
 
-	return sortFn(data), nil
+	sortFn(data)
+
+	return nil
 }
 
 type byItem miniAuctionList
