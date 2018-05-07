@@ -11,6 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ihsw/sotah-server/app/codes"
+	"github.com/ihsw/sotah-server/app/subjects"
 	"github.com/nats-io/go-nats"
 )
 
@@ -70,10 +71,10 @@ func newMessenger(host string, port int) (messenger, error) {
 	return mess, nil
 }
 
-func (mess messenger) subscribe(subject string, stop chan interface{}, cb func(*nats.Msg)) error {
+func (mess messenger) subscribe(subject subjects.Subject, stop chan interface{}, cb func(*nats.Msg)) error {
 	log.WithField("subject", subject).Info("Subscribing to subject")
 
-	sub, err := mess.conn.Subscribe(subject, func(natsMsg *nats.Msg) {
+	sub, err := mess.conn.Subscribe(string(subject), func(natsMsg *nats.Msg) {
 		log.WithField("subject", subject).Debug("Received request")
 
 		cb(natsMsg)
@@ -122,8 +123,8 @@ func (mess messenger) replyTo(natsMsg *nats.Msg, m message) error {
 	return nil
 }
 
-func (mess messenger) request(subject string, data []byte) (*message, error) {
-	natsMsg, err := mess.conn.Request(subject, data, 5*time.Second)
+func (mess messenger) request(subject subjects.Subject, data []byte) (*message, error) {
+	natsMsg, err := mess.conn.Request(string(subject), data, 5*time.Second)
 	if err != nil {
 		return nil, err
 	}

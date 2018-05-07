@@ -1,11 +1,15 @@
 package subjects
 
+// Subject - typehint for these enums
+type Subject string
+
 /*
 Status - subject name for returning current status
 */
 const (
-	Status            = "status"
-	Auctions          = "auctions"
-	Regions           = "regions"
-	GenericTestErrors = "genericTestErrors"
+	Status            Subject = "status"
+	Auctions          Subject = "auctions"
+	Regions           Subject = "regions"
+	GenericTestErrors Subject = "genericTestErrors"
+	Owners            Subject = "owners"
 )

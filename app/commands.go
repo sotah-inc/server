@@ -52,7 +52,7 @@ func apiTest(c *config, m messenger, dataDir string) error {
 	}
 
 	// listening for status requests
-	stopChans := map[string]chan interface{}{
+	stopChans := map[subjects.Subject]chan interface{}{
 		subjects.Status:            make(chan interface{}),
 		subjects.Regions:           make(chan interface{}),
 		subjects.GenericTestErrors: make(chan interface{}),
@@ -148,7 +148,7 @@ func api(c *config, m messenger) error {
 	}
 
 	// listening for status requests
-	stopChans := map[string]chan interface{}{
+	stopChans := map[subjects.Subject]chan interface{}{
 		subjects.Status:            make(chan interface{}),
 		subjects.Regions:           make(chan interface{}),
 		subjects.GenericTestErrors: make(chan interface{}),

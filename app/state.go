@@ -326,3 +326,75 @@ func (sta state) listenForGenericTestErrors(stop chan interface{}) error {
 
 	return nil
 }
+
+func newOwnersRequest(payload []byte) (*ownersRequest, error) {
+	request := &ownersRequest{}
+	err := json.Unmarshal(payload, &request)
+	if err != nil {
+		return nil, err
+	}
+
+	return request, nil
+}
+
+type ownersRequest struct {
+	RegionName regionName `json:"region_name"`
+	RealmSlug  realmSlug  `json:"realm_slug"`
+}
+
+func (request ownersRequest) resolve(sta state) (miniAuctionList, error) {
+	regionAuctions, ok := sta.auctions[request.RegionName]
+	if !ok {
+		return miniAuctionList{}, errors.New("Invalid region name")
+	}
+
+	realmAuctions, ok := regionAuctions[request.RealmSlug]
+	if !ok {
+		return miniAuctionList{}, errors.New("Invalid realm slug")
+	}
+
+	return realmAuctions, nil
+}
+
+func (sta state) listenForOwners(stop chan interface{}) error {
+	err := sta.messenger.subscribe(subjects.Owners, stop, func(natsMsg *nats.Msg) {
+		m := newMessage()
+
+		request, err := newOwnersRequest(natsMsg.Data)
+		if err != nil {
+			m.Err = err.Error()
+			m.Code = codes.MsgJSONParseError
+			sta.messenger.replyTo(natsMsg, m)
+
+			return
+		}
+
+		mal, err := request.resolve(sta)
+		if err != nil {
+			m.Err = err.Error()
+			m.Code = codes.NotFound
+			sta.messenger.replyTo(natsMsg, m)
+
+			return
+		}
+
+		o := newOwnersFromAuctions(mal)
+
+		encodedMessage, err := o.encodeForMessage()
+		if err != nil {
+			m.Err = err.Error()
+			m.Code = codes.GenericError
+			sta.messenger.replyTo(natsMsg, m)
+
+			return
+		}
+
+		m.Data = encodedMessage
+		sta.messenger.replyTo(natsMsg, m)
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
