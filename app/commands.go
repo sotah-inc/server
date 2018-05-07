@@ -57,6 +57,7 @@ func apiTest(c *config, m messenger, dataDir string) error {
 		subjects.Regions:           make(chan interface{}),
 		subjects.GenericTestErrors: make(chan interface{}),
 		subjects.Auctions:          make(chan interface{}),
+		subjects.Owners:            make(chan interface{}),
 	}
 	if err := sta.listenForStatus(stopChans[subjects.Status]); err != nil {
 		return err
@@ -68,6 +69,9 @@ func apiTest(c *config, m messenger, dataDir string) error {
 		return err
 	}
 	if err := sta.listenForAuctions(stopChans[subjects.Auctions]); err != nil {
+		return err
+	}
+	if err := sta.listenForOwners(stopChans[subjects.Owners]); err != nil {
 		return err
 	}
 
@@ -153,6 +157,7 @@ func api(c *config, m messenger) error {
 		subjects.Regions:           make(chan interface{}),
 		subjects.GenericTestErrors: make(chan interface{}),
 		subjects.Auctions:          make(chan interface{}),
+		subjects.Owners:            make(chan interface{}),
 	}
 	if err := sta.listenForStatus(stopChans[subjects.Status]); err != nil {
 		return err
@@ -164,6 +169,9 @@ func api(c *config, m messenger) error {
 		return err
 	}
 	if err := sta.listenForAuctions(stopChans[subjects.Auctions]); err != nil {
+		return err
+	}
+	if err := sta.listenForOwners(stopChans[subjects.Owners]); err != nil {
 		return err
 	}
 
