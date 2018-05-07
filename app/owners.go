@@ -26,7 +26,7 @@ func newOwnersFromAuctions(aucs miniAuctionList) owners {
 	return owners{Owners: ownerList}
 }
 
-func newOwnersFromMessenger(reg region, rea realm, mess messenger) (*owners, error) {
+func newOwnersFromMessenger(mess messenger, reg region, rea realm) (*owners, error) {
 	request := ownersRequest{reg.Name, rea.Slug}
 	encodedMessage, err := json.Marshal(request)
 	if err != nil {
@@ -42,7 +42,30 @@ func newOwnersFromMessenger(reg region, rea realm, mess messenger) (*owners, err
 		return nil, errors.New(msg.Err)
 	}
 
-	return newOwners([]byte(msg.Data))
+	return newOwnersFromEncoded([]byte(msg.Data))
+}
+
+func newOwnersFromEncoded(body []byte) (*owners, error) {
+	base64Decoded, err := base64.StdEncoding.DecodeString(string(body))
+	if err != nil {
+		return nil, err
+	}
+
+	gzipDecoded, err := util.GzipDecode(base64Decoded)
+	if err != nil {
+		return nil, err
+	}
+
+	return newOwners(gzipDecoded)
+}
+
+func newOwnersFromFilepath(relativeFilepath string) (*owners, error) {
+	body, err := util.ReadFile(relativeFilepath)
+	if err != nil {
+		return nil, err
+	}
+
+	return newOwners(body)
 }
 
 func newOwners(payload []byte) (*owners, error) {
@@ -55,11 +78,11 @@ func newOwners(payload []byte) (*owners, error) {
 }
 
 type owners struct {
-	Owners []string `json:"owners"`
+	Owners ownersList `json:"owners"`
 }
 
 func (o owners) encodeForMessage() (string, error) {
-	jsonEncoded, err := json.Marshal(o.Owners)
+	jsonEncoded, err := json.Marshal(o)
 	if err != nil {
 		return "", err
 	}
@@ -71,3 +94,5 @@ func (o owners) encodeForMessage() (string, error) {
 
 	return base64.StdEncoding.EncodeToString(gzipEncodedAuctions), nil
 }
+
+type ownersList []string
