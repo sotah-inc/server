@@ -116,3 +116,5 @@ type ownersByName ownersList
 func (by ownersByName) Len() int           { return len(by) }
 func (by ownersByName) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
 func (by ownersByName) Less(i, j int) bool { return by[i] < by[j] }
+
+// use this: https://godoc.org/github.com/renstrom/fuzzysearch/fuzzy
