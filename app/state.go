@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 
 	"github.com/ihsw/sotah-server/app/codes"
 	"github.com/ihsw/sotah-server/app/sortdirections"
@@ -379,6 +380,8 @@ func (sta state) listenForOwners(stop chan interface{}) error {
 		}
 
 		o := newOwnersFromAuctions(mal)
+		sort.Sort(ownersByName(o.Owners))
+		o.Owners = o.Owners.limit()
 
 		encodedMessage, err := o.encodeForMessage()
 		if err != nil {

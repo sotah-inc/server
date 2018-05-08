@@ -96,3 +96,23 @@ func (o owners) encodeForMessage() (string, error) {
 }
 
 type ownersList []string
+
+func (ol ownersList) limit() ownersList {
+	listLength := len(ol)
+	if listLength > 10 {
+		listLength = 10
+	}
+
+	out := make(ownersList, listLength)
+	for i := 0; i < listLength; i++ {
+		out[i] = ol[i]
+	}
+
+	return out
+}
+
+type ownersByName ownersList
+
+func (by ownersByName) Len() int           { return len(by) }
+func (by ownersByName) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
+func (by ownersByName) Less(i, j int) bool { return by[i] < by[j] }
