@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"strings"
 
 	"github.com/ihsw/sotah-server/app/codes"
 	"github.com/ihsw/sotah-server/app/subjects"
@@ -25,8 +26,7 @@ func newOwnersFromAuctions(aucs miniAuctionList) owners {
 	return owners{Owners: ownerList}
 }
 
-func newOwnersFromMessenger(mess messenger, reg region, rea realm) (*owners, error) {
-	request := ownersRequest{reg.Name, rea.Slug}
+func newOwnersFromMessenger(mess messenger, request ownersRequest) (*owners, error) {
 	encodedMessage, err := json.Marshal(request)
 	if err != nil {
 		return nil, err
@@ -84,6 +84,20 @@ func (ol ownersList) limit() ownersList {
 	}
 
 	return out
+}
+
+func (ol ownersList) filter(query string) ownersList {
+	lowerQuery := strings.ToLower(query)
+	matches := ownersList{}
+	for _, o := range ol {
+		if !strings.Contains(strings.ToLower(o.Name), lowerQuery) {
+			continue
+		}
+
+		matches = append(matches, o)
+	}
+
+	return matches
 }
 
 type ownersByName ownersList

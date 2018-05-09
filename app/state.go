@@ -341,6 +341,7 @@ func newOwnersRequest(payload []byte) (*ownersRequest, error) {
 type ownersRequest struct {
 	RegionName regionName `json:"region_name"`
 	RealmSlug  realmSlug  `json:"realm_slug"`
+	Query      string     `json:"query"`
 }
 
 func (request ownersRequest) resolve(sta state) (miniAuctionList, error) {
@@ -361,6 +362,7 @@ func (sta state) listenForOwners(stop chan interface{}) error {
 	err := sta.messenger.subscribe(subjects.Owners, stop, func(natsMsg *nats.Msg) {
 		m := newMessage()
 
+		// resolving the request
 		request, err := newOwnersRequest(natsMsg.Data)
 		if err != nil {
 			m.Err = err.Error()
@@ -370,6 +372,7 @@ func (sta state) listenForOwners(stop chan interface{}) error {
 			return
 		}
 
+		// resolving miniauctionslist from the request and state
 		mal, err := request.resolve(sta)
 		if err != nil {
 			m.Err = err.Error()
@@ -380,9 +383,17 @@ func (sta state) listenForOwners(stop chan interface{}) error {
 		}
 
 		o := newOwnersFromAuctions(mal)
+
+		// optionally filtering in matches
+		if request.Query != "" {
+			o.Owners = o.Owners.filter(request.Query)
+		}
+
+		// sorting and truncating
 		sort.Sort(ownersByName(o.Owners))
 		o.Owners = o.Owners.limit()
 
+		// marshalling for messenger
 		encodedMessage, err := json.Marshal(o)
 		if err != nil {
 			m.Err = err.Error()
@@ -392,6 +403,7 @@ func (sta state) listenForOwners(stop chan interface{}) error {
 			return
 		}
 
+		// dumping it out
 		m.Data = string(encodedMessage)
 		sta.messenger.replyTo(natsMsg, m)
 	})
