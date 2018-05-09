@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 
@@ -11,15 +10,15 @@ import (
 )
 
 func newOwnersFromAuctions(aucs miniAuctionList) owners {
-	ownersMap := map[string]struct{}{}
+	ownerNamesMap := map[string]struct{}{}
 	for _, ma := range aucs {
-		ownersMap[ma.Owner] = struct{}{}
+		ownerNamesMap[ma.Owner] = struct{}{}
 	}
 
-	ownerList := make([]string, len(ownersMap))
+	ownerList := make([]owner, len(ownerNamesMap))
 	i := 0
-	for owner := range ownersMap {
-		ownerList[i] = owner
+	for ownerName := range ownerNamesMap {
+		ownerList[i] = owner{ownerName}
 		i++
 	}
 
@@ -42,21 +41,7 @@ func newOwnersFromMessenger(mess messenger, reg region, rea realm) (*owners, err
 		return nil, errors.New(msg.Err)
 	}
 
-	return newOwnersFromEncoded([]byte(msg.Data))
-}
-
-func newOwnersFromEncoded(body []byte) (*owners, error) {
-	base64Decoded, err := base64.StdEncoding.DecodeString(string(body))
-	if err != nil {
-		return nil, err
-	}
-
-	gzipDecoded, err := util.GzipDecode(base64Decoded)
-	if err != nil {
-		return nil, err
-	}
-
-	return newOwners(gzipDecoded)
+	return newOwners([]byte(msg.Data))
 }
 
 func newOwnersFromFilepath(relativeFilepath string) (*owners, error) {
@@ -81,21 +66,11 @@ type owners struct {
 	Owners ownersList `json:"owners"`
 }
 
-func (o owners) encodeForMessage() (string, error) {
-	jsonEncoded, err := json.Marshal(o)
-	if err != nil {
-		return "", err
-	}
+type ownersList []owner
 
-	gzipEncodedAuctions, err := util.GzipEncode(jsonEncoded)
-	if err != nil {
-		return "", err
-	}
-
-	return base64.StdEncoding.EncodeToString(gzipEncodedAuctions), nil
+type owner struct {
+	Name string `json:"name"`
 }
-
-type ownersList []string
 
 func (ol ownersList) limit() ownersList {
 	listLength := len(ol)
@@ -115,6 +90,6 @@ type ownersByName ownersList
 
 func (by ownersByName) Len() int           { return len(by) }
 func (by ownersByName) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
-func (by ownersByName) Less(i, j int) bool { return by[i] < by[j] }
+func (by ownersByName) Less(i, j int) bool { return by[i].Name < by[j].Name }
 
 // use this: https://godoc.org/github.com/renstrom/fuzzysearch/fuzzy

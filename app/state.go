@@ -383,7 +383,7 @@ func (sta state) listenForOwners(stop chan interface{}) error {
 		sort.Sort(ownersByName(o.Owners))
 		o.Owners = o.Owners.limit()
 
-		encodedMessage, err := o.encodeForMessage()
+		encodedMessage, err := json.Marshal(o)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
@@ -392,7 +392,7 @@ func (sta state) listenForOwners(stop chan interface{}) error {
 			return
 		}
 
-		m.Data = encodedMessage
+		m.Data = string(encodedMessage)
 		sta.messenger.replyTo(natsMsg, m)
 	})
 	if err != nil {
