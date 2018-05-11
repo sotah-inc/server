@@ -246,11 +246,13 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 			return
 		}
 
-		aResponse := auctionsResponse{Total: len(realmAuctions), TotalCount: -1, AuctionList: realmAuctions}
+		aResponse := auctionsResponse{Total: -1, TotalCount: -1, AuctionList: realmAuctions}
 
 		if aRequest.OwnerFilter != "" {
 			aResponse.AuctionList = aResponse.AuctionList.filterByOwnerName(aRequest.OwnerFilter)
 		}
+
+		aResponse.Total = len(aResponse.AuctionList)
 
 		totalCount := 0
 		for _, mAuction := range realmAuctions {
