@@ -169,6 +169,7 @@ type newMiniAuctionsFromMessengerConfig struct {
 	page          int
 	sortDirection sortdirections.SortDirection
 	sortKind      sortkinds.SortKind
+	ownerFilter   ownerName
 }
 
 func (config newMiniAuctionsFromMessengerConfig) toAuctionsRequest() auctionsRequest {
@@ -179,6 +180,7 @@ func (config newMiniAuctionsFromMessengerConfig) toAuctionsRequest() auctionsReq
 		Page:          config.page,
 		SortDirection: config.sortDirection,
 		SortKind:      config.sortKind,
+		OwnerFilter:   config.ownerFilter,
 	}
 }
 
@@ -240,6 +242,17 @@ func (mAuctionList miniAuctionList) limit(count int, page int) (miniAuctionList,
 func (mAuctionList miniAuctionList) sort(kind sortkinds.SortKind, direction sortdirections.SortDirection) error {
 	mas := newMiniAuctionSorter()
 	return mas.sort(kind, direction, mAuctionList)
+}
+
+func (mAuctionList miniAuctionList) filterByOwnerName(ownerNameFilter ownerName) miniAuctionList {
+	out := miniAuctionList{}
+	for _, ma := range mAuctionList {
+		if ma.Owner == ownerNameFilter {
+			out = append(out, ma)
+		}
+	}
+
+	return out
 }
 
 type miniAuctions map[miniAuctionHash]miniAuction

@@ -1,0 +1,14 @@
+{
+	"auctions": [
+		{
+			"item": 14267,
+			"owner": "Lunarhawk",
+			"ownerRealm": "Exodar",
+			"bid": 1250000,
+			"buyout": 1250000,
+			"quantity": 5,
+            "timeLeft": "LONG",
+            "aucList": [1441945078]
+		}
+	]
+}

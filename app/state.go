@@ -152,6 +152,7 @@ type auctionsRequest struct {
 	Count         int                          `json:"count"`
 	SortDirection sortdirections.SortDirection `json:"sort_direction"`
 	SortKind      sortkinds.SortKind           `json:"sort_kind"`
+	OwnerFilter   ownerName                    `json:"owner_filter"`
 }
 
 func (ar auctionsRequest) resolve(sta state) (miniAuctionList, requestError) {
@@ -251,6 +252,10 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 		}
 
 		aResponse := auctionsResponse{Total: len(realmAuctions), TotalCount: totalCount, AuctionList: realmAuctions}
+
+		if aRequest.OwnerFilter != "" {
+			aResponse.AuctionList = aResponse.AuctionList.filterByOwnerName(aRequest.OwnerFilter)
+		}
 
 		if aRequest.SortKind != sortkinds.None && aRequest.SortDirection != sortdirections.None {
 			err = aResponse.AuctionList.sort(aRequest.SortKind, aRequest.SortDirection)
