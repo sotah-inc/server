@@ -101,17 +101,17 @@ type auctionRealm struct {
 }
 
 type auction struct {
-	Auc        int64  `json:"auc"`
-	Item       int64  `json:"item"`
-	Owner      string `json:"owner"`
-	OwnerRealm string `json:"ownerRealm"`
-	Bid        int64  `json:"bid"`
-	Buyout     int64  `json:"buyout"`
-	Quantity   int64  `json:"quantity"`
-	TimeLeft   string `json:"timeLeft"`
-	Rand       int64  `json:"rand"`
-	Seed       int64  `json:"seed"`
-	Context    int64  `json:"context"`
+	Auc        int64     `json:"auc"`
+	Item       int64     `json:"item"`
+	Owner      ownerName `json:"owner"`
+	OwnerRealm string    `json:"ownerRealm"`
+	Bid        int64     `json:"bid"`
+	Buyout     int64     `json:"buyout"`
+	Quantity   int64     `json:"quantity"`
+	TimeLeft   string    `json:"timeLeft"`
+	Rand       int64     `json:"rand"`
+	Seed       int64     `json:"seed"`
+	Context    int64     `json:"context"`
 }
 
 func (auc auction) toMiniAuctionHash() miniAuctionHash {
@@ -246,12 +246,12 @@ type miniAuctions map[miniAuctionHash]miniAuction
 type miniAuctionHash string
 
 type miniAuction struct {
-	Item       int64   `json:"item"`
-	Owner      string  `json:"owner"`
-	OwnerRealm string  `json:"ownerRealm"`
-	Bid        int64   `json:"bid"`
-	Buyout     int64   `json:"buyout"`
-	Quantity   int64   `json:"quantity"`
-	TimeLeft   string  `json:"timeLeft"`
-	AucList    []int64 `json:"aucList"`
+	Item       int64     `json:"item"`
+	Owner      ownerName `json:"owner"`
+	OwnerRealm string    `json:"ownerRealm"`
+	Bid        int64     `json:"bid"`
+	Buyout     int64     `json:"buyout"`
+	Quantity   int64     `json:"quantity"`
+	TimeLeft   string    `json:"timeLeft"`
+	AucList    []int64   `json:"aucList"`
 }

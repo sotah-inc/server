@@ -10,16 +10,22 @@ import (
 	"github.com/ihsw/sotah-server/app/util"
 )
 
+type ownerName string
+
+type owner struct {
+	Name ownerName `json:"name"`
+}
+
 func newOwnersFromAuctions(aucs miniAuctionList) owners {
-	ownerNamesMap := map[string]struct{}{}
+	ownerNamesMap := map[ownerName]struct{}{}
 	for _, ma := range aucs {
 		ownerNamesMap[ma.Owner] = struct{}{}
 	}
 
 	ownerList := make([]owner, len(ownerNamesMap))
 	i := 0
-	for ownerName := range ownerNamesMap {
-		ownerList[i] = owner{ownerName}
+	for ownerNameValue := range ownerNamesMap {
+		ownerList[i] = owner{ownerNameValue}
 		i++
 	}
 
@@ -68,10 +74,6 @@ type owners struct {
 
 type ownersList []owner
 
-type owner struct {
-	Name string `json:"name"`
-}
-
 func (ol ownersList) limit() ownersList {
 	listLength := len(ol)
 	if listLength > 10 {
@@ -90,7 +92,7 @@ func (ol ownersList) filter(query string) ownersList {
 	lowerQuery := strings.ToLower(query)
 	matches := ownersList{}
 	for _, o := range ol {
-		if !strings.Contains(strings.ToLower(o.Name), lowerQuery) {
+		if !strings.Contains(strings.ToLower(string(o.Name)), lowerQuery) {
 			continue
 		}
 
