@@ -246,16 +246,17 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 			return
 		}
 
-		totalCount := 0
-		for _, mAuction := range realmAuctions {
-			totalCount += len(mAuction.AucList)
-		}
-
-		aResponse := auctionsResponse{Total: len(realmAuctions), TotalCount: totalCount, AuctionList: realmAuctions}
+		aResponse := auctionsResponse{Total: len(realmAuctions), TotalCount: -1, AuctionList: realmAuctions}
 
 		if aRequest.OwnerFilter != "" {
 			aResponse.AuctionList = aResponse.AuctionList.filterByOwnerName(aRequest.OwnerFilter)
 		}
+
+		totalCount := 0
+		for _, mAuction := range realmAuctions {
+			totalCount += len(mAuction.AucList)
+		}
+		aResponse.TotalCount = totalCount
 
 		if aRequest.SortKind != sortkinds.None && aRequest.SortDirection != sortdirections.None {
 			err = aResponse.AuctionList.sort(aRequest.SortKind, aRequest.SortDirection)
