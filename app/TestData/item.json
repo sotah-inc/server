@@ -1,0 +1,210 @@
+{
+    "id": 151587,
+    "disenchantingSkillRank": 0,
+    "description": "",
+    "name": "Empyrial Cosmic Crown",
+    "icon": "inv_helm_crown_c_02",
+    "stackable": 1,
+    "itemBind": 2,
+    "bonusStats": [{
+        "stat": 5,
+        "amount": 1886
+    }, {
+        "stat": 7,
+        "amount": 2830
+    }],
+    "itemSpells": [],
+    "buyPrice": 2256316,
+    "itemClass": 4,
+    "itemSubClass": 1,
+    "containerSlots": 0,
+    "inventoryType": 1,
+    "equippable": true,
+    "itemLevel": 885,
+    "maxCount": 0,
+    "maxDurability": 100,
+    "minFactionId": 0,
+    "minReputation": 0,
+    "quality": 4,
+    "sellPrice": 451263,
+    "requiredSkill": 0,
+    "requiredLevel": 110,
+    "requiredSkillRank": 0,
+    "socketInfo": {
+        "sockets": [{
+            "type": "PRISMATIC"
+        }]
+    },
+    "itemSource": {
+        "sourceId": 247755,
+        "sourceType": "CREATED_BY_SPELL"
+    },
+    "baseArmor": 240,
+    "hasSockets": true,
+    "isAuctionable": true,
+    "armor": 240,
+    "displayInfoId": 163792,
+    "nameDescription": " Primal Obliterum: 0/10",
+    "nameDescriptionColor": "00ff00",
+    "upgradable": true,
+    "heroicTooltip": false,
+    "context": "trade-skill",
+    "bonusLists": [3408, 3598],
+    "availableContexts": ["trade-skill"],
+    "bonusSummary": {
+        "defaultBonusLists": [3408, 3598, 3609],
+        "chanceBonusLists": [600, 601, 1676, 1677, 1678, 1679, 1680, 1681, 1682, 1683, 1684, 1685, 1686, 1687, 1688, 1689, 1690, 1691, 1692, 1693, 1694, 1695, 1696, 1697, 1698, 1699, 1700, 1701, 1702, 1703, 1704, 1705, 1706, 1707, 1708, 1709, 1710, 1711, 1712, 1713, 1714, 1715, 1716, 1717, 1718, 1719, 1720, 1721],
+        "bonusChances": [{
+            "chanceType": "UPGRADE",
+            "upgrade": {
+                "upgradeType": "NAME_SUFFIX",
+                "name": "of the Fireflash",
+                "id": 13150
+            },
+            "stats": [{
+                "statId": "32",
+                "delta": 446,
+                "maxDelta": 1116
+            }, {
+                "statId": "36",
+                "delta": 446,
+                "maxDelta": 1116
+            }],
+            "sockets": []
+        }, {
+            "chanceType": "UPGRADE",
+            "upgrade": {
+                "upgradeType": "NAME_SUFFIX",
+                "name": "of the Peerless",
+                "id": 13151
+            },
+            "stats": [{
+                "statId": "32",
+                "delta": 446,
+                "maxDelta": 1116
+            }, {
+                "statId": "49",
+                "delta": 446,
+                "maxDelta": 1116
+            }],
+            "sockets": []
+        }, {
+            "chanceType": "UPGRADE",
+            "upgrade": {
+                "upgradeType": "NAME_SUFFIX",
+                "name": "of the Quickblade",
+                "id": 13152
+            },
+            "stats": [{
+                "statId": "32",
+                "delta": 446,
+                "maxDelta": 1116
+            }, {
+                "statId": "40",
+                "delta": 446,
+                "maxDelta": 1116
+            }],
+            "sockets": []
+        }, {
+            "chanceType": "UPGRADE",
+            "upgrade": {
+                "upgradeType": "NAME_SUFFIX",
+                "name": "of the Feverflare",
+                "id": 13156
+            },
+            "stats": [{
+                "statId": "36",
+                "delta": 446,
+                "maxDelta": 1116
+            }, {
+                "statId": "49",
+                "delta": 446,
+                "maxDelta": 1116
+            }],
+            "sockets": []
+        }, {
+            "chanceType": "UPGRADE",
+            "upgrade": {
+                "upgradeType": "NAME_SUFFIX",
+                "name": "of the Aurora",
+                "id": 13157
+            },
+            "stats": [{
+                "statId": "36",
+                "delta": 446,
+                "maxDelta": 1116
+            }, {
+                "statId": "40",
+                "delta": 446,
+                "maxDelta": 1116
+            }],
+            "sockets": []
+        }, {
+            "chanceType": "UPGRADE",
+            "upgrade": {
+                "upgradeType": "NAME_SUFFIX",
+                "name": "of the Harmonious",
+                "id": 13161
+            },
+            "stats": [{
+                "statId": "40",
+                "delta": 446,
+                "maxDelta": 1116
+            }, {
+                "statId": "49",
+                "delta": 446,
+                "maxDelta": 1116
+            }],
+            "sockets": []
+        }, {
+            "chanceType": "UPGRADE",
+            "upgrade": {
+                "upgradeType": "NAME_SUFFIX",
+                "name": "of the Impatient",
+                "id": 13170
+            },
+            "stats": [{
+                "statId": "36",
+                "delta": 1562
+            }],
+            "sockets": []
+        }, {
+            "chanceType": "UPGRADE",
+            "upgrade": {
+                "upgradeType": "NAME_SUFFIX",
+                "name": "of the Savant",
+                "id": 13171
+            },
+            "stats": [{
+                "statId": "49",
+                "delta": 1562
+            }],
+            "sockets": []
+        }, {
+            "chanceType": "UPGRADE",
+            "upgrade": {
+                "upgradeType": "NAME_SUFFIX",
+                "name": "of the Adaptable",
+                "id": 13172
+            },
+            "stats": [{
+                "statId": "40",
+                "delta": 1562
+            }],
+            "sockets": []
+        }, {
+            "chanceType": "UPGRADE",
+            "upgrade": {
+                "upgradeType": "NAME_SUFFIX",
+                "name": "of the Decimator",
+                "id": 13176
+            },
+            "stats": [{
+                "statId": "32",
+                "delta": 1562
+            }],
+            "sockets": []
+        }]
+    },
+    "artifactId": 0
+}
