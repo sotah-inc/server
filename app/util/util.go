@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"path/filepath"
 	"sync"
 )
@@ -86,11 +87,7 @@ func WriteFile(relativePath string, data []byte) error {
 		return err
 	}
 
-	if err := ioutil.WriteFile(path, data, 0644); err != nil {
-		return err
-	}
-
-	return nil
+	return ioutil.WriteFile(path, data, 0644)
 }
 
 // GzipEncode - gzip encodes a byte array
@@ -114,4 +111,23 @@ func GzipDecode(in []byte) ([]byte, error) {
 	defer r.Close()
 
 	return ioutil.ReadAll(r)
+}
+
+// EnsureDirExists - ensures dir exists
+func EnsureDirExists(relativePath string) error {
+	path, err := filepath.Abs(relativePath)
+	if err != nil {
+		return err
+	}
+	if _, err = os.Stat(path); err != nil {
+		if os.IsNotExist(err) {
+			if err := os.MkdirAll(path, os.ModePerm); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+	}
+
+	return nil
 }

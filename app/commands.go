@@ -104,35 +104,16 @@ func api(c *config, m messenger) error {
 	}
 
 	// ensuring auctions cache-dir exists
-	auctionsCacheDir, err := filepath.Abs(fmt.Sprintf("%s/auctions", c.CacheDir))
+	err := util.EnsureDirExists(fmt.Sprintf("%s/auctions", c.CacheDir))
 	if err != nil {
 		return err
-	}
-	if _, err = os.Stat(auctionsCacheDir); err != nil {
-		if os.IsNotExist(err) {
-			if err := os.MkdirAll(auctionsCacheDir, os.ModePerm); err != nil {
-				return err
-			}
-		} else {
-			return err
-		}
 	}
 
 	// ensuring each region-auctions cache-dir exists
 	for _, reg := range c.Regions {
-		regionCacheDirPath, err := filepath.Abs(fmt.Sprintf("%s/auctions/%s", c.CacheDir, reg.Name))
+		err := util.EnsureDirExists(fmt.Sprintf("%s/auctions/%s", c.CacheDir, reg.Name))
 		if err != nil {
 			return err
-		}
-
-		if _, err := os.Stat(regionCacheDirPath); err != nil {
-			if os.IsNotExist(err) {
-				if err := os.MkdirAll(regionCacheDirPath, os.ModePerm); err != nil {
-					return err
-				}
-			} else {
-				return err
-			}
 		}
 	}
 
