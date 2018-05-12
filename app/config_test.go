@@ -40,7 +40,7 @@ func TestGetStatus(t *testing.T) {
 	s, err := reg.getStatus(
 		resolver{getStatusURL: func(regionHostname string) string { return realmStatusTs.URL }},
 	)
-	if !assert.NotEmpty(t, s.Realms) {
+	if !assert.Nil(t, err) || !assert.NotEmpty(t, s.Realms) {
 		return
 	}
 }
