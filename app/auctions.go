@@ -102,7 +102,7 @@ type auctionRealm struct {
 
 type auction struct {
 	Auc        int64     `json:"auc"`
-	Item       int64     `json:"item"`
+	Item       itemID    `json:"item"`
 	Owner      ownerName `json:"owner"`
 	OwnerRealm string    `json:"ownerRealm"`
 	Bid        int64     `json:"bid"`
@@ -255,11 +255,25 @@ func (mAuctionList miniAuctionList) filterByOwnerName(ownerNameFilter ownerName)
 	return out
 }
 
+func (mAuctionList miniAuctionList) itemIds() []itemID {
+	result := map[itemID]struct{}{}
+	for _, ma := range mAuctionList {
+		result[ma.Item] = struct{}{}
+	}
+
+	out := []itemID{}
+	for v := range result {
+		out = append(out, v)
+	}
+
+	return out
+}
+
 type miniAuctions map[miniAuctionHash]miniAuction
 type miniAuctionHash string
 
 type miniAuction struct {
-	Item       int64     `json:"item"`
+	Item       itemID    `json:"item"`
 	Owner      ownerName `json:"owner"`
 	OwnerRealm string    `json:"ownerRealm"`
 	Bid        int64     `json:"bid"`

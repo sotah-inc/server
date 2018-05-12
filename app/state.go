@@ -6,6 +6,7 @@ import (
 	"github.com/ihsw/sotah-server/app/codes"
 	"github.com/ihsw/sotah-server/app/subjects"
 	nats "github.com/nats-io/go-nats"
+	log "github.com/sirupsen/logrus"
 )
 
 type state struct {
@@ -57,4 +58,30 @@ func (sta state) listenForGenericTestErrors(stop chan interface{}) error {
 	}
 
 	return nil
+}
+
+func (sta state) auctionsIntake(job getAuctionsJob) {
+	rea := job.realm
+	reg := rea.region
+	if job.err != nil {
+		log.WithFields(log.Fields{
+			"region": reg.Name,
+			"realm":  rea.Slug,
+			"error":  job.err.Error(),
+		}).Info("Auction fetch failure")
+
+		return
+	}
+
+	minimizedAuctions := job.auctions.Auctions.minimize()
+
+	// loading the minimized auctions into state
+	sta.auctions[reg.Name][rea.Slug] = minimizedAuctions
+
+	// going over the list of items
+	log.WithFields(log.Fields{
+		"region": reg.Name,
+		"realm":  rea.Slug,
+		"items":  len(minimizedAuctions.itemIds()),
+	}).Info("Items found")
 }

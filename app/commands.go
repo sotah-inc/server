@@ -171,17 +171,7 @@ func api(c *config, m messenger) error {
 		}).Info("Downloading region")
 		auctionsOut := sta.statuses[reg.Name].Realms.getAuctionsOrAll(*sta.resolver, whitelist)
 		for job := range auctionsOut {
-			if job.err != nil {
-				log.WithFields(log.Fields{
-					"region": reg.Name,
-					"realm":  job.realm.Slug,
-					"error":  job.err.Error(),
-				}).Info("Auction fetch failure")
-
-				continue
-			}
-
-			sta.auctions[reg.Name][job.realm.Slug] = job.auctions.Auctions.minimize()
+			sta.auctionsIntake(job)
 		}
 		log.WithField("region", reg.Name).Info("Downloaded region")
 	}
