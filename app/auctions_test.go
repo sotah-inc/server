@@ -81,7 +81,7 @@ func TestNewMiniAuctionsFromMessenger(t *testing.T) {
 
 	// attaching the auctions to the state
 	sta.auctions = map[regionName]map[realmSlug]miniAuctionList{
-		reg.Name: map[realmSlug]miniAuctionList{
+		reg.Name: {
 			rea.Slug: a.Auctions.minimize(),
 		},
 	}
