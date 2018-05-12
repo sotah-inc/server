@@ -15,7 +15,7 @@ func defaultGetItemURL(regionHostname string, ID itemID) string {
 
 type getItemURLFunc func(string, itemID) string
 
-func newItemFromHTTP(reg region, ID itemID, r resolver) (*item, error) {
+func newItemFromHTTP(reg region, ID itemID, r *resolver) (*item, error) {
 	body, err := r.get(r.getItemURL(reg.Hostname, ID))
 	if err != nil {
 		return nil, err

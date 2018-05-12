@@ -79,9 +79,22 @@ func (sta state) auctionsIntake(job getAuctionsJob) {
 	sta.auctions[reg.Name][rea.Slug] = minimizedAuctions
 
 	// going over the list of items
+	itemIds := minimizedAuctions.itemIds()
 	log.WithFields(log.Fields{
 		"region": reg.Name,
 		"realm":  rea.Slug,
-		"items":  len(minimizedAuctions.itemIds()),
+		"items":  len(itemIds),
 	}).Info("Items found")
+	for i := 0; i < 10; i++ {
+		ID := itemIds[i]
+		itemFound, err := newItemFromHTTP(reg, ID, sta.resolver)
+		if err != nil {
+			log.WithField("item", ID).Info("Failed to fetch item")
+		}
+
+		log.WithFields(log.Fields{
+			"item": ID,
+			"name": itemFound.Name,
+		}).Info("Fetched item")
+	}
 }
