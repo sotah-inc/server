@@ -73,12 +73,13 @@ func (sta state) auctionsIntake(job getAuctionsJob) {
 		return
 	}
 
+	// compacting the auctions
 	minimizedAuctions := job.auctions.Auctions.minimize()
 
 	// loading the minimized auctions into state
 	sta.auctions[reg.Name][rea.Slug] = minimizedAuctions
 
-	// going over the list of items
+	// going over the list of items and queueing them up to be fetched
 	itemIds := minimizedAuctions.itemIds()
 	log.WithFields(log.Fields{
 		"region": reg.Name,
