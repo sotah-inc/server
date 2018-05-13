@@ -2,7 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/ihsw/sotah-server/app/util"
 )
@@ -87,4 +90,48 @@ func getItems(reg region, IDs []itemID, res *resolver) chan getItemsJob {
 	}()
 
 	return out
+}
+
+func getItem(reg region, ID itemID, res *resolver) (*item, error) {
+	if res.config == nil {
+		return nil, errors.New("Config cannot be nil")
+	}
+
+	if res.config.UseCacheDir == false {
+		return newItemFromHTTP(reg, ID, res)
+	}
+
+	if res.config.CacheDir == "" {
+		return nil, errors.New("Cache dir cannot be blank")
+	}
+
+	if reg.Name == "" {
+		return nil, errors.New("Region name cannot be blank")
+	}
+
+	itemFilepath, err := filepath.Abs(
+		fmt.Sprintf("%s/items/%d.json", res.config.CacheDir, ID),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := os.Stat(itemFilepath); err != nil {
+		if !os.IsNotExist(err) {
+			return nil, err
+		}
+
+		body, err := res.get(res.getItemURL(reg.Hostname, ID))
+		if err != nil {
+			return nil, err
+		}
+
+		if err := util.WriteFile(itemFilepath, body); err != nil {
+			return nil, err
+		}
+
+		return newItem(body)
+	}
+
+	return newItemFromFilepath(itemFilepath)
 }
