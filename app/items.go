@@ -54,3 +54,37 @@ type items struct {
 }
 
 type itemsList []item
+
+type getItemsJob struct {
+	err  error
+	item *item
+}
+
+func getItems(reg region, IDs []itemID, res *resolver) chan getItemsJob {
+	// establishing channels
+	out := make(chan getItemsJob)
+	in := make(chan itemID)
+
+	// spinning up the workers for fetching items
+	worker := func() {
+		for ID := range in {
+			itemValue, err := newItemFromHTTP(reg, ID, res)
+			out <- getItemsJob{err: err, item: itemValue}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(4, worker, postWork)
+
+	// queueing up the realms
+	go func() {
+		for _, ID := range IDs {
+			in <- ID
+		}
+
+		close(in)
+	}()
+
+	return out
+}
