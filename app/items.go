@@ -21,6 +21,10 @@ func defaultGetItemURL(regionHostname string, ID itemID) string {
 type getItemURLFunc func(string, itemID) string
 
 func newItemFromHTTP(ID itemID, r *resolver) (*item, error) {
+	if r.config == nil {
+		return nil, errors.New("Config cannot be nil")
+	}
+
 	primaryRegion, err := r.config.Regions.getPrimaryRegion()
 	if err != nil {
 		return nil, err
