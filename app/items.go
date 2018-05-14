@@ -12,6 +12,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type itemID int64
+
 const itemURLFormat = "https://%s/wow/item/%d"
 
 func defaultGetItemURL(regionHostname string, ID itemID) string {
@@ -56,18 +58,10 @@ func newItem(body []byte) (*item, error) {
 	return i, nil
 }
 
-type itemID int64
-
 type item struct {
 	ID   itemID `json:"id"`
 	Name string `json:"name"`
 }
-
-type items struct {
-	Items itemsList `json:"items"`
-}
-
-type itemsList []item
 
 type getItemsJob struct {
 	err  error
@@ -150,3 +144,5 @@ func getItem(ID itemID, res *resolver) (*item, error) {
 
 	return newItemFromFilepath(itemFilepath)
 }
+
+type itemsMap map[itemID]*item

@@ -12,4 +12,5 @@ const (
 	Regions           Subject = "regions"
 	GenericTestErrors Subject = "genericTestErrors"
 	Owners            Subject = "owners"
+	Items             Subject = "items"
 )

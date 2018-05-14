@@ -16,7 +16,7 @@ type state struct {
 	regions  []region
 	statuses map[regionName]*status
 	auctions map[regionName]map[realmSlug]miniAuctionList
-	items    map[itemID]*item
+	items    itemsMap
 }
 
 type requestError struct {
