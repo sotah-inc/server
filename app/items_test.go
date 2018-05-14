@@ -19,7 +19,12 @@ func TestNewItemFromHTTP(t *testing.T) {
 
 	a, err := newItemFromHTTP(
 		-1,
-		&resolver{getItemURL: func(regionHostname string, ID itemID) string { return ts.URL }},
+		&resolver{
+			getItemURL: func(regionHostname string, ID itemID) string { return ts.URL },
+			config: &config{
+				Regions: regionList{region{Hostname: "", Name: "", Primary: true}},
+			},
+		},
 	)
 	if !assert.Nil(t, err) {
 		return
