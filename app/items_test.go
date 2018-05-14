@@ -21,9 +21,7 @@ func TestNewItemFromHTTP(t *testing.T) {
 		-1,
 		&resolver{
 			getItemURL: func(regionHostname string, ID itemID) string { return ts.URL },
-			config: &config{
-				Regions: regionList{region{Hostname: "", Name: "", Primary: true}},
-			},
+			config:     &config{Regions: regionList{region{"", "", true}}},
 		},
 	)
 	if !assert.Nil(t, err) {
