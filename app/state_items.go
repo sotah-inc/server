@@ -24,17 +24,17 @@ type itemsRequest struct {
 	Query string `json:"query"`
 }
 
-func (request itemsRequest) resolve(sta state) (itemList, error) {
+func (request itemsRequest) resolve(sta state) (*itemListResult, error) {
 	if sta.items == nil {
 		return nil, errors.New("Items were nil")
 	}
 
-	result := itemList{}
+	result := itemListResult{Items: itemList{}}
 	for _, itemValue := range sta.items {
-		result = append(result, *itemValue)
+		result.Items = append(result.Items, itemValue)
 	}
 
-	return result, nil
+	return &result, nil
 }
 
 func (sta state) listenForItems(stop chan interface{}) error {
@@ -51,8 +51,8 @@ func (sta state) listenForItems(stop chan interface{}) error {
 			return
 		}
 
-		// resolving the list of items
-		il, err := request.resolve(sta)
+		// resolving the item list result
+		result, err := request.resolve(sta)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
@@ -61,11 +61,11 @@ func (sta state) listenForItems(stop chan interface{}) error {
 			return
 		}
 
-		sort.Sort(itemsByName(il))
-		il = il.limit()
+		sort.Sort(itemsByName(result.Items))
+		result.Items = result.Items.limit()
 
 		// marshalling for messenger
-		encodedMessage, err := json.Marshal(il)
+		encodedMessage, err := json.Marshal(result)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError

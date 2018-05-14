@@ -101,7 +101,7 @@ func api(c *config, m messenger) error {
 		regions:   c.Regions,
 		statuses:  map[regionName]*status{},
 		auctions:  map[regionName]map[realmSlug]miniAuctionList{},
-		items:     map[itemID]*item{},
+		items:     map[itemID]item{},
 	}
 
 	// ensuring auctions cache-dir exists
@@ -217,7 +217,7 @@ func api(c *config, m messenger) error {
 				continue
 			}
 
-			sta.items[job.ID] = job.item
+			sta.items[job.ID] = *job.item
 		}
 		log.WithField("items", len(regionItemIDs)).Info("Fetched items")
 	}

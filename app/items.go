@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/ihsw/sotah-server/app/codes"
+	"github.com/ihsw/sotah-server/app/subjects"
 	"github.com/ihsw/sotah-server/app/util"
 
 	log "github.com/sirupsen/logrus"
@@ -145,7 +147,49 @@ func getItem(ID itemID, res *resolver) (*item, error) {
 	return newItemFromFilepath(itemFilepath)
 }
 
-type itemsMap map[itemID]*item
+type itemsMap map[itemID]item
+
+func newItemListResultFromMessenger(mess messenger, request itemsRequest) (*itemListResult, error) {
+	encodedMessage, err := json.Marshal(request)
+	if err != nil {
+		return nil, err
+	}
+
+	msg, err := mess.request(subjects.Items, encodedMessage)
+	if err != nil {
+		return nil, err
+	}
+
+	log.WithField("data", msg.Data).Info("message")
+
+	if msg.Code != codes.Ok {
+		return nil, errors.New(msg.Err)
+	}
+
+	return newItemListResult([]byte(msg.Data))
+}
+
+func newItemListResultFromFilepath(relativeFilepath string) (*itemListResult, error) {
+	body, err := util.ReadFile(relativeFilepath)
+	if err != nil {
+		return nil, err
+	}
+
+	return newItemListResult(body)
+}
+
+func newItemListResult(body []byte) (*itemListResult, error) {
+	i := &itemListResult{}
+	if err := json.Unmarshal(body, i); err != nil {
+		return nil, err
+	}
+
+	return i, nil
+}
+
+type itemListResult struct {
+	Items itemList `json:"items"`
+}
 
 type itemList []item
 
