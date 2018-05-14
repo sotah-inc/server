@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"sort"
 
 	"github.com/ihsw/sotah-server/app/codes"
 	"github.com/ihsw/sotah-server/app/subjects"
@@ -23,12 +24,17 @@ type itemsRequest struct {
 	Query string `json:"query"`
 }
 
-func (request itemsRequest) resolve(sta state) (map[itemID]*item, error) {
+func (request itemsRequest) resolve(sta state) (itemList, error) {
 	if sta.items == nil {
 		return nil, errors.New("Items were nil")
 	}
 
-	return sta.items, nil
+	result := itemList{}
+	for _, itemValue := range sta.items {
+		result = append(result, *itemValue)
+	}
+
+	return result, nil
 }
 
 func (sta state) listenForItems(stop chan interface{}) error {
@@ -46,7 +52,7 @@ func (sta state) listenForItems(stop chan interface{}) error {
 		}
 
 		// resolving the list of items
-		stateItems, err := request.resolve(sta)
+		il, err := request.resolve(sta)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
@@ -55,8 +61,11 @@ func (sta state) listenForItems(stop chan interface{}) error {
 			return
 		}
 
+		sort.Sort(itemsByName(il))
+		il = il.limit()
+
 		// marshalling for messenger
-		encodedMessage, err := json.Marshal(stateItems)
+		encodedMessage, err := json.Marshal(il)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError

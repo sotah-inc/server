@@ -146,3 +146,25 @@ func getItem(ID itemID, res *resolver) (*item, error) {
 }
 
 type itemsMap map[itemID]*item
+
+type itemList []item
+
+func (il itemList) limit() itemList {
+	listLength := len(il)
+	if listLength > 10 {
+		listLength = 10
+	}
+
+	out := make(itemList, listLength)
+	for i := 0; i < listLength; i++ {
+		out[i] = il[i]
+	}
+
+	return out
+}
+
+type itemsByName itemList
+
+func (by itemsByName) Len() int           { return len(by) }
+func (by itemsByName) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
+func (by itemsByName) Less(i, j int) bool { return by[i].Name < by[j].Name }
