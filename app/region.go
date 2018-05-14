@@ -8,6 +8,18 @@ import (
 	"github.com/ihsw/sotah-server/app/subjects"
 )
 
+type regionList []region
+
+func (rl regionList) getPrimaryRegion() (region, error) {
+	for _, reg := range rl {
+		if reg.Primary {
+			return reg, nil
+		}
+	}
+
+	return region{}, errors.New("Could not find primary region")
+}
+
 type regionName string
 
 func newRegionsFromMessenger(mess messenger) ([]*region, error) {
@@ -31,6 +43,7 @@ func newRegionsFromMessenger(mess messenger) ([]*region, error) {
 type region struct {
 	Name     regionName `json:"name"`
 	Hostname string     `json:"hostname"`
+	Primary  bool       `json:"primary"`
 }
 
 func (reg region) getStatus(res resolver) (*status, error) {

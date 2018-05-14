@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 
 	"github.com/ihsw/sotah-server/app/util"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const itemURLFormat = "https://%s/wow/item/%d"
@@ -18,8 +20,13 @@ func defaultGetItemURL(regionHostname string, ID itemID) string {
 
 type getItemURLFunc func(string, itemID) string
 
-func newItemFromHTTP(reg region, ID itemID, r *resolver) (*item, error) {
-	body, err := r.get(r.getItemURL(reg.Hostname, ID))
+func newItemFromHTTP(ID itemID, r *resolver) (*item, error) {
+	primaryRegion, err := r.config.Regions.getPrimaryRegion()
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := r.get(r.getItemURL(primaryRegion.Hostname, ID))
 	if err != nil {
 		return nil, err
 	}
@@ -60,10 +67,11 @@ type itemsList []item
 
 type getItemsJob struct {
 	err  error
+	ID   itemID
 	item *item
 }
 
-func getItems(reg region, IDs []itemID, res *resolver) chan getItemsJob {
+func getItems(IDs []itemID, res *resolver) chan getItemsJob {
 	// establishing channels
 	out := make(chan getItemsJob)
 	in := make(chan itemID)
@@ -71,14 +79,14 @@ func getItems(reg region, IDs []itemID, res *resolver) chan getItemsJob {
 	// spinning up the workers for fetching items
 	worker := func() {
 		for ID := range in {
-			itemValue, err := newItemFromHTTP(reg, ID, res)
-			out <- getItemsJob{err: err, item: itemValue}
+			itemValue, err := getItem(ID, res)
+			out <- getItemsJob{err: err, item: itemValue, ID: ID}
 		}
 	}
 	postWork := func() {
 		close(out)
 	}
-	util.Work(4, worker, postWork)
+	util.Work(8, worker, postWork)
 
 	// queueing up the realms
 	go func() {
@@ -92,21 +100,17 @@ func getItems(reg region, IDs []itemID, res *resolver) chan getItemsJob {
 	return out
 }
 
-func getItem(reg region, ID itemID, res *resolver) (*item, error) {
+func getItem(ID itemID, res *resolver) (*item, error) {
 	if res.config == nil {
 		return nil, errors.New("Config cannot be nil")
 	}
 
 	if res.config.UseCacheDir == false {
-		return newItemFromHTTP(reg, ID, res)
+		return newItemFromHTTP(ID, res)
 	}
 
 	if res.config.CacheDir == "" {
 		return nil, errors.New("Cache dir cannot be blank")
-	}
-
-	if reg.Name == "" {
-		return nil, errors.New("Region name cannot be blank")
 	}
 
 	itemFilepath, err := filepath.Abs(
@@ -121,7 +125,14 @@ func getItem(reg region, ID itemID, res *resolver) (*item, error) {
 			return nil, err
 		}
 
-		body, err := res.get(res.getItemURL(reg.Hostname, ID))
+		primaryRegion, err := res.config.Regions.getPrimaryRegion()
+		if err != nil {
+			return nil, err
+		}
+
+		log.WithField("item", ID).Info("Fetching item")
+
+		body, err := res.get(res.getItemURL(primaryRegion.Hostname, ID))
 		if err != nil {
 			return nil, err
 		}

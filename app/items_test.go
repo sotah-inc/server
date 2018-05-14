@@ -18,7 +18,6 @@ func TestNewItemFromHTTP(t *testing.T) {
 	}
 
 	a, err := newItemFromHTTP(
-		region{},
 		-1,
 		&resolver{getItemURL: func(regionHostname string, ID itemID) string { return ts.URL }},
 	)

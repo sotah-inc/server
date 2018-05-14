@@ -16,6 +16,7 @@ type state struct {
 	regions  []region
 	statuses map[regionName]*status
 	auctions map[regionName]map[realmSlug]miniAuctionList
+	items    map[itemID]*item
 }
 
 type requestError struct {
@@ -60,7 +61,7 @@ func (sta state) listenForGenericTestErrors(stop chan interface{}) error {
 	return nil
 }
 
-func (sta state) auctionsIntake(job getAuctionsJob) {
+func (sta state) auctionsIntake(job getAuctionsJob) []itemID {
 	rea := job.realm
 	reg := rea.region
 	if job.err != nil {
@@ -70,7 +71,7 @@ func (sta state) auctionsIntake(job getAuctionsJob) {
 			"error":  job.err.Error(),
 		}).Info("Auction fetch failure")
 
-		return
+		return []itemID{}
 	}
 
 	// compacting the auctions
@@ -79,23 +80,6 @@ func (sta state) auctionsIntake(job getAuctionsJob) {
 	// loading the minimized auctions into state
 	sta.auctions[reg.Name][rea.Slug] = minimizedAuctions
 
-	// going over the list of items and queueing them up to be fetched
-	itemIds := minimizedAuctions.itemIds()
-	log.WithFields(log.Fields{
-		"region": reg.Name,
-		"realm":  rea.Slug,
-		"items":  len(itemIds),
-	}).Info("Items found")
-	for i := 0; i < 10; i++ {
-		ID := itemIds[i]
-		itemFound, err := newItemFromHTTP(reg, ID, sta.resolver)
-		if err != nil {
-			log.WithField("item", ID).Info("Failed to fetch item")
-		}
-
-		log.WithFields(log.Fields{
-			"item": ID,
-			"name": itemFound.Name,
-		}).Info("Fetched item")
-	}
+	// returning a list of item ids for syncing
+	return minimizedAuctions.itemIds()
 }

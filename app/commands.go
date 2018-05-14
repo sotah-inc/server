@@ -101,10 +101,17 @@ func api(c *config, m messenger) error {
 		regions:   c.Regions,
 		statuses:  map[regionName]*status{},
 		auctions:  map[regionName]map[realmSlug]miniAuctionList{},
+		items:     map[itemID]*item{},
 	}
 
 	// ensuring auctions cache-dir exists
 	err := util.EnsureDirExists(fmt.Sprintf("%s/auctions", c.CacheDir))
+	if err != nil {
+		return err
+	}
+
+	// ensuring items cache-dir exists
+	err = util.EnsureDirExists(fmt.Sprintf("%s/items", c.CacheDir))
 	if err != nil {
 		return err
 	}
@@ -156,14 +163,19 @@ func api(c *config, m messenger) error {
 		return err
 	}
 
-	// going over the list of auctions
+	// going over the list of regions
 	for _, reg := range sta.regions {
+		// resolving the realm whitelist
 		var whitelist getAuctionsWhitelist
 		whitelist = nil
 		if _, ok := c.Whitelist[reg.Name]; ok {
 			whitelist = c.Whitelist[reg.Name]
 		}
 
+		// misc
+		regionItemIDsMap := map[itemID]struct{}{}
+
+		// downloading auctions in a region
 		log.WithFields(log.Fields{
 			"region":    reg.Name,
 			"realms":    len(sta.statuses[reg.Name].Realms),
@@ -171,9 +183,43 @@ func api(c *config, m messenger) error {
 		}).Info("Downloading region")
 		auctionsOut := sta.statuses[reg.Name].Realms.getAuctionsOrAll(*sta.resolver, whitelist)
 		for job := range auctionsOut {
-			sta.auctionsIntake(job)
+			itemIDs := sta.auctionsIntake(job)
+			for _, ID := range itemIDs {
+				_, ok := sta.items[ID]
+				if ok {
+					continue
+				}
+
+				regionItemIDsMap[ID] = struct{}{}
+			}
 		}
 		log.WithField("region", reg.Name).Info("Downloaded region")
+
+		// gathering the list of item IDs for this region
+		regionItemIDs := make([]itemID, len(regionItemIDsMap))
+		i := 0
+		for ID := range regionItemIDsMap {
+			regionItemIDs[i] = ID
+			i++
+		}
+
+		// downloading items found in this region
+		log.WithField("items", len(regionItemIDs)).Info("Fetching items")
+		itemsOut := getItems(regionItemIDs, &resolver)
+		for job := range itemsOut {
+			if job.err != nil {
+				log.WithFields(log.Fields{
+					"region": reg.Name,
+					"item":   job.ID,
+					"error":  job.err.Error(),
+				}).Info("Failed to fetch item")
+
+				continue
+			}
+
+			sta.items[job.ID] = job.item
+		}
+		log.WithField("items", len(regionItemIDs)).Info("Fetched items")
 	}
 
 	// catching SIGINT
