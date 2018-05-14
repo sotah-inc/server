@@ -14,8 +14,9 @@ before_install:
 before_script:
 - docker pull nats
 - docker run --rm -d -p $NATS_PORT:$NATS_PORT nats
+- go get github.com/mattn/goveralls
 script:
-- go test github.com/$TRAVIS_REPO_SLUG/app/...
+- $GOPATH/bin/goveralls -package github.com/$TRAVIS_REPO_SLUG/app/... -service=travis-ci
 - docker build -t $TRAVIS_REPO_SLUG .
 - echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin
 - docker push $TRAVIS_REPO_SLUG
