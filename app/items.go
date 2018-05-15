@@ -160,8 +160,6 @@ func newItemListResultFromMessenger(mess messenger, request itemsRequest) (*item
 		return nil, err
 	}
 
-	log.WithField("data", msg.Data).Info("message")
-
 	if msg.Code != codes.Ok {
 		return nil, errors.New(msg.Err)
 	}
