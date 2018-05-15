@@ -61,6 +61,10 @@ func (sta state) listenForItems(stop chan interface{}) error {
 			return
 		}
 
+		if len(request.Query) > 0 {
+			result.Items = result.Items.filter(request.Query)
+		}
+
 		sort.Sort(itemsByName(result.Items))
 		result.Items = result.Items.limit()
 

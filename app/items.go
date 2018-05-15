@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/ihsw/sotah-server/app/codes"
 	"github.com/ihsw/sotah-server/app/subjects"
@@ -203,6 +204,20 @@ func (il itemList) limit() itemList {
 	}
 
 	return out
+}
+
+func (il itemList) filter(query string) itemList {
+	lowerQuery := strings.ToLower(query)
+	matches := itemList{}
+	for _, itemValue := range il {
+		if !strings.Contains(strings.ToLower(string(itemValue.Name)), lowerQuery) {
+			continue
+		}
+
+		matches = append(matches, itemValue)
+	}
+
+	return matches
 }
 
 type itemsByName itemList
