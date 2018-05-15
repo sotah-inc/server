@@ -146,6 +146,7 @@ func api(c *config, m messenger) error {
 		subjects.GenericTestErrors: make(chan interface{}),
 		subjects.Auctions:          make(chan interface{}),
 		subjects.Owners:            make(chan interface{}),
+		subjects.Items:             make(chan interface{}),
 	}
 	if err := sta.listenForStatus(stopChans[subjects.Status]); err != nil {
 		return err
@@ -160,6 +161,9 @@ func api(c *config, m messenger) error {
 		return err
 	}
 	if err := sta.listenForOwners(stopChans[subjects.Owners]); err != nil {
+		return err
+	}
+	if err := sta.listenForItems(stopChans[subjects.Items]); err != nil {
 		return err
 	}
 
