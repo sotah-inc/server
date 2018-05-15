@@ -1,7 +1,7 @@
 {
     "items": [
-        {"id": 2, "name": "Axe"},
-        {"id": 3, "name": "Hammer"},
-        {"id": 1, "name": "Sword"}
+        {"id": 2, "name": "Axe", "normalized_name": "axe"},
+        {"id": 3, "name": "Hammer", "normalized_name": "hammer"},
+        {"id": 1, "name": "Sword", "normalized_name": "sword"}
     ]
 }

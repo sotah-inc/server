@@ -1,5 +1,5 @@
 {
     "items": [
-        {"id": 2, "name": "Axe"}
+        {"id": 2, "name": "Axe", "normalized_name": "axe"}
     ]
 }

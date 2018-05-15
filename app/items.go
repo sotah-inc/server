@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/ihsw/sotah-server/app/codes"
@@ -58,12 +59,22 @@ func newItem(body []byte) (*item, error) {
 		return nil, err
 	}
 
+	reg, err := regexp.Compile("[^a-z0-9 ]+")
+	if err != nil {
+		return nil, err
+	}
+
+	if i.NormalizedName == "" {
+		i.NormalizedName = reg.ReplaceAllString(strings.ToLower(i.Name), "")
+	}
+
 	return i, nil
 }
 
 type item struct {
-	ID   itemID `json:"id"`
-	Name string `json:"name"`
+	ID             itemID `json:"id"`
+	Name           string `json:"name"`
+	NormalizedName string `json:"normalized_name"`
 }
 
 type getItemsJob struct {
@@ -210,7 +221,7 @@ func (il itemList) filter(query string) itemList {
 	lowerQuery := strings.ToLower(query)
 	matches := itemList{}
 	for _, itemValue := range il {
-		if !strings.Contains(strings.ToLower(string(itemValue.Name)), lowerQuery) {
+		if !strings.Contains(itemValue.NormalizedName, lowerQuery) {
 			continue
 		}
 
@@ -225,3 +236,11 @@ type itemsByName itemList
 func (by itemsByName) Len() int           { return len(by) }
 func (by itemsByName) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
 func (by itemsByName) Less(i, j int) bool { return by[i].Name < by[j].Name }
+
+type itemsByNormalizedName itemList
+
+func (by itemsByNormalizedName) Len() int      { return len(by) }
+func (by itemsByNormalizedName) Swap(i, j int) { by[i], by[j] = by[j], by[i] }
+func (by itemsByNormalizedName) Less(i, j int) bool {
+	return by[i].NormalizedName < by[j].NormalizedName
+}

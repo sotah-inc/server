@@ -65,7 +65,7 @@ func (sta state) listenForItems(stop chan interface{}) error {
 			result.Items = result.Items.filter(request.Query)
 		}
 
-		sort.Sort(itemsByName(result.Items))
+		sort.Sort(itemsByNormalizedName(result.Items))
 		result.Items = result.Items.limit()
 
 		// marshalling for messenger
