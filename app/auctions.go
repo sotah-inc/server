@@ -255,6 +255,17 @@ func (mAuctionList miniAuctionList) filterByOwnerName(ownerNameFilter ownerName)
 	return out
 }
 
+func (mAuctionList miniAuctionList) filterByItemId(itemIdFilter itemID) miniAuctionList {
+	out := miniAuctionList{}
+	for _, ma := range mAuctionList {
+		if ma.Item == itemIdFilter {
+			out = append(out, ma)
+		}
+	}
+
+	return out
+}
+
 func (mAuctionList miniAuctionList) itemIds() []itemID {
 	result := map[itemID]struct{}{}
 	for _, ma := range mAuctionList {
