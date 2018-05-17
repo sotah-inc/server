@@ -30,7 +30,7 @@ type auctionsRequest struct {
 	SortDirection sortdirections.SortDirection `json:"sort_direction"`
 	SortKind      sortkinds.SortKind           `json:"sort_kind"`
 	OwnerFilter   ownerName                    `json:"owner_filter"`
-	ItemFilter    itemID                       `json:"item_id"`
+	ItemFilter    itemID                       `json:"item_filter"`
 }
 
 func (ar auctionsRequest) resolve(sta state) (miniAuctionList, requestError) {
