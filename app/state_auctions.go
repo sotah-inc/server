@@ -130,7 +130,7 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 			aResponse.AuctionList = aResponse.AuctionList.filterByOwnerName(aRequest.OwnerFilter)
 		}
 		if aRequest.ItemFilter != 0 {
-			aResponse.AuctionList = aResponse.AuctionList.filterByItemId(aRequest.ItemFilter)
+			aResponse.AuctionList = aResponse.AuctionList.filterByItemID(aRequest.ItemFilter)
 		}
 
 		aResponse.Total = len(aResponse.AuctionList)

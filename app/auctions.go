@@ -255,10 +255,10 @@ func (mAuctionList miniAuctionList) filterByOwnerName(ownerNameFilter ownerName)
 	return out
 }
 
-func (mAuctionList miniAuctionList) filterByItemId(itemIdFilter itemID) miniAuctionList {
+func (mAuctionList miniAuctionList) filterByItemID(itemIDFilter itemID) miniAuctionList {
 	out := miniAuctionList{}
 	for _, ma := range mAuctionList {
-		if ma.Item == itemIdFilter {
+		if ma.Item == itemIDFilter {
 			out = append(out, ma)
 		}
 	}
