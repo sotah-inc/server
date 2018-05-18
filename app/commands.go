@@ -11,7 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func apiTest(c *config, m messenger, dataDir string) error {
+func apiTest(c config, m messenger, dataDir string) error {
 	log.Info("Starting api-test")
 
 	dataDirPath, err := filepath.Abs(dataDir)
@@ -33,7 +33,7 @@ func apiTest(c *config, m messenger, dataDir string) error {
 	sta := state{
 		messenger: m,
 		regions:   c.Regions,
-		statuses:  map[regionName]*status{},
+		statuses:  map[regionName]status{},
 		auctions:  map[regionName]map[realmSlug]miniAuctionList{},
 	}
 	for _, reg := range c.Regions {
@@ -90,16 +90,16 @@ func apiTest(c *config, m messenger, dataDir string) error {
 	return nil
 }
 
-func api(c *config, m messenger) error {
+func api(c config, m messenger) error {
 	log.Info("Starting api")
 
 	// establishing a state
 	resolver := newResolver(c)
 	sta := state{
 		messenger: m,
-		resolver:  &resolver,
+		resolver:  resolver,
 		regions:   c.Regions,
-		statuses:  map[regionName]*status{},
+		statuses:  map[regionName]status{},
 		auctions:  map[regionName]map[realmSlug]miniAuctionList{},
 		items:     map[itemID]item{},
 	}
@@ -185,7 +185,7 @@ func api(c *config, m messenger) error {
 			"realms":    len(sta.statuses[reg.Name].Realms),
 			"whitelist": whitelist,
 		}).Info("Downloading region")
-		auctionsOut := sta.statuses[reg.Name].Realms.getAuctionsOrAll(*sta.resolver, whitelist)
+		auctionsOut := sta.statuses[reg.Name].Realms.getAuctionsOrAll(sta.resolver, whitelist)
 		for job := range auctionsOut {
 			itemIDs := sta.auctionsIntake(job)
 			for _, ID := range itemIDs {
@@ -209,7 +209,7 @@ func api(c *config, m messenger) error {
 
 		// downloading items found in this region
 		log.WithField("items", len(regionItemIDs)).Info("Fetching items")
-		itemsOut := getItems(regionItemIDs, &resolver)
+		itemsOut := getItems(regionItemIDs, resolver)
 		for job := range itemsOut {
 			if job.err != nil {
 				log.WithFields(log.Fields{
@@ -221,7 +221,7 @@ func api(c *config, m messenger) error {
 				continue
 			}
 
-			sta.items[job.ID] = *job.item
+			sta.items[job.ID] = job.item
 		}
 		log.WithField("items", len(regionItemIDs)).Info("Fetched items")
 	}

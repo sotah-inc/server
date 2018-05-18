@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func validateItem(i *item) bool {
+func validateItem(i item) bool {
 	return i.ID != 0
 }
 
@@ -19,7 +19,7 @@ func TestNewItemFromHTTP(t *testing.T) {
 
 	a, err := newItemFromHTTP(
 		-1,
-		&resolver{
+		resolver{
 			getItemURL: func(regionHostname string, ID itemID) string { return ts.URL },
 			config:     &config{Regions: regionList{region{"", "", true}}},
 		},

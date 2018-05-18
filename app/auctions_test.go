@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func validateAuctions(a *auctions) bool {
+func validateAuctions(a auctions) bool {
 	if len(a.Realms) == 0 {
 		return false
 	}

@@ -20,47 +20,47 @@ func defaultGetAuctionsURL(url string) string {
 
 type getAuctionsURLFunc func(url string) string
 
-func newAuctionsFromHTTP(url string, r resolver) (*auctions, error) {
+func newAuctionsFromHTTP(url string, r resolver) (auctions, error) {
 	body, err := r.get(r.getAuctionsURL(url))
 	if err != nil {
-		return nil, err
+		return auctions{}, err
 	}
 
 	return newAuctions(body)
 }
 
-func newAuctionsFromFilepath(relativeFilepath string) (*auctions, error) {
+func newAuctionsFromFilepath(relativeFilepath string) (auctions, error) {
 	log.WithField("filepath", relativeFilepath).Info("Reading auctions from file")
 
 	body, err := util.ReadFile(relativeFilepath)
 	if err != nil {
-		return nil, err
+		return auctions{}, err
 	}
 
 	return newAuctions(body)
 }
 
-func newAuctionsFromGzFilepath(rea realm, relativeFilepath string) (*auctions, error) {
+func newAuctionsFromGzFilepath(rea realm, relativeFilepath string) (auctions, error) {
 	body, err := util.ReadFile(relativeFilepath)
 	if err != nil {
-		return nil, err
+		return auctions{}, err
 	}
 
 	decodedBody, err := util.GzipDecode(body)
 	if err != nil {
-		return nil, err
+		return auctions{}, err
 	}
 
 	return newAuctions(decodedBody)
 }
 
-func newAuctions(body []byte) (*auctions, error) {
+func newAuctions(body []byte) (auctions, error) {
 	a := &auctions{}
 	if err := json.Unmarshal(body, a); err != nil {
-		return nil, err
+		return auctions{}, err
 	}
 
-	return a, nil
+	return *a, nil
 }
 
 type auctionList []auction
@@ -140,22 +140,22 @@ func (auc auction) toMiniAuction() miniAuction {
 	}
 }
 
-func newMiniAuctionsDataFromFilepath(relativeFilepath string) (*miniAuctionsData, error) {
+func newMiniAuctionsDataFromFilepath(relativeFilepath string) (miniAuctionsData, error) {
 	body, err := util.ReadFile(relativeFilepath)
 	if err != nil {
-		return nil, err
+		return miniAuctionsData{}, err
 	}
 
 	return newMiniAuctionsData(body)
 }
 
-func newMiniAuctionsData(body []byte) (*miniAuctionsData, error) {
+func newMiniAuctionsData(body []byte) (miniAuctionsData, error) {
 	mad := &miniAuctionsData{}
 	if err := json.Unmarshal(body, mad); err != nil {
-		return mad, err
+		return miniAuctionsData{}, err
 	}
 
-	return mad, nil
+	return *mad, nil
 }
 
 type miniAuctionsData struct {
@@ -163,7 +163,7 @@ type miniAuctionsData struct {
 }
 
 type newMiniAuctionsFromMessengerConfig struct {
-	realm         *realm
+	realm         realm
 	messenger     messenger
 	count         int
 	page          int

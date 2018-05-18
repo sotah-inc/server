@@ -10,14 +10,14 @@ import (
 	nats "github.com/nats-io/go-nats"
 )
 
-func newOwnersRequest(payload []byte) (*ownersRequest, error) {
+func newOwnersRequest(payload []byte) (ownersRequest, error) {
 	request := &ownersRequest{}
 	err := json.Unmarshal(payload, &request)
 	if err != nil {
-		return nil, err
+		return ownersRequest{}, err
 	}
 
-	return request, nil
+	return *request, nil
 }
 
 type ownersRequest struct {
@@ -41,7 +41,7 @@ func (request ownersRequest) resolve(sta state) (miniAuctionList, error) {
 }
 
 func (sta state) listenForOwners(stop chan interface{}) error {
-	err := sta.messenger.subscribe(subjects.Owners, stop, func(natsMsg *nats.Msg) {
+	err := sta.messenger.subscribe(subjects.Owners, stop, func(natsMsg nats.Msg) {
 		m := newMessage()
 
 		// resolving the request

@@ -26,49 +26,49 @@ func defaultGetItemURL(regionHostname string, ID itemID) string {
 
 type getItemURLFunc func(string, itemID) string
 
-func newItemFromHTTP(ID itemID, r *resolver) (*item, error) {
+func newItemFromHTTP(ID itemID, r resolver) (item, error) {
 	if r.config == nil {
-		return nil, errors.New("Config cannot be nil")
+		return item{}, errors.New("Config cannot be nil")
 	}
 
 	primaryRegion, err := r.config.Regions.getPrimaryRegion()
 	if err != nil {
-		return nil, err
+		return item{}, err
 	}
 
 	body, err := r.get(r.getItemURL(primaryRegion.Hostname, ID))
 	if err != nil {
-		return nil, err
+		return item{}, err
 	}
 
 	return newItem(body)
 }
 
-func newItemFromFilepath(relativeFilepath string) (*item, error) {
+func newItemFromFilepath(relativeFilepath string) (item, error) {
 	body, err := util.ReadFile(relativeFilepath)
 	if err != nil {
-		return nil, err
+		return item{}, err
 	}
 
 	return newItem(body)
 }
 
-func newItem(body []byte) (*item, error) {
+func newItem(body []byte) (item, error) {
 	i := &item{}
 	if err := json.Unmarshal(body, i); err != nil {
-		return nil, err
+		return item{}, err
 	}
 
 	reg, err := regexp.Compile("[^a-z0-9 ]+")
 	if err != nil {
-		return nil, err
+		return item{}, err
 	}
 
 	if i.NormalizedName == "" {
 		i.NormalizedName = reg.ReplaceAllString(strings.ToLower(i.Name), "")
 	}
 
-	return i, nil
+	return *i, nil
 }
 
 type item struct {
@@ -80,10 +80,10 @@ type item struct {
 type getItemsJob struct {
 	err  error
 	ID   itemID
-	item *item
+	item item
 }
 
-func getItems(IDs []itemID, res *resolver) chan getItemsJob {
+func getItems(IDs []itemID, res resolver) chan getItemsJob {
 	// establishing channels
 	out := make(chan getItemsJob)
 	in := make(chan itemID)
@@ -112,9 +112,9 @@ func getItems(IDs []itemID, res *resolver) chan getItemsJob {
 	return out
 }
 
-func getItem(ID itemID, res *resolver) (*item, error) {
+func getItem(ID itemID, res resolver) (item, error) {
 	if res.config == nil {
-		return nil, errors.New("Config cannot be nil")
+		return item{}, errors.New("Config cannot be nil")
 	}
 
 	if res.config.UseCacheDir == false {
@@ -122,35 +122,35 @@ func getItem(ID itemID, res *resolver) (*item, error) {
 	}
 
 	if res.config.CacheDir == "" {
-		return nil, errors.New("Cache dir cannot be blank")
+		return item{}, errors.New("Cache dir cannot be blank")
 	}
 
 	itemFilepath, err := filepath.Abs(
 		fmt.Sprintf("%s/items/%d.json", res.config.CacheDir, ID),
 	)
 	if err != nil {
-		return nil, err
+		return item{}, err
 	}
 
 	if _, err := os.Stat(itemFilepath); err != nil {
 		if !os.IsNotExist(err) {
-			return nil, err
+			return item{}, err
 		}
 
 		primaryRegion, err := res.config.Regions.getPrimaryRegion()
 		if err != nil {
-			return nil, err
+			return item{}, err
 		}
 
 		log.WithField("item", ID).Info("Fetching item")
 
 		body, err := res.get(res.getItemURL(primaryRegion.Hostname, ID))
 		if err != nil {
-			return nil, err
+			return item{}, err
 		}
 
 		if err := util.WriteFile(itemFilepath, body); err != nil {
-			return nil, err
+			return item{}, err
 		}
 
 		return newItem(body)
@@ -161,40 +161,40 @@ func getItem(ID itemID, res *resolver) (*item, error) {
 
 type itemsMap map[itemID]item
 
-func newItemListResultFromMessenger(mess messenger, request itemsRequest) (*itemListResult, error) {
+func newItemListResultFromMessenger(mess messenger, request itemsRequest) (itemListResult, error) {
 	encodedMessage, err := json.Marshal(request)
 	if err != nil {
-		return nil, err
+		return itemListResult{}, err
 	}
 
 	msg, err := mess.request(subjects.Items, encodedMessage)
 	if err != nil {
-		return nil, err
+		return itemListResult{}, err
 	}
 
 	if msg.Code != codes.Ok {
-		return nil, errors.New(msg.Err)
+		return itemListResult{}, errors.New(msg.Err)
 	}
 
 	return newItemListResult([]byte(msg.Data))
 }
 
-func newItemListResultFromFilepath(relativeFilepath string) (*itemListResult, error) {
+func newItemListResultFromFilepath(relativeFilepath string) (itemListResult, error) {
 	body, err := util.ReadFile(relativeFilepath)
 	if err != nil {
-		return nil, err
+		return itemListResult{}, err
 	}
 
 	return newItemListResult(body)
 }
 
-func newItemListResult(body []byte) (*itemListResult, error) {
+func newItemListResult(body []byte) (itemListResult, error) {
 	i := &itemListResult{}
 	if err := json.Unmarshal(body, i); err != nil {
-		return nil, err
+		return itemListResult{}, err
 	}
 
-	return i, nil
+	return *i, nil
 }
 
 type itemListResult struct {

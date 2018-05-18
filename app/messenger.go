@@ -71,13 +71,13 @@ func newMessenger(host string, port int) (messenger, error) {
 	return mess, nil
 }
 
-func (mess messenger) subscribe(subject subjects.Subject, stop chan interface{}, cb func(*nats.Msg)) error {
+func (mess messenger) subscribe(subject subjects.Subject, stop chan interface{}, cb func(nats.Msg)) error {
 	log.WithField("subject", subject).Info("Subscribing to subject")
 
 	sub, err := mess.conn.Subscribe(string(subject), func(natsMsg *nats.Msg) {
 		log.WithField("subject", subject).Debug("Received request")
 
-		cb(natsMsg)
+		cb(*natsMsg)
 	})
 	if err != nil {
 		return err
@@ -94,7 +94,7 @@ func (mess messenger) subscribe(subject subjects.Subject, stop chan interface{},
 	return nil
 }
 
-func (mess messenger) replyTo(natsMsg *nats.Msg, m message) error {
+func (mess messenger) replyTo(natsMsg nats.Msg, m message) error {
 	if m.Code == codes.Blank {
 		return errors.New("Code cannot be blank")
 	}
@@ -123,17 +123,17 @@ func (mess messenger) replyTo(natsMsg *nats.Msg, m message) error {
 	return nil
 }
 
-func (mess messenger) request(subject subjects.Subject, data []byte) (*message, error) {
+func (mess messenger) request(subject subjects.Subject, data []byte) (message, error) {
 	natsMsg, err := mess.conn.Request(string(subject), data, 5*time.Second)
 	if err != nil {
-		return nil, err
+		return message{}, err
 	}
 
 	// json-decoding the message
 	msg := &message{}
 	if err = json.Unmarshal(natsMsg.Data, &msg); err != nil {
-		return nil, err
+		return message{}, err
 	}
 
-	return msg, nil
+	return *msg, nil
 }

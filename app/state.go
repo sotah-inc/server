@@ -11,10 +11,10 @@ import (
 
 type state struct {
 	messenger messenger
-	resolver  *resolver
+	resolver  resolver
 
 	regions  []region
-	statuses map[regionName]*status
+	statuses map[regionName]status
 	auctions map[regionName]map[realmSlug]miniAuctionList
 	items    itemsMap
 }
@@ -25,7 +25,7 @@ type requestError struct {
 }
 
 func (sta state) listenForRegions(stop chan interface{}) error {
-	err := sta.messenger.subscribe(subjects.Regions, stop, func(natsMsg *nats.Msg) {
+	err := sta.messenger.subscribe(subjects.Regions, stop, func(natsMsg nats.Msg) {
 		m := newMessage()
 
 		encodedRegions, err := json.Marshal(sta.regions)
@@ -48,7 +48,7 @@ func (sta state) listenForRegions(stop chan interface{}) error {
 }
 
 func (sta state) listenForGenericTestErrors(stop chan interface{}) error {
-	err := sta.messenger.subscribe(subjects.GenericTestErrors, stop, func(natsMsg *nats.Msg) {
+	err := sta.messenger.subscribe(subjects.GenericTestErrors, stop, func(natsMsg nats.Msg) {
 		m := newMessage()
 		m.Err = "Test error"
 		m.Code = codes.GenericError

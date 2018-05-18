@@ -8,24 +8,24 @@ import (
 	"github.com/ihsw/sotah-server/app/util"
 )
 
-func newConfigFromFilepath(relativePath string) (*config, error) {
+func newConfigFromFilepath(relativePath string) (config, error) {
 	log.WithField("path", relativePath).Info("Reading config")
 
 	body, err := util.ReadFile(relativePath)
 	if err != nil {
-		return nil, err
+		return config{}, err
 	}
 
 	return newConfig(body)
 }
 
-func newConfig(body []byte) (*config, error) {
+func newConfig(body []byte) (config, error) {
 	c := &config{}
 	if err := json.Unmarshal(body, &c); err != nil {
-		return nil, err
+		return config{}, err
 	}
 
-	return c, nil
+	return *c, nil
 }
 
 type config struct {

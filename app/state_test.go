@@ -29,7 +29,7 @@ func TestListenForRegions(t *testing.T) {
 	if !validateStatus(t, reg, s) {
 		return
 	}
-	sta.statuses = map[regionName]*status{reg.Name: s}
+	sta.statuses = map[regionName]status{reg.Name: s}
 
 	// building test config
 	c, err := newConfigFromFilepath("./TestData/config.json")

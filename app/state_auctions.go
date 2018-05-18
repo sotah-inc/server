@@ -12,14 +12,14 @@ import (
 	nats "github.com/nats-io/go-nats"
 )
 
-func newAuctionsRequest(payload []byte) (*auctionsRequest, error) {
+func newAuctionsRequest(payload []byte) (auctionsRequest, error) {
 	ar := &auctionsRequest{}
 	err := json.Unmarshal(payload, &ar)
 	if err != nil {
-		return &auctionsRequest{}, err
+		return auctionsRequest{}, err
 	}
 
-	return ar, nil
+	return *ar, nil
 }
 
 type auctionsRequest struct {
@@ -103,7 +103,7 @@ func (ar auctionsResponse) encodeForMessage() (string, error) {
 }
 
 func (sta state) listenForAuctions(stop chan interface{}) error {
-	err := sta.messenger.subscribe(subjects.Auctions, stop, func(natsMsg *nats.Msg) {
+	err := sta.messenger.subscribe(subjects.Auctions, stop, func(natsMsg nats.Msg) {
 		m := newMessage()
 
 		aRequest, err := newAuctionsRequest(natsMsg.Data)

@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func validateStatus(t *testing.T, reg region, s *status) bool {
+func validateStatus(t *testing.T, reg region, s status) bool {
 	if !assert.NotEmpty(t, s.Realms) {
 		return false
 	}
@@ -70,7 +70,7 @@ func TestNewStatusFromMessenger(t *testing.T) {
 	if !validateStatus(t, reg, s) {
 		return
 	}
-	sta.statuses = map[regionName]*status{reg.Name: s}
+	sta.statuses = map[regionName]status{reg.Name: s}
 	sta.regions = []region{reg}
 
 	// setting up a subscriber that will publish status retrieval requests

@@ -32,40 +32,40 @@ func newOwnersFromAuctions(aucs miniAuctionList) owners {
 	return owners{Owners: ownerList}
 }
 
-func newOwnersFromMessenger(mess messenger, request ownersRequest) (*owners, error) {
+func newOwnersFromMessenger(mess messenger, request ownersRequest) (owners, error) {
 	encodedMessage, err := json.Marshal(request)
 	if err != nil {
-		return nil, err
+		return owners{}, err
 	}
 
 	msg, err := mess.request(subjects.Owners, encodedMessage)
 	if err != nil {
-		return nil, err
+		return owners{}, err
 	}
 
 	if msg.Code != codes.Ok {
-		return nil, errors.New(msg.Err)
+		return owners{}, errors.New(msg.Err)
 	}
 
 	return newOwners([]byte(msg.Data))
 }
 
-func newOwnersFromFilepath(relativeFilepath string) (*owners, error) {
+func newOwnersFromFilepath(relativeFilepath string) (owners, error) {
 	body, err := util.ReadFile(relativeFilepath)
 	if err != nil {
-		return nil, err
+		return owners{}, err
 	}
 
 	return newOwners(body)
 }
 
-func newOwners(payload []byte) (*owners, error) {
+func newOwners(payload []byte) (owners, error) {
 	o := &owners{}
 	if err := json.Unmarshal(payload, &o); err != nil {
-		return nil, err
+		return owners{}, err
 	}
 
-	return o, nil
+	return *o, nil
 }
 
 type owners struct {

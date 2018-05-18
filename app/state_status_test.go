@@ -29,7 +29,7 @@ func TestListenForStatus(t *testing.T) {
 		return
 	}
 	sta.regions = []region{reg}
-	sta.statuses = map[regionName]*status{reg.Name: s}
+	sta.statuses = map[regionName]status{reg.Name: s}
 
 	// setting up a listener for responding to status requests
 	stop := make(chan interface{})
@@ -59,7 +59,7 @@ func TestListenForNonexistentStatusNoResolver(t *testing.T) {
 		return
 	}
 	sta.messenger = mess
-	sta.statuses = map[regionName]*status{}
+	sta.statuses = map[regionName]status{}
 
 	// setting up a listener for responding to status requests
 	stop := make(chan interface{})
@@ -87,7 +87,7 @@ func TestListenForNonexistentStatus(t *testing.T) {
 	}))
 
 	sta := state{
-		resolver: &resolver{
+		resolver: resolver{
 			getStatusURL: func(regionHostname string) string { return ts.URL },
 		},
 	}
@@ -98,7 +98,7 @@ func TestListenForNonexistentStatus(t *testing.T) {
 		return
 	}
 	sta.messenger = mess
-	sta.statuses = map[regionName]*status{}
+	sta.statuses = map[regionName]status{}
 
 	// setting up a listener for responding to status requests
 	stop := make(chan interface{})
@@ -129,7 +129,7 @@ func TestListenForStatusToFetch(t *testing.T) {
 	// loading state with a resolver to the test server and a single region
 	reg := region{Name: "test", Hostname: "test"}
 	sta := state{
-		resolver: &resolver{
+		resolver: resolver{
 			getStatusURL: func(regionHostname string) string { return ts.URL },
 		},
 		regions:  []region{reg},
@@ -143,7 +143,7 @@ func TestListenForStatusToFetch(t *testing.T) {
 		return
 	}
 	sta.messenger = mess
-	sta.statuses = map[regionName]*status{}
+	sta.statuses = map[regionName]status{}
 
 	// setting up a listener for responding to status requests
 	stop := make(chan interface{})

@@ -6,9 +6,9 @@ import (
 	"github.com/ihsw/sotah-server/app/util"
 )
 
-func newResolver(c *config) resolver {
+func newResolver(c config) resolver {
 	return resolver{
-		config: c,
+		config: &c,
 
 		getStatusURL:      defaultGetStatusURL,
 		getAuctionInfoURL: defaultGetAuctionInfoURL,

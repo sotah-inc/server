@@ -46,6 +46,6 @@ type region struct {
 	Primary  bool       `json:"primary"`
 }
 
-func (reg region) getStatus(res resolver) (*status, error) {
+func (reg region) getStatus(res resolver) (status, error) {
 	return newStatusFromHTTP(reg, res)
 }

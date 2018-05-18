@@ -10,23 +10,23 @@ import (
 	nats "github.com/nats-io/go-nats"
 )
 
-func newItemsRequest(payload []byte) (*itemsRequest, error) {
+func newItemsRequest(payload []byte) (itemsRequest, error) {
 	request := &itemsRequest{}
 	err := json.Unmarshal(payload, &request)
 	if err != nil {
-		return nil, err
+		return itemsRequest{}, err
 	}
 
-	return request, nil
+	return *request, nil
 }
 
 type itemsRequest struct {
 	Query string `json:"query"`
 }
 
-func (request itemsRequest) resolve(sta state) (*itemListResult, error) {
+func (request itemsRequest) resolve(sta state) (itemListResult, error) {
 	if sta.items == nil {
-		return nil, errors.New("Items were nil")
+		return itemListResult{}, errors.New("Items were nil")
 	}
 
 	result := itemListResult{Items: itemList{}}
@@ -34,11 +34,11 @@ func (request itemsRequest) resolve(sta state) (*itemListResult, error) {
 		result.Items = append(result.Items, itemValue)
 	}
 
-	return &result, nil
+	return result, nil
 }
 
 func (sta state) listenForItems(stop chan interface{}) error {
-	err := sta.messenger.subscribe(subjects.Items, stop, func(natsMsg *nats.Msg) {
+	err := sta.messenger.subscribe(subjects.Items, stop, func(natsMsg nats.Msg) {
 		m := newMessage()
 
 		// resolving the request

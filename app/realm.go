@@ -16,7 +16,7 @@ type getAuctionsWhitelist map[realmSlug]interface{}
 type getAuctionsJob struct {
 	err      error
 	realm    realm
-	auctions *auctions
+	auctions auctions
 }
 
 type realms []realm
@@ -72,23 +72,23 @@ func (reas realms) getAuctions(res resolver, whitelist getAuctionsWhitelist) cha
 	return out
 }
 
-func newRealmFromFilepath(reg region, relativeFilepath string) (*realm, error) {
+func newRealmFromFilepath(reg region, relativeFilepath string) (realm, error) {
 	body, err := util.ReadFile(relativeFilepath)
 	if err != nil {
-		return nil, err
+		return realm{}, err
 	}
 
 	return newRealm(reg, body)
 }
 
-func newRealm(reg region, body []byte) (*realm, error) {
+func newRealm(reg region, body []byte) (realm, error) {
 	rea := &realm{}
 	if err := json.Unmarshal(body, &rea); err != nil {
-		return nil, err
+		return realm{}, err
 	}
 
 	rea.region = reg
-	return rea, nil
+	return *rea, nil
 }
 
 type realmSlug string
@@ -112,19 +112,19 @@ func (rea realm) LogEntry() *log.Entry {
 	return log.WithFields(log.Fields{"region": rea.region.Name, "realm": rea.Slug})
 }
 
-func (rea realm) getAuctions(res resolver) (*auctions, error) {
+func (rea realm) getAuctions(res resolver) (auctions, error) {
 	aucInfo, err := newAuctionInfoFromHTTP(rea, res)
 	if err != nil {
-		return nil, err
+		return auctions{}, err
 	}
 
 	if len(aucInfo.Files) == 0 {
-		return nil, errors.New("Cannot fetch auctions with blank files")
+		return auctions{}, errors.New("Cannot fetch auctions with blank files")
 	}
 	af := aucInfo.Files[0]
 
 	if res.config == nil {
-		return nil, errors.New("Config cannot be nil")
+		return auctions{}, errors.New("Config cannot be nil")
 	}
 
 	if res.config.UseCacheDir == false {
@@ -132,33 +132,33 @@ func (rea realm) getAuctions(res resolver) (*auctions, error) {
 	}
 
 	if res.config.CacheDir == "" {
-		return nil, errors.New("Cache dir cannot be blank")
+		return auctions{}, errors.New("Cache dir cannot be blank")
 	}
 
 	if rea.region.Name == "" {
-		return nil, errors.New("Region name cannot be blank")
+		return auctions{}, errors.New("Region name cannot be blank")
 	}
 
 	auctionsFilepath, err := filepath.Abs(
 		fmt.Sprintf("%s/auctions/%s/%s.json.gz", res.config.CacheDir, rea.region.Name, rea.Slug),
 	)
 	if err != nil {
-		return nil, err
+		return auctions{}, err
 	}
 
 	if _, err := os.Stat(auctionsFilepath); err != nil {
 		if !os.IsNotExist(err) {
-			return nil, err
+			return auctions{}, err
 		}
 
 		body, err := res.get(res.getAuctionsURL(af.URL))
 		if err != nil {
-			return nil, err
+			return auctions{}, err
 		}
 
 		encodedBody, err := util.GzipEncode(body)
 		if err != nil {
-			return nil, err
+			return auctions{}, err
 		}
 
 		log.WithFields(log.Fields{
@@ -166,7 +166,7 @@ func (rea realm) getAuctions(res resolver) (*auctions, error) {
 			"realm":  rea.Slug,
 		}).Debug("Writing auction data to cache dir")
 		if err := util.WriteFile(auctionsFilepath, encodedBody); err != nil {
-			return nil, err
+			return auctions{}, err
 		}
 
 		return newAuctions(body)
