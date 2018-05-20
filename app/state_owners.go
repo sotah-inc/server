@@ -64,7 +64,14 @@ func (sta state) listenForOwners(stop chan interface{}) error {
 			return
 		}
 
-		o := newOwnersFromAuctions(mal)
+		o, err := newOwnersFromAuctions(mal)
+		if err != nil {
+			m.Err = err.Error()
+			m.Code = codes.GenericError
+			sta.messenger.replyTo(natsMsg, m)
+
+			return
+		}
 
 		// optionally filtering in matches
 		if request.Query != "" {

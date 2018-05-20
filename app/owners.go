@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"regexp"
 	"strings"
 
 	"github.com/ihsw/sotah-server/app/codes"
@@ -13,23 +14,32 @@ import (
 type ownerName string
 
 type owner struct {
-	Name ownerName `json:"name"`
+	Name           ownerName `json:"name"`
+	NormalizedName string    `json:"normalized_name"`
 }
 
-func newOwnersFromAuctions(aucs miniAuctionList) owners {
+func newOwnersFromAuctions(aucs miniAuctionList) (owners, error) {
 	ownerNamesMap := map[ownerName]struct{}{}
 	for _, ma := range aucs {
 		ownerNamesMap[ma.Owner] = struct{}{}
 	}
 
+	reg, err := regexp.Compile("[^a-z0-9 ]+")
+	if err != nil {
+		return owners{}, err
+	}
+
 	ownerList := make([]owner, len(ownerNamesMap))
 	i := 0
 	for ownerNameValue := range ownerNamesMap {
-		ownerList[i] = owner{ownerNameValue}
+		ownerList[i] = owner{
+			Name:           ownerNameValue,
+			NormalizedName: reg.ReplaceAllString(strings.ToLower(string(ownerNameValue)), ""),
+		}
 		i++
 	}
 
-	return owners{Owners: ownerList}
+	return owners{Owners: ownerList}, nil
 }
 
 func newOwnersFromMessenger(mess messenger, request ownersRequest) (owners, error) {
