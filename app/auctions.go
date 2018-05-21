@@ -180,7 +180,7 @@ func (config newMiniAuctionsFromMessengerConfig) toAuctionsRequest() auctionsReq
 		Page:          config.page,
 		SortDirection: config.sortDirection,
 		SortKind:      config.sortKind,
-		OwnerFilter:   config.ownerFilter,
+		OwnerFilters:  []ownerName{config.ownerFilter},
 	}
 }
 
@@ -244,22 +244,26 @@ func (mAuctionList miniAuctionList) sort(kind sortkinds.SortKind, direction sort
 	return mas.sort(kind, direction, mAuctionList)
 }
 
-func (mAuctionList miniAuctionList) filterByOwnerName(ownerNameFilter ownerName) miniAuctionList {
+func (mAuctionList miniAuctionList) filterByOwnerNames(ownerNameFilters []ownerName) miniAuctionList {
 	out := miniAuctionList{}
 	for _, ma := range mAuctionList {
-		if ma.Owner == ownerNameFilter {
-			out = append(out, ma)
+		for _, ownerNameFilter := range ownerNameFilters {
+			if ma.Owner == ownerNameFilter {
+				out = append(out, ma)
+			}
 		}
 	}
 
 	return out
 }
 
-func (mAuctionList miniAuctionList) filterByItemID(itemIDFilter itemID) miniAuctionList {
+func (mAuctionList miniAuctionList) filterByItemIDs(itemIDFilters []itemID) miniAuctionList {
 	out := miniAuctionList{}
 	for _, ma := range mAuctionList {
-		if ma.Item == itemIDFilter {
-			out = append(out, ma)
+		for _, itemIDFilter := range itemIDFilters {
+			if ma.Item == itemIDFilter {
+				out = append(out, ma)
+			}
 		}
 	}
 
