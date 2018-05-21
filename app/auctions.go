@@ -129,7 +129,7 @@ func (auc auction) toMiniAuctionHash() miniAuctionHash {
 
 func (auc auction) toMiniAuction() miniAuction {
 	return miniAuction{
-		auc.Item,
+		item{ID: auc.Item, Name: "", NormalizedName: ""},
 		auc.Owner,
 		auc.OwnerRealm,
 		auc.Bid,
@@ -261,7 +261,7 @@ func (mAuctionList miniAuctionList) filterByItemIDs(itemIDFilters []itemID) mini
 	out := miniAuctionList{}
 	for _, ma := range mAuctionList {
 		for _, itemIDFilter := range itemIDFilters {
-			if ma.Item == itemIDFilter {
+			if ma.Item.ID == itemIDFilter {
 				out = append(out, ma)
 			}
 		}
@@ -273,7 +273,7 @@ func (mAuctionList miniAuctionList) filterByItemIDs(itemIDFilters []itemID) mini
 func (mAuctionList miniAuctionList) itemIds() []itemID {
 	result := map[itemID]struct{}{}
 	for _, ma := range mAuctionList {
-		result[ma.Item] = struct{}{}
+		result[ma.Item.ID] = struct{}{}
 	}
 
 	out := []itemID{}
@@ -284,11 +284,22 @@ func (mAuctionList miniAuctionList) itemIds() []itemID {
 	return out
 }
 
+func (maList miniAuctionList) appendItemNames(iMap itemsMap) miniAuctionList {
+	for i, mAuction := range maList {
+		foundItem, ok := iMap[mAuction.Item.ID]
+		if ok {
+			maList[i].Item = foundItem
+		}
+	}
+
+	return maList
+}
+
 type miniAuctions map[miniAuctionHash]miniAuction
 type miniAuctionHash string
 
 type miniAuction struct {
-	Item       itemID    `json:"item"`
+	Item       item      `json:"item"`
 	Owner      ownerName `json:"owner"`
 	OwnerRealm string    `json:"ownerRealm"`
 	Bid        int64     `json:"bid"`

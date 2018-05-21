@@ -106,6 +106,7 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 	err := sta.messenger.subscribe(subjects.Auctions, stop, func(natsMsg nats.Msg) {
 		m := newMessage()
 
+		// resolving the request
 		aRequest, err := newAuctionsRequest(natsMsg.Data)
 		if err != nil {
 			m.Err = err.Error()
@@ -115,6 +116,7 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 			return
 		}
 
+		// resolving data from state
 		realmAuctions, reErr := aRequest.resolve(sta)
 		if reErr.code != codes.Ok {
 			m.Err = reErr.message
@@ -124,8 +126,10 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 			return
 		}
 
+		// initial response format
 		aResponse := auctionsResponse{Total: -1, TotalCount: -1, AuctionList: realmAuctions}
 
+		// filtering in auctions by owners or items
 		if len(aRequest.OwnerFilters) > 0 {
 			aResponse.AuctionList = aResponse.AuctionList.filterByOwnerNames(aRequest.OwnerFilters)
 		}
@@ -133,14 +137,17 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 			aResponse.AuctionList = aResponse.AuctionList.filterByItemIDs(aRequest.ItemFilters)
 		}
 
+		// calculating the total for paging
 		aResponse.Total = len(aResponse.AuctionList)
 
+		// calculating the total-count for review
 		totalCount := 0
 		for _, mAuction := range realmAuctions {
 			totalCount += len(mAuction.AucList)
 		}
 		aResponse.TotalCount = totalCount
 
+		// optionally sorting
 		if aRequest.SortKind != sortkinds.None && aRequest.SortDirection != sortdirections.None {
 			err = aResponse.AuctionList.sort(aRequest.SortKind, aRequest.SortDirection)
 			if err != nil {
@@ -152,6 +159,7 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 			}
 		}
 
+		// truncating the list
 		aResponse.AuctionList, err = aResponse.AuctionList.limit(aRequest.Count, aRequest.Page)
 		if err != nil {
 			m.Err = err.Error()
@@ -161,6 +169,10 @@ func (sta state) listenForAuctions(stop chan interface{}) error {
 			return
 		}
 
+		// appending item names where appropriate
+		aResponse.AuctionList = aResponse.AuctionList.appendItemNames(sta.items)
+
+		// encoding the auctions list for output
 		data, err := aResponse.encodeForMessage()
 		if err != nil {
 			m.Err = err.Error()
