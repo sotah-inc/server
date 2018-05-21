@@ -8,12 +8,14 @@ import (
 	"github.com/ihsw/sotah-server/app/codes"
 	"github.com/ihsw/sotah-server/app/subjects"
 	nats "github.com/nats-io/go-nats"
+	"github.com/renstrom/fuzzysearch/fuzzy"
 )
 
 type auctionsQueryItem struct {
 	Target string `json:"target"`
 	Item   item   `json:"item"`
 	Owner  owner  `json:"owner"`
+	Rank   int    `json:"rank"`
 }
 
 type auctionsQueryItems []auctionsQueryItem
@@ -32,11 +34,29 @@ func (aqItems auctionsQueryItems) limit() auctionsQueryItems {
 	return out
 }
 
+func (aqItems auctionsQueryItems) filterLowRank() auctionsQueryItems {
+	out := auctionsQueryItems{}
+	for _, item := range aqItems {
+		if item.Rank == -1 {
+			continue
+		}
+		out = append(out, item)
+	}
+
+	return out
+}
+
 type auctionsQueryItemsByNames auctionsQueryItems
 
 func (by auctionsQueryItemsByNames) Len() int           { return len(by) }
 func (by auctionsQueryItemsByNames) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
 func (by auctionsQueryItemsByNames) Less(i, j int) bool { return by[i].Target < by[j].Target }
+
+type auctionsQueryItemsByRank auctionsQueryItems
+
+func (by auctionsQueryItemsByRank) Len() int           { return len(by) }
+func (by auctionsQueryItemsByRank) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
+func (by auctionsQueryItemsByRank) Less(i, j int) bool { return by[i].Rank < by[j].Rank }
 
 func newAuctionsQueryResultFromMessenger(mess messenger, request auctionsQueryRequest) (auctionsQueryResult, error) {
 	encodedMessage, err := json.Marshal(request)
@@ -157,8 +177,19 @@ func (sta state) listenForAuctionsQuery(stop chan interface{}) error {
 			return
 		}
 
-		// sorting and truncating the list of items
-		sort.Sort(auctionsQueryItemsByNames(aqResult.Items))
+		// optionally sorting by rank and truncating or sorting by name
+		if request.Query != "" {
+			for i, item := range aqResult.Items {
+				item.Rank = fuzzy.RankMatchFold(request.Query, item.Target)
+				aqResult.Items[i] = item
+			}
+			aqResult.Items = aqResult.Items.filterLowRank()
+			sort.Sort(auctionsQueryItemsByRank(aqResult.Items))
+		} else {
+			sort.Sort(auctionsQueryItemsByNames(aqResult.Items))
+		}
+
+		// sorting
 		aqResult.Items = aqResult.Items.limit()
 
 		// marshalling for messenger
