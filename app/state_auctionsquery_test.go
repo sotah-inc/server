@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -60,8 +59,6 @@ func TestListenForAuctionsQuery(t *testing.T) {
 
 		return
 	}
-
-	fmt.Println(fmt.Sprintf("%v", aqResult.Items))
 
 	stop <- struct{}{}
 }
