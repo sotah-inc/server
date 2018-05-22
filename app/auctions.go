@@ -220,10 +220,10 @@ func newMiniAuctions(body []byte) (miniAuctionList, error) {
 
 type miniAuctionList []miniAuction
 
-func (mAuctionList miniAuctionList) limit(count int, page int) (miniAuctionList, error) {
-	alLength := len(mAuctionList)
+func (maList miniAuctionList) limit(count int, page int) (miniAuctionList, error) {
+	alLength := len(maList)
 	if alLength == 0 {
-		return mAuctionList, nil
+		return maList, nil
 	}
 
 	start := page * count
@@ -233,20 +233,20 @@ func (mAuctionList miniAuctionList) limit(count int, page int) (miniAuctionList,
 
 	end := start + count
 	if end > alLength {
-		return mAuctionList[start:], nil
+		return maList[start:], nil
 	}
 
-	return mAuctionList[start:end], nil
+	return maList[start:end], nil
 }
 
-func (mAuctionList miniAuctionList) sort(kind sortkinds.SortKind, direction sortdirections.SortDirection) error {
+func (maList miniAuctionList) sort(kind sortkinds.SortKind, direction sortdirections.SortDirection) error {
 	mas := newMiniAuctionSorter()
-	return mas.sort(kind, direction, mAuctionList)
+	return mas.sort(kind, direction, maList)
 }
 
-func (mAuctionList miniAuctionList) filterByOwnerNames(ownerNameFilters []ownerName) miniAuctionList {
+func (maList miniAuctionList) filterByOwnerNames(ownerNameFilters []ownerName) miniAuctionList {
 	out := miniAuctionList{}
-	for _, ma := range mAuctionList {
+	for _, ma := range maList {
 		for _, ownerNameFilter := range ownerNameFilters {
 			if ma.Owner == ownerNameFilter {
 				out = append(out, ma)
@@ -257,9 +257,9 @@ func (mAuctionList miniAuctionList) filterByOwnerNames(ownerNameFilters []ownerN
 	return out
 }
 
-func (mAuctionList miniAuctionList) filterByItemIDs(itemIDFilters []itemID) miniAuctionList {
+func (maList miniAuctionList) filterByItemIDs(itemIDFilters []itemID) miniAuctionList {
 	out := miniAuctionList{}
-	for _, ma := range mAuctionList {
+	for _, ma := range maList {
 		for _, itemIDFilter := range itemIDFilters {
 			if ma.Item.ID == itemIDFilter {
 				out = append(out, ma)
@@ -270,9 +270,9 @@ func (mAuctionList miniAuctionList) filterByItemIDs(itemIDFilters []itemID) mini
 	return out
 }
 
-func (mAuctionList miniAuctionList) itemIds() []itemID {
+func (maList miniAuctionList) itemIds() []itemID {
 	result := map[itemID]struct{}{}
-	for _, ma := range mAuctionList {
+	for _, ma := range maList {
 		result[ma.Item.ID] = struct{}{}
 	}
 
