@@ -74,6 +74,7 @@ func newItem(body []byte) (item, error) {
 type item struct {
 	ID             itemID `json:"id"`
 	Name           string `json:"name"`
+	Quality        int    `json:"quality"`
 	NormalizedName string `json:"normalized_name"`
 }
 
