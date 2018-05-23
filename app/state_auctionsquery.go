@@ -56,7 +56,7 @@ type auctionsQueryItemsByRank auctionsQueryItems
 
 func (by auctionsQueryItemsByRank) Len() int           { return len(by) }
 func (by auctionsQueryItemsByRank) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
-func (by auctionsQueryItemsByRank) Less(i, j int) bool { return by[i].Rank > by[j].Rank }
+func (by auctionsQueryItemsByRank) Less(i, j int) bool { return by[i].Rank < by[j].Rank }
 
 func newAuctionsQueryResultFromMessenger(mess messenger, request auctionsQueryRequest) (auctionsQueryResult, error) {
 	encodedMessage, err := json.Marshal(request)
