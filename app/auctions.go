@@ -128,12 +128,18 @@ func (auc auction) toMiniAuctionHash() miniAuctionHash {
 }
 
 func (auc auction) toMiniAuction() miniAuction {
+	var buyoutPer float32
+	if auc.Buyout > 0 {
+		buyoutPer = float32(auc.Buyout) / float32(auc.Quantity)
+	}
+
 	return miniAuction{
 		item{ID: auc.Item, Name: "", NormalizedName: ""},
 		auc.Owner,
 		auc.OwnerRealm,
 		auc.Bid,
 		auc.Buyout,
+		buyoutPer,
 		auc.Quantity,
 		auc.TimeLeft,
 		[]int64{},
@@ -304,6 +310,7 @@ type miniAuction struct {
 	OwnerRealm string    `json:"ownerRealm"`
 	Bid        int64     `json:"bid"`
 	Buyout     int64     `json:"buyout"`
+	BuyoutPer  float32   `json:"buyoutPer"`
 	Quantity   int64     `json:"quantity"`
 	TimeLeft   string    `json:"timeLeft"`
 	AucList    []int64   `json:"aucList"`

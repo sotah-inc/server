@@ -12,6 +12,7 @@ const (
 	Quantity
 	Bid
 	Buyout
+	BuyoutPer
 	Auctions
 	Owner
 )
