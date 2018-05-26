@@ -94,10 +94,10 @@ func api(c config, m messenger) error {
 	log.Info("Starting api")
 
 	// establishing a state
-	resolver := newResolver(c)
+	res := newResolver(c)
 	sta := state{
 		messenger: m,
-		resolver:  resolver,
+		resolver:  res,
 		regions:   c.Regions,
 		statuses:  map[regionName]status{},
 		auctions:  map[regionName]map[realmSlug]miniAuctionList{},
@@ -116,6 +116,12 @@ func api(c config, m messenger) error {
 		return err
 	}
 
+	// ensuring item-icons cache-dir exists
+	err = util.EnsureDirExists(fmt.Sprintf("%s/item-icons", c.CacheDir))
+	if err != nil {
+		return err
+	}
+
 	// ensuring each region-auctions cache-dir exists
 	for _, reg := range c.Regions {
 		err := util.EnsureDirExists(fmt.Sprintf("%s/auctions/%s", c.CacheDir, reg.Name))
@@ -126,7 +132,7 @@ func api(c config, m messenger) error {
 
 	// filling state with region statuses and a blank list of auctions
 	for _, reg := range c.Regions {
-		regionStatus, err := reg.getStatus(resolver)
+		regionStatus, err := reg.getStatus(res)
 		if err != nil {
 			return err
 		}
@@ -213,7 +219,7 @@ func api(c config, m messenger) error {
 
 		// downloading items found in this region
 		log.WithField("items", len(regionItemIDs)).Info("Fetching items")
-		itemsOut := getItems(regionItemIDs, resolver)
+		itemsOut := getItems(regionItemIDs, res)
 		for job := range itemsOut {
 			if job.err != nil {
 				log.WithFields(log.Fields{
@@ -228,6 +234,22 @@ func api(c config, m messenger) error {
 			sta.items[job.ID] = job.item
 		}
 		log.WithField("items", len(regionItemIDs)).Info("Fetched items")
+
+		// downloading item icons found in this region
+		iconNames := sta.items.getItemIcons()
+		log.WithField("items", len(iconNames)).Info("Syncing item icons")
+		itemIconsOut := syncItemIcons(iconNames, res)
+		for job := range itemIconsOut {
+			if job.err != nil {
+				log.WithFields(log.Fields{
+					"item":  job.icon,
+					"error": job.err.Error(),
+				}).Info("Failed to sync item icon")
+
+				continue
+			}
+		}
+		log.WithField("items", len(iconNames)).Info("Synced item icons")
 	}
 
 	// catching SIGINT

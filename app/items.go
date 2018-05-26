@@ -76,6 +76,7 @@ type item struct {
 	Name           string `json:"name"`
 	Quality        int    `json:"quality"`
 	NormalizedName string `json:"normalized_name"`
+	Icon           string `json:"icon"`
 }
 
 type getItemsJob struct {
@@ -161,6 +162,26 @@ func getItem(ID itemID, res resolver) (item, error) {
 }
 
 type itemsMap map[itemID]item
+
+func (iMap itemsMap) getItemIcons() []string {
+	iconsMap := map[string]struct{}{}
+	for _, iValue := range iMap {
+		if iValue.Icon == "" {
+			continue
+		}
+
+		iconsMap[iValue.Icon] = struct{}{}
+	}
+
+	i := 0
+	out := make([]string, len(iconsMap))
+	for iconName := range iconsMap {
+		out[i] = iconName
+		i++
+	}
+
+	return out
+}
 
 func newItemListResultFromMessenger(mess messenger, request itemsRequest) (itemListResult, error) {
 	encodedMessage, err := json.Marshal(request)

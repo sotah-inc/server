@@ -14,6 +14,7 @@ func newResolver(c config) resolver {
 		getAuctionInfoURL: defaultGetAuctionInfoURL,
 		getAuctionsURL:    defaultGetAuctionsURL,
 		getItemURL:        defaultGetItemURL,
+		getItemIconURL:    defaultGetItemIconURL,
 	}
 }
 
@@ -49,4 +50,5 @@ type resolver struct {
 	getAuctionInfoURL getAuctionInfoURLFunc
 	getAuctionsURL    getAuctionsURLFunc
 	getItemURL        getItemURLFunc
+	getItemIconURL    getItemIconURLFunc
 }
