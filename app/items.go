@@ -77,6 +77,7 @@ type item struct {
 	Quality        int    `json:"quality"`
 	NormalizedName string `json:"normalized_name"`
 	Icon           string `json:"icon"`
+	ItemLevel      int    `json:"itemLevel"`
 }
 
 type getItemsJob struct {
