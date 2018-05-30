@@ -1,0 +1,14 @@
+{
+    "classes": [
+        {
+            "class": 1,
+            "name": "Test",
+            "subclasses": [
+                {
+                    "subclass": 0,
+                    "name": "Test"
+                }
+            ]
+        }
+    ]
+}

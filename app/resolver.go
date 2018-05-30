@@ -51,4 +51,5 @@ type resolver struct {
 	getAuctionsURL    getAuctionsURLFunc
 	getItemURL        getItemURLFunc
 	getItemIconURL    getItemIconURLFunc
+	getItemClassesURL getItemClassesURLFunc
 }
