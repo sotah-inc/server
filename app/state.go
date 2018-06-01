@@ -13,10 +13,11 @@ type state struct {
 	messenger messenger
 	resolver  resolver
 
-	regions  []region
-	statuses map[regionName]status
-	auctions map[regionName]map[realmSlug]miniAuctionList
-	items    itemsMap
+	regions     []region
+	statuses    map[regionName]status
+	auctions    map[regionName]map[realmSlug]miniAuctionList
+	items       itemsMap
+	itemClasses itemClasses
 }
 
 type requestError struct {

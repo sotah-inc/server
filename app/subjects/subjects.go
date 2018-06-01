@@ -14,4 +14,5 @@ const (
 	Owners            Subject = "owners"
 	Items             Subject = "items"
 	AuctionsQuery     Subject = "auctionsQuery"
+	ItemClasses       Subject = "itemClasses"
 )

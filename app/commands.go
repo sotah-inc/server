@@ -145,6 +145,13 @@ func api(c config, m messenger) error {
 		}
 	}
 
+	// gathering item-classes
+	iClasses, err := newItemClassesFromHTTP(res)
+	if err != nil {
+		return err
+	}
+	sta.itemClasses = iClasses
+
 	// listening for status requests
 	stopChans := map[subjects.Subject]chan interface{}{
 		subjects.Status:            make(chan interface{}),
@@ -154,6 +161,7 @@ func api(c config, m messenger) error {
 		subjects.Owners:            make(chan interface{}),
 		subjects.Items:             make(chan interface{}),
 		subjects.AuctionsQuery:     make(chan interface{}),
+		subjects.ItemClasses:       make(chan interface{}),
 	}
 	if err := sta.listenForStatus(stopChans[subjects.Status]); err != nil {
 		return err
@@ -174,6 +182,9 @@ func api(c config, m messenger) error {
 		return err
 	}
 	if err := sta.listenForAuctionsQuery(stopChans[subjects.AuctionsQuery]); err != nil {
+		return err
+	}
+	if err := sta.listenForItemClasses(stopChans[subjects.ItemClasses]); err != nil {
 		return err
 	}
 

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ihsw/sotah-server/app/codes"
+	"github.com/ihsw/sotah-server/app/subjects"
 	"github.com/ihsw/sotah-server/app/util"
 )
 
@@ -16,43 +18,61 @@ func defaultGetItemClassesURL(regionHostname string) string {
 
 type getItemClassesURLFunc func(string) string
 
-func newItemClassesResultFromHTTP(r resolver) (itemClassesResult, error) {
+func newItemClassesFromMessenger(mess messenger) (itemClasses, error) {
+	msg, err := mess.request(subjects.ItemClasses, []byte{})
+	if err != nil {
+		return itemClasses{}, err
+	}
+
+	if msg.Code != codes.Ok {
+		return itemClasses{}, errors.New(msg.Err)
+	}
+
+	iClasses := itemClasses{}
+	if err := json.Unmarshal([]byte(msg.Data), &iClasses); err != nil {
+		return itemClasses{}, err
+	}
+
+	return iClasses, nil
+}
+
+func newItemClassesFromHTTP(r resolver) (itemClasses, error) {
 	if r.config == nil {
-		return itemClassesResult{}, errors.New("Config cannot be nil")
+		return itemClasses{}, errors.New("Config cannot be nil")
 	}
 
 	primaryRegion, err := r.config.Regions.getPrimaryRegion()
 	if err != nil {
-		return itemClassesResult{}, err
+		return itemClasses{}, err
 	}
 
 	body, err := r.get(r.getItemClassesURL(primaryRegion.Hostname))
 	if err != nil {
-		return itemClassesResult{}, err
+		return itemClasses{}, err
 	}
 
-	return newItemClassesResult(body)
+	return newItemClasses(body)
 }
 
-func newItemClassesResultFromFilepath(relativeFilepath string) (itemClassesResult, error) {
+func newItemClassesFromFilepath(relativeFilepath string) (itemClasses, error) {
 	body, err := util.ReadFile(relativeFilepath)
 	if err != nil {
-		return itemClassesResult{}, err
+		return itemClasses{}, err
 	}
 
-	return newItemClassesResult(body)
+	return newItemClasses(body)
 }
 
-func newItemClassesResult(body []byte) (itemClassesResult, error) {
-	icResult := &itemClassesResult{}
+func newItemClasses(body []byte) (itemClasses, error) {
+	icResult := &itemClasses{}
 	if err := json.Unmarshal(body, icResult); err != nil {
-		return itemClassesResult{}, err
+		return itemClasses{}, err
 	}
 
 	return *icResult, nil
 }
 
-type itemClassesResult struct {
+type itemClasses struct {
 	Classes []itemClass `json:"classes"`
 }
 

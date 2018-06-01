@@ -15,6 +15,7 @@ func newResolver(c config) resolver {
 		getAuctionsURL:    defaultGetAuctionsURL,
 		getItemURL:        defaultGetItemURL,
 		getItemIconURL:    defaultGetItemIconURL,
+		getItemClassesURL: defaultGetItemClassesURL,
 	}
 }
 
