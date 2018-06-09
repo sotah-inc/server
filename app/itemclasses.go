@@ -76,13 +76,17 @@ type itemClasses struct {
 	Classes []itemClass `json:"classes"`
 }
 
+type itemClassClass int
+
 type itemClass struct {
-	Class      int            `json:"class"`
+	Class      itemClassClass `json:"class"`
 	Name       string         `json:"name"`
 	SubClasses []subItemClass `json:"subclasses"`
 }
 
+type itemSubClassClass int
+
 type subItemClass struct {
-	SubClass int    `json:"subclass"`
-	Name     string `json:"name"`
+	SubClass itemSubClassClass `json:"subclass"`
+	Name     string            `json:"name"`
 }

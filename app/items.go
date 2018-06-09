@@ -10,13 +10,12 @@ import (
 	"strings"
 
 	"github.com/ihsw/sotah-server/app/codes"
+	"github.com/ihsw/sotah-server/app/itembinds"
 	"github.com/ihsw/sotah-server/app/subjects"
 	"github.com/ihsw/sotah-server/app/util"
 
 	log "github.com/sirupsen/logrus"
 )
-
-type itemID int64
 
 const itemURLFormat = "https://%s/wow/item/%d"
 
@@ -71,13 +70,66 @@ func newItem(body []byte) (item, error) {
 	return *i, nil
 }
 
+type itemID int64
+type inventoryType int
+
+type itemSpellID int
+type itemSpellSpell struct {
+	ID          itemSpellID `json:"id"`
+	Name        string      `json:"name"`
+	Icon        string      `json:"icon"`
+	Description string      `json:"description"`
+	CastTime    string      `json:"castTime"`
+}
+
+type itemSpell struct {
+	SpellID    itemSpellID    `json:"spellId"`
+	NCharges   int            `json:"nCharges"`
+	Consumable bool           `json:"consumable"`
+	CategoryID int            `json:"categoryId"`
+	Trigger    string         `json:"trigger"`
+	Spell      itemSpellSpell `json:"spell"`
+}
+
+type itemWeaponDamage struct {
+	Min      int     `json:"min"`
+	Max      int     `json:"max"`
+	ExactMin float32 `json:"exactMin"`
+	ExactMax float32 `json:"exactMax"`
+}
+
+type itemWeaponInfo struct {
+	Damage      itemWeaponDamage `json:"damage"`
+	WeaponSpeed float32          `json:"weaponSpeed"`
+	Dps         float32          `json:"dps"`
+}
+
+type itemBonusStat struct {
+	Stat   int `json:"stat"`
+	Amount int `json:"amount"`
+}
+
 type item struct {
-	ID             itemID `json:"id"`
-	Name           string `json:"name"`
-	Quality        int    `json:"quality"`
-	NormalizedName string `json:"normalized_name"`
-	Icon           string `json:"icon"`
-	ItemLevel      int    `json:"itemLevel"`
+	ID             itemID             `json:"id"`
+	Name           string             `json:"name"`
+	Quality        int                `json:"quality"`
+	NormalizedName string             `json:"normalized_name"`
+	Icon           string             `json:"icon"`
+	ItemLevel      int                `json:"itemLevel"`
+	ItemClass      itemClassClass     `json:"itemClass"`
+	ItemSubClass   itemSubClassClass  `json:"itemSubClass"`
+	InventoryType  inventoryType      `json:"inventoryType"`
+	ItemBind       itembinds.ItemBind `json:"itemBind"`
+	RequiredLevel  int                `json:"requiredLevel"`
+	Armor          int                `json:"armor"`
+	MaxDurability  int                `json:"maxDurability"`
+	SellPrice      int                `json:"sellPrice"`
+	ItemSpells     []itemSpell        `json:"itemSpells"`
+	Equippable     bool               `json:"equippable"`
+	Stackable      int                `json:"stackable"`
+	WeaponInfo     itemWeaponInfo     `json:"weaponInfo"`
+	BonusStats     []itemBonusStat    `json:"bonusStats"`
+	Description    string             `json:"description"`
 }
 
 type getItemsJob struct {
