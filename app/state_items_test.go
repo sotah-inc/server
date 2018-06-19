@@ -40,7 +40,7 @@ func TestListenForItems(t *testing.T) {
 	}
 
 	// subscribing to receive items
-	receivedItemList, err := newItemListResultFromMessenger(mess, itemsRequest{Query: ""})
+	receivedItemList, err := newItemListResultFromMessenger(mess, itemsQueryRequest{Query: ""})
 	if !assert.Nil(t, err) {
 		stop <- struct{}{}
 
@@ -94,7 +94,7 @@ func TestListenForItemsFiltered(t *testing.T) {
 	}
 
 	// subscribing to receive items
-	receivedItemList, err := newItemListResultFromMessenger(mess, itemsRequest{Query: "Axe"})
+	receivedItemList, err := newItemListResultFromMessenger(mess, itemsQueryRequest{Query: "Axe"})
 	if !assert.Nil(t, err) {
 		stop <- struct{}{}
 

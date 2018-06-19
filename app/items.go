@@ -236,7 +236,7 @@ func (iMap itemsMap) getItemIcons() []string {
 	return out
 }
 
-func newItemListResultFromMessenger(mess messenger, request itemsRequest) (itemListResult, error) {
+func newItemListResultFromMessenger(mess messenger, request itemsQueryRequest) (itemListResult, error) {
 	encodedMessage, err := json.Marshal(request)
 	if err != nil {
 		return itemListResult{}, err

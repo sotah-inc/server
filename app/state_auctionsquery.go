@@ -179,9 +179,9 @@ func (sta state) listenForAuctionsQuery(stop chan interface{}) error {
 
 		// optionally sorting by rank and truncating or sorting by name
 		if request.Query != "" {
-			for i, item := range aqResult.Items {
-				item.Rank = fuzzy.RankMatchFold(request.Query, item.Target)
-				aqResult.Items[i] = item
+			for i, aqItem := range aqResult.Items {
+				aqItem.Rank = fuzzy.RankMatchFold(request.Query, aqItem.Target)
+				aqResult.Items[i] = aqItem
 			}
 			aqResult.Items = aqResult.Items.filterLowRank()
 			sort.Sort(auctionsQueryItemsByRank(aqResult.Items))
@@ -189,7 +189,7 @@ func (sta state) listenForAuctionsQuery(stop chan interface{}) error {
 			sort.Sort(auctionsQueryItemsByNames(aqResult.Items))
 		}
 
-		// sorting
+		// truncating
 		aqResult.Items = aqResult.Items.limit()
 
 		// marshalling for messenger
