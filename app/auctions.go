@@ -179,6 +179,11 @@ type newMiniAuctionsFromMessengerConfig struct {
 }
 
 func (config newMiniAuctionsFromMessengerConfig) toAuctionsRequest() auctionsRequest {
+	oFilters := []ownerName{}
+	if config.ownerFilter != "" {
+		oFilters = append(oFilters, config.ownerFilter)
+	}
+
 	return auctionsRequest{
 		RegionName:    config.realm.region.Name,
 		RealmSlug:     config.realm.Slug,
@@ -186,7 +191,7 @@ func (config newMiniAuctionsFromMessengerConfig) toAuctionsRequest() auctionsReq
 		Page:          config.page,
 		SortDirection: config.sortDirection,
 		SortKind:      config.sortKind,
-		OwnerFilters:  []ownerName{config.ownerFilter},
+		OwnerFilters:  oFilters,
 	}
 }
 
