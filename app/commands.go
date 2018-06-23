@@ -159,7 +159,7 @@ func api(c config, m messenger) error {
 		subjects.GenericTestErrors: make(chan interface{}),
 		subjects.Auctions:          make(chan interface{}),
 		subjects.Owners:            make(chan interface{}),
-		subjects.Items:             make(chan interface{}),
+		subjects.ItemsQuery:        make(chan interface{}),
 		subjects.AuctionsQuery:     make(chan interface{}),
 		subjects.ItemClasses:       make(chan interface{}),
 	}
@@ -178,7 +178,7 @@ func api(c config, m messenger) error {
 	if err := sta.listenForOwners(stopChans[subjects.Owners]); err != nil {
 		return err
 	}
-	if err := sta.listenForItems(stopChans[subjects.Items]); err != nil {
+	if err := sta.listenForItems(stopChans[subjects.ItemsQuery]); err != nil {
 		return err
 	}
 	if err := sta.listenForAuctionsQuery(stopChans[subjects.AuctionsQuery]); err != nil {

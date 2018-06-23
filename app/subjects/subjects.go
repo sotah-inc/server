@@ -12,7 +12,7 @@ const (
 	Regions           Subject = "regions"
 	GenericTestErrors Subject = "genericTestErrors"
 	Owners            Subject = "owners"
-	Items             Subject = "items"
+	ItemsQuery        Subject = "itemsQuery"
 	AuctionsQuery     Subject = "auctionsQuery"
 	ItemClasses       Subject = "itemClasses"
 )

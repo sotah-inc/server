@@ -64,7 +64,7 @@ func newItemsQueryResultFromMessenger(mess messenger, request itemsQueryRequest)
 		return itemsQueryResult{}, err
 	}
 
-	msg, err := mess.request(subjects.Items, encodedMessage)
+	msg, err := mess.request(subjects.ItemsQuery, encodedMessage)
 	if err != nil {
 		return itemsQueryResult{}, err
 	}
@@ -131,7 +131,7 @@ func (request itemsQueryRequest) resolve(sta state) (itemsQueryResult, error) {
 }
 
 func (sta state) listenForItems(stop chan interface{}) error {
-	err := sta.messenger.subscribe(subjects.Items, stop, func(natsMsg nats.Msg) {
+	err := sta.messenger.subscribe(subjects.ItemsQuery, stop, func(natsMsg nats.Msg) {
 		m := newMessage()
 
 		// resolving the request
