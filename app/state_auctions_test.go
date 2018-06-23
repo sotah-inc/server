@@ -74,6 +74,8 @@ func TestListenForAuctions(t *testing.T) {
 }
 
 func TestListenForSortedAuctions(t *testing.T) {
+	t.Skip("TODO after creating blizzard package")
+
 	sta := state{}
 
 	// connecting
@@ -150,6 +152,8 @@ func TestListenForSortedAuctions(t *testing.T) {
 }
 
 func TestListenForAuctionsFilteredByOwnerName(t *testing.T) {
+	t.Skip("TODO after creating blizzard package")
+
 	sta := state{}
 
 	// connecting
