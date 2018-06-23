@@ -43,6 +43,8 @@ func TestNewAuctionsFromFilepath(t *testing.T) {
 }
 
 func TestNewMiniAuctionsDataFromFilepath(t *testing.T) {
+	t.Skip("TODO after creating blizzard package")
+
 	mad, err := newMiniAuctionsDataFromFilepath("./TestData/mini-auctions.json")
 	if !assert.Nil(t, err) {
 		return
