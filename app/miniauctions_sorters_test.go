@@ -43,6 +43,10 @@ func TestMiniAuctionsSortByItemReversed(t *testing.T) {
 
 	sorter := newMiniAuctionSorter()
 	err = sorter.sort(sortkinds.Item, sortdirections.Down, mad.Auctions)
+	if !assert.Nil(t, err) {
+		return
+	}
+
 	expectedSortedMad, err := newMiniAuctionsDataFromFilepath("./TestData/mini-auctions-sort-by-item-reversed.json")
 	if !assert.Nil(t, err) {
 		return
