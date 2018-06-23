@@ -7,6 +7,7 @@ import (
 
 	"github.com/ihsw/sotah-server/app/codes"
 	"github.com/ihsw/sotah-server/app/subjects"
+	"github.com/ihsw/sotah-server/app/util"
 	nats "github.com/nats-io/go-nats"
 	"github.com/renstrom/fuzzysearch/fuzzy"
 )
@@ -57,6 +58,43 @@ func (by itemsQueryItemsByRank) Len() int           { return len(by) }
 func (by itemsQueryItemsByRank) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
 func (by itemsQueryItemsByRank) Less(i, j int) bool { return by[i].Rank < by[j].Rank }
 
+func newItemsQueryResultFromMessenger(mess messenger, request itemsQueryRequest) (itemsQueryResult, error) {
+	encodedMessage, err := json.Marshal(request)
+	if err != nil {
+		return itemsQueryResult{}, err
+	}
+
+	msg, err := mess.request(subjects.Items, encodedMessage)
+	if err != nil {
+		return itemsQueryResult{}, err
+	}
+
+	if msg.Code != codes.Ok {
+		return itemsQueryResult{}, errors.New(msg.Err)
+	}
+
+	return newItemsQueryResult([]byte(msg.Data))
+}
+
+func newItemsQueryResultFromFilepath(relativeFilepath string) (itemsQueryResult, error) {
+	body, err := util.ReadFile(relativeFilepath)
+	if err != nil {
+		return itemsQueryResult{}, err
+	}
+
+	return newItemsQueryResult(body)
+}
+
+func newItemsQueryResult(payload []byte) (itemsQueryResult, error) {
+	request := &itemsQueryResult{}
+	err := json.Unmarshal(payload, &request)
+	if err != nil {
+		return itemsQueryResult{}, err
+	}
+
+	return *request, nil
+}
+
 type itemsQueryResult struct {
 	Items itemsQueryItems `json:"items"`
 }
@@ -80,16 +118,11 @@ func (request itemsQueryRequest) resolve(sta state) (itemsQueryResult, error) {
 		return itemsQueryResult{}, errors.New("Items were nil")
 	}
 
-	ilResult := itemListResult{Items: itemList{}}
-	for _, itemValue := range sta.items {
-		ilResult.Items = append(ilResult.Items, itemValue)
-	}
-
 	iqResult := itemsQueryResult{
-		Items: make(itemsQueryItems, len(ilResult.Items)),
+		Items: make(itemsQueryItems, len(sta.items)),
 	}
 	i := 0
-	for _, itemValue := range ilResult.Items {
+	for _, itemValue := range sta.items {
 		iqResult.Items[i] = itemsQueryItem{Item: itemValue, Target: itemValue.NormalizedName}
 		i++
 	}

@@ -1,7 +1,28 @@
 {
     "items": [
-        {"id": 2, "name": "Axe", "normalized_name": "axe"},
-        {"id": 3, "name": "Hammer", "normalized_name": "hammer"},
-        {"id": 1, "name": "Sword", "normalized_name": "sword"}
+        {
+            "item": {
+                "id": 2,
+                "name": "Axe",
+                "normalized_name": "axe"
+            },
+            "target": "axe"
+        },
+        {
+            "item": {
+                "id": 3,
+                "name": "Hammer",
+                "normalized_name": "hammer"
+            },
+            "target": "hammer"
+        },
+        {
+            "item": {
+                "id": 1,
+                "name": "Sword",
+                "normalized_name": "sword"
+            },
+            "target": "sword"
+        }
     ]
 }

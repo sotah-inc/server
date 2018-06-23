@@ -17,11 +17,11 @@ func TestListenForItems(t *testing.T) {
 	sta.messenger = mess
 
 	// resolving items
-	result, err := newItemListResultFromFilepath("./TestData/item-list-result.json")
+	result, err := newItemsQueryResultFromFilepath("./TestData/item-list-result.json")
 	if !assert.Nil(t, err) {
 		return
 	}
-	expectedResult, err := newItemListResultFromFilepath("./TestData/item-list-result-sorted.json")
+	expectedResult, err := newItemsQueryResultFromFilepath("./TestData/item-list-result-sorted.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -29,7 +29,7 @@ func TestListenForItems(t *testing.T) {
 	// attaching the items to the state
 	sta.items = map[itemID]item{}
 	for _, resultItem := range result.Items {
-		sta.items[resultItem.ID] = resultItem
+		sta.items[resultItem.Item.ID] = resultItem.Item
 	}
 
 	// setting up a subscriber that will publish items
@@ -40,7 +40,7 @@ func TestListenForItems(t *testing.T) {
 	}
 
 	// subscribing to receive items
-	receivedItemList, err := newItemListResultFromMessenger(mess, itemsQueryRequest{Query: ""})
+	receivedItemList, err := newItemsQueryResultFromMessenger(mess, itemsQueryRequest{Query: ""})
 	if !assert.Nil(t, err) {
 		stop <- struct{}{}
 
@@ -71,11 +71,11 @@ func TestListenForItemsFiltered(t *testing.T) {
 	sta.messenger = mess
 
 	// resolving items
-	result, err := newItemListResultFromFilepath("./TestData/item-list-result.json")
+	result, err := newItemsQueryResultFromFilepath("./TestData/item-list-result.json")
 	if !assert.Nil(t, err) {
 		return
 	}
-	expectedResult, err := newItemListResultFromFilepath("./TestData/item-list-result-filtered.json")
+	expectedResult, err := newItemsQueryResultFromFilepath("./TestData/item-list-result-filtered.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -83,7 +83,7 @@ func TestListenForItemsFiltered(t *testing.T) {
 	// attaching the items to the state
 	sta.items = map[itemID]item{}
 	for _, resultItem := range result.Items {
-		sta.items[resultItem.ID] = resultItem
+		sta.items[resultItem.Item.ID] = resultItem.Item
 	}
 
 	// setting up a subscriber that will publish items
@@ -94,7 +94,7 @@ func TestListenForItemsFiltered(t *testing.T) {
 	}
 
 	// subscribing to receive items
-	receivedItemList, err := newItemListResultFromMessenger(mess, itemsQueryRequest{Query: "Axe"})
+	receivedItemList, err := newItemsQueryResultFromMessenger(mess, itemsQueryRequest{Query: "Axe"})
 	if !assert.Nil(t, err) {
 		stop <- struct{}{}
 

@@ -131,22 +131,25 @@ func (request auctionsQueryRequest) resolve(sta state) (auctionsQueryResult, err
 	}
 
 	// resolving items
-	ilResult := itemListResult{Items: itemList{}}
+	iqResult := itemsQueryResult{Items: itemsQueryItems{}}
 	for _, itemValue := range sta.items {
-		ilResult.Items = append(ilResult.Items, itemValue)
+		iqResult.Items = append(
+			iqResult.Items,
+			itemsQueryItem{Item: itemValue},
+		)
 	}
 
 	// formatting owners and items into an auctions-query result
 	aqResult := auctionsQueryResult{
-		Items: make(auctionsQueryItems, len(oResult.Owners)+len(ilResult.Items)),
+		Items: make(auctionsQueryItems, len(oResult.Owners)+len(iqResult.Items)),
 	}
 	i := 0
 	for _, ownerValue := range oResult.Owners {
 		aqResult.Items[i] = auctionsQueryItem{Owner: ownerValue, Item: item{}, Target: ownerValue.NormalizedName}
 		i++
 	}
-	for _, itemValue := range ilResult.Items {
-		aqResult.Items[i] = auctionsQueryItem{Owner: owner{}, Item: itemValue, Target: itemValue.NormalizedName}
+	for _, iqItem := range iqResult.Items {
+		aqResult.Items[i] = auctionsQueryItem{Owner: owner{}, Item: iqItem.Item, Target: iqItem.Item.NormalizedName}
 		i++
 	}
 

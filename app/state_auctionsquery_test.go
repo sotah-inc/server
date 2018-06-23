@@ -28,13 +28,13 @@ func TestListenForAuctionsQuery(t *testing.T) {
 	}
 
 	// resolving items and attaching them to the state
-	ilResult, err := newItemListResultFromFilepath("./TestData/item-list-result.json")
+	ilResult, err := newItemsQueryResultFromFilepath("./TestData/item-list-result.json")
 	if !assert.Nil(t, err) {
 		return
 	}
 	sta.items = map[itemID]item{}
 	for _, resultItem := range ilResult.Items {
-		sta.items[resultItem.ID] = resultItem
+		sta.items[resultItem.Item.ID] = resultItem.Item
 	}
 
 	// setting up a subscriber that will publish items

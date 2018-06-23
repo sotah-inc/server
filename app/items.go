@@ -9,9 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/ihsw/sotah-server/app/codes"
 	"github.com/ihsw/sotah-server/app/itembinds"
-	"github.com/ihsw/sotah-server/app/subjects"
 	"github.com/ihsw/sotah-server/app/util"
 
 	log "github.com/sirupsen/logrus"
@@ -234,88 +232,4 @@ func (iMap itemsMap) getItemIcons() []string {
 	}
 
 	return out
-}
-
-func newItemListResultFromMessenger(mess messenger, request itemsQueryRequest) (itemListResult, error) {
-	encodedMessage, err := json.Marshal(request)
-	if err != nil {
-		return itemListResult{}, err
-	}
-
-	msg, err := mess.request(subjects.Items, encodedMessage)
-	if err != nil {
-		return itemListResult{}, err
-	}
-
-	if msg.Code != codes.Ok {
-		return itemListResult{}, errors.New(msg.Err)
-	}
-
-	return newItemListResult([]byte(msg.Data))
-}
-
-func newItemListResultFromFilepath(relativeFilepath string) (itemListResult, error) {
-	body, err := util.ReadFile(relativeFilepath)
-	if err != nil {
-		return itemListResult{}, err
-	}
-
-	return newItemListResult(body)
-}
-
-func newItemListResult(body []byte) (itemListResult, error) {
-	i := &itemListResult{}
-	if err := json.Unmarshal(body, i); err != nil {
-		return itemListResult{}, err
-	}
-
-	return *i, nil
-}
-
-type itemListResult struct {
-	Items itemList `json:"items"`
-}
-
-type itemList []item
-
-func (il itemList) limit() itemList {
-	listLength := len(il)
-	if listLength > 10 {
-		listLength = 10
-	}
-
-	out := make(itemList, listLength)
-	for i := 0; i < listLength; i++ {
-		out[i] = il[i]
-	}
-
-	return out
-}
-
-func (il itemList) filter(query string) itemList {
-	lowerQuery := strings.ToLower(query)
-	matches := itemList{}
-	for _, itemValue := range il {
-		if !strings.Contains(itemValue.NormalizedName, lowerQuery) {
-			continue
-		}
-
-		matches = append(matches, itemValue)
-	}
-
-	return matches
-}
-
-type itemsByName itemList
-
-func (by itemsByName) Len() int           { return len(by) }
-func (by itemsByName) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
-func (by itemsByName) Less(i, j int) bool { return by[i].Name < by[j].Name }
-
-type itemsByNormalizedName itemList
-
-func (by itemsByNormalizedName) Len() int      { return len(by) }
-func (by itemsByNormalizedName) Swap(i, j int) { by[i], by[j] = by[j], by[i] }
-func (by itemsByNormalizedName) Less(i, j int) bool {
-	return by[i].NormalizedName < by[j].NormalizedName
 }

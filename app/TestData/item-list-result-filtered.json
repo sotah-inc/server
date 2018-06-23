@@ -1,5 +1,12 @@
 {
     "items": [
-        {"id": 2, "name": "Axe", "normalized_name": "axe"}
+        {
+            "item": {
+                "id": 2,
+                "name": "Axe",
+                "normalized_name": "axe"
+            },
+            "target": "axe"
+        }
     ]
 }
