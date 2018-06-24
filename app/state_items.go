@@ -5,6 +5,7 @@ import (
 	"errors"
 	"sort"
 
+	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/codes"
 	"github.com/ihsw/sotah-server/app/subjects"
 	"github.com/ihsw/sotah-server/app/util"
@@ -13,9 +14,9 @@ import (
 )
 
 type itemsQueryItem struct {
-	Target string `json:"target"`
-	Item   item   `json:"item"`
-	Rank   int    `json:"rank"`
+	Target string        `json:"target"`
+	Item   blizzard.Item `json:"item"`
+	Rank   int           `json:"rank"`
 }
 
 type itemsQueryItems []itemsQueryItem

@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func validateItem(i item) bool {
+func validateItem(i Item) bool {
 	return i.ID != 0
 }
 
@@ -17,7 +17,7 @@ func TestNewItemFromHTTP(t *testing.T) {
 		return
 	}
 
-	a, err := newItemFromHTTP(ts.URL)
+	a, err := NewItemFromHTTP(ts.URL)
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -26,7 +26,7 @@ func TestNewItemFromHTTP(t *testing.T) {
 	}
 }
 func TestNewItemFromFilepath(t *testing.T) {
-	i, err := newItemFromFilepath("../TestData/item.json")
+	i, err := NewItemFromFilepath("../TestData/item.json")
 	if !assert.Nil(t, err) {
 		return
 	}

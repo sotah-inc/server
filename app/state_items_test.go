@@ -3,6 +3,7 @@ package main
 import (
 	"testing"
 
+	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,7 +28,7 @@ func TestListenForItems(t *testing.T) {
 	}
 
 	// attaching the items to the state
-	sta.items = map[itemID]item{}
+	sta.items = map[blizzard.ItemID]blizzard.Item{}
 	for _, resultItem := range result.Items {
 		sta.items[resultItem.Item.ID] = resultItem.Item
 	}
@@ -81,7 +82,7 @@ func TestListenForItemsFiltered(t *testing.T) {
 	}
 
 	// attaching the items to the state
-	sta.items = map[itemID]item{}
+	sta.items = map[blizzard.ItemID]blizzard.Item{}
 	for _, resultItem := range result.Items {
 		sta.items[resultItem.Item.ID] = resultItem.Item
 	}

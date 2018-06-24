@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 
+	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/codes"
 	"github.com/ihsw/sotah-server/app/sortdirections"
 	"github.com/ihsw/sotah-server/app/sortkinds"
@@ -30,7 +31,7 @@ type auctionsRequest struct {
 	SortDirection sortdirections.SortDirection `json:"sort_direction"`
 	SortKind      sortkinds.SortKind           `json:"sort_kind"`
 	OwnerFilters  []ownerName                  `json:"owner_filters"`
-	ItemFilters   []itemID                     `json:"item_filters"`
+	ItemFilters   []blizzard.ItemID            `json:"item_filters"`
 }
 
 func (ar auctionsRequest) resolve(sta state) (miniAuctionList, requestError) {

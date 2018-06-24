@@ -5,6 +5,7 @@ import (
 	"errors"
 	"sort"
 
+	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/codes"
 	"github.com/ihsw/sotah-server/app/subjects"
 	nats "github.com/nats-io/go-nats"
@@ -12,10 +13,10 @@ import (
 )
 
 type auctionsQueryItem struct {
-	Target string `json:"target"`
-	Item   item   `json:"item"`
-	Owner  owner  `json:"owner"`
-	Rank   int    `json:"rank"`
+	Target string        `json:"target"`
+	Item   blizzard.Item `json:"item"`
+	Owner  owner         `json:"owner"`
+	Rank   int           `json:"rank"`
 }
 
 type auctionsQueryItems []auctionsQueryItem
@@ -145,11 +146,19 @@ func (request auctionsQueryRequest) resolve(sta state) (auctionsQueryResult, err
 	}
 	i := 0
 	for _, ownerValue := range oResult.Owners {
-		aqResult.Items[i] = auctionsQueryItem{Owner: ownerValue, Item: item{}, Target: ownerValue.NormalizedName}
+		aqResult.Items[i] = auctionsQueryItem{
+			Owner:  ownerValue,
+			Item:   blizzard.Item{},
+			Target: ownerValue.NormalizedName,
+		}
 		i++
 	}
 	for _, iqItem := range iqResult.Items {
-		aqResult.Items[i] = auctionsQueryItem{Owner: owner{}, Item: iqItem.Item, Target: iqItem.Item.NormalizedName}
+		aqResult.Items[i] = auctionsQueryItem{
+			Owner:  owner{},
+			Item:   iqItem.Item,
+			Target: iqItem.Item.NormalizedName,
+		}
 		i++
 	}
 

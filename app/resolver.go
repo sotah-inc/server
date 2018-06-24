@@ -3,6 +3,7 @@ package main
 import (
 	"net/url"
 
+	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/util"
 )
 
@@ -13,7 +14,7 @@ func newResolver(c config) resolver {
 		getStatusURL:      defaultGetStatusURL,
 		getAuctionInfoURL: defaultGetAuctionInfoURL,
 		getAuctionsURL:    defaultGetAuctionsURL,
-		getItemURL:        defaultGetItemURL,
+		getItemURL:        blizzard.DefaultGetItemURL,
 		getItemIconURL:    defaultGetItemIconURL,
 		getItemClassesURL: defaultGetItemClassesURL,
 	}
@@ -50,7 +51,7 @@ type resolver struct {
 	getStatusURL      getStatusURLFunc
 	getAuctionInfoURL getAuctionInfoURLFunc
 	getAuctionsURL    getAuctionsURLFunc
-	getItemURL        getItemURLFunc
+	getItemURL        blizzard.GetItemURLFunc
 	getItemIconURL    getItemIconURLFunc
 	getItemClassesURL getItemClassesURLFunc
 }

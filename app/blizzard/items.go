@@ -12,39 +12,44 @@ import (
 
 const itemURLFormat = "https://%s/wow/item/%d"
 
-func defaultGetItemURL(regionHostname string, ID itemID) string {
+// DefaultGetItemURL generates a url according to the api format
+func DefaultGetItemURL(regionHostname string, ID ItemID) string {
 	return fmt.Sprintf(itemURLFormat, regionHostname, ID)
 }
 
-type getItemURLFunc func(string, itemID) string
+// GetItemURLFunc defines the expected func signature for generating an item uri
+type GetItemURLFunc func(string, ItemID) string
 
-func newItemFromHTTP(uri string) (item, error) {
+// NewItemFromHTTP loads an item from the http api
+func NewItemFromHTTP(uri string) (Item, error) {
 	body, err := util.Download(uri)
 	if err != nil {
-		return item{}, err
+		return Item{}, err
 	}
 
-	return newItem(body)
+	return NewItem(body)
 }
 
-func newItemFromFilepath(relativeFilepath string) (item, error) {
+// NewItemFromFilepath loads an item from a json file
+func NewItemFromFilepath(relativeFilepath string) (Item, error) {
 	body, err := util.ReadFile(relativeFilepath)
 	if err != nil {
-		return item{}, err
+		return Item{}, err
 	}
 
-	return newItem(body)
+	return NewItem(body)
 }
 
-func newItem(body []byte) (item, error) {
-	i := &item{}
+// NewItem loads an item from a byte array of json
+func NewItem(body []byte) (Item, error) {
+	i := &Item{}
 	if err := json.Unmarshal(body, i); err != nil {
-		return item{}, err
+		return Item{}, err
 	}
 
 	reg, err := regexp.Compile("[^a-z0-9 ]+")
 	if err != nil {
-		return item{}, err
+		return Item{}, err
 	}
 
 	if i.NormalizedName == "" {
@@ -54,7 +59,8 @@ func newItem(body []byte) (item, error) {
 	return *i, nil
 }
 
-type itemID int64
+// ItemID the api-specific identifier
+type ItemID int64
 type inventoryType int
 
 type itemSpellID int
@@ -93,8 +99,9 @@ type itemBonusStat struct {
 	Amount int `json:"amount"`
 }
 
-type item struct {
-	ID             itemID             `json:"id"`
+// Item describes the item returned from the api
+type Item struct {
+	ID             ItemID             `json:"id"`
 	Name           string             `json:"name"`
 	Quality        int                `json:"quality"`
 	NormalizedName string             `json:"normalized_name"`

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/sortdirections"
 	"github.com/ihsw/sotah-server/app/sortkinds"
 
@@ -101,17 +102,17 @@ type auctionRealm struct {
 }
 
 type auction struct {
-	Auc        int64     `json:"auc"`
-	Item       itemID    `json:"item"`
-	Owner      ownerName `json:"owner"`
-	OwnerRealm string    `json:"ownerRealm"`
-	Bid        int64     `json:"bid"`
-	Buyout     int64     `json:"buyout"`
-	Quantity   int64     `json:"quantity"`
-	TimeLeft   string    `json:"timeLeft"`
-	Rand       int64     `json:"rand"`
-	Seed       int64     `json:"seed"`
-	Context    int64     `json:"context"`
+	Auc        int64           `json:"auc"`
+	Item       blizzard.ItemID `json:"item"`
+	Owner      ownerName       `json:"owner"`
+	OwnerRealm string          `json:"ownerRealm"`
+	Bid        int64           `json:"bid"`
+	Buyout     int64           `json:"buyout"`
+	Quantity   int64           `json:"quantity"`
+	TimeLeft   string          `json:"timeLeft"`
+	Rand       int64           `json:"rand"`
+	Seed       int64           `json:"seed"`
+	Context    int64           `json:"context"`
 }
 
 func (auc auction) toMiniAuctionHash() miniAuctionHash {
@@ -134,7 +135,7 @@ func (auc auction) toMiniAuction() miniAuction {
 	}
 
 	return miniAuction{
-		item{ID: auc.Item, Name: "", NormalizedName: ""},
+		blizzard.Item{ID: auc.Item, Name: "", NormalizedName: ""},
 		auc.Owner,
 		auc.OwnerRealm,
 		auc.Bid,
@@ -268,7 +269,7 @@ func (maList miniAuctionList) filterByOwnerNames(ownerNameFilters []ownerName) m
 	return out
 }
 
-func (maList miniAuctionList) filterByItemIDs(itemIDFilters []itemID) miniAuctionList {
+func (maList miniAuctionList) filterByItemIDs(itemIDFilters []blizzard.ItemID) miniAuctionList {
 	out := miniAuctionList{}
 	for _, ma := range maList {
 		for _, itemIDFilter := range itemIDFilters {
@@ -281,13 +282,13 @@ func (maList miniAuctionList) filterByItemIDs(itemIDFilters []itemID) miniAuctio
 	return out
 }
 
-func (maList miniAuctionList) itemIds() []itemID {
-	result := map[itemID]struct{}{}
+func (maList miniAuctionList) itemIds() []blizzard.ItemID {
+	result := map[blizzard.ItemID]struct{}{}
 	for _, ma := range maList {
 		result[ma.Item.ID] = struct{}{}
 	}
 
-	out := []itemID{}
+	out := []blizzard.ItemID{}
 	for v := range result {
 		out = append(out, v)
 	}
@@ -310,13 +311,13 @@ type miniAuctions map[miniAuctionHash]miniAuction
 type miniAuctionHash string
 
 type miniAuction struct {
-	Item       item      `json:"item"`
-	Owner      ownerName `json:"owner"`
-	OwnerRealm string    `json:"ownerRealm"`
-	Bid        int64     `json:"bid"`
-	Buyout     int64     `json:"buyout"`
-	BuyoutPer  float32   `json:"buyoutPer"`
-	Quantity   int64     `json:"quantity"`
-	TimeLeft   string    `json:"timeLeft"`
-	AucList    []int64   `json:"aucList"`
+	Item       blizzard.Item `json:"item"`
+	Owner      ownerName     `json:"owner"`
+	OwnerRealm string        `json:"ownerRealm"`
+	Bid        int64         `json:"bid"`
+	Buyout     int64         `json:"buyout"`
+	BuyoutPer  float32       `json:"buyoutPer"`
+	Quantity   int64         `json:"quantity"`
+	TimeLeft   string        `json:"timeLeft"`
+	AucList    []int64       `json:"aucList"`
 }

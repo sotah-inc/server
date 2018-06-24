@@ -3,6 +3,7 @@ package main
 import (
 	"testing"
 
+	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,7 +35,7 @@ func TestListenForAuctionsQuery(t *testing.T) {
 	if !assert.Nil(t, err) {
 		return
 	}
-	sta.items = map[itemID]item{}
+	sta.items = map[blizzard.ItemID]blizzard.Item{}
 	for _, resultItem := range ilResult.Items {
 		sta.items[resultItem.Item.ID] = resultItem.Item
 	}

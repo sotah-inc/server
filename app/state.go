@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 
+	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/codes"
 	"github.com/ihsw/sotah-server/app/subjects"
 	nats "github.com/nats-io/go-nats"
@@ -62,7 +63,7 @@ func (sta state) listenForGenericTestErrors(stop chan interface{}) error {
 	return nil
 }
 
-func (sta state) auctionsIntake(job getAuctionsJob) []itemID {
+func (sta state) auctionsIntake(job getAuctionsJob) []blizzard.ItemID {
 	rea := job.realm
 	reg := rea.region
 	if job.err != nil {
@@ -72,7 +73,7 @@ func (sta state) auctionsIntake(job getAuctionsJob) []itemID {
 			"error":  job.err.Error(),
 		}).Info("Auction fetch failure")
 
-		return []itemID{}
+		return []blizzard.ItemID{}
 	}
 
 	// compacting the auctions

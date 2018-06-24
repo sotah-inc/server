@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"path/filepath"
 
+	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/subjects"
 	"github.com/ihsw/sotah-server/app/util"
 	log "github.com/sirupsen/logrus"
@@ -101,7 +102,7 @@ func api(c config, m messenger) error {
 		regions:   c.Regions,
 		statuses:  map[regionName]status{},
 		auctions:  map[regionName]map[realmSlug]miniAuctionList{},
-		items:     map[itemID]item{},
+		items:     map[blizzard.ItemID]blizzard.Item{},
 	}
 
 	// ensuring auctions cache-dir exists
@@ -198,7 +199,7 @@ func api(c config, m messenger) error {
 		}
 
 		// misc
-		regionItemIDsMap := map[itemID]struct{}{}
+		regionItemIDsMap := map[blizzard.ItemID]struct{}{}
 
 		// downloading auctions in a region
 		log.WithFields(log.Fields{
@@ -221,7 +222,7 @@ func api(c config, m messenger) error {
 		log.WithField("region", reg.Name).Info("Downloaded region")
 
 		// gathering the list of item IDs for this region
-		regionItemIDs := make([]itemID, len(regionItemIDsMap))
+		regionItemIDs := make([]blizzard.ItemID, len(regionItemIDsMap))
 		i := 0
 		for ID := range regionItemIDsMap {
 			regionItemIDs[i] = ID
