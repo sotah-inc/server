@@ -5,28 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/utiltest"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestNewRealmFromFilepath(t *testing.T) {
-	_, err := newRealmFromFilepath(region{}, "./TestData/realm.json")
-	if !assert.Nil(t, err) {
-		return
-	}
-}
-
-func TestNewRealm(t *testing.T) {
-	body, err := utiltest.ReadFile("./TestData/realm.json")
-	if !assert.Nil(t, err) {
-		return
-	}
-
-	_, err = newRealm(region{}, body)
-	if !assert.Nil(t, err) {
-		return
-	}
-}
 
 func TestRealmGetAuctions(t *testing.T) {
 	// initial resolver
@@ -37,7 +19,7 @@ func TestRealmGetAuctions(t *testing.T) {
 	if !assert.Nil(t, err) {
 		return
 	}
-	res.getAuctionInfoURL = func(regionHostname string, slug realmSlug) string {
+	res.getAuctionInfoURL = func(regionHostname string, slug blizzard.RealmSlug) string {
 		return auctionInfoTs.URL
 	}
 	auctionsTs, err := utiltest.ServeFile("./TestData/auctions.json")
@@ -85,7 +67,7 @@ func TestRealmsGetAuctions(t *testing.T) {
 	if !assert.Nil(t, err) {
 		return
 	}
-	res.getAuctionInfoURL = func(regionHostname string, slug realmSlug) string {
+	res.getAuctionInfoURL = func(regionHostname string, slug blizzard.RealmSlug) string {
 		return auctionInfoTs.URL
 	}
 	auctionsTs, err := utiltest.ServeFile("./TestData/auctions.json")
@@ -97,7 +79,7 @@ func TestRealmsGetAuctions(t *testing.T) {
 	}
 
 	// creating a realm whitelist
-	whitelist := map[realmSlug]interface{}{"earthen-ring": struct{}{}}
+	whitelist := map[blizzard.RealmSlug]interface{}{"earthen-ring": struct{}{}}
 
 	timer := time.After(5 * time.Second)
 	out := s.Realms.getAuctions(res, whitelist)
@@ -145,7 +127,7 @@ func TestRealmsGetAllAuctions(t *testing.T) {
 	if !assert.Nil(t, err) {
 		return
 	}
-	res.getAuctionInfoURL = func(regionHostname string, slug realmSlug) string {
+	res.getAuctionInfoURL = func(regionHostname string, slug blizzard.RealmSlug) string {
 		return auctionInfoTs.URL
 	}
 	auctionsTs, err := utiltest.ServeFile("./TestData/auctions.json")

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"sort"
 
+	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/codes"
 	"github.com/ihsw/sotah-server/app/subjects"
 	nats "github.com/nats-io/go-nats"
@@ -21,9 +22,9 @@ func newOwnersRequest(payload []byte) (ownersRequest, error) {
 }
 
 type ownersRequest struct {
-	RegionName regionName `json:"region_name"`
-	RealmSlug  realmSlug  `json:"realm_slug"`
-	Query      string     `json:"query"`
+	RegionName regionName         `json:"region_name"`
+	RealmSlug  blizzard.RealmSlug `json:"realm_slug"`
+	Query      string             `json:"query"`
 }
 
 func (request ownersRequest) resolve(sta state) (miniAuctionList, error) {

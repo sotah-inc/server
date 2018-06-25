@@ -16,7 +16,7 @@ type state struct {
 
 	regions     []region
 	statuses    map[regionName]status
-	auctions    map[regionName]map[realmSlug]miniAuctionList
+	auctions    map[regionName]map[blizzard.RealmSlug]miniAuctionList
 	items       itemsMap
 	itemClasses itemClasses
 }

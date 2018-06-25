@@ -97,8 +97,8 @@ type auctions struct {
 }
 
 type auctionRealm struct {
-	Name string    `json:"name"`
-	Slug realmSlug `json:"slug"`
+	Name string             `json:"name"`
+	Slug blizzard.RealmSlug `json:"slug"`
 }
 
 type auction struct {

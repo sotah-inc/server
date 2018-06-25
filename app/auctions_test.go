@@ -3,6 +3,7 @@ package main
 import (
 	"testing"
 
+	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/utiltest"
 	"github.com/stretchr/testify/assert"
 )
@@ -76,13 +77,13 @@ func TestNewMiniAuctionsFromMessenger(t *testing.T) {
 
 	// building a test realm
 	reg := region{Name: "us"}
-	rea, err := newRealmFromFilepath(reg, "./TestData/realm.json")
+	rea, err := blizzard.NewRealmFromFilepath("./TestData/realm.json")
 	if !assert.Nil(t, err) {
 		return
 	}
 
 	// attaching the auctions to the state
-	sta.auctions = map[regionName]map[realmSlug]miniAuctionList{
+	sta.auctions = map[regionName]map[blizzard.RealmSlug]miniAuctionList{
 		reg.Name: {
 			rea.Slug: a.Auctions.minimize(),
 		},
@@ -97,7 +98,7 @@ func TestNewMiniAuctionsFromMessenger(t *testing.T) {
 
 	// subscribing to receive auctions
 	receivedMiniAuctions, err := newMiniAuctionsFromMessenger(newMiniAuctionsFromMessengerConfig{
-		realm:     rea,
+		realm:     realm{Realm: rea, region: reg},
 		messenger: mess,
 		count:     10,
 	})

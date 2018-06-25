@@ -3,6 +3,7 @@ package main
 import (
 	"testing"
 
+	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/utiltest"
 	"github.com/stretchr/testify/assert"
 )
@@ -15,7 +16,7 @@ func TestNewAuctionInfoFromHTTP(t *testing.T) {
 
 	a, err := newAuctionInfoFromHTTP(
 		realm{},
-		resolver{getAuctionInfoURL: func(regionHostname string, slug realmSlug) string { return ts.URL }},
+		resolver{getAuctionInfoURL: func(regionHostname string, slug blizzard.RealmSlug) string { return ts.URL }},
 	)
 	if !assert.Nil(t, err) {
 		return
@@ -89,7 +90,7 @@ func TestGetFirstAuctions(t *testing.T) {
 	if !assert.Nil(t, err) {
 		return
 	}
-	r.getAuctionInfoURL = func(regionHostname string, slug realmSlug) string {
+	r.getAuctionInfoURL = func(regionHostname string, slug blizzard.RealmSlug) string {
 		return auctionInfoTs.URL
 	}
 	auctionsTs, err := utiltest.ServeFile("./TestData/auctions.json")

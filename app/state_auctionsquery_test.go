@@ -25,9 +25,9 @@ func TestListenForAuctionsQuery(t *testing.T) {
 		return
 	}
 	reg := region{Name: "test"}
-	rea := realm{Slug: "test", region: reg}
-	sta.auctions = map[regionName]map[realmSlug]miniAuctionList{
-		reg.Name: map[realmSlug]miniAuctionList{rea.Slug: maData.Auctions},
+	rea := realm{Realm: blizzard.Realm{Slug: "test"}, region: reg}
+	sta.auctions = map[regionName]map[blizzard.RealmSlug]miniAuctionList{
+		reg.Name: map[blizzard.RealmSlug]miniAuctionList{rea.Slug: maData.Auctions},
 	}
 
 	// resolving items and attaching them to the state

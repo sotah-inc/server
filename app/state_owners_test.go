@@ -3,6 +3,7 @@ package main
 import (
 	"testing"
 
+	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,7 +28,7 @@ func TestListenForOwners(t *testing.T) {
 
 	// building a test realm
 	reg := region{Name: "us"}
-	rea, err := newRealmFromFilepath(reg, "./TestData/realm.json")
+	rea, err := blizzard.NewRealmFromFilepath("./TestData/realm.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -39,7 +40,7 @@ func TestListenForOwners(t *testing.T) {
 	}
 
 	// attaching the auctions to the state
-	sta.auctions = map[regionName]map[realmSlug]miniAuctionList{
+	sta.auctions = map[regionName]map[blizzard.RealmSlug]miniAuctionList{
 		reg.Name: {
 			rea.Slug: a.Auctions.minimize(),
 		},
@@ -95,7 +96,7 @@ func TestListenForOwnersFiltered(t *testing.T) {
 
 	// building a test realm
 	reg := region{Name: "us"}
-	rea, err := newRealmFromFilepath(reg, "./TestData/realm.json")
+	rea, err := blizzard.NewRealmFromFilepath("./TestData/realm.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -107,7 +108,7 @@ func TestListenForOwnersFiltered(t *testing.T) {
 	}
 
 	// attaching the auctions to the state
-	sta.auctions = map[regionName]map[realmSlug]miniAuctionList{
+	sta.auctions = map[regionName]map[blizzard.RealmSlug]miniAuctionList{
 		reg.Name: {
 			rea.Slug: a.Auctions.minimize(),
 		},

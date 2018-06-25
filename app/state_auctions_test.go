@@ -3,6 +3,7 @@ package main
 import (
 	"testing"
 
+	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/sortdirections"
 	"github.com/ihsw/sotah-server/app/sortkinds"
 	"github.com/stretchr/testify/assert"
@@ -29,14 +30,14 @@ func TestListenForAuctions(t *testing.T) {
 
 	// building a test realm
 	reg := region{Name: "us"}
-	rea, err := newRealmFromFilepath(reg, "./TestData/realm.json")
+	rea, err := blizzard.NewRealmFromFilepath("./TestData/realm.json")
 	if !assert.Nil(t, err) {
 		return
 	}
 
 	// attaching the auctions to the state
-	sta.auctions = map[regionName]map[realmSlug]miniAuctionList{
-		reg.Name: map[realmSlug]miniAuctionList{
+	sta.auctions = map[regionName]map[blizzard.RealmSlug]miniAuctionList{
+		reg.Name: map[blizzard.RealmSlug]miniAuctionList{
 			rea.Slug: a.Auctions.minimize(),
 		},
 	}
@@ -50,7 +51,7 @@ func TestListenForAuctions(t *testing.T) {
 
 	// subscribing to receive auctions
 	receivedMiniAuctions, err := newMiniAuctionsFromMessenger(newMiniAuctionsFromMessengerConfig{
-		realm:     rea,
+		realm:     realm{Realm: rea, region: reg},
 		messenger: mess,
 		count:     10,
 	})
@@ -105,14 +106,14 @@ func TestListenForSortedAuctions(t *testing.T) {
 
 	// building a test realm
 	reg := region{Name: "us"}
-	rea, err := newRealmFromFilepath(reg, "./TestData/realm.json")
+	rea, err := blizzard.NewRealmFromFilepath("./TestData/realm.json")
 	if !assert.Nil(t, err) {
 		return
 	}
 
 	// attaching the auctions to the state
-	sta.auctions = map[regionName]map[realmSlug]miniAuctionList{
-		reg.Name: map[realmSlug]miniAuctionList{
+	sta.auctions = map[regionName]map[blizzard.RealmSlug]miniAuctionList{
+		reg.Name: map[blizzard.RealmSlug]miniAuctionList{
 			rea.Slug: a.Auctions.minimize(),
 		},
 	}
@@ -126,7 +127,7 @@ func TestListenForSortedAuctions(t *testing.T) {
 
 	// subscribing to receive auctions
 	receivedMiniAuctions, err := newMiniAuctionsFromMessenger(newMiniAuctionsFromMessengerConfig{
-		realm:         rea,
+		realm:         realm{Realm: rea, region: reg},
 		messenger:     mess,
 		sortKind:      sortkinds.Item,
 		sortDirection: sortdirections.Up,
@@ -183,14 +184,14 @@ func TestListenForAuctionsFilteredByOwnerName(t *testing.T) {
 
 	// building a test realm
 	reg := region{Name: "us"}
-	rea, err := newRealmFromFilepath(reg, "./TestData/realm.json")
+	rea, err := blizzard.NewRealmFromFilepath("./TestData/realm.json")
 	if !assert.Nil(t, err) {
 		return
 	}
 
 	// attaching the auctions to the state
-	sta.auctions = map[regionName]map[realmSlug]miniAuctionList{
-		reg.Name: map[realmSlug]miniAuctionList{
+	sta.auctions = map[regionName]map[blizzard.RealmSlug]miniAuctionList{
+		reg.Name: map[blizzard.RealmSlug]miniAuctionList{
 			rea.Slug: a.Auctions.minimize(),
 		},
 	}
@@ -204,7 +205,7 @@ func TestListenForAuctionsFilteredByOwnerName(t *testing.T) {
 
 	// subscribing to receive auctions
 	receivedMiniAuctions, err := newMiniAuctionsFromMessenger(newMiniAuctionsFromMessengerConfig{
-		realm:         rea,
+		realm:         realm{Realm: rea, region: reg},
 		messenger:     mess,
 		sortKind:      sortkinds.Item,
 		sortDirection: sortdirections.Up,

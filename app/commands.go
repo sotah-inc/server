@@ -35,7 +35,7 @@ func apiTest(c config, m messenger, dataDir string) error {
 		messenger: m,
 		regions:   c.Regions,
 		statuses:  map[regionName]status{},
-		auctions:  map[regionName]map[realmSlug]miniAuctionList{},
+		auctions:  map[regionName]map[blizzard.RealmSlug]miniAuctionList{},
 	}
 	for _, reg := range c.Regions {
 		// loading realm statuses
@@ -46,7 +46,7 @@ func apiTest(c config, m messenger, dataDir string) error {
 		sta.statuses[reg.Name] = stat
 
 		// loading realm auctions
-		sta.auctions[reg.Name] = map[realmSlug]miniAuctionList{}
+		sta.auctions[reg.Name] = map[blizzard.RealmSlug]miniAuctionList{}
 		for _, rea := range stat.Realms {
 			sta.auctions[reg.Name][rea.Slug] = auc.Auctions.minimize()
 		}
@@ -101,7 +101,7 @@ func api(c config, m messenger) error {
 		resolver:  res,
 		regions:   c.Regions,
 		statuses:  map[regionName]status{},
-		auctions:  map[regionName]map[realmSlug]miniAuctionList{},
+		auctions:  map[regionName]map[blizzard.RealmSlug]miniAuctionList{},
 		items:     map[blizzard.ItemID]blizzard.Item{},
 	}
 
@@ -140,7 +140,7 @@ func api(c config, m messenger) error {
 
 		sta.statuses[reg.Name] = regionStatus
 
-		sta.auctions[reg.Name] = map[realmSlug]miniAuctionList{}
+		sta.auctions[reg.Name] = map[blizzard.RealmSlug]miniAuctionList{}
 		for _, rea := range regionStatus.Realms {
 			sta.auctions[reg.Name][rea.Slug] = miniAuctionList{}
 		}

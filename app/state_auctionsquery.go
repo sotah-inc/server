@@ -102,9 +102,9 @@ func newAuctionsQueryRequest(payload []byte) (auctionsQueryRequest, error) {
 }
 
 type auctionsQueryRequest struct {
-	RegionName regionName `json:"region_name"`
-	RealmSlug  realmSlug  `json:"realm_slug"`
-	Query      string     `json:"query"`
+	RegionName regionName         `json:"region_name"`
+	RealmSlug  blizzard.RealmSlug `json:"realm_slug"`
+	Query      string             `json:"query"`
 }
 
 func (request auctionsQueryRequest) resolve(sta state) (auctionsQueryResult, error) {

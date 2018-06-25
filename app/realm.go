@@ -1,17 +1,17 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 
+	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/util"
 	log "github.com/sirupsen/logrus"
 )
 
-type getAuctionsWhitelist map[realmSlug]interface{}
+type getAuctionsWhitelist map[blizzard.RealmSlug]interface{}
 
 type getAuctionsJob struct {
 	err      error
@@ -30,7 +30,7 @@ func (reas realms) getAuctionsOrAll(res resolver, whitelist getAuctionsWhitelist
 }
 
 func (reas realms) getAllAuctions(res resolver) chan getAuctionsJob {
-	whitelist := map[realmSlug]interface{}{}
+	whitelist := map[blizzard.RealmSlug]interface{}{}
 	for _, rea := range reas {
 		whitelist[rea.Slug] = true
 	}
@@ -72,39 +72,8 @@ func (reas realms) getAuctions(res resolver, whitelist getAuctionsWhitelist) cha
 	return out
 }
 
-func newRealmFromFilepath(reg region, relativeFilepath string) (realm, error) {
-	body, err := util.ReadFile(relativeFilepath)
-	if err != nil {
-		return realm{}, err
-	}
-
-	return newRealm(reg, body)
-}
-
-func newRealm(reg region, body []byte) (realm, error) {
-	rea := &realm{}
-	if err := json.Unmarshal(body, &rea); err != nil {
-		return realm{}, err
-	}
-
-	rea.region = reg
-	return *rea, nil
-}
-
-type realmSlug string
-
 type realm struct {
-	Type            string      `json:"type"`
-	Population      string      `json:"population"`
-	Queue           bool        `json:"queue"`
-	Status          bool        `json:"status"`
-	Name            string      `json:"name"`
-	Slug            realmSlug   `json:"slug"`
-	Battlegroup     string      `json:"battlegroup"`
-	Locale          string      `json:"locale"`
-	Timezone        string      `json:"timezone"`
-	ConnectedRealms []realmSlug `json:"connected_realms"`
-
+	blizzard.Realm
 	region region
 }
 

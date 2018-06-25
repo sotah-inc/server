@@ -5,16 +5,17 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/util"
 )
 
 const auctionInfoURLFormat = "https://%s/wow/auction/data/%s"
 
-func defaultGetAuctionInfoURL(regionHostname string, realmSlug realmSlug) string {
+func defaultGetAuctionInfoURL(regionHostname string, realmSlug blizzard.RealmSlug) string {
 	return fmt.Sprintf(auctionInfoURLFormat, regionHostname, realmSlug)
 }
 
-type getAuctionInfoURLFunc func(string, realmSlug) string
+type getAuctionInfoURLFunc func(string, blizzard.RealmSlug) string
 
 func newAuctionInfoFromHTTP(rea realm, r resolver) (auctionInfo, error) {
 	body, err := r.get(r.getAuctionInfoURL(rea.region.Hostname, rea.Slug))

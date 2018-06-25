@@ -25,7 +25,7 @@ func newAuctionsRequest(payload []byte) (auctionsRequest, error) {
 
 type auctionsRequest struct {
 	RegionName    regionName                   `json:"region_name"`
-	RealmSlug     realmSlug                    `json:"realm_slug"`
+	RealmSlug     blizzard.RealmSlug           `json:"realm_slug"`
 	Page          int                          `json:"page"`
 	Count         int                          `json:"count"`
 	SortDirection sortdirections.SortDirection `json:"sort_direction"`
