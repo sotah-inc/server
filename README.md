@@ -5,3 +5,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/ihsw/sotah-server)](https://goreportcard.com/report/github.com/ihsw/sotah-server)
 
 [![Coverage Status](https://coveralls.io/repos/github/ihsw/sotah-server/badge.svg?branch=)](https://coveralls.io/github/ihsw/sotah-server?branch=master)
+
+## Features
+
+- [ ] Use [gonum](https://github.com/gonum/gonum)
