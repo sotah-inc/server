@@ -20,7 +20,7 @@ func TestNewRealm(t *testing.T) {
 		return
 	}
 
-	_, err = NewRealm(body)
+	_, err = newRealm(body)
 	if !assert.Nil(t, err) {
 		return
 	}

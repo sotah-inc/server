@@ -226,12 +226,7 @@ func TestNewStatusFromMessenger(t *testing.T) {
 	stop <- struct{}{}
 }
 func TestNewStatus(t *testing.T) {
-	body, err := utiltest.ReadFile("./TestData/realm-status.json")
-	if !assert.Nil(t, err) {
-		return
-	}
-
-	blizzStatus, err := blizzard.NewStatus(body)
+	blizzStatus, err := blizzard.NewStatusFromFilepath("./TestData/realm-status.json")
 	if !assert.Nil(t, err) {
 		return
 	}

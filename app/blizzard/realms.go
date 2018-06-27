@@ -16,11 +16,10 @@ func NewRealmFromFilepath(relativeFilepath string) (Realm, error) {
 		return Realm{}, err
 	}
 
-	return NewRealm(body)
+	return newRealm(body)
 }
 
-// NewRealm loads a realm from a byte array of json
-func NewRealm(body []byte) (Realm, error) {
+func newRealm(body []byte) (Realm, error) {
 	rea := &Realm{}
 	if err := json.Unmarshal(body, &rea); err != nil {
 		return Realm{}, err
