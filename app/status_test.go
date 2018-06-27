@@ -3,6 +3,7 @@ package main
 import (
 	"testing"
 
+	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/utiltest"
 	"github.com/stretchr/testify/assert"
 )
@@ -19,25 +20,6 @@ func validateStatus(t *testing.T, reg region, s status) bool {
 	}
 
 	return true
-}
-
-func TestNewStatusFromHTTP(t *testing.T) {
-	ts, err := utiltest.ServeFile("./TestData/realm-status.json")
-	if !assert.Nil(t, err) {
-		return
-	}
-
-	reg := region{Hostname: "us.battle.net"}
-	s, err := newStatusFromHTTP(
-		reg,
-		resolver{getStatusURL: func(regionHostname string) string { return ts.URL }},
-	)
-	if !assert.Nil(t, err) {
-		return
-	}
-	if !validateStatus(t, reg, s) {
-		return
-	}
 }
 
 func TestNewStatusFromFilepath(t *testing.T) {
@@ -96,11 +78,13 @@ func TestNewStatus(t *testing.T) {
 		return
 	}
 
-	reg := region{Hostname: "us.battle.net"}
-	s, err := newStatus(reg, body)
+	blizzStatus, err := blizzard.NewStatus(body)
 	if !assert.Nil(t, err) {
 		return
 	}
+
+	reg := region{Hostname: "us.battle.net"}
+	s := newStatus(reg, blizzStatus)
 	if !validateStatus(t, reg, s) {
 		return
 	}

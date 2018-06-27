@@ -39,11 +39,11 @@ func apiTest(c config, m messenger, dataDir string) error {
 	}
 	for _, reg := range c.Regions {
 		// loading realm statuses
-		stat, err := newStatus(reg, statusBody)
+		stat, err := blizzard.NewStatus(statusBody)
 		if err != nil {
 			return err
 		}
-		sta.statuses[reg.Name] = stat
+		sta.statuses[reg.Name] = status{Status: stat, region: reg}
 
 		// loading realm auctions
 		sta.auctions[reg.Name] = map[blizzard.RealmSlug]miniAuctionList{}

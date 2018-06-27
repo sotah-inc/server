@@ -19,6 +19,15 @@ type getAuctionsJob struct {
 	auctions auctions
 }
 
+func newRealms(reg region, blizzRealms []blizzard.Realm) realms {
+	reas := make([]realm, len(blizzRealms))
+	for i, rea := range blizzRealms {
+		reas[i] = realm{rea, reg}
+	}
+
+	return reas
+}
+
 type realms []realm
 
 func (reas realms) getAuctionsOrAll(res resolver, whitelist getAuctionsWhitelist) chan getAuctionsJob {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/codes"
 	"github.com/ihsw/sotah-server/app/subjects"
 )
@@ -47,5 +48,10 @@ type region struct {
 }
 
 func (reg region) getStatus(res resolver) (status, error) {
-	return newStatusFromHTTP(reg, res)
+	stat, err := blizzard.NewStatusFromHTTP(res.getStatusURL(reg.Hostname))
+	if err != nil {
+		return status{}, err
+	}
+
+	return status{stat, reg, newRealms(reg, stat.Realms)}, nil
 }

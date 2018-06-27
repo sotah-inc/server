@@ -48,9 +48,11 @@ type Realm struct {
 
 const statusURLFormat = "https://%s/wow/realm/status?locale=en_US"
 
-type getStatusURLFunc func(string) string
+// GetStatusURLFunc defines the expected func signature for generating a status uri
+type GetStatusURLFunc func(string) string
 
-func defaultGetStatusURL(regionHostname string) string {
+// DefaultGetStatusURL returns a formatted uri
+func DefaultGetStatusURL(regionHostname string) string {
 	return fmt.Sprintf(statusURLFormat, regionHostname)
 }
 
