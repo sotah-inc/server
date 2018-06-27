@@ -3,6 +3,7 @@ package main
 import (
 	"testing"
 
+	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,7 +18,7 @@ func TestListenForItemClasses(t *testing.T) {
 	sta.messenger = mess
 
 	// resolving item-classes
-	result, err := newItemClassesFromFilepath("./TestData/item-classes.json")
+	result, err := blizzard.NewItemClassesFromFilepath("./TestData/item-classes.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -35,11 +36,6 @@ func TestListenForItemClasses(t *testing.T) {
 	// subscribing to receive items
 	receivedItemClasses, err := newItemClassesFromMessenger(mess)
 	if !assert.Nil(t, err) {
-		stop <- struct{}{}
-
-		return
-	}
-	if !assert.True(t, validateItemClasses(receivedItemClasses)) {
 		stop <- struct{}{}
 
 		return

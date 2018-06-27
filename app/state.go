@@ -18,7 +18,7 @@ type state struct {
 	statuses    map[regionName]status
 	auctions    map[regionName]map[blizzard.RealmSlug]miniAuctionList
 	items       itemsMap
-	itemClasses itemClasses
+	itemClasses blizzard.ItemClasses
 }
 
 type requestError struct {

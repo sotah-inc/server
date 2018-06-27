@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func validateItemClasses(iClasses itemClasses) bool {
+func validateItemClasses(iClasses ItemClasses) bool {
 	return len(iClasses.Classes) > 0 && iClasses.Classes[0].Class != 0
 }
 
@@ -17,7 +17,7 @@ func TestNewItemClassesFromHTTP(t *testing.T) {
 		return
 	}
 
-	a, err := newItemClassesFromHTTP(ts.URL)
+	a, err := NewItemClassesFromHTTP(ts.URL)
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -27,7 +27,7 @@ func TestNewItemClassesFromHTTP(t *testing.T) {
 }
 
 func TestNewItemClassesFromFilepath(t *testing.T) {
-	iClasses, err := newItemClassesFromFilepath("../TestData/item-classes.json")
+	iClasses, err := NewItemClassesFromFilepath("../TestData/item-classes.json")
 	if !assert.Nil(t, err) {
 		return
 	}

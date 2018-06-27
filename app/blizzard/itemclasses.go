@@ -9,54 +9,64 @@ import (
 
 const itemClassesURLFormat = "https://%s/wow/data/item/classes"
 
-func defaultGetItemClassesURL(regionHostname string) string {
+// DefaultGetItemClassesURL generates a url for fetching item-classes
+func DefaultGetItemClassesURL(regionHostname string) string {
 	return fmt.Sprintf(itemClassesURLFormat, regionHostname)
 }
 
-type getItemClassesURLFunc func(string) string
+// GetItemClassesURLFunc defines the expected func signature for generating a url for fetching item-classes
+type GetItemClassesURLFunc func(string) string
 
-func newItemClassesFromHTTP(uri string) (itemClasses, error) {
+// NewItemClassesFromHTTP loads item-classes from the http api
+func NewItemClassesFromHTTP(uri string) (ItemClasses, error) {
 	body, err := util.Download(uri)
 	if err != nil {
-		return itemClasses{}, err
+		return ItemClasses{}, err
 	}
 
-	return newItemClasses(body)
+	return NewItemClasses(body)
 }
 
-func newItemClassesFromFilepath(relativeFilepath string) (itemClasses, error) {
+// NewItemClassesFromFilepath loads item-classes from a json file
+func NewItemClassesFromFilepath(relativeFilepath string) (ItemClasses, error) {
 	body, err := util.ReadFile(relativeFilepath)
 	if err != nil {
-		return itemClasses{}, err
+		return ItemClasses{}, err
 	}
 
-	return newItemClasses(body)
+	return NewItemClasses(body)
 }
 
-func newItemClasses(body []byte) (itemClasses, error) {
-	icResult := &itemClasses{}
+// NewItemClasses parses json bytes for producing item-classes
+func NewItemClasses(body []byte) (ItemClasses, error) {
+	icResult := &ItemClasses{}
 	if err := json.Unmarshal(body, icResult); err != nil {
-		return itemClasses{}, err
+		return ItemClasses{}, err
 	}
 
 	return *icResult, nil
 }
 
-type itemClasses struct {
-	Classes []itemClass `json:"classes"`
+// ItemClasses lists out all item-classes
+type ItemClasses struct {
+	Classes []ItemClass `json:"classes"`
 }
 
-type itemClassClass int
+// ItemClassClass should be an enum as item-class-classes are fixed
+type ItemClassClass int
 
-type itemClass struct {
-	Class      itemClassClass `json:"class"`
+// ItemClass contains item-specific information and sub-item kinds
+type ItemClass struct {
+	Class      ItemClassClass `json:"class"`
 	Name       string         `json:"name"`
-	SubClasses []subItemClass `json:"subclasses"`
+	SubClasses []SubItemClass `json:"subclasses"`
 }
 
-type itemSubClassClass int
+// ItemSubClassClass is the sub-class id (cannot be enum, depends on item-class-class)
+type ItemSubClassClass int
 
-type subItemClass struct {
-	SubClass itemSubClassClass `json:"subclass"`
+// SubItemClass contains the name and sub-class id
+type SubItemClass struct {
+	SubClass ItemSubClassClass `json:"subclass"`
 	Name     string            `json:"name"`
 }
