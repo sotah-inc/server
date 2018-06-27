@@ -19,7 +19,7 @@ type getAuctionsWhitelist map[blizzard.RealmSlug]interface{}
 type getAuctionsJob struct {
 	err      error
 	realm    realm
-	auctions auctions
+	auctions blizzard.Auctions
 }
 
 func newRealms(reg region, blizzRealms []blizzard.Realm) realms {
@@ -93,53 +93,63 @@ func (rea realm) LogEntry() *log.Entry {
 	return log.WithFields(log.Fields{"region": rea.region.Name, "realm": rea.Slug})
 }
 
-func (rea realm) getAuctions(res resolver) (auctions, error) {
-	aucInfo, err := newAuctionInfoFromHTTP(rea, res)
+func (rea realm) getAuctions(res resolver) (blizzard.Auctions, error) {
+	// resolving auction-info from the api
+	aInfo, err := blizzard.NewAuctionInfoFromHTTP(
+		res.getAuctionInfoURL(rea.region.Hostname, rea.Slug),
+	)
 	if err != nil {
-		return auctions{}, err
+		return blizzard.Auctions{}, err
 	}
 
-	if len(aucInfo.Files) == 0 {
-		return auctions{}, errors.New("Cannot fetch auctions with blank files")
+	// validating the list of files
+	if len(aInfo.Files) == 0 {
+		return blizzard.Auctions{}, errors.New("Cannot fetch auctions with blank files")
 	}
-	af := aucInfo.Files[0]
+	aFile := aInfo.Files[0]
 
+	// validating config
 	if res.config == nil {
-		return auctions{}, errors.New("Config cannot be nil")
+		return blizzard.Auctions{}, errors.New("Config cannot be nil")
 	}
 
+	// optionally falling back to fetching from the api where use-cache-dir is off
 	if res.config.UseCacheDir == false {
-		return newAuctionsFromHTTP(af.URL, res)
+		return blizzard.NewAuctionsFromHTTP(res.getAuctionsURL(aFile.URL))
 	}
 
+	// validating the cache dir pathname
 	if res.config.CacheDir == "" {
-		return auctions{}, errors.New("Cache dir cannot be blank")
+		return blizzard.Auctions{}, errors.New("Cache dir cannot be blank")
 	}
 
+	// validating the realm region
 	if rea.region.Name == "" {
-		return auctions{}, errors.New("Region name cannot be blank")
+		return blizzard.Auctions{}, errors.New("Region name cannot be blank")
 	}
 
+	// resolving the auctions filepath
 	auctionsFilepath, err := filepath.Abs(
 		fmt.Sprintf("%s/auctions/%s/%s.json.gz", res.config.CacheDir, rea.region.Name, rea.Slug),
 	)
 	if err != nil {
-		return auctions{}, err
+		return blizzard.Auctions{}, err
 	}
 
+	// optionally loading the auctions file from the api
 	if _, err := os.Stat(auctionsFilepath); err != nil {
 		if !os.IsNotExist(err) {
-			return auctions{}, err
+			return blizzard.Auctions{}, err
 		}
 
-		body, err := res.get(res.getAuctionsURL(af.URL))
+		body, err := res.get(res.getAuctionsURL(aFile.URL))
 		if err != nil {
-			return auctions{}, err
+			return blizzard.Auctions{}, err
 		}
 
 		encodedBody, err := util.GzipEncode(body)
 		if err != nil {
-			return auctions{}, err
+			return blizzard.Auctions{}, err
 		}
 
 		log.WithFields(log.Fields{
@@ -147,14 +157,14 @@ func (rea realm) getAuctions(res resolver) (auctions, error) {
 			"realm":  rea.Slug,
 		}).Debug("Writing auction data to cache dir")
 		if err := util.WriteFile(auctionsFilepath, encodedBody); err != nil {
-			return auctions{}, err
+			return blizzard.Auctions{}, err
 		}
 
-		return newAuctions(body)
+		return blizzard.NewAuctions(body)
 	}
 
 	rea.LogEntry().Debug("Loading auction data from cache dir")
-	return newAuctionsFromGzFilepath(rea, auctionsFilepath)
+	return blizzard.NewAuctionsFromGzFilepath(auctionsFilepath)
 }
 
 func newStatusFromMessenger(reg region, mess messenger) (status, error) {

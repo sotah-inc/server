@@ -12,140 +12,7 @@ import (
 	"github.com/ihsw/sotah-server/app/codes"
 	"github.com/ihsw/sotah-server/app/subjects"
 	"github.com/ihsw/sotah-server/app/util"
-	log "github.com/sirupsen/logrus"
 )
-
-func defaultGetAuctionsURL(url string) string {
-	return url
-}
-
-type getAuctionsURLFunc func(url string) string
-
-func newAuctionsFromHTTP(url string, r resolver) (auctions, error) {
-	body, err := r.get(r.getAuctionsURL(url))
-	if err != nil {
-		return auctions{}, err
-	}
-
-	return newAuctions(body)
-}
-
-func newAuctionsFromFilepath(relativeFilepath string) (auctions, error) {
-	log.WithField("filepath", relativeFilepath).Info("Reading auctions from file")
-
-	body, err := util.ReadFile(relativeFilepath)
-	if err != nil {
-		return auctions{}, err
-	}
-
-	return newAuctions(body)
-}
-
-func newAuctionsFromGzFilepath(rea realm, relativeFilepath string) (auctions, error) {
-	body, err := util.ReadFile(relativeFilepath)
-	if err != nil {
-		return auctions{}, err
-	}
-
-	decodedBody, err := util.GzipDecode(body)
-	if err != nil {
-		return auctions{}, err
-	}
-
-	return newAuctions(decodedBody)
-}
-
-func newAuctions(body []byte) (auctions, error) {
-	a := &auctions{}
-	if err := json.Unmarshal(body, a); err != nil {
-		return auctions{}, err
-	}
-
-	return *a, nil
-}
-
-type auctionList []auction
-
-func (al auctionList) minimize() miniAuctionList {
-	// gathering a map of all mini-auctions
-	mAuctions := miniAuctions{}
-	for _, a := range al {
-		maHash := a.toMiniAuctionHash()
-		if mAuction, ok := mAuctions[maHash]; ok {
-			mAuction.AucList = append(mAuction.AucList, a.Auc)
-			mAuctions[maHash] = mAuction
-
-			continue
-		}
-
-		mAuction := a.toMiniAuction()
-		mAuction.AucList = append(mAuction.AucList, a.Auc)
-		mAuctions[maHash] = mAuction
-	}
-
-	mAuctionList := miniAuctionList{}
-	for _, mAuction := range mAuctions {
-		mAuctionList = append(mAuctionList, mAuction)
-	}
-
-	return mAuctionList
-}
-
-type auctions struct {
-	Realms   []auctionRealm `json:"realms"`
-	Auctions auctionList    `json:"auctions"`
-}
-
-type auctionRealm struct {
-	Name string             `json:"name"`
-	Slug blizzard.RealmSlug `json:"slug"`
-}
-
-type auction struct {
-	Auc        int64           `json:"auc"`
-	Item       blizzard.ItemID `json:"item"`
-	Owner      ownerName       `json:"owner"`
-	OwnerRealm string          `json:"ownerRealm"`
-	Bid        int64           `json:"bid"`
-	Buyout     int64           `json:"buyout"`
-	Quantity   int64           `json:"quantity"`
-	TimeLeft   string          `json:"timeLeft"`
-	Rand       int64           `json:"rand"`
-	Seed       int64           `json:"seed"`
-	Context    int64           `json:"context"`
-}
-
-func (auc auction) toMiniAuctionHash() miniAuctionHash {
-	return miniAuctionHash(fmt.Sprintf(
-		"%d-%s-%s-%d-%d-%d-%s",
-		auc.Item,
-		auc.Owner,
-		auc.OwnerRealm,
-		auc.Bid,
-		auc.Buyout,
-		auc.Quantity,
-		auc.TimeLeft,
-	))
-}
-
-func (auc auction) toMiniAuction() miniAuction {
-	var buyoutPer float32
-	if auc.Buyout > 0 {
-		buyoutPer = float32(auc.Buyout) / float32(auc.Quantity)
-	}
-
-	return miniAuction{
-		blizzard.Item{ID: auc.Item, Name: "", NormalizedName: ""},
-		auc.Owner,
-		auc.OwnerRealm,
-		auc.Bid,
-		auc.Buyout,
-		buyoutPer,
-		auc.Quantity,
-		auc.TimeLeft,
-		[]int64{},
-	}
-}
 
 func newMiniAuctionsDataFromFilepath(relativeFilepath string) (miniAuctionsData, error) {
 	body, err := util.ReadFile(relativeFilepath)
@@ -169,7 +36,7 @@ type miniAuctionsData struct {
 	Auctions miniAuctionList `json:"auctions"`
 }
 
-type newMiniAuctionsFromMessengerConfig struct {
+type newMiniAuctionsListFromMessengerConfig struct {
 	realm         realm
 	messenger     messenger
 	count         int
@@ -179,7 +46,7 @@ type newMiniAuctionsFromMessengerConfig struct {
 	ownerFilter   ownerName
 }
 
-func (config newMiniAuctionsFromMessengerConfig) toAuctionsRequest() auctionsRequest {
+func (config newMiniAuctionsListFromMessengerConfig) toAuctionsRequest() auctionsRequest {
 	oFilters := []ownerName{}
 	if config.ownerFilter != "" {
 		oFilters = append(oFilters, config.ownerFilter)
@@ -196,14 +63,38 @@ func (config newMiniAuctionsFromMessengerConfig) toAuctionsRequest() auctionsReq
 	}
 }
 
-func newMiniAuctionsFromMessenger(config newMiniAuctionsFromMessengerConfig) (miniAuctionList, error) {
+func newMiniAuctionListFromBlizzardAuctions(aucs []blizzard.Auction) miniAuctionList {
+	// gathering a map of all mini-auctions
+	mAuctions := miniAuctions{}
+	for _, auc := range aucs {
+		maHash := newMiniAuctionHash(auc)
+		if mAuction, ok := mAuctions[maHash]; ok {
+			mAuction.AucList = append(mAuction.AucList, auc.Auc)
+			mAuctions[maHash] = mAuction
+
+			continue
+		}
+
+		mAuction := newMiniAuction(auc)
+		mAuction.AucList = append(mAuction.AucList, auc.Auc)
+		mAuctions[maHash] = mAuction
+	}
+
+	maList := miniAuctionList{}
+	for _, mAuction := range mAuctions {
+		maList = append(maList, mAuction)
+	}
+
+	return maList
+}
+
+func newMiniAuctionsListFromMessenger(config newMiniAuctionsListFromMessengerConfig) (miniAuctionList, error) {
 	am := config.toAuctionsRequest()
 	encodedMessage, err := json.Marshal(am)
 	if err != nil {
 		return miniAuctionList{}, err
 	}
 
-	log.WithField("subject", subjects.Auctions).Info("Sending request")
 	msg, err := config.messenger.request(subjects.Auctions, encodedMessage)
 	if err != nil {
 		return miniAuctionList{}, err
@@ -221,13 +112,13 @@ func newMiniAuctionsFromMessenger(config newMiniAuctionsFromMessengerConfig) (mi
 	return ar.AuctionList, nil
 }
 
-func newMiniAuctions(body []byte) (miniAuctionList, error) {
-	mal := &miniAuctionList{}
-	if err := json.Unmarshal(body, mal); err != nil {
+func newMiniAuctionsList(body []byte) (miniAuctionList, error) {
+	maList := &miniAuctionList{}
+	if err := json.Unmarshal(body, maList); err != nil {
 		return nil, err
 	}
 
-	return *mal, nil
+	return *maList, nil
 }
 
 type miniAuctionList []miniAuction
@@ -308,7 +199,40 @@ func (maList miniAuctionList) appendItemNames(iMap itemsMap) miniAuctionList {
 }
 
 type miniAuctions map[miniAuctionHash]miniAuction
+
+func newMiniAuctionHash(auc blizzard.Auction) miniAuctionHash {
+	return miniAuctionHash(fmt.Sprintf(
+		"%d-%s-%s-%d-%d-%d-%s",
+		auc.Item,
+		auc.Owner,
+		auc.OwnerRealm,
+		auc.Bid,
+		auc.Buyout,
+		auc.Quantity,
+		auc.TimeLeft,
+	))
+}
+
 type miniAuctionHash string
+
+func newMiniAuction(auc blizzard.Auction) miniAuction {
+	var buyoutPer float32
+	if auc.Buyout > 0 {
+		buyoutPer = float32(auc.Buyout) / float32(auc.Quantity)
+	}
+
+	return miniAuction{
+		blizzard.Item{ID: auc.Item, Name: "", NormalizedName: ""},
+		ownerName(auc.Owner),
+		auc.OwnerRealm,
+		auc.Bid,
+		auc.Buyout,
+		buyoutPer,
+		auc.Quantity,
+		auc.TimeLeft,
+		[]int64{},
+	}
+}
 
 type miniAuction struct {
 	Item       blizzard.Item `json:"item"`

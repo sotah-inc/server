@@ -77,7 +77,7 @@ func (sta state) auctionsIntake(job getAuctionsJob) []blizzard.ItemID {
 	}
 
 	// compacting the auctions
-	minimizedAuctions := job.auctions.Auctions.minimize()
+	minimizedAuctions := newMiniAuctionListFromBlizzardAuctions(job.auctions.Auctions)
 
 	// loading the minimized auctions into state
 	sta.auctions[reg.Name][rea.Slug] = minimizedAuctions

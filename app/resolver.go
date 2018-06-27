@@ -12,8 +12,8 @@ func newResolver(c config) resolver {
 		config: &c,
 
 		getStatusURL:      blizzard.DefaultGetStatusURL,
-		getAuctionInfoURL: defaultGetAuctionInfoURL,
-		getAuctionsURL:    defaultGetAuctionsURL,
+		getAuctionInfoURL: blizzard.DefaultGetAuctionInfoURL,
+		getAuctionsURL:    blizzard.DefaultGetAuctionsURL,
 		getItemURL:        blizzard.DefaultGetItemURL,
 		getItemIconURL:    defaultGetItemIconURL,
 		getItemClassesURL: defaultGetItemClassesURL,
@@ -49,8 +49,8 @@ type resolver struct {
 	config *config
 
 	getStatusURL      blizzard.GetStatusURLFunc
-	getAuctionInfoURL getAuctionInfoURLFunc
-	getAuctionsURL    getAuctionsURLFunc
+	getAuctionInfoURL blizzard.GetAuctionInfoURLFunc
+	getAuctionsURL    blizzard.GetAuctionsURLFunc
 	getItemURL        blizzard.GetItemURLFunc
 	getItemIconURL    getItemIconURLFunc
 	getItemClassesURL getItemClassesURLFunc

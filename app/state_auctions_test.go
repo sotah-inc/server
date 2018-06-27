@@ -20,11 +20,8 @@ func TestListenForAuctions(t *testing.T) {
 	sta.messenger = mess
 
 	// building test auctions
-	a, err := newAuctionsFromFilepath("./TestData/auctions.json")
+	aucs, err := blizzard.NewAuctionsFromFilepath("./TestData/auctions.json")
 	if !assert.Nil(t, err) {
-		return
-	}
-	if !assert.True(t, validateAuctions(a)) {
 		return
 	}
 
@@ -38,7 +35,7 @@ func TestListenForAuctions(t *testing.T) {
 	// attaching the auctions to the state
 	sta.auctions = map[regionName]map[blizzard.RealmSlug]miniAuctionList{
 		reg.Name: map[blizzard.RealmSlug]miniAuctionList{
-			rea.Slug: a.Auctions.minimize(),
+			rea.Slug: newMiniAuctionListFromBlizzardAuctions(aucs.Auctions),
 		},
 	}
 
@@ -50,7 +47,7 @@ func TestListenForAuctions(t *testing.T) {
 	}
 
 	// subscribing to receive auctions
-	receivedMiniAuctions, err := newMiniAuctionsFromMessenger(newMiniAuctionsFromMessengerConfig{
+	receivedMiniAuctions, err := newMiniAuctionsListFromMessenger(newMiniAuctionsListFromMessengerConfig{
 		realm:     realm{Realm: rea, region: reg},
 		messenger: mess,
 		count:     10,
@@ -65,7 +62,7 @@ func TestListenForAuctions(t *testing.T) {
 
 		return
 	}
-	if !assert.Equal(t, len(a.Auctions), len(receivedMiniAuctions)) {
+	if !assert.Equal(t, len(aucs.Auctions), len(receivedMiniAuctions)) {
 		stop <- struct{}{}
 
 		return
@@ -87,20 +84,14 @@ func TestListenForSortedAuctions(t *testing.T) {
 	sta.messenger = mess
 
 	// building test auctions
-	a, err := newAuctionsFromFilepath("./TestData/auctions.json")
+	aucs, err := blizzard.NewAuctionsFromFilepath("./TestData/auctions.json")
 	if !assert.Nil(t, err) {
-		return
-	}
-	if !assert.True(t, validateAuctions(a)) {
 		return
 	}
 
 	// building sorted test auctions
 	aSorted, err := newMiniAuctionsDataFromFilepath("./TestData/mini-auctions-sort-by-item.json")
 	if !assert.Nil(t, err) {
-		return
-	}
-	if !assert.True(t, validateAuctions(a)) {
 		return
 	}
 
@@ -114,7 +105,7 @@ func TestListenForSortedAuctions(t *testing.T) {
 	// attaching the auctions to the state
 	sta.auctions = map[regionName]map[blizzard.RealmSlug]miniAuctionList{
 		reg.Name: map[blizzard.RealmSlug]miniAuctionList{
-			rea.Slug: a.Auctions.minimize(),
+			rea.Slug: newMiniAuctionListFromBlizzardAuctions(aucs.Auctions),
 		},
 	}
 
@@ -126,7 +117,7 @@ func TestListenForSortedAuctions(t *testing.T) {
 	}
 
 	// subscribing to receive auctions
-	receivedMiniAuctions, err := newMiniAuctionsFromMessenger(newMiniAuctionsFromMessengerConfig{
+	receivedMiniAuctions, err := newMiniAuctionsListFromMessenger(newMiniAuctionsListFromMessengerConfig{
 		realm:         realm{Realm: rea, region: reg},
 		messenger:     mess,
 		sortKind:      sortkinds.Item,
@@ -165,20 +156,14 @@ func TestListenForAuctionsFilteredByOwnerName(t *testing.T) {
 	sta.messenger = mess
 
 	// building test auctions
-	a, err := newAuctionsFromFilepath("./TestData/auctions.json")
+	a, err := blizzard.NewAuctionsFromFilepath("./TestData/auctions.json")
 	if !assert.Nil(t, err) {
-		return
-	}
-	if !assert.True(t, validateAuctions(a)) {
 		return
 	}
 
 	// building filtered test auctions
 	aFiltered, err := newMiniAuctionsDataFromFilepath("./TestData/mini-auctions-filtered-by-owner-name.json")
 	if !assert.Nil(t, err) {
-		return
-	}
-	if !assert.True(t, validateAuctions(a)) {
 		return
 	}
 
@@ -192,7 +177,7 @@ func TestListenForAuctionsFilteredByOwnerName(t *testing.T) {
 	// attaching the auctions to the state
 	sta.auctions = map[regionName]map[blizzard.RealmSlug]miniAuctionList{
 		reg.Name: map[blizzard.RealmSlug]miniAuctionList{
-			rea.Slug: a.Auctions.minimize(),
+			rea.Slug: newMiniAuctionListFromBlizzardAuctions(a.Auctions),
 		},
 	}
 
@@ -204,7 +189,7 @@ func TestListenForAuctionsFilteredByOwnerName(t *testing.T) {
 	}
 
 	// subscribing to receive auctions
-	receivedMiniAuctions, err := newMiniAuctionsFromMessenger(newMiniAuctionsFromMessengerConfig{
+	receivedMiniAuctions, err := newMiniAuctionsListFromMessenger(newMiniAuctionsListFromMessengerConfig{
 		realm:         realm{Realm: rea, region: reg},
 		messenger:     mess,
 		sortKind:      sortkinds.Item,

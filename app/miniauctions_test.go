@@ -4,44 +4,8 @@ import (
 	"testing"
 
 	"github.com/ihsw/sotah-server/app/blizzard"
-	"github.com/ihsw/sotah-server/app/utiltest"
 	"github.com/stretchr/testify/assert"
 )
-
-func validateAuctions(a auctions) bool {
-	if len(a.Realms) == 0 {
-		return false
-	}
-
-	return true
-}
-
-func TestNewAuctionsFromHTTP(t *testing.T) {
-	ts, err := utiltest.ServeFile("./TestData/auctions.json")
-	if !assert.Nil(t, err) {
-		return
-	}
-
-	a, err := newAuctionsFromHTTP(
-		ts.URL,
-		resolver{getAuctionsURL: func(url string) string { return url }},
-	)
-	if !assert.Nil(t, err) {
-		return
-	}
-	if !assert.True(t, validateAuctions(a)) {
-		return
-	}
-}
-func TestNewAuctionsFromFilepath(t *testing.T) {
-	a, err := newAuctionsFromFilepath("./TestData/auctions.json")
-	if !assert.Nil(t, err) {
-		return
-	}
-	if !assert.True(t, validateAuctions(a)) {
-		return
-	}
-}
 
 func TestNewMiniAuctionsDataFromFilepath(t *testing.T) {
 	t.Skip("TODO after creating blizzard package")
@@ -67,11 +31,8 @@ func TestNewMiniAuctionsFromMessenger(t *testing.T) {
 	sta.messenger = mess
 
 	// building test auctions
-	a, err := newAuctionsFromFilepath("./TestData/auctions.json")
+	aucs, err := blizzard.NewAuctionsFromFilepath("./TestData/auctions.json")
 	if !assert.Nil(t, err) {
-		return
-	}
-	if !assert.True(t, validateAuctions(a)) {
 		return
 	}
 
@@ -85,7 +46,7 @@ func TestNewMiniAuctionsFromMessenger(t *testing.T) {
 	// attaching the auctions to the state
 	sta.auctions = map[regionName]map[blizzard.RealmSlug]miniAuctionList{
 		reg.Name: {
-			rea.Slug: a.Auctions.minimize(),
+			rea.Slug: newMiniAuctionListFromBlizzardAuctions(aucs.Auctions),
 		},
 	}
 
@@ -97,7 +58,7 @@ func TestNewMiniAuctionsFromMessenger(t *testing.T) {
 	}
 
 	// subscribing to receive auctions
-	receivedMiniAuctions, err := newMiniAuctionsFromMessenger(newMiniAuctionsFromMessengerConfig{
+	receivedMiniAuctions, err := newMiniAuctionsListFromMessenger(newMiniAuctionsListFromMessengerConfig{
 		realm:     realm{Realm: rea, region: reg},
 		messenger: mess,
 		count:     10,
@@ -112,7 +73,7 @@ func TestNewMiniAuctionsFromMessenger(t *testing.T) {
 
 		return
 	}
-	if !assert.Equal(t, len(a.Auctions), len(receivedMiniAuctions)) {
+	if !assert.Equal(t, len(aucs.Auctions), len(receivedMiniAuctions)) {
 		stop <- struct{}{}
 
 		return
@@ -120,19 +81,4 @@ func TestNewMiniAuctionsFromMessenger(t *testing.T) {
 
 	// flagging the status listener to exit
 	stop <- struct{}{}
-}
-
-func TestNewAuctions(t *testing.T) {
-	body, err := utiltest.ReadFile("./TestData/auctions.json")
-	if !assert.Nil(t, err) {
-		return
-	}
-
-	a, err := newAuctions(body)
-	if !assert.Nil(t, err) {
-		return
-	}
-	if !assert.True(t, validateAuctions(a)) {
-		return
-	}
 }

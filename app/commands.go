@@ -25,7 +25,7 @@ func apiTest(c config, m messenger, dataDir string) error {
 	if err != nil {
 		return err
 	}
-	auc, err := newAuctionsFromFilepath(fmt.Sprintf("%s/auctions.json", dataDirPath))
+	auc, err := blizzard.NewAuctionsFromFilepath(fmt.Sprintf("%s/auctions.json", dataDirPath))
 	if err != nil {
 		return err
 	}
@@ -48,7 +48,7 @@ func apiTest(c config, m messenger, dataDir string) error {
 		// loading realm auctions
 		sta.auctions[reg.Name] = map[blizzard.RealmSlug]miniAuctionList{}
 		for _, rea := range stat.Realms {
-			sta.auctions[reg.Name][rea.Slug] = auc.Auctions.minimize()
+			sta.auctions[reg.Name][rea.Slug] = newMiniAuctionListFromBlizzardAuctions(auc.Auctions)
 		}
 	}
 
