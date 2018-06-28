@@ -131,3 +131,14 @@ func EnsureDirExists(relativePath string) error {
 
 	return nil
 }
+
+// EnsureDirsExist - ensuring dirs exist
+func EnsureDirsExist(relativePaths []string) error {
+	for _, relativePath := range relativePaths {
+		if err := EnsureDirExists(relativePath); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

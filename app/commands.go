@@ -105,30 +105,17 @@ func api(c config, m messenger) error {
 		items:     map[blizzard.ItemID]blizzard.Item{},
 	}
 
-	// ensuring auctions cache-dir exists
-	err := util.EnsureDirExists(fmt.Sprintf("%s/auctions", c.CacheDir))
-	if err != nil {
-		return err
+	// ensuring cache-dirs exist
+	cacheDirs := []string{
+		fmt.Sprintf("%s/auctions", c.CacheDir),
+		fmt.Sprintf("%s/items", c.CacheDir),
+		fmt.Sprintf("%s/item-icons", c.CacheDir),
 	}
-
-	// ensuring items cache-dir exists
-	err = util.EnsureDirExists(fmt.Sprintf("%s/items", c.CacheDir))
-	if err != nil {
-		return err
-	}
-
-	// ensuring item-icons cache-dir exists
-	err = util.EnsureDirExists(fmt.Sprintf("%s/item-icons", c.CacheDir))
-	if err != nil {
-		return err
-	}
-
-	// ensuring each region-auctions cache-dir exists
 	for _, reg := range c.Regions {
-		err := util.EnsureDirExists(fmt.Sprintf("%s/auctions/%s", c.CacheDir, reg.Name))
-		if err != nil {
-			return err
-		}
+		cacheDirs = append(cacheDirs, fmt.Sprintf("%s/auctions/%s", c.CacheDir, reg.Name))
+	}
+	if err := util.EnsureDirsExist(cacheDirs); err != nil {
+		return err
 	}
 
 	// filling state with region statuses and a blank list of auctions
