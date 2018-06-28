@@ -30,6 +30,29 @@ func (plRequest priceListRequest) resolve(sta state) (priceList, requestError) {
 	return priceList{}, requestError{codes.Ok, ""}
 }
 
+func newPriceListResponseFromMessenger(plRequest priceListRequest, mess messenger) (priceListResponse, error) {
+	encodedMessage, err := json.Marshal(plRequest)
+	if err != nil {
+		return priceListResponse{}, err
+	}
+
+	msg, err := mess.request(subjects.PriceList, encodedMessage)
+	if err != nil {
+		return priceListResponse{}, err
+	}
+
+	return newPriceListResponse([]byte(msg.Data))
+}
+
+func newPriceListResponse(body []byte) (priceListResponse, error) {
+	plResponse := &priceListResponse{}
+	if err := json.Unmarshal(body, &plResponse); err != nil {
+		return priceListResponse{}, err
+	}
+
+	return *plResponse, nil
+}
+
 type priceListResponse struct {
 	PriceList priceList `json:"price_list"`
 }
