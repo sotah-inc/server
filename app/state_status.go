@@ -42,7 +42,7 @@ func (sr statusRequest) resolve(sta state) (region, error) {
 	return reg, nil
 }
 
-func (sta state) listenForStatus(stop chan interface{}) error {
+func (sta state) listenForStatus(stop listenStopChan) error {
 	err := sta.messenger.subscribe(subjects.Status, stop, func(natsMsg nats.Msg) {
 		m := newMessage()
 

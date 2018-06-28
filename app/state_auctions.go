@@ -103,7 +103,7 @@ func (ar auctionsResponse) encodeForMessage() (string, error) {
 	return base64.StdEncoding.EncodeToString(gzipEncodedAuctions), nil
 }
 
-func (sta state) listenForAuctions(stop chan interface{}) error {
+func (sta state) listenForAuctions(stop listenStopChan) error {
 	err := sta.messenger.subscribe(subjects.Auctions, stop, func(natsMsg nats.Msg) {
 		m := newMessage()
 

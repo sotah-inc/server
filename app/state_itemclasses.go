@@ -23,7 +23,7 @@ func newItemClassesFromMessenger(mess messenger) (blizzard.ItemClasses, error) {
 	return blizzard.NewItemClasses([]byte(msg.Data))
 }
 
-func (sta state) listenForItemClasses(stop chan interface{}) error {
+func (sta state) listenForItemClasses(stop listenStopChan) error {
 	err := sta.messenger.subscribe(subjects.ItemClasses, stop, func(natsMsg nats.Msg) {
 		m := newMessage()
 

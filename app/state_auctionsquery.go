@@ -165,7 +165,7 @@ func (request auctionsQueryRequest) resolve(sta state) (auctionsQueryResult, err
 	return aqResult, nil
 }
 
-func (sta state) listenForAuctionsQuery(stop chan interface{}) error {
+func (sta state) listenForAuctionsQuery(stop listenStopChan) error {
 	err := sta.messenger.subscribe(subjects.AuctionsQuery, stop, func(natsMsg nats.Msg) {
 		m := newMessage()
 

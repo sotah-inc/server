@@ -10,9 +10,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type requestError struct {
+	code    codes.Code
+	message string
+}
+
 type state struct {
 	messenger messenger
 	resolver  resolver
+	listeners listeners
 
 	regions     []region
 	statuses    map[regionName]status
@@ -21,12 +27,7 @@ type state struct {
 	itemClasses blizzard.ItemClasses
 }
 
-type requestError struct {
-	code    codes.Code
-	message string
-}
-
-func (sta state) listenForRegions(stop chan interface{}) error {
+func (sta state) listenForRegions(stop listenStopChan) error {
 	err := sta.messenger.subscribe(subjects.Regions, stop, func(natsMsg nats.Msg) {
 		m := newMessage()
 
@@ -49,7 +50,7 @@ func (sta state) listenForRegions(stop chan interface{}) error {
 	return nil
 }
 
-func (sta state) listenForGenericTestErrors(stop chan interface{}) error {
+func (sta state) listenForGenericTestErrors(stop listenStopChan) error {
 	err := sta.messenger.subscribe(subjects.GenericTestErrors, stop, func(natsMsg nats.Msg) {
 		m := newMessage()
 		m.Err = "Test error"
@@ -84,4 +85,42 @@ func (sta state) auctionsIntake(job getAuctionsJob) []blizzard.ItemID {
 
 	// returning a list of item ids for syncing
 	return minimizedAuctions.itemIds()
+}
+
+type listenStopChan chan interface{}
+
+type listenFunc func(stop listenStopChan) error
+
+type subjectListeners map[subjects.Subject]listenFunc
+
+func newListeners(sListeners subjectListeners) listeners {
+	ls := listeners{}
+	for subj, l := range sListeners {
+		ls[subj] = listener{l, make(listenStopChan)}
+	}
+
+	return ls
+}
+
+type listeners map[subjects.Subject]listener
+
+func (ls listeners) listen() error {
+	for _, l := range ls {
+		if err := l.call(l.stopChan); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (ls listeners) stop() {
+	for _, l := range ls {
+		l.stopChan <- struct{}{}
+	}
+}
+
+type listener struct {
+	call     listenFunc
+	stopChan listenStopChan
 }

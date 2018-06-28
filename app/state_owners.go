@@ -41,7 +41,7 @@ func (request ownersRequest) resolve(sta state) (miniAuctionList, error) {
 	return realmAuctions, nil
 }
 
-func (sta state) listenForOwners(stop chan interface{}) error {
+func (sta state) listenForOwners(stop listenStopChan) error {
 	err := sta.messenger.subscribe(subjects.Owners, stop, func(natsMsg nats.Msg) {
 		m := newMessage()
 

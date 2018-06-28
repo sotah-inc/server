@@ -157,39 +157,18 @@ func api(c config, m messenger) error {
 	}
 	sta.itemClasses = iClasses
 
-	// listening for status requests
-	stopChans := map[subjects.Subject]chan interface{}{
-		subjects.Status:            make(chan interface{}),
-		subjects.Regions:           make(chan interface{}),
-		subjects.GenericTestErrors: make(chan interface{}),
-		subjects.Auctions:          make(chan interface{}),
-		subjects.Owners:            make(chan interface{}),
-		subjects.ItemsQuery:        make(chan interface{}),
-		subjects.AuctionsQuery:     make(chan interface{}),
-		subjects.ItemClasses:       make(chan interface{}),
-	}
-	if err := sta.listenForStatus(stopChans[subjects.Status]); err != nil {
-		return err
-	}
-	if err := sta.listenForRegions(stopChans[subjects.Regions]); err != nil {
-		return err
-	}
-	if err := sta.listenForGenericTestErrors(stopChans[subjects.GenericTestErrors]); err != nil {
-		return err
-	}
-	if err := sta.listenForAuctions(stopChans[subjects.Auctions]); err != nil {
-		return err
-	}
-	if err := sta.listenForOwners(stopChans[subjects.Owners]); err != nil {
-		return err
-	}
-	if err := sta.listenForItems(stopChans[subjects.ItemsQuery]); err != nil {
-		return err
-	}
-	if err := sta.listenForAuctionsQuery(stopChans[subjects.AuctionsQuery]); err != nil {
-		return err
-	}
-	if err := sta.listenForItemClasses(stopChans[subjects.ItemClasses]); err != nil {
+	// opening all listeners
+	sta.listeners = newListeners(subjectListeners{
+		subjects.GenericTestErrors: sta.listenForGenericTestErrors,
+		subjects.Status:            sta.listenForStatus,
+		subjects.Regions:           sta.listenForRegions,
+		subjects.Auctions:          sta.listenForAuctions,
+		subjects.Owners:            sta.listenForOwners,
+		subjects.ItemsQuery:        sta.listenForItems,
+		subjects.AuctionsQuery:     sta.listenForAuctionsQuery,
+		subjects.ItemClasses:       sta.listenForItemClasses,
+	})
+	if err := sta.listeners.listen(); err != nil {
 		return err
 	}
 
@@ -276,9 +255,7 @@ func api(c config, m messenger) error {
 	log.Info("Caught SIGINT, exiting")
 
 	// stopping listeners
-	for _, stop := range stopChans {
-		stop <- struct{}{}
-	}
+	sta.listeners.stop()
 
 	return nil
 }
