@@ -107,9 +107,7 @@ func (sta state) listenForPriceList(stop listenStopChan) error {
 			return
 		}
 
-		pList := newPriceList(realmAuctions)
-
-		plResponse := priceListResponse{pList}
+		plResponse := priceListResponse{newPriceList(realmAuctions)}
 		data, err := plResponse.encodeForMessage()
 		if err != nil {
 			m.Err = err.Error()
