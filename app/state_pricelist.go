@@ -2,12 +2,12 @@ package main
 
 import (
 	"encoding/json"
-
-	"github.com/ihsw/sotah-server/app/subjects"
-	"github.com/nats-io/go-nats"
+	"errors"
 
 	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/codes"
+	"github.com/ihsw/sotah-server/app/subjects"
+	"github.com/nats-io/go-nats"
 )
 
 func newPriceListRequest(payload []byte) (priceListRequest, error) {
@@ -26,8 +26,21 @@ type priceListRequest struct {
 	ItemIds    []blizzard.ItemID  `json:"item_ids"`
 }
 
-func (plRequest priceListRequest) resolve(sta state) (priceList, requestError) {
-	return priceList{}, requestError{codes.Ok, ""}
+func (plRequest priceListRequest) resolve(sta state) (miniAuctionList, requestError) {
+	regionAuctions, ok := sta.auctions[plRequest.RegionName]
+	if !ok {
+		return miniAuctionList{}, requestError{codes.NotFound, "Invalid region"}
+	}
+
+	realmAuctions, ok := regionAuctions[plRequest.RealmSlug]
+	if !ok {
+		return miniAuctionList{}, requestError{codes.NotFound, "Invalid realm"}
+	}
+
+	result := make(miniAuctionList, len(realmAuctions))
+	copy(result, realmAuctions)
+
+	return result, requestError{codes.Ok, ""}
 }
 
 func newPriceListResponseFromMessenger(plRequest priceListRequest, mess messenger) (priceListResponse, error) {
@@ -39,6 +52,10 @@ func newPriceListResponseFromMessenger(plRequest priceListRequest, mess messenge
 	msg, err := mess.request(subjects.PriceList, encodedMessage)
 	if err != nil {
 		return priceListResponse{}, err
+	}
+
+	if msg.Code != codes.Ok {
+		return priceListResponse{}, errors.New(msg.Err)
 	}
 
 	return newPriceListResponse([]byte(msg.Data))
@@ -70,7 +87,29 @@ func (sta state) listenForPriceList(stop listenStopChan) error {
 	err := sta.messenger.subscribe(subjects.PriceList, stop, func(natsMsg nats.Msg) {
 		m := newMessage()
 
-		plResponse := priceListResponse{}
+		// resolving the request
+		plRequest, err := newPriceListRequest(natsMsg.Data)
+		if err != nil {
+			m.Err = err.Error()
+			m.Code = codes.MsgJSONParseError
+			sta.messenger.replyTo(natsMsg, m)
+
+			return
+		}
+
+		// resolving data from state
+		realmAuctions, reErr := plRequest.resolve(sta)
+		if reErr.code != codes.Ok {
+			m.Err = reErr.message
+			m.Code = reErr.code
+			sta.messenger.replyTo(natsMsg, m)
+
+			return
+		}
+
+		pList := newPriceList(realmAuctions)
+
+		plResponse := priceListResponse{pList}
 		data, err := plResponse.encodeForMessage()
 		if err != nil {
 			m.Err = err.Error()
@@ -99,6 +138,6 @@ func newPriceList(maList miniAuctionList) priceList {
 type priceList map[blizzard.ItemID]prices
 
 type prices struct {
-	bid    int64
-	buyout int64
+	Bid    int64 `json:"bid"`
+	Buyout int64 `json:"buyout"`
 }

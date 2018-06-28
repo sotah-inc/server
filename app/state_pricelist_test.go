@@ -44,7 +44,11 @@ func TestListenForPricelist(t *testing.T) {
 		return
 	}
 
-	receivedPriceList, err := newPriceListResponseFromMessenger(priceListRequest{}, mess)
+	receivedPriceList, err := newPriceListResponseFromMessenger(priceListRequest{
+		RegionName: reg.Name,
+		RealmSlug:  rea.Slug,
+		ItemIds:    []blizzard.ItemID{},
+	}, mess)
 	if !assert.Nil(t, err) {
 		stop <- struct{}{}
 
