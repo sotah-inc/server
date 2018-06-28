@@ -107,6 +107,7 @@ func (sta state) listenForPriceList(stop listenStopChan) error {
 			return
 		}
 
+		// deriving a pricelist-response from the provided realm auctions
 		plResponse := priceListResponse{newPriceList(realmAuctions)}
 		data, err := plResponse.encodeForMessage()
 		if err != nil {
