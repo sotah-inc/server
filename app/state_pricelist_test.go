@@ -22,6 +22,7 @@ func TestListenForPricelist(t *testing.T) {
 	if !assert.Nil(t, err) {
 		return
 	}
+	maList := newMiniAuctionListFromBlizzardAuctions(aucs.Auctions)
 
 	// building a test realm
 	reg := region{Name: "us"}
@@ -33,7 +34,7 @@ func TestListenForPricelist(t *testing.T) {
 	// attaching the auctions to the state
 	sta.auctions = map[regionName]map[blizzard.RealmSlug]miniAuctionList{
 		reg.Name: map[blizzard.RealmSlug]miniAuctionList{
-			rea.Slug: newMiniAuctionListFromBlizzardAuctions(aucs.Auctions),
+			rea.Slug: maList,
 		},
 	}
 
@@ -47,7 +48,7 @@ func TestListenForPricelist(t *testing.T) {
 	receivedPriceList, err := newPriceListResponseFromMessenger(priceListRequest{
 		RegionName: reg.Name,
 		RealmSlug:  rea.Slug,
-		ItemIds:    []blizzard.ItemID{},
+		ItemIds:    maList.itemIds(),
 	}, mess)
 	if !assert.Nil(t, err) {
 		stop <- struct{}{}
