@@ -131,6 +131,23 @@ func (sta state) listenForPriceList(stop listenStopChan) error {
 func newPriceList(maList miniAuctionList) priceList {
 	pList := map[blizzard.ItemID]prices{}
 
+	for _, mAuction := range maList {
+		id := mAuction.Item.ID
+		p, ok := pList[id]
+		if !ok {
+			pList[id] = prices{mAuction.Bid, mAuction.Buyout}
+
+			continue
+		}
+
+		if mAuction.Bid > p.Bid {
+			p.Bid = mAuction.Bid
+		}
+		if mAuction.Buyout > p.Buyout {
+			p.Buyout = mAuction.Buyout
+		}
+	}
+
 	return pList
 }
 
