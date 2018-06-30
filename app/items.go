@@ -58,7 +58,12 @@ func getItem(ID blizzard.ItemID, res resolver) (blizzard.Item, error) {
 	}
 
 	if res.config.UseCacheDir == false {
-		return blizzard.NewItemFromHTTP(blizzard.DefaultGetItemURL(primaryRegion.Hostname, ID))
+		uri, err := res.appendAPIKey(blizzard.DefaultGetItemURL(primaryRegion.Hostname, ID))
+		if err != nil {
+			return blizzard.Item{}, err
+		}
+
+		return blizzard.NewItemFromHTTP(uri)
 	}
 
 	if res.config.CacheDir == "" {

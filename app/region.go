@@ -48,7 +48,12 @@ type region struct {
 }
 
 func (reg region) getStatus(res resolver) (status, error) {
-	stat, err := blizzard.NewStatusFromHTTP(res.getStatusURL(reg.Hostname))
+	uri, err := res.appendAPIKey(res.getStatusURL(reg.Hostname))
+	if err != nil {
+		return status{}, err
+	}
+
+	stat, err := blizzard.NewStatusFromHTTP(uri)
 	if err != nil {
 		return status{}, err
 	}

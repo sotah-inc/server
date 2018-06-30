@@ -138,7 +138,11 @@ func api(c config, m messenger) error {
 	if err != nil {
 		return err
 	}
-	iClasses, err := blizzard.NewItemClassesFromHTTP(res.getItemClassesURL(primaryRegion.Hostname))
+	uri, err := res.appendAPIKey(res.getItemClassesURL(primaryRegion.Hostname))
+	if err != nil {
+		return err
+	}
+	iClasses, err := blizzard.NewItemClassesFromHTTP(uri)
 	if err != nil {
 		return err
 	}

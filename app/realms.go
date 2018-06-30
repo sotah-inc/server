@@ -94,10 +94,13 @@ func (rea realm) LogEntry() *log.Entry {
 }
 
 func (rea realm) getAuctions(res resolver) (blizzard.Auctions, error) {
+	uri, err := res.appendAPIKey(res.getAuctionInfoURL(rea.region.Hostname, rea.Slug))
+	if err != nil {
+		return blizzard.Auctions{}, err
+	}
+
 	// resolving auction-info from the api
-	aInfo, err := blizzard.NewAuctionInfoFromHTTP(
-		res.getAuctionInfoURL(rea.region.Hostname, rea.Slug),
-	)
+	aInfo, err := blizzard.NewAuctionInfoFromHTTP(uri)
 	if err != nil {
 		return blizzard.Auctions{}, err
 	}
@@ -115,7 +118,12 @@ func (rea realm) getAuctions(res resolver) (blizzard.Auctions, error) {
 
 	// optionally falling back to fetching from the api where use-cache-dir is off
 	if res.config.UseCacheDir == false {
-		return blizzard.NewAuctionsFromHTTP(res.getAuctionsURL(aFile.URL))
+		uri, err := res.appendAPIKey(res.getAuctionsURL(aFile.URL))
+		if err != nil {
+			return blizzard.Auctions{}, err
+		}
+
+		return blizzard.NewAuctionsFromHTTP(uri)
 	}
 
 	// validating the cache dir pathname
