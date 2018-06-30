@@ -21,6 +21,15 @@ func newResolver(c config) resolver {
 }
 
 func (r resolver) appendAPIKey(destination string) (string, error) {
+	if r.config == nil {
+		return destination, nil
+	}
+
+	apiKey := r.config.APIKey
+	if apiKey == "" {
+		return destination, nil
+	}
+
 	u, err := url.Parse(destination)
 	if err != nil {
 		return "", err
