@@ -31,11 +31,14 @@ func apiTest(c config, m messenger, dataDir string) error {
 	}
 
 	// establishing a state and filling it with statuses
+	res := newResolver(c)
 	sta := state{
 		messenger: m,
+		resolver:  res,
 		regions:   c.Regions,
 		statuses:  map[regionName]status{},
 		auctions:  map[regionName]map[blizzard.RealmSlug]miniAuctionList{},
+		items:     map[blizzard.ItemID]blizzard.Item{},
 	}
 	for _, reg := range c.Regions {
 		// loading realm statuses
@@ -45,34 +48,66 @@ func apiTest(c config, m messenger, dataDir string) error {
 		}
 		sta.statuses[reg.Name] = status{Status: stat, region: reg}
 
+		// misc
+		regionItemIDsMap := map[blizzard.ItemID]struct{}{}
+
 		// loading realm auctions
 		sta.auctions[reg.Name] = map[blizzard.RealmSlug]miniAuctionList{}
 		for _, rea := range stat.Realms {
-			sta.auctions[reg.Name][rea.Slug] = newMiniAuctionListFromBlizzardAuctions(auc.Auctions)
+			maList := newMiniAuctionListFromBlizzardAuctions(auc.Auctions)
+
+			sta.auctions[reg.Name][rea.Slug] = maList
+
+			for _, ID := range maList.itemIds() {
+				_, ok := sta.items[ID]
+				if ok {
+					continue
+				}
+
+				regionItemIDsMap[ID] = struct{}{}
+			}
 		}
+
+		// gathering the list of item IDs for this region
+		regionItemIDs := make([]blizzard.ItemID, len(regionItemIDsMap))
+		i := 0
+		for ID := range regionItemIDsMap {
+			regionItemIDs[i] = ID
+			i++
+		}
+
+		// downloading items found in this region
+		log.WithField("items", len(regionItemIDs)).Info("Fetching items")
+		itemsOut := getItems(regionItemIDs, res)
+		for job := range itemsOut {
+			if job.err != nil {
+				log.WithFields(log.Fields{
+					"region": reg.Name,
+					"item":   job.ID,
+					"error":  job.err.Error(),
+				}).Info("Failed to fetch item")
+
+				continue
+			}
+
+			sta.items[job.ID] = job.item
+		}
+		log.WithField("items", len(regionItemIDs)).Info("Fetched items")
 	}
 
-	// listening for status requests
-	stopChans := map[subjects.Subject]chan interface{}{
-		subjects.Status:            make(chan interface{}),
-		subjects.Regions:           make(chan interface{}),
-		subjects.GenericTestErrors: make(chan interface{}),
-		subjects.Auctions:          make(chan interface{}),
-		subjects.Owners:            make(chan interface{}),
-	}
-	if err := sta.listenForStatus(stopChans[subjects.Status]); err != nil {
-		return err
-	}
-	if err := sta.listenForRegions(stopChans[subjects.Regions]); err != nil {
-		return err
-	}
-	if err := sta.listenForGenericTestErrors(stopChans[subjects.GenericTestErrors]); err != nil {
-		return err
-	}
-	if err := sta.listenForAuctions(stopChans[subjects.Auctions]); err != nil {
-		return err
-	}
-	if err := sta.listenForOwners(stopChans[subjects.Owners]); err != nil {
+	// opening all listeners
+	sta.listeners = newListeners(subjectListeners{
+		subjects.GenericTestErrors: sta.listenForGenericTestErrors,
+		subjects.Status:            sta.listenForStatus,
+		subjects.Regions:           sta.listenForRegions,
+		subjects.Auctions:          sta.listenForAuctions,
+		subjects.Owners:            sta.listenForOwners,
+		subjects.ItemsQuery:        sta.listenForItems,
+		subjects.AuctionsQuery:     sta.listenForAuctionsQuery,
+		subjects.ItemClasses:       sta.listenForItemClasses,
+		subjects.PriceList:         sta.listenForPriceList,
+	})
+	if err := sta.listeners.listen(); err != nil {
 		return err
 	}
 
@@ -84,9 +119,7 @@ func apiTest(c config, m messenger, dataDir string) error {
 	log.Info("Caught SIGINT, exiting")
 
 	// stopping listeners
-	for _, stop := range stopChans {
-		stop <- struct{}{}
-	}
+	sta.listeners.stop()
 
 	return nil
 }
