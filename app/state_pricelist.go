@@ -108,7 +108,7 @@ func (sta state) listenForPriceList(stop listenStopChan) error {
 		}
 
 		// deriving a pricelist-response from the provided realm auctions
-		plResponse := priceListResponse{newPriceList(realmAuctions)}
+		plResponse := priceListResponse{newPriceList(plRequest.ItemIds, realmAuctions)}
 		data, err := plResponse.encodeForMessage()
 		if err != nil {
 			m.Err = err.Error()
@@ -128,24 +128,37 @@ func (sta state) listenForPriceList(stop listenStopChan) error {
 	return nil
 }
 
-func newPriceList(maList miniAuctionList) priceList {
+func newPriceList(itemIds []blizzard.ItemID, maList miniAuctionList) priceList {
 	pList := map[blizzard.ItemID]prices{}
+
+	itemIDMap := make(map[blizzard.ItemID]struct{}, len(itemIds))
+	for _, id := range itemIds {
+		itemIDMap[id] = struct{}{}
+	}
 
 	for _, mAuction := range maList {
 		id := mAuction.Item.ID
-		p, ok := pList[id]
-		if !ok {
-			pList[id] = prices{mAuction.Bid, mAuction.Buyout}
 
+		if _, ok := itemIDMap[id]; !ok {
 			continue
 		}
 
-		if mAuction.Bid > p.Bid {
-			p.Bid = mAuction.Bid
+		p, ok := pList[id]
+		if !ok {
+			p = prices{0, 0}
 		}
-		if mAuction.Buyout > p.Buyout {
-			p.Buyout = mAuction.Buyout
+
+		auctionBid := float64(mAuction.Bid / mAuction.Quantity)
+		if p.Bid == 0 || auctionBid < p.Bid {
+			p.Bid = auctionBid
 		}
+
+		auctionBuyout := float64(mAuction.Buyout / mAuction.Quantity)
+		if p.Buyout == 0 || auctionBuyout < p.Buyout {
+			p.Buyout = auctionBuyout
+		}
+
+		pList[id] = p
 	}
 
 	return pList
@@ -154,6 +167,6 @@ func newPriceList(maList miniAuctionList) priceList {
 type priceList map[blizzard.ItemID]prices
 
 type prices struct {
-	Bid    int64 `json:"bid"`
-	Buyout int64 `json:"buyout"`
+	Bid    float64 `json:"bid"`
+	Buyout float64 `json:"buyout"`
 }
