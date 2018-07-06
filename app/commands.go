@@ -112,6 +112,7 @@ func apiTest(c config, m messenger, dataDir string) error {
 	}
 
 	// catching SIGINT
+	log.Info("Waiting for SIGINT")
 	sigIn := make(chan os.Signal, 1)
 	signal.Notify(sigIn, os.Interrupt)
 	<-sigIn
