@@ -9,3 +9,5 @@
 ## Features
 
 - [ ] Use [gonum](https://github.com/gonum/gonum)
+
+- [ ] Use [WowHead](https://www.wowhead.com/item=130241&xml) for recipe information.
