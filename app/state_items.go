@@ -11,7 +11,7 @@ import (
 )
 
 type itemsResult struct {
-	Items itemsMap
+	Items itemsMap `json:"items"`
 }
 
 func newItemsRequest(payload []byte) (itemsRequest, error) {
@@ -25,13 +25,13 @@ func newItemsRequest(payload []byte) (itemsRequest, error) {
 }
 
 type itemsRequest struct {
-	itemIds []blizzard.ItemID
+	ItemIds []blizzard.ItemID `json:"itemIds"`
 }
 
 func (iRequest itemsRequest) resolve(sta state) itemsResult {
 	iResult := itemsResult{Items: itemsMap{}}
 
-	for _, ID := range iRequest.itemIds {
+	for _, ID := range iRequest.ItemIds {
 		itemValue, ok := sta.items[ID]
 		if !ok {
 			continue
