@@ -200,74 +200,8 @@ func api(c config, m messenger) error {
 		return err
 	}
 
-	// going over the list of regions
-	for _, reg := range sta.regions {
-		// misc
-		regionItemIDsMap := map[blizzard.ItemID]struct{}{}
-
-		// downloading auctions in a region
-		wList := c.getRegionWhitelist(reg)
-		log.WithFields(log.Fields{
-			"region":    reg.Name,
-			"realms":    len(sta.statuses[reg.Name].Realms),
-			"whitelist": wList,
-		}).Info("Downloading region")
-		auctionsOut := sta.statuses[reg.Name].Realms.getAuctionsOrAll(sta.resolver, wList)
-		for job := range auctionsOut {
-			itemIDs := sta.auctionsIntake(job)
-			for _, ID := range itemIDs {
-				_, ok := sta.items[ID]
-				if ok {
-					continue
-				}
-
-				regionItemIDsMap[ID] = struct{}{}
-			}
-		}
-		log.WithField("region", reg.Name).Info("Downloaded region")
-
-		// gathering the list of item IDs for this region
-		regionItemIDs := make([]blizzard.ItemID, len(regionItemIDsMap))
-		i := 0
-		for ID := range regionItemIDsMap {
-			regionItemIDs[i] = ID
-			i++
-		}
-
-		// downloading items found in this region
-		log.WithField("items", len(regionItemIDs)).Info("Fetching items")
-		itemsOut := getItems(regionItemIDs, res)
-		for job := range itemsOut {
-			if job.err != nil {
-				log.WithFields(log.Fields{
-					"region": reg.Name,
-					"item":   job.ID,
-					"error":  job.err.Error(),
-				}).Info("Failed to fetch item")
-
-				continue
-			}
-
-			sta.items[job.ID] = job.item
-		}
-		log.WithField("items", len(regionItemIDs)).Info("Fetched items")
-
-		// downloading item icons found in this region
-		iconNames := sta.items.getItemIcons()
-		log.WithField("items", len(iconNames)).Info("Syncing item icons")
-		itemIconsOut := syncItemIcons(iconNames, res)
-		for job := range itemIconsOut {
-			if job.err != nil {
-				log.WithFields(log.Fields{
-					"item":  job.icon,
-					"error": job.err.Error(),
-				}).Info("Failed to sync item icon")
-
-				continue
-			}
-		}
-		log.WithField("items", len(iconNames)).Info("Synced item icons")
-	}
+	// collecting all regions
+	sta.collectRegions(res)
 
 	// catching SIGINT
 	sigIn := make(chan os.Signal, 1)
