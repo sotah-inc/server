@@ -202,23 +202,17 @@ func api(c config, m messenger) error {
 
 	// going over the list of regions
 	for _, reg := range sta.regions {
-		// resolving the realm whitelist
-		var whitelist getAuctionsWhitelist
-		whitelist = nil
-		if _, ok := c.Whitelist[reg.Name]; ok {
-			whitelist = c.Whitelist[reg.Name]
-		}
-
 		// misc
 		regionItemIDsMap := map[blizzard.ItemID]struct{}{}
 
 		// downloading auctions in a region
+		wList := c.getRegionWhitelist(reg)
 		log.WithFields(log.Fields{
 			"region":    reg.Name,
 			"realms":    len(sta.statuses[reg.Name].Realms),
-			"whitelist": whitelist,
+			"whitelist": wList,
 		}).Info("Downloading region")
-		auctionsOut := sta.statuses[reg.Name].Realms.getAuctionsOrAll(sta.resolver, whitelist)
+		auctionsOut := sta.statuses[reg.Name].Realms.getAuctionsOrAll(sta.resolver, wList)
 		for job := range auctionsOut {
 			itemIDs := sta.auctionsIntake(job)
 			for _, ID := range itemIDs {
