@@ -155,19 +155,19 @@ func (rea realm) getAuctions(res resolver) (blizzard.Auctions, error) {
 			return blizzard.Auctions{}, err
 		}
 
-		return rea.downloadAndWrite(aFile, res)
+		return rea.downloadAndCache(aFile, res)
 	}
 
 	// optionally downloading where stale data in the cache
 	if cachedAuctionsFileInfo.ModTime().Before(aFile.LastModifiedAsTime()) {
-		return rea.downloadAndWrite(aFile, res)
+		return rea.downloadAndCache(aFile, res)
 	}
 
 	rea.LogEntry().Debug("Loading auction data from cache dir")
 	return blizzard.NewAuctionsFromGzFilepath(auctionsFilepath)
 }
 
-func (rea realm) downloadAndWrite(aFile blizzard.AuctionFile, res resolver) (blizzard.Auctions, error) {
+func (rea realm) downloadAndCache(aFile blizzard.AuctionFile, res resolver) (blizzard.Auctions, error) {
 	auctionsFilepath, err := rea.auctionsFilepath(res.config)
 	if err != nil {
 		return blizzard.Auctions{}, err
