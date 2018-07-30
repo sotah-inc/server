@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/ihsw/sotah-server/app/util"
 )
@@ -71,6 +72,11 @@ type AuctionFile struct {
 // GetAuctions returns the auctions from a given file
 func (aFile AuctionFile) GetAuctions() (Auctions, error) {
 	return NewAuctionsFromHTTP(aFile.URL)
+}
+
+// LastModifiedAsTime returns a parsed last-modified
+func (aFile AuctionFile) LastModifiedAsTime() time.Time {
+	return time.Unix(aFile.LastModified/1000, 0)
 }
 
 // DefaultGetAuctionsURL defines the default format of a provided url for downloading auctions
