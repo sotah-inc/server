@@ -93,6 +93,12 @@ func (rea realm) LogEntry() *log.Entry {
 	return log.WithFields(log.Fields{"region": rea.region.Name, "realm": rea.Slug})
 }
 
+func (rea realm) auctionsFilepath(c *config) (string, error) {
+	return filepath.Abs(
+		fmt.Sprintf("%s/auctions/%s/%s.json.gz", c.CacheDir, rea.region.Name, rea.Slug),
+	)
+}
+
 func (rea realm) getAuctions(res resolver) (blizzard.Auctions, error) {
 	uri, err := res.appendAPIKey(res.getAuctionInfoURL(rea.region.Hostname, rea.Slug))
 	if err != nil {
@@ -137,19 +143,18 @@ func (rea realm) getAuctions(res resolver) (blizzard.Auctions, error) {
 	}
 
 	// resolving the auctions filepath
-	auctionsFilepath, err := filepath.Abs(
-		fmt.Sprintf("%s/auctions/%s/%s.json.gz", res.config.CacheDir, rea.region.Name, rea.Slug),
-	)
+	auctionsFilepath, err := rea.auctionsFilepath(res.config)
 	if err != nil {
 		return blizzard.Auctions{}, err
 	}
 
-	// optionally loading the auctions file from the api
-	if _, err := os.Stat(auctionsFilepath); err != nil {
-		if !os.IsNotExist(err) {
-			return blizzard.Auctions{}, err
-		}
+	// stating the auction file
+	fInfo, err := os.Stat(auctionsFilepath)
+	if err != nil && !os.IsNotExist(err) {
+		return blizzard.Auctions{}, err
+	}
 
+	if fInfo.ModTime().Before(aFile.LastModifiedAsTime()) {
 		body, err := res.get(res.getAuctionsURL(aFile.URL))
 		if err != nil {
 			return blizzard.Auctions{}, err
