@@ -148,36 +148,50 @@ func (rea realm) getAuctions(res resolver) (blizzard.Auctions, error) {
 		return blizzard.Auctions{}, err
 	}
 
-	// stating the auction file
-	fInfo, err := os.Stat(auctionsFilepath)
-	if err != nil && !os.IsNotExist(err) {
-		return blizzard.Auctions{}, err
+	// stating the auction file and downloading where non-exist
+	cachedAuctionsFileInfo, err := os.Stat(auctionsFilepath)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return blizzard.Auctions{}, err
+		}
+
+		return rea.downloadAndWrite(aFile, res)
 	}
 
-	if fInfo.ModTime().Before(aFile.LastModifiedAsTime()) {
-		body, err := res.get(res.getAuctionsURL(aFile.URL))
-		if err != nil {
-			return blizzard.Auctions{}, err
-		}
-
-		encodedBody, err := util.GzipEncode(body)
-		if err != nil {
-			return blizzard.Auctions{}, err
-		}
-
-		log.WithFields(log.Fields{
-			"region": rea.region.Name,
-			"realm":  rea.Slug,
-		}).Debug("Writing auction data to cache dir")
-		if err := util.WriteFile(auctionsFilepath, encodedBody); err != nil {
-			return blizzard.Auctions{}, err
-		}
-
-		return blizzard.NewAuctions(body)
+	// optionally downloading where stale data in the cache
+	if cachedAuctionsFileInfo.ModTime().Before(aFile.LastModifiedAsTime()) {
+		return rea.downloadAndWrite(aFile, res)
 	}
 
 	rea.LogEntry().Debug("Loading auction data from cache dir")
 	return blizzard.NewAuctionsFromGzFilepath(auctionsFilepath)
+}
+
+func (rea realm) downloadAndWrite(aFile blizzard.AuctionFile, res resolver) (blizzard.Auctions, error) {
+	auctionsFilepath, err := rea.auctionsFilepath(res.config)
+	if err != nil {
+		return blizzard.Auctions{}, err
+	}
+
+	body, err := res.get(res.getAuctionsURL(aFile.URL))
+	if err != nil {
+		return blizzard.Auctions{}, err
+	}
+
+	encodedBody, err := util.GzipEncode(body)
+	if err != nil {
+		return blizzard.Auctions{}, err
+	}
+
+	log.WithFields(log.Fields{
+		"region": rea.region.Name,
+		"realm":  rea.Slug,
+	}).Debug("Writing auction data to cache dir")
+	if err := util.WriteFile(auctionsFilepath, encodedBody); err != nil {
+		return blizzard.Auctions{}, err
+	}
+
+	return blizzard.NewAuctions(body)
 }
 
 func newStatusFromMessenger(reg region, mess messenger) (status, error) {
