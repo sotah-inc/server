@@ -27,7 +27,7 @@ type getAuctionsJob struct {
 func newRealms(reg region, blizzRealms []blizzard.Realm) realms {
 	reas := make([]realm, len(blizzRealms))
 	for i, rea := range blizzRealms {
-		reas[i] = realm{rea, reg, time.Time{}}
+		reas[i] = realm{rea, reg, 0}
 	}
 
 	return reas
@@ -89,7 +89,7 @@ func (reas realms) getAuctions(res resolver, wList getAuctionsWhitelist) chan ge
 type realm struct {
 	blizzard.Realm
 	region       region
-	LastModified time.Time `json:"last_modified"`
+	LastModified int64 `json:"last_modified"`
 }
 
 func (rea realm) LogEntry() *log.Entry {

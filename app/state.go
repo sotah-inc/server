@@ -89,7 +89,7 @@ func (sta state) auctionsIntake(job getAuctionsJob) []blizzard.ItemID {
 			continue
 		}
 
-		sta.statuses[reg.Name].Realms[i].LastModified = job.lastModified
+		sta.statuses[reg.Name].Realms[i].LastModified = job.lastModified.Unix()
 
 		break
 	}
