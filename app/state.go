@@ -199,6 +199,8 @@ func (ls listeners) listen() error {
 }
 
 func (ls listeners) stop() {
+	log.Info("Stopping listeners")
+
 	for _, l := range ls {
 		l.stopChan <- struct{}{}
 	}
@@ -208,3 +210,5 @@ type listener struct {
 	call     listenFunc
 	stopChan listenStopChan
 }
+
+type workerStopChan chan interface{}

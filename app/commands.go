@@ -200,8 +200,9 @@ func api(c config, m messenger) error {
 		return err
 	}
 
-	// collecting all regions
-	sta.collectRegions(res)
+	// starting up a collector
+	collectorStop := make(workerStopChan)
+	onCollectorStop := sta.startCollector(collectorStop, res)
 
 	// catching SIGINT
 	sigIn := make(chan os.Signal, 1)
@@ -213,5 +214,12 @@ func api(c config, m messenger) error {
 	// stopping listeners
 	sta.listeners.stop()
 
+	log.Info("Stopping collector")
+	collectorStop <- struct{}{}
+
+	log.Info("Waiting for collector to stop")
+	<-onCollectorStop
+
+	log.Info("Exiting")
 	return nil
 }
