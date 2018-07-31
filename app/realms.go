@@ -257,5 +257,5 @@ func newStatus(reg region, stat blizzard.Status) status {
 type status struct {
 	blizzard.Status
 	region region
-	Realms realms
+	Realms realms `json:"realms"`
 }
