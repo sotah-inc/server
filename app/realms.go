@@ -187,7 +187,7 @@ func (rea realm) getAuctions(res resolver) (blizzard.Auctions, time.Time, error)
 		return blizzard.Auctions{}, time.Time{}, err
 	}
 
-	return aucs, aFile.LastModifiedAsTime(), nil
+	return aucs, cachedAuctionsFileInfo.ModTime(), nil
 }
 
 func (rea realm) downloadAndCache(aFile blizzard.AuctionFile, res resolver) (blizzard.Auctions, error) {
