@@ -40,7 +40,7 @@ func TestRealmGetAuctions(t *testing.T) {
 
 	rea := s.Realms[0]
 
-	aucs, err := rea.getAuctions(res)
+	aucs, _, err := rea.getAuctions(res)
 	if !assert.Nil(t, err) {
 		return
 	}

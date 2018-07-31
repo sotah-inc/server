@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/codes"
@@ -17,15 +18,16 @@ import (
 type getAuctionsWhitelist map[blizzard.RealmSlug]interface{}
 
 type getAuctionsJob struct {
-	err      error
-	realm    realm
-	auctions blizzard.Auctions
+	err          error
+	realm        realm
+	auctions     blizzard.Auctions
+	lastModified time.Time
 }
 
 func newRealms(reg region, blizzRealms []blizzard.Realm) realms {
 	reas := make([]realm, len(blizzRealms))
 	for i, rea := range blizzRealms {
-		reas[i] = realm{rea, reg}
+		reas[i] = realm{rea, reg, time.Time{}}
 	}
 
 	return reas
@@ -57,9 +59,9 @@ func (reas realms) getAuctions(res resolver, wList getAuctionsWhitelist) chan ge
 	// spinning up the workers for fetching auctions
 	worker := func() {
 		for rea := range in {
-			aucs, err := rea.getAuctions(res)
+			aucs, lastModified, err := rea.getAuctions(res)
 			log.WithField("realm", rea.Slug).Debug("Received auctions")
-			out <- getAuctionsJob{err: err, realm: rea, auctions: aucs}
+			out <- getAuctionsJob{err, rea, aucs, lastModified}
 		}
 	}
 	postWork := func() {
@@ -86,7 +88,8 @@ func (reas realms) getAuctions(res resolver, wList getAuctionsWhitelist) chan ge
 
 type realm struct {
 	blizzard.Realm
-	region region
+	region       region
+	LastModified time.Time `json:"last_modified"`
 }
 
 func (rea realm) LogEntry() *log.Entry {
@@ -99,72 +102,92 @@ func (rea realm) auctionsFilepath(c *config) (string, error) {
 	)
 }
 
-func (rea realm) getAuctions(res resolver) (blizzard.Auctions, error) {
+func (rea realm) getAuctions(res resolver) (blizzard.Auctions, time.Time, error) {
 	uri, err := res.appendAPIKey(res.getAuctionInfoURL(rea.region.Hostname, rea.Slug))
 	if err != nil {
-		return blizzard.Auctions{}, err
+		return blizzard.Auctions{}, time.Time{}, err
 	}
 
 	// resolving auction-info from the api
 	aInfo, err := blizzard.NewAuctionInfoFromHTTP(uri)
 	if err != nil {
-		return blizzard.Auctions{}, err
+		return blizzard.Auctions{}, time.Time{}, err
 	}
 
 	// validating the list of files
 	if len(aInfo.Files) == 0 {
-		return blizzard.Auctions{}, errors.New("Cannot fetch auctions with blank files")
+		return blizzard.Auctions{}, time.Time{}, errors.New("Cannot fetch auctions with blank files")
 	}
 	aFile := aInfo.Files[0]
 
 	// validating config
 	if res.config == nil {
-		return blizzard.Auctions{}, errors.New("Config cannot be nil")
+		return blizzard.Auctions{}, time.Time{}, errors.New("Config cannot be nil")
 	}
 
 	// optionally falling back to fetching from the api where use-cache-dir is off
 	if res.config.UseCacheDir == false {
 		uri, err := res.appendAPIKey(res.getAuctionsURL(aFile.URL))
 		if err != nil {
-			return blizzard.Auctions{}, err
+			return blizzard.Auctions{}, time.Time{}, err
 		}
 
-		return blizzard.NewAuctionsFromHTTP(uri)
+		aucs, err := blizzard.NewAuctionsFromHTTP(uri)
+		if err != nil {
+			return blizzard.Auctions{}, time.Time{}, err
+		}
+
+		return aucs, aFile.LastModifiedAsTime(), nil
 	}
 
 	// validating the cache dir pathname
 	if res.config.CacheDir == "" {
-		return blizzard.Auctions{}, errors.New("Cache dir cannot be blank")
+		return blizzard.Auctions{}, time.Time{}, errors.New("Cache dir cannot be blank")
 	}
 
 	// validating the realm region
 	if rea.region.Name == "" {
-		return blizzard.Auctions{}, errors.New("Region name cannot be blank")
+		return blizzard.Auctions{}, time.Time{}, errors.New("Region name cannot be blank")
 	}
 
 	// resolving the auctions filepath
 	auctionsFilepath, err := rea.auctionsFilepath(res.config)
 	if err != nil {
-		return blizzard.Auctions{}, err
+		return blizzard.Auctions{}, time.Time{}, err
 	}
 
 	// stating the auction file and downloading where non-exist
 	cachedAuctionsFileInfo, err := os.Stat(auctionsFilepath)
 	if err != nil {
 		if !os.IsNotExist(err) {
-			return blizzard.Auctions{}, err
+			return blizzard.Auctions{}, time.Time{}, err
 		}
 
-		return rea.downloadAndCache(aFile, res)
+		aucs, err := rea.downloadAndCache(aFile, res)
+		if err != nil {
+			return blizzard.Auctions{}, time.Time{}, err
+		}
+
+		return aucs, aFile.LastModifiedAsTime(), nil
 	}
 
 	// optionally downloading where stale data in the cache
 	if cachedAuctionsFileInfo.ModTime().Before(aFile.LastModifiedAsTime()) {
-		return rea.downloadAndCache(aFile, res)
+		aucs, err := rea.downloadAndCache(aFile, res)
+		if err != nil {
+			return blizzard.Auctions{}, time.Time{}, err
+		}
+
+		return aucs, aFile.LastModifiedAsTime(), nil
 	}
 
 	rea.LogEntry().Debug("Loading auction data from cache dir")
-	return blizzard.NewAuctionsFromGzFilepath(auctionsFilepath)
+	aucs, err := blizzard.NewAuctionsFromGzFilepath(auctionsFilepath)
+	if err != nil {
+		return blizzard.Auctions{}, time.Time{}, err
+	}
+
+	return aucs, aFile.LastModifiedAsTime(), nil
 }
 
 func (rea realm) downloadAndCache(aFile blizzard.AuctionFile, res resolver) (blizzard.Auctions, error) {

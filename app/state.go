@@ -83,6 +83,17 @@ func (sta state) auctionsIntake(job getAuctionsJob) []blizzard.ItemID {
 	// loading the minimized auctions into state
 	sta.auctions[reg.Name][rea.Slug] = minimizedAuctions
 
+	// setting the realm last-modified
+	for i, statusRealm := range sta.statuses[reg.Name].Realms {
+		if statusRealm.Slug != rea.Slug {
+			continue
+		}
+
+		sta.statuses[reg.Name].Realms[i].LastModified = job.lastModified
+
+		break
+	}
+
 	// returning a list of item ids for syncing
 	return minimizedAuctions.itemIds()
 }
