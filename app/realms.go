@@ -35,16 +35,16 @@ func newRealms(reg region, blizzRealms []blizzard.Realm) realms {
 
 type realms []realm
 
-func (reas realms) getAuctionsOrAll(res resolver, wList getAuctionsWhitelist) chan getAuctionsJob {
+func (reas realms) getAuctionsOrAll(res resolver, wList *getAuctionsWhitelist) chan getAuctionsJob {
 	if wList == nil {
 		return reas.getAllAuctions(res)
 	}
 
-	return reas.getAuctions(res, wList)
+	return reas.getAuctions(res, *wList)
 }
 
 func (reas realms) getAllAuctions(res resolver) chan getAuctionsJob {
-	wList := map[blizzard.RealmSlug]interface{}{}
+	wList := getAuctionsWhitelist{}
 	for _, rea := range reas {
 		wList[rea.Slug] = true
 	}

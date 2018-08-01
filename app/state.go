@@ -105,7 +105,7 @@ func (sta state) collectRegions(res resolver) {
 	for _, reg := range sta.regions {
 		// gathering whitelist for this region
 		wList := res.config.getRegionWhitelist(reg)
-		if wList == nil || len(wList) == 0 {
+		if wList != nil && len(*wList) == 0 {
 			continue
 		}
 
