@@ -14,6 +14,7 @@ type realmValuation struct {
 	TotalQuantity int64 `json:"total_quantity"`
 	TotalBuyout   int64 `json:"total_buyout"`
 	TotalSellers  int   `json:"total_sellers"`
+	TotalAuctions int   `json:"total_auctions"`
 }
 
 type regionValuation struct {
@@ -47,10 +48,12 @@ func (iRequest infoRequest) resolve(sta state) infoResponse {
 
 			totalQuantity := int64(0)
 			totalBuyout := int64(0)
+			totalAuctions := 0
 			owners := map[ownerName]struct{}{}
 			for _, auc := range aucs {
 				totalQuantity += auc.Quantity * int64(len(auc.AucList))
 				totalBuyout += auc.Quantity * auc.Buyout
+				totalAuctions += len(auc.AucList)
 				owners[auc.Owner] = struct{}{}
 			}
 
@@ -59,6 +62,7 @@ func (iRequest infoRequest) resolve(sta state) infoResponse {
 				TotalQuantity: totalQuantity,
 				TotalBuyout:   totalBuyout,
 				TotalSellers:  len(owners),
+				TotalAuctions: totalAuctions,
 			}
 
 			regValuation.RealmValuations[rea.Slug] = reaValuation
