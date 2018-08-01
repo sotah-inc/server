@@ -17,4 +17,5 @@ const (
 	ItemClasses       Subject = "itemClasses"
 	PriceList         Subject = "priceList"
 	Items             Subject = "items"
+	Info              Subject = "info"
 )
