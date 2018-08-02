@@ -6,6 +6,7 @@ import (
 	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/codes"
 	"github.com/ihsw/sotah-server/app/subjects"
+	"github.com/ihsw/sotah-server/app/tags"
 	nats "github.com/nats-io/go-nats"
 	log "github.com/sirupsen/logrus"
 )
@@ -151,6 +152,11 @@ func (sta state) collectRegions(res resolver) {
 						"item":   job.ID,
 						"error":  job.err.Error(),
 					}).Info("Failed to fetch item")
+
+					sta.messenger.publishMetric(telegrafMetric{
+						Category: string(tags.Item),
+						Values:   telegrafMetricValues{"item_id": int64(job.ID)},
+					})
 
 					continue
 				}
