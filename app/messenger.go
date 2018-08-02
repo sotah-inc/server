@@ -142,7 +142,12 @@ func (mess messenger) publish(subject subjects.Subject, data []byte) error {
 	return mess.conn.Publish(string(subject), data)
 }
 
-type telegrafMetric map[string]int64
+type telegrafMetric struct {
+	Values   telegrafMetricValues `json:"values"`
+	Category string               `json:"category"`
+}
+
+type telegrafMetricValues map[string]int64
 
 func (mess messenger) publishMetric(metric telegrafMetric) error {
 	result, err := json.Marshal(metric)
