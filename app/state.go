@@ -164,6 +164,10 @@ func (sta state) collectRegions(res resolver) {
 				sta.items[job.ID] = job.item
 			}
 			log.WithField("items", len(regionItemIDs)).Info("Fetched items")
+			sta.messenger.publishMetric(telegrafMetric{
+				Category: string(tags.ItemCount),
+				Values:   telegrafMetricValues{"count": int64(len(sta.items))},
+			})
 		}
 	}
 
