@@ -31,7 +31,7 @@ func apiTest(c config, m messenger, dataDir string) error {
 	}
 
 	// establishing a state and filling it with statuses
-	res := newResolver(c)
+	res := newResolver(c, m)
 	sta := state{
 		messenger: m,
 		resolver:  res,
@@ -130,7 +130,7 @@ func api(c config, m messenger) error {
 	log.Info("Starting api")
 
 	// establishing a state
-	res := newResolver(c)
+	res := newResolver(c, m)
 	sta := state{
 		messenger: m,
 		resolver:  res,
