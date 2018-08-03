@@ -155,5 +155,5 @@ func (mess messenger) publishMetric(metric telegrafMetric) error {
 		return err
 	}
 
-	return mess.publish(subjects.Telegraf, result)
+	return mess.publish(subjects.AppMetrics, result)
 }
