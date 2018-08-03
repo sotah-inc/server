@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/ihsw/sotah-server/app/blizzard"
-	"github.com/ihsw/sotah-server/app/tags"
 
 	log "github.com/sirupsen/logrus"
 
@@ -145,15 +144,10 @@ func (mess messenger) publish(subject subjects.Subject, data []byte) error {
 	return mess.conn.Publish(string(subject), data)
 }
 
-type telegrafMetric struct {
-	Values   telegrafMetricValues `json:"values"`
-	Category string               `json:"category"`
-}
+type telegrafMetrics map[string]int64
 
-type telegrafMetricValues map[string]int64
-
-func (mess messenger) publishMetric(metric telegrafMetric) error {
-	result, err := json.Marshal(metric)
+func (mess messenger) publishMetric(metrics telegrafMetrics) error {
+	result, err := json.Marshal(metrics)
 	if err != nil {
 		return err
 	}
@@ -162,13 +156,10 @@ func (mess messenger) publishMetric(metric telegrafMetric) error {
 }
 
 func (mess messenger) publishPlanMetaMetric(resp blizzard.ResponseMeta) error {
-	return mess.publishMetric(telegrafMetric{
-		Category: string(tags.PlanMetadata),
-		Values: telegrafMetricValues{
-			"qps_allotted":   int64(resp.PlanQPSAllotted),
-			"qps_current":    int64(resp.PlanQPSCurrent),
-			"quota_allotted": int64(resp.PlanQuotaAllotted),
-			"quota_current":  int64(resp.PlanQuotaCurrent),
-		},
+	return mess.publishMetric(telegrafMetrics{
+		"qps_allotted":   int64(resp.PlanQPSAllotted),
+		"qps_current":    int64(resp.PlanQPSCurrent),
+		"quota_allotted": int64(resp.PlanQuotaAllotted),
+		"quota_current":  int64(resp.PlanQuotaCurrent),
 	})
 }

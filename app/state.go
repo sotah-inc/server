@@ -6,7 +6,6 @@ import (
 	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/codes"
 	"github.com/ihsw/sotah-server/app/subjects"
-	"github.com/ihsw/sotah-server/app/tags"
 	nats "github.com/nats-io/go-nats"
 	log "github.com/sirupsen/logrus"
 )
@@ -178,10 +177,7 @@ func (sta state) collectRegions(res resolver) {
 	}
 	log.WithField("items", len(iconNames)).Info("Synced item icons")
 
-	sta.messenger.publishMetric(telegrafMetric{
-		Category: string(tags.ItemCount),
-		Values:   telegrafMetricValues{"item_count": int64(len(sta.items))},
-	})
+	sta.messenger.publishMetric(telegrafMetrics{"item_count": int64(len(sta.items))})
 }
 
 type listenStopChan chan interface{}
