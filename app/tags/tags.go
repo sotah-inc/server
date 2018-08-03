@@ -7,6 +7,6 @@ type Tag string
 Tag - tag name for returning current status
 */
 const (
-	ItemCount    Tag = "item_count"
+	ItemCount    Tag = "ItemCount"
 	PlanMetadata Tag = "PlanMetadata"
 )
