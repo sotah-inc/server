@@ -196,12 +196,7 @@ func (rea realm) downloadAndCache(aFile blizzard.AuctionFile, res resolver) (bli
 		return blizzard.Auctions{}, err
 	}
 
-	uri, err := res.appendAPIKey(res.getAuctionsURL(aFile.URL))
-	if err != nil {
-		return blizzard.Auctions{}, err
-	}
-
-	body, err := util.Download(uri)
+	body, err := util.Download(aFile.URL)
 	if err != nil {
 		return blizzard.Auctions{}, err
 	}
