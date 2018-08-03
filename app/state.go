@@ -159,10 +159,6 @@ func (sta state) collectRegions(res resolver) {
 				sta.items[job.ID] = job.item
 			}
 			log.WithField("items", len(regionItemIDs)).Info("Fetched items")
-			sta.messenger.publishMetric(telegrafMetric{
-				Category: string(tags.ItemCount),
-				Values:   telegrafMetricValues{"item_count": int64(len(sta.items))},
-			})
 		}
 	}
 
@@ -181,6 +177,11 @@ func (sta state) collectRegions(res resolver) {
 		}
 	}
 	log.WithField("items", len(iconNames)).Info("Synced item icons")
+
+	sta.messenger.publishMetric(telegrafMetric{
+		Category: string(tags.ItemCount),
+		Values:   telegrafMetricValues{"item_count": int64(len(sta.items))},
+	})
 }
 
 type listenStopChan chan interface{}
