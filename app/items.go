@@ -63,8 +63,11 @@ func getItem(ID blizzard.ItemID, res resolver) (blizzard.Item, error) {
 			return blizzard.Item{}, err
 		}
 
-		item, _, err := blizzard.NewItemFromHTTP(uri)
+		item, resp, err := blizzard.NewItemFromHTTP(uri)
 		if err != nil {
+			return blizzard.Item{}, err
+		}
+		if err := res.messenger.publishPlanMetaMetric(resp); err != nil {
 			return blizzard.Item{}, err
 		}
 
@@ -96,6 +99,9 @@ func getItem(ID blizzard.ItemID, res resolver) (blizzard.Item, error) {
 
 		item, resp, err := blizzard.NewItemFromHTTP(uri)
 		if err != nil {
+			return blizzard.Item{}, err
+		}
+		if err := res.messenger.publishPlanMetaMetric(resp); err != nil {
 			return blizzard.Item{}, err
 		}
 

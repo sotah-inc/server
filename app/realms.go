@@ -109,8 +109,11 @@ func (rea realm) getAuctions(res resolver) (blizzard.Auctions, time.Time, error)
 	}
 
 	// resolving auction-info from the api
-	aInfo, _, err := blizzard.NewAuctionInfoFromHTTP(uri)
+	aInfo, resp, err := blizzard.NewAuctionInfoFromHTTP(uri)
 	if err != nil {
+		return blizzard.Auctions{}, time.Time{}, err
+	}
+	if err := res.messenger.publishPlanMetaMetric(resp); err != nil {
 		return blizzard.Auctions{}, time.Time{}, err
 	}
 

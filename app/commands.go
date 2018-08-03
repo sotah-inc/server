@@ -177,11 +177,14 @@ func api(c config, m messenger) error {
 	if err != nil {
 		return err
 	}
-	iClasses, _, err := blizzard.NewItemClassesFromHTTP(uri)
+	iClasses, resp, err := blizzard.NewItemClassesFromHTTP(uri)
 	if err != nil {
 		return err
 	}
 	sta.itemClasses = iClasses
+	if err := sta.messenger.publishPlanMetaMetric(resp); err != nil {
+		return err
+	}
 
 	// opening all listeners
 	sta.listeners = newListeners(subjectListeners{
