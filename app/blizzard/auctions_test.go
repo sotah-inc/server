@@ -21,7 +21,7 @@ func TestNewAuctionInfoFromHTTP(t *testing.T) {
 		return
 	}
 
-	a, err := NewAuctionInfoFromHTTP(ts.URL)
+	a, _, err := NewAuctionInfoFromHTTP(ts.URL)
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -96,7 +96,7 @@ func TestGetFirstAuctions(t *testing.T) {
 	}
 
 	// gathering an auction-info
-	auctionInfo, err := NewAuctionInfoFromHTTP(auctionInfoTs.URL)
+	auctionInfo, _, err := NewAuctionInfoFromHTTP(auctionInfoTs.URL)
 	if !assert.Nil(t, err) {
 		return
 	}

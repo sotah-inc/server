@@ -109,7 +109,7 @@ func (rea realm) getAuctions(res resolver) (blizzard.Auctions, time.Time, error)
 	}
 
 	// resolving auction-info from the api
-	aInfo, err := blizzard.NewAuctionInfoFromHTTP(uri)
+	aInfo, _, err := blizzard.NewAuctionInfoFromHTTP(uri)
 	if err != nil {
 		return blizzard.Auctions{}, time.Time{}, err
 	}
@@ -196,12 +196,21 @@ func (rea realm) downloadAndCache(aFile blizzard.AuctionFile, res resolver) (bli
 		return blizzard.Auctions{}, err
 	}
 
-	body, err := res.get(res.getAuctionsURL(aFile.URL))
+	uri, err := res.appendAPIKey(res.getAuctionsURL(aFile.URL))
 	if err != nil {
 		return blizzard.Auctions{}, err
 	}
 
-	encodedBody, err := util.GzipEncode(body)
+	resp, err := blizzard.Download(uri)
+	if err != nil {
+		return blizzard.Auctions{}, err
+	}
+
+	if resp.Status != 200 {
+		return blizzard.Auctions{}, errors.New("Response status was not 200")
+	}
+
+	encodedBody, err := util.GzipEncode(resp.Body)
 	if err != nil {
 		return blizzard.Auctions{}, err
 	}
@@ -214,7 +223,7 @@ func (rea realm) downloadAndCache(aFile blizzard.AuctionFile, res resolver) (bli
 		return blizzard.Auctions{}, err
 	}
 
-	return blizzard.NewAuctions(body)
+	return blizzard.NewAuctions(resp.Body)
 }
 
 func newStatusFromMessenger(reg region, mess messenger) (status, error) {

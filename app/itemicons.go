@@ -57,11 +57,6 @@ func syncItemIcon(name string, res resolver) error {
 		return errors.New("Config cannot be nil")
 	}
 
-	if res.config.UseCacheDir == false {
-		_, err := res.get(res.getItemIconURL(name))
-		return err
-	}
-
 	if res.config.CacheDir == "" {
 		return errors.New("Cache dir cannot be blank")
 	}
@@ -80,7 +75,7 @@ func syncItemIcon(name string, res resolver) error {
 
 		log.WithField("name", name).Info("Fetching item-icon")
 
-		body, err := res.get(res.getItemIconURL(name))
+		body, err := util.Download(res.getItemIconURL(name))
 		if err != nil {
 			return err
 		}

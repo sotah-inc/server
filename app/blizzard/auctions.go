@@ -20,13 +20,18 @@ func DefaultGetAuctionInfoURL(regionHostname string, realmSlug RealmSlug) string
 type GetAuctionInfoURLFunc func(string, RealmSlug) string
 
 // NewAuctionInfoFromHTTP downloads json from the api
-func NewAuctionInfoFromHTTP(uri string) (AuctionInfo, error) {
-	body, err := util.Download(uri)
+func NewAuctionInfoFromHTTP(uri string) (AuctionInfo, ResponseMeta, error) {
+	resp, err := Download(uri)
 	if err != nil {
-		return AuctionInfo{}, err
+		return AuctionInfo{}, ResponseMeta{}, err
 	}
 
-	return NewAuctionInfo(body)
+	aInfo, err := NewAuctionInfo(resp.Body)
+	if err != nil {
+		return AuctionInfo{}, ResponseMeta{}, err
+	}
+
+	return aInfo, resp, nil
 }
 
 // NewAuctionInfoFromFilepath parses a json file

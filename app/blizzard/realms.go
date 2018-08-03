@@ -56,13 +56,18 @@ func DefaultGetStatusURL(regionHostname string) string {
 }
 
 // NewStatusFromHTTP loads a status from a uri
-func NewStatusFromHTTP(uri string) (Status, error) {
-	body, err := util.Download(uri)
+func NewStatusFromHTTP(uri string) (Status, ResponseMeta, error) {
+	resp, err := Download(uri)
 	if err != nil {
-		return Status{}, err
+		return Status{}, ResponseMeta{}, err
 	}
 
-	return NewStatus(body)
+	status, err := NewStatus(resp.Body)
+	if err != nil {
+		return Status{}, ResponseMeta{}, err
+	}
+
+	return status, resp, nil
 }
 
 // NewStatusFromFilepath loads a status from a json file

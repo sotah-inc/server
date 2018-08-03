@@ -17,7 +17,7 @@ func TestNewItemClassesFromHTTP(t *testing.T) {
 		return
 	}
 
-	a, err := NewItemClassesFromHTTP(ts.URL)
+	a, _, err := NewItemClassesFromHTTP(ts.URL)
 	if !assert.Nil(t, err) {
 		return
 	}

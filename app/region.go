@@ -53,7 +53,7 @@ func (reg region) getStatus(res resolver) (status, error) {
 		return status{}, err
 	}
 
-	stat, err := blizzard.NewStatusFromHTTP(uri)
+	stat, _, err := blizzard.NewStatusFromHTTP(uri)
 	if err != nil {
 		return status{}, err
 	}

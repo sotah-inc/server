@@ -63,7 +63,12 @@ func getItem(ID blizzard.ItemID, res resolver) (blizzard.Item, error) {
 			return blizzard.Item{}, err
 		}
 
-		return blizzard.NewItemFromHTTP(uri)
+		item, _, err := blizzard.NewItemFromHTTP(uri)
+		if err != nil {
+			return blizzard.Item{}, err
+		}
+
+		return item, nil
 	}
 
 	if res.config.CacheDir == "" {
@@ -84,16 +89,21 @@ func getItem(ID blizzard.ItemID, res resolver) (blizzard.Item, error) {
 
 		log.WithField("item", ID).Info("Fetching item")
 
-		body, err := res.get(res.getItemURL(primaryRegion.Hostname, ID))
+		uri, err := res.appendAPIKey(res.getItemURL(primaryRegion.Hostname, ID))
 		if err != nil {
 			return blizzard.Item{}, err
 		}
 
-		if err := util.WriteFile(itemFilepath, body); err != nil {
+		item, resp, err := blizzard.NewItemFromHTTP(uri)
+		if err != nil {
 			return blizzard.Item{}, err
 		}
 
-		return blizzard.NewItem(body)
+		if err := util.WriteFile(itemFilepath, resp.Body); err != nil {
+			return blizzard.Item{}, err
+		}
+
+		return item, nil
 	}
 
 	return blizzard.NewItemFromFilepath(itemFilepath)

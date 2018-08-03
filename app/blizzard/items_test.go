@@ -17,7 +17,7 @@ func TestNewItemFromHTTP(t *testing.T) {
 		return
 	}
 
-	a, err := NewItemFromHTTP(ts.URL)
+	a, _, err := NewItemFromHTTP(ts.URL)
 	if !assert.Nil(t, err) {
 		return
 	}

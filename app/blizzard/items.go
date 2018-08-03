@@ -21,13 +21,18 @@ func DefaultGetItemURL(regionHostname string, ID ItemID) string {
 type GetItemURLFunc func(string, ItemID) string
 
 // NewItemFromHTTP loads an item from the http api
-func NewItemFromHTTP(uri string) (Item, error) {
-	body, err := util.Download(uri)
+func NewItemFromHTTP(uri string) (Item, ResponseMeta, error) {
+	resp, err := Download(uri)
 	if err != nil {
-		return Item{}, err
+		return Item{}, ResponseMeta{}, err
 	}
 
-	return NewItem(body)
+	item, err := NewItem(resp.Body)
+	if err != nil {
+		return Item{}, ResponseMeta{}, err
+	}
+
+	return item, resp, nil
 }
 
 // NewItemFromFilepath loads an item from a json file

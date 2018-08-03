@@ -18,13 +18,18 @@ func DefaultGetItemClassesURL(regionHostname string) string {
 type GetItemClassesURLFunc func(string) string
 
 // NewItemClassesFromHTTP loads item-classes from the http api
-func NewItemClassesFromHTTP(uri string) (ItemClasses, error) {
-	body, err := util.Download(uri)
+func NewItemClassesFromHTTP(uri string) (ItemClasses, ResponseMeta, error) {
+	resp, err := Download(uri)
 	if err != nil {
-		return ItemClasses{}, err
+		return ItemClasses{}, ResponseMeta{}, err
 	}
 
-	return NewItemClasses(body)
+	iClasses, err := NewItemClasses(resp.Body)
+	if err != nil {
+		return ItemClasses{}, ResponseMeta{}, err
+	}
+
+	return iClasses, resp, nil
 }
 
 // NewItemClassesFromFilepath loads item-classes from a json file
