@@ -201,16 +201,12 @@ func (rea realm) downloadAndCache(aFile blizzard.AuctionFile, res resolver) (bli
 		return blizzard.Auctions{}, err
 	}
 
-	resp, err := blizzard.Download(uri)
+	body, err := util.Download(uri)
 	if err != nil {
 		return blizzard.Auctions{}, err
 	}
 
-	if resp.Status != 200 {
-		return blizzard.Auctions{}, errors.New("Response status was not 200")
-	}
-
-	encodedBody, err := util.GzipEncode(resp.Body)
+	encodedBody, err := util.GzipEncode(body)
 	if err != nil {
 		return blizzard.Auctions{}, err
 	}
@@ -223,7 +219,7 @@ func (rea realm) downloadAndCache(aFile blizzard.AuctionFile, res resolver) (bli
 		return blizzard.Auctions{}, err
 	}
 
-	return blizzard.NewAuctions(resp.Body)
+	return blizzard.NewAuctions(body)
 }
 
 func newStatusFromMessenger(reg region, mess messenger) (status, error) {
