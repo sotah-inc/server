@@ -10,12 +10,12 @@ import (
 
 // ResponseMeta is a blizzard api response meta data
 type ResponseMeta struct {
-	Body             []byte
-	Status           int
-	PlanQPSAllotted  int
-	PlanQPSCurrent   int
-	PlanQuotaAlotted int
-	PlanQuotaCurrent int
+	Body              []byte
+	Status            int
+	PlanQPSAllotted   int
+	PlanQPSCurrent    int
+	PlanQuotaAllotted int
+	PlanQuotaCurrent  int
 }
 
 // Download - performs HTTP GET request against url, including adding gzip header and ungzipping
@@ -80,11 +80,11 @@ func Download(url string) (ResponseMeta, error) {
 	}
 
 	return ResponseMeta{
-		Body:             body,
-		Status:           resp.StatusCode,
-		PlanQPSAllotted:  planQPSAllotted,
-		PlanQPSCurrent:   planQPSCurrent,
-		PlanQuotaAlotted: planQuotaAllotted,
-		PlanQuotaCurrent: planQuotaCurrent,
+		Body:              body,
+		Status:            resp.StatusCode,
+		PlanQPSAllotted:   planQPSAllotted,
+		PlanQPSCurrent:    planQPSCurrent,
+		PlanQuotaAllotted: planQuotaAllotted,
+		PlanQuotaCurrent:  planQuotaCurrent,
 	}, nil
 }
