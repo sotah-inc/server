@@ -153,11 +153,6 @@ func (sta state) collectRegions(res resolver) {
 						"error":  job.err.Error(),
 					}).Info("Failed to fetch item")
 
-					sta.messenger.publishMetric(telegrafMetric{
-						Category: string(tags.Item),
-						Values:   telegrafMetricValues{"item_id": int64(job.ID)},
-					})
-
 					continue
 				}
 
@@ -166,7 +161,7 @@ func (sta state) collectRegions(res resolver) {
 			log.WithField("items", len(regionItemIDs)).Info("Fetched items")
 			sta.messenger.publishMetric(telegrafMetric{
 				Category: string(tags.ItemCount),
-				Values:   telegrafMetricValues{"count": int64(len(sta.items))},
+				Values:   telegrafMetricValues{"item_count": int64(len(sta.items))},
 			})
 		}
 	}
