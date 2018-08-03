@@ -8,6 +8,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/ihsw/sotah-server/app/blizzard"
+	"github.com/ihsw/sotah-server/app/tags"
+
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ihsw/sotah-server/app/codes"
@@ -156,4 +159,16 @@ func (mess messenger) publishMetric(metric telegrafMetric) error {
 	}
 
 	return mess.publish(subjects.AppMetrics, result)
+}
+
+func (mess messenger) publishPlanMetaMetric(resp blizzard.ResponseMeta) error {
+	return mess.publishMetric(telegrafMetric{
+		Category: string(tags.PlanMetadata),
+		Values: telegrafMetricValues{
+			"qps_allotted":   int64(resp.PlanQPSAllotted),
+			"qps_current":    int64(resp.PlanQPSCurrent),
+			"quota_allotted": int64(resp.PlanQuotaAllotted),
+			"quota_current":  int64(resp.PlanQuotaCurrent),
+		},
+	})
 }
