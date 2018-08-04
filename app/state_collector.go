@@ -158,6 +158,6 @@ func (sta state) collectRegions(res resolver) {
 		"current_item_count":  int64(len(currentItemIds)),
 		"collector_duration":  int64(time.Now().Unix() - startTime.Unix()),
 		"total_churn_amount":  int64(totalChurnAmount),
-		"churn_rate":          int64(totalAuctions / totalChurnAmount),
+		"churn_rate":          int64(totalChurnAmount / totalAuctions),
 	})
 }
