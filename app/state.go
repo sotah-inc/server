@@ -101,6 +101,9 @@ func (sta state) auctionsIntake(job getAuctionsJob) []blizzard.ItemID {
 func (sta state) collectRegions(res resolver) {
 	log.Info("Collecting regions")
 
+	currentOwnerName := map[ownerName]struct{}{}
+	currentItemIds := map[blizzard.ItemID]struct{}{}
+
 	// going over the list of regions
 	for _, reg := range sta.regions {
 		// gathering whitelist for this region
@@ -128,6 +131,13 @@ func (sta state) collectRegions(res resolver) {
 				}
 
 				regionItemIDsMap[ID] = struct{}{}
+			}
+
+			if job.err == nil {
+				for _, auc := range job.auctions.Auctions {
+					currentOwnerName[ownerName(auc.Owner)] = struct{}{}
+					currentItemIds[auc.Item] = struct{}{}
+				}
 			}
 		}
 		log.WithField("region", reg.Name).Info("Downloaded region")
@@ -177,7 +187,11 @@ func (sta state) collectRegions(res resolver) {
 	}
 	log.WithField("items", len(iconNames)).Info("Synced item icons")
 
-	sta.messenger.publishMetric(telegrafMetrics{"item_count": int64(len(sta.items))})
+	sta.messenger.publishMetric(telegrafMetrics{
+		"item_count":          int64(len(sta.items)),
+		"current_owner_count": int64(len(currentOwnerName)),
+		"current_item_count":  int64(len(currentItemIds)),
+	})
 }
 
 type listenStopChan chan interface{}
