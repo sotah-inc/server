@@ -80,6 +80,10 @@ func syncItemIcon(name string, res resolver) error {
 			return err
 		}
 
+		if err := res.messenger.publishBodyIngressMetric(len(body)); err != nil {
+			return err
+		}
+
 		if err := util.WriteFile(itemIconFilepath, body); err != nil {
 			return err
 		}

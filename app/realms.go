@@ -135,7 +135,16 @@ func (rea realm) getAuctions(res resolver) (blizzard.Auctions, time.Time, error)
 			return blizzard.Auctions{}, time.Time{}, err
 		}
 
-		aucs, err := blizzard.NewAuctionsFromHTTP(uri)
+		body, err := util.Download(uri)
+		if err != nil {
+			return blizzard.Auctions{}, time.Time{}, err
+		}
+
+		if err := res.messenger.publishBodyIngressMetric(len(body)); err != nil {
+			return blizzard.Auctions{}, time.Time{}, err
+		}
+
+		aucs, err := blizzard.NewAuctions(body)
 		if err != nil {
 			return blizzard.Auctions{}, time.Time{}, err
 		}
@@ -201,6 +210,10 @@ func (rea realm) downloadAndCache(aFile blizzard.AuctionFile, res resolver) (bli
 
 	body, err := util.Download(aFile.URL)
 	if err != nil {
+		return blizzard.Auctions{}, err
+	}
+
+	if err := res.messenger.publishBodyIngressMetric(len(body)); err != nil {
 		return blizzard.Auctions{}, err
 	}
 
