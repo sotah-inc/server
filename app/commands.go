@@ -146,7 +146,7 @@ func api(c config, m messenger) error {
 		fmt.Sprintf("%s/items", c.CacheDir),
 		fmt.Sprintf("%s/item-icons", c.CacheDir),
 	}
-	for _, reg := range c.Regions {
+	for _, reg := range sta.regions {
 		cacheDirs = append(cacheDirs, fmt.Sprintf("%s/auctions/%s", c.CacheDir, reg.Name))
 	}
 	if err := util.EnsureDirsExist(cacheDirs); err != nil {
@@ -154,7 +154,7 @@ func api(c config, m messenger) error {
 	}
 
 	// filling state with region statuses and a blank list of auctions
-	for _, reg := range c.Regions {
+	for _, reg := range sta.regions {
 		regionStatus, err := reg.getStatus(res)
 		if err != nil {
 			return err
@@ -165,6 +165,37 @@ func api(c config, m messenger) error {
 		sta.auctions[reg.Name] = map[blizzard.RealmSlug]miniAuctionList{}
 		for _, rea := range regionStatus.Realms {
 			sta.auctions[reg.Name][rea.Slug] = miniAuctionList{}
+		}
+	}
+
+	// loading up auctions from the file cache
+	for _, reg := range sta.regions {
+		for _, rea := range sta.statuses[reg.Name].Realms {
+			// resolving the cached auctions filepath
+			cachedAuctionsFilepath, err := rea.auctionsFilepath(res.config)
+			if err != nil {
+				return err
+			}
+
+			// optionally skipping non-exist auctions files
+			cachedAuctionsStat, err := os.Stat(cachedAuctionsFilepath)
+			if err != nil {
+				if !os.IsNotExist(err) {
+					return err
+				}
+
+				continue
+			}
+
+			// loading the gzipped cached auctions file
+			aucs, err := blizzard.NewAuctionsFromGzFilepath(cachedAuctionsFilepath)
+			if err != nil {
+				return err
+			}
+
+			// pushing the auctions onto the state
+			sta.auctions[reg.Name][rea.Slug] = newMiniAuctionListFromBlizzardAuctions(aucs.Auctions)
+			rea.LastModified = cachedAuctionsStat.ModTime().Unix()
 		}
 	}
 
