@@ -37,6 +37,16 @@ func (sta state) startCollector(stopChan workerStopChan, res resolver) workerSto
 func (sta state) collectRegions(res resolver) {
 	log.Info("Collecting regions")
 
+	// gathering the total number of auctions pre-collection
+	totalAuctions := 0
+	for _, reg := range sta.regions {
+		for _, rea := range sta.statuses[reg.Name].Realms {
+			for _, auc := range sta.auctions[reg.Name][rea.Slug] {
+				totalAuctions += len(auc.AucList)
+			}
+		}
+	}
+
 	// going over the list of regions
 	startTime := time.Now()
 	totalChurnAmount := 0
@@ -148,5 +158,6 @@ func (sta state) collectRegions(res resolver) {
 		"current_item_count":  int64(len(currentItemIds)),
 		"collector_duration":  int64(time.Now().Unix() - startTime.Unix()),
 		"total_churn_amount":  int64(totalChurnAmount),
+		"churn_rate":          int64(totalAuctions / totalChurnAmount),
 	})
 }
