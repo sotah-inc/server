@@ -59,7 +59,12 @@ func (reas realms) getAuctions(res resolver, wList getAuctionsWhitelist) chan ge
 	worker := func() {
 		for rea := range in {
 			aucs, lastModified, err := rea.getAuctions(res)
-			log.WithField("realm", rea.Slug).Debug("Received auctions")
+			if lastModified.IsZero() {
+				log.WithField("realm", rea.Slug).Debug("No auctions received")
+			} else {
+				log.WithField("realm", rea.Slug).Debug("Received auctions")
+			}
+
 			out <- getAuctionsJob{err, rea, aucs, lastModified}
 		}
 	}
