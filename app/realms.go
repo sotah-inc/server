@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -16,13 +17,6 @@ import (
 
 type getAuctionsWhitelist map[blizzard.RealmSlug]interface{}
 
-type getAuctionsJob struct {
-	err          error
-	realm        realm
-	auctions     blizzard.Auctions
-	lastModified time.Time
-}
-
 func newRealms(reg region, blizzRealms []blizzard.Realm) realms {
 	reas := make([]realm, len(blizzRealms))
 	for i, rea := range blizzRealms {
@@ -30,6 +24,13 @@ func newRealms(reg region, blizzRealms []blizzard.Realm) realms {
 	}
 
 	return reas
+}
+
+type getAuctionsJob struct {
+	err          error
+	realm        realm
+	auctions     blizzard.Auctions
+	lastModified time.Time
 }
 
 type realms []realm
@@ -81,6 +82,47 @@ func (reas realms) getAuctions(res resolver, wList getAuctionsWhitelist) chan ge
 			}
 
 			log.WithField("realm", rea.Slug).Debug("Queueing up auction for downloading")
+			in <- rea
+		}
+
+		close(in)
+	}()
+
+	return out
+}
+
+type loadAuctionsJob struct {
+	err          error
+	realm        realm
+	auctions     blizzard.Auctions
+	lastModified time.Time
+}
+
+func (reas realms) loadAuctions(c *config) chan loadAuctionsJob {
+	// establishing channels
+	out := make(chan loadAuctionsJob)
+	in := make(chan realm)
+
+	// spinning up the workers for fetching auctions
+	worker := func() {
+		for rea := range in {
+			aucs, lastModified, err := rea.loadAuctions(c)
+			if lastModified.IsZero() {
+				continue
+			}
+
+			out <- loadAuctionsJob{err, rea, aucs, lastModified}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(8, worker, postWork)
+
+	// queueing up the realms
+	go func() {
+		for _, rea := range reas {
+			log.WithField("realm", rea.Slug).Debug("Queueing up auction for loading")
 			in <- rea
 		}
 
@@ -183,6 +225,33 @@ func (rea realm) downloadAndCache(aFile blizzard.AuctionFile, res resolver) (bli
 	}
 
 	return blizzard.NewAuctions(body)
+}
+
+func (rea realm) loadAuctions(c *config) (blizzard.Auctions, time.Time, error) {
+	// resolving the cached auctions filepath
+	cachedAuctionsFilepath, err := rea.auctionsFilepath(c)
+	if err != nil {
+		return blizzard.Auctions{}, time.Time{}, err
+	}
+
+	// optionally skipping non-exist auctions files
+	cachedAuctionsStat, err := os.Stat(cachedAuctionsFilepath)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return blizzard.Auctions{}, time.Time{}, err
+		}
+
+		return blizzard.Auctions{}, time.Time{}, nil
+	}
+
+	// loading the gzipped cached auctions file
+	log.WithFields(log.Fields{"region": rea.region.Name, "realm": rea.Slug}).Info("Loading auctions from filepath")
+	aucs, err := blizzard.NewAuctionsFromGzFilepath(cachedAuctionsFilepath)
+	if err != nil {
+		return blizzard.Auctions{}, time.Time{}, err
+	}
+
+	return aucs, cachedAuctionsStat.ModTime(), nil
 }
 
 func newStatusFromMessenger(reg region, mess messenger) (status, error) {

@@ -170,33 +170,25 @@ func api(c config, m messenger) error {
 
 	// loading up auctions from the file cache
 	for _, reg := range sta.regions {
-		for _, rea := range sta.statuses[reg.Name].Realms {
-			// resolving the cached auctions filepath
-			cachedAuctionsFilepath, err := rea.auctionsFilepath(res.config)
-			if err != nil {
-				return err
-			}
-
-			// optionally skipping non-exist auctions files
-			cachedAuctionsStat, err := os.Stat(cachedAuctionsFilepath)
-			if err != nil {
-				if !os.IsNotExist(err) {
-					return err
-				}
-
-				continue
-			}
-
-			// loading the gzipped cached auctions file
-			log.WithFields(log.Fields{"region": reg.Name, "realm": rea.Slug}).Info("Loading auctions from filepath")
-			aucs, err := blizzard.NewAuctionsFromGzFilepath(cachedAuctionsFilepath)
-			if err != nil {
-				return err
+		loaded := sta.statuses[reg.Name].Realms.loadAuctions(res.config)
+		for job := range loaded {
+			if job.err != nil {
+				return job.err
 			}
 
 			// pushing the auctions onto the state
-			sta.auctions[reg.Name][rea.Slug] = newMiniAuctionListFromBlizzardAuctions(aucs.Auctions)
-			rea.LastModified = cachedAuctionsStat.ModTime().Unix()
+			sta.auctions[reg.Name][job.realm.Slug] = newMiniAuctionListFromBlizzardAuctions(job.auctions.Auctions)
+
+			// setting the realm last-modified
+			for i, statusRealm := range sta.statuses[reg.Name].Realms {
+				if statusRealm.Slug != job.realm.Slug {
+					continue
+				}
+
+				sta.statuses[reg.Name].Realms[i].LastModified = job.lastModified.Unix()
+
+				break
+			}
 		}
 	}
 
