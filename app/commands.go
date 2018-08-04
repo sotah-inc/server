@@ -170,8 +170,8 @@ func api(c config, m messenger) error {
 
 	// loading up auctions from the file cache
 	for _, reg := range sta.regions {
-		loaded := sta.statuses[reg.Name].Realms.loadAuctions(res.config)
-		for job := range loaded {
+		loadedAuctions := sta.statuses[reg.Name].Realms.loadAuctions(res.config)
+		for job := range loadedAuctions {
 			if job.err != nil {
 				return job.err
 			}
@@ -190,6 +190,19 @@ func api(c config, m messenger) error {
 				break
 			}
 		}
+	}
+
+	// loading up items from the file cache
+	loadedItems, err := loadItems(*res.config)
+	if err != nil {
+		return err
+	}
+	for job := range loadedItems {
+		if job.err != nil {
+			return job.err
+		}
+
+		sta.items[job.item.ID] = job.item
 	}
 
 	// gathering item-classes

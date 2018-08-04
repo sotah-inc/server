@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -11,6 +12,55 @@ import (
 
 	log "github.com/sirupsen/logrus"
 )
+
+type loadItemsJob struct {
+	err      error
+	filepath string
+	item     blizzard.Item
+}
+
+func loadItems(c config) (chan loadItemsJob, error) {
+	// listing out files in items dir
+	itemsDirPath, err := filepath.Abs(fmt.Sprintf("%s/items", c.CacheDir))
+	if err != nil {
+		return nil, err
+	}
+	itemsFilepaths, err := ioutil.ReadDir(itemsDirPath)
+	if err != nil {
+		return nil, err
+	}
+
+	// establishing channels
+	out := make(chan loadItemsJob)
+	in := make(chan string)
+
+	// spinning up the workers for fetching items
+	worker := func() {
+		for itemFilepath := range in {
+			itemValue, err := blizzard.NewItemFromFilepath(itemFilepath)
+			out <- loadItemsJob{err: err, item: itemValue, filepath: itemFilepath}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(8, worker, postWork)
+
+	// queueing up the realms
+	go func() {
+		for i, itemFilepath := range itemsFilepaths {
+			if i%100 == 0 {
+				log.WithField("count", i).Debug("Loaded items")
+			}
+
+			in <- itemFilepath.Name()
+		}
+
+		close(in)
+	}()
+
+	return out, nil
+}
 
 type getItemsJob struct {
 	err  error
