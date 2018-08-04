@@ -39,6 +39,7 @@ func (sta state) collectRegions(res resolver) {
 
 	// going over the list of regions
 	startTime := time.Now()
+	totalChurnAmount := 0
 	for _, reg := range sta.regions {
 		// gathering whitelist for this region
 		wList := res.config.getRegionWhitelist(reg)
@@ -71,7 +72,8 @@ func (sta state) collectRegions(res resolver) {
 				continue
 			}
 
-			itemIDs := sta.auctionsIntake(job)
+			itemIDs, churnAmount := sta.auctionsIntake(job)
+			totalChurnAmount += churnAmount
 			for _, ID := range itemIDs {
 				_, ok := sta.items[ID]
 				if ok {
@@ -145,5 +147,6 @@ func (sta state) collectRegions(res resolver) {
 		"current_owner_count": int64(len(currentOwnerNames)),
 		"current_item_count":  int64(len(currentItemIds)),
 		"collector_duration":  int64(time.Now().Unix() - startTime.Unix()),
+		"total_churn_amount":  int64(totalChurnAmount),
 	})
 }

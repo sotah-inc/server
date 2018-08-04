@@ -64,9 +64,24 @@ func (sta state) listenForGenericTestErrors(stop listenStopChan) error {
 	return nil
 }
 
-func (sta state) auctionsIntake(job getAuctionsJob) []blizzard.ItemID {
+func (sta state) auctionsIntake(job getAuctionsJob) ([]blizzard.ItemID, int) {
 	rea := job.realm
 	reg := rea.region
+
+	// storing deleted auction ids for calculating the churn rate
+	auctionIds := map[int64]struct{}{}
+	for _, mAuction := range sta.auctions[reg.Name][rea.Slug] {
+		for _, auc := range mAuction.AucList {
+			auctionIds[auc] = struct{}{}
+		}
+	}
+	for _, auc := range job.auctions.Auctions {
+		if _, ok := auctionIds[auc.Auc]; !ok {
+			continue
+		}
+
+		delete(auctionIds, auc.Auc)
+	}
 
 	// compacting the auctions
 	minimizedAuctions := newMiniAuctionListFromBlizzardAuctions(job.auctions.Auctions)
@@ -86,7 +101,7 @@ func (sta state) auctionsIntake(job getAuctionsJob) []blizzard.ItemID {
 	}
 
 	// returning a list of item ids for syncing
-	return minimizedAuctions.itemIds()
+	return minimizedAuctions.itemIds(), len(auctionIds)
 }
 
 type listenStopChan chan interface{}
