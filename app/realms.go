@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"time"
 
@@ -123,58 +122,13 @@ func (rea realm) getAuctions(res resolver) (blizzard.Auctions, time.Time, error)
 	}
 	aFile := aInfo.Files[0]
 
-	// validating config
-	if res.config == nil {
-		return blizzard.Auctions{}, time.Time{}, errors.New("Config cannot be nil")
-	}
-
-	// optionally falling back to fetching from the api where use-cache-dir is off
-	if res.config.UseCacheDir == false {
-		uri, err := res.appendAPIKey(res.getAuctionsURL(aFile.URL))
-		if err != nil {
-			return blizzard.Auctions{}, time.Time{}, err
-		}
-
-		body, err := util.Download(uri)
-		if err != nil {
-			return blizzard.Auctions{}, time.Time{}, err
-		}
-
-		if err := res.messenger.publishBodyIngressMetric(len(body)); err != nil {
-			return blizzard.Auctions{}, time.Time{}, err
-		}
-
-		aucs, err := blizzard.NewAuctions(body)
-		if err != nil {
-			return blizzard.Auctions{}, time.Time{}, err
-		}
-
-		return aucs, aFile.LastModifiedAsTime(), nil
-	}
-
-	// validating the cache dir pathname
-	if res.config.CacheDir == "" {
-		return blizzard.Auctions{}, time.Time{}, errors.New("Cache dir cannot be blank")
-	}
-
 	// validating the realm region
 	if rea.region.Name == "" {
 		return blizzard.Auctions{}, time.Time{}, errors.New("Region name cannot be blank")
 	}
 
-	// resolving the auctions filepath
-	auctionsFilepath, err := rea.auctionsFilepath(res.config)
-	if err != nil {
-		return blizzard.Auctions{}, time.Time{}, err
-	}
-
-	// stating the auction file and downloading where non-exist
-	cachedAuctionsFileInfo, err := os.Stat(auctionsFilepath)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return blizzard.Auctions{}, time.Time{}, err
-		}
-
+	// optionally downloading where the realm has stale data
+	if rea.LastModified == 0 || time.Unix(rea.LastModified, 0).Before(aFile.LastModifiedAsTime()) {
 		aucs, err := rea.downloadAndCache(aFile, res)
 		if err != nil {
 			return blizzard.Auctions{}, time.Time{}, err
@@ -183,49 +137,42 @@ func (rea realm) getAuctions(res resolver) (blizzard.Auctions, time.Time, error)
 		return aucs, aFile.LastModifiedAsTime(), nil
 	}
 
-	// optionally downloading where stale data in the cache
-	if cachedAuctionsFileInfo.ModTime().Before(aFile.LastModifiedAsTime()) {
-		aucs, err := rea.downloadAndCache(aFile, res)
-		if err != nil {
-			return blizzard.Auctions{}, time.Time{}, err
-		}
-
-		return aucs, aFile.LastModifiedAsTime(), nil
-	}
-
-	rea.LogEntry().Debug("Loading auction data from cache dir")
-	aucs, err := blizzard.NewAuctionsFromGzFilepath(auctionsFilepath)
-	if err != nil {
-		return blizzard.Auctions{}, time.Time{}, err
-	}
-
-	return aucs, cachedAuctionsFileInfo.ModTime(), nil
+	return blizzard.Auctions{}, time.Time{}, nil
 }
 
 func (rea realm) downloadAndCache(aFile blizzard.AuctionFile, res resolver) (blizzard.Auctions, error) {
+	// validating config
+	if res.config == nil {
+		return blizzard.Auctions{}, errors.New("Config cannot be nil")
+	}
+	if res.config.CacheDir == "" {
+		return blizzard.Auctions{}, errors.New("Cache dir cannot be blank")
+	}
+
+	// gathering auctions filepath
 	auctionsFilepath, err := rea.auctionsFilepath(res.config)
 	if err != nil {
 		return blizzard.Auctions{}, err
 	}
 
+	// downloading the auction data
 	body, err := util.Download(aFile.URL)
 	if err != nil {
 		return blizzard.Auctions{}, err
 	}
-
 	if err := res.messenger.publishBodyIngressMetric(len(body)); err != nil {
 		return blizzard.Auctions{}, err
 	}
 
-	encodedBody, err := util.GzipEncode(body)
-	if err != nil {
-		return blizzard.Auctions{}, err
-	}
-
+	// writing the auction data to the cache dir
 	log.WithFields(log.Fields{
 		"region": rea.region.Name,
 		"realm":  rea.Slug,
 	}).Debug("Writing auction data to cache dir")
+	encodedBody, err := util.GzipEncode(body)
+	if err != nil {
+		return blizzard.Auctions{}, err
+	}
 	if err := util.WriteFile(auctionsFilepath, encodedBody); err != nil {
 		return blizzard.Auctions{}, err
 	}

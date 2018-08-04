@@ -67,15 +67,6 @@ func (sta state) listenForGenericTestErrors(stop listenStopChan) error {
 func (sta state) auctionsIntake(job getAuctionsJob) []blizzard.ItemID {
 	rea := job.realm
 	reg := rea.region
-	if job.err != nil {
-		log.WithFields(log.Fields{
-			"region": reg.Name,
-			"realm":  rea.Slug,
-			"error":  job.err.Error(),
-		}).Info("Auction fetch failure")
-
-		return []blizzard.ItemID{}
-	}
 
 	// compacting the auctions
 	minimizedAuctions := newMiniAuctionListFromBlizzardAuctions(job.auctions.Auctions)
@@ -123,6 +114,20 @@ func (sta state) collectRegions(res resolver) {
 		}).Info("Downloading region")
 		auctionsOut := sta.statuses[reg.Name].Realms.getAuctionsOrAll(sta.resolver, wList)
 		for job := range auctionsOut {
+			if job.err != nil {
+				log.WithFields(log.Fields{
+					"region": reg.Name,
+					"realm":  job.realm.Slug,
+					"error":  job.err.Error(),
+				}).Info("Auction fetch failure")
+
+				continue
+			}
+
+			if job.lastModified.IsZero() {
+				continue
+			}
+
 			itemIDs := sta.auctionsIntake(job)
 			for _, ID := range itemIDs {
 				_, ok := sta.items[ID]
@@ -133,11 +138,9 @@ func (sta state) collectRegions(res resolver) {
 				regionItemIDsMap[ID] = struct{}{}
 			}
 
-			if job.err == nil {
-				for _, auc := range job.auctions.Auctions {
-					currentOwnerName[ownerName(auc.Owner)] = struct{}{}
-					currentItemIds[auc.Item] = struct{}{}
-				}
+			for _, auc := range job.auctions.Auctions {
+				currentOwnerName[ownerName(auc.Owner)] = struct{}{}
+				currentItemIds[auc.Item] = struct{}{}
 			}
 		}
 		log.WithField("region", reg.Name).Info("Downloaded region")
