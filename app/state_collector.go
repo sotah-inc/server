@@ -38,6 +38,7 @@ func (sta state) collectRegions(res resolver) {
 	log.Info("Collecting regions")
 
 	// going over the list of regions
+	startTime := time.Now()
 	for _, reg := range sta.regions {
 		// gathering whitelist for this region
 		wList := res.config.getRegionWhitelist(reg)
@@ -143,5 +144,6 @@ func (sta state) collectRegions(res resolver) {
 		"item_count":          int64(len(sta.items)),
 		"current_owner_count": int64(len(currentOwnerNames)),
 		"current_item_count":  int64(len(currentItemIds)),
+		"collector_duration":  int64(time.Now().Unix() - startTime.Unix()),
 	})
 }
