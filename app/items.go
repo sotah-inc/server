@@ -53,7 +53,7 @@ func loadItems(c config) (chan loadItemsJob, error) {
 				log.WithField("count", i).Debug("Loaded items")
 			}
 
-			in <- itemFilepath.Name()
+			in <- fmt.Sprintf("%s/%s", itemsDirPath, itemFilepath.Name())
 		}
 
 		close(in)
