@@ -117,7 +117,7 @@ func (reas realms) loadAuctions(c *config) chan loadAuctionsJob {
 	postWork := func() {
 		close(out)
 	}
-	util.Work(8, worker, postWork)
+	util.Work(4, worker, postWork)
 
 	// queueing up the realms
 	go func() {
