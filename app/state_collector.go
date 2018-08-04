@@ -141,20 +141,22 @@ func (sta state) collectRegions(res resolver) {
 	log.WithField("items", len(iconNames)).Info("Synced item icons")
 
 	// gathering owner and item metrics
-	currentOwnerNames := map[ownerName]struct{}{}
+	totalOwners := 0
 	currentItemIds := map[blizzard.ItemID]struct{}{}
 	for _, reg := range sta.regions {
 		for _, rea := range sta.statuses[reg.Name].Realms {
+			realmOwnerNames := map[ownerName]struct{}{}
 			for _, auc := range sta.auctions[reg.Name][rea.Slug] {
-				currentOwnerNames[auc.Owner] = struct{}{}
+				realmOwnerNames[auc.Owner] = struct{}{}
 				currentItemIds[auc.Item.ID] = struct{}{}
 			}
+			totalOwners += len(realmOwnerNames)
 		}
 	}
 
 	sta.messenger.publishMetric(telegrafMetrics{
 		"item_count":          int64(len(sta.items)),
-		"current_owner_count": int64(len(currentOwnerNames)),
+		"current_owner_count": int64(totalOwners),
 		"current_item_count":  int64(len(currentItemIds)),
 		"collector_duration":  int64(time.Now().Unix() - startTime.Unix()),
 		"total_churn_amount":  int64(totalChurnAmount),
