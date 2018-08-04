@@ -188,6 +188,7 @@ func api(c config, m messenger) error {
 			}
 
 			// loading the gzipped cached auctions file
+			log.WithFields(log.Fields{"region": reg.Name, "realm": rea.Slug}).Info("Loading auctions from filepath")
 			aucs, err := blizzard.NewAuctionsFromGzFilepath(cachedAuctionsFilepath)
 			if err != nil {
 				return err
