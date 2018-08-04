@@ -2,6 +2,7 @@ package blizzard
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/ihsw/sotah-server/app/util"
@@ -22,6 +23,10 @@ func NewItemClassesFromHTTP(uri string) (ItemClasses, ResponseMeta, error) {
 	resp, err := Download(uri)
 	if err != nil {
 		return ItemClasses{}, ResponseMeta{}, err
+	}
+
+	if resp.Status != 200 {
+		return ItemClasses{}, ResponseMeta{}, errors.New("Status was not 200")
 	}
 
 	iClasses, err := NewItemClasses(resp.Body)

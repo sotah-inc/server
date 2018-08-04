@@ -2,6 +2,7 @@ package blizzard
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -25,6 +26,10 @@ func NewItemFromHTTP(uri string) (Item, ResponseMeta, error) {
 	resp, err := Download(uri)
 	if err != nil {
 		return Item{}, ResponseMeta{}, err
+	}
+
+	if resp.Status != 200 {
+		return Item{}, ResponseMeta{}, errors.New("Status was not 200")
 	}
 
 	item, err := NewItem(resp.Body)

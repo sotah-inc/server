@@ -26,6 +26,10 @@ func NewAuctionInfoFromHTTP(uri string) (AuctionInfo, ResponseMeta, error) {
 		return AuctionInfo{}, ResponseMeta{}, err
 	}
 
+	if resp.Status != 200 {
+		return AuctionInfo{}, ResponseMeta{}, errors.New("Status was not 200")
+	}
+
 	aInfo, err := NewAuctionInfo(resp.Body)
 	if err != nil {
 		return AuctionInfo{}, ResponseMeta{}, err

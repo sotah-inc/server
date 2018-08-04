@@ -2,6 +2,7 @@ package blizzard
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/ihsw/sotah-server/app/blizzard/realmpopulations"
@@ -60,6 +61,10 @@ func NewStatusFromHTTP(uri string) (Status, ResponseMeta, error) {
 	resp, err := Download(uri)
 	if err != nil {
 		return Status{}, ResponseMeta{}, err
+	}
+
+	if resp.Status != 200 {
+		return Status{}, ResponseMeta{}, errors.New("Status was not 200")
 	}
 
 	status, err := NewStatus(resp.Body)
