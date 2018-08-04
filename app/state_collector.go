@@ -12,7 +12,7 @@ func (sta state) startCollector(stopChan workerStopChan, res resolver) workerSto
 
 	onStop := make(workerStopChan)
 	go func() {
-		ticker := time.NewTicker(30 * time.Minute)
+		ticker := time.NewTicker(10 * time.Minute)
 
 		log.Info("Starting collector")
 	outer:
