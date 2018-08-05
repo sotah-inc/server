@@ -61,6 +61,10 @@ func Download(url string) (ResponseMeta, error) {
 		}
 	}
 
+	if resp.StatusCode != 200 {
+		return ResponseMeta{Body: body, Status: resp.StatusCode}, nil
+	}
+
 	// gathering api quota params
 	planQPSAllotted, err := strconv.Atoi(resp.Header.Get("X-Plan-Qps-Allotted"))
 	if err != nil {
