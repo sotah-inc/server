@@ -60,14 +60,28 @@ func (reas realms) getAuctions(res resolver, wList getAuctionsWhitelist) chan ge
 	worker := func() {
 		for rea := range in {
 			aucs, lastModified, err := rea.getAuctions(res)
+
+			// optionally skipping draining out due to error
+			if err != nil {
+				log.WithFields(log.Fields{
+					"region": rea.region.Name,
+					"realm":  rea.Slug,
+					"error":  err.Error(),
+				}).Info("Auction fetch failure")
+
+				continue
+			}
+
+			// optionally skipping draining out due to no new data
 			if lastModified.IsZero() {
 				rea.LogEntry().Debug("No auctions received")
 
 				continue
 			}
 
+			// draining out
 			rea.LogEntry().Debug("Received auctions")
-			out <- getAuctionsJob{err, rea, aucs, lastModified}
+			out <- getAuctionsJob{nil, rea, aucs, lastModified}
 		}
 	}
 	postWork := func() {

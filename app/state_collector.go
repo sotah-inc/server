@@ -68,16 +68,6 @@ func (sta state) collectRegions(res resolver) {
 		}).Info("Downloading region")
 		auctionsOut := sta.statuses[reg.Name].Realms.getAuctionsOrAll(sta.resolver, wList)
 		for job := range auctionsOut {
-			if job.err != nil {
-				log.WithFields(log.Fields{
-					"region": reg.Name,
-					"realm":  job.realm.Slug,
-					"error":  job.err.Error(),
-				}).Info("Auction fetch failure")
-
-				continue
-			}
-
 			itemIDs, churnAmount := sta.auctionsIntake(job)
 			totalChurnAmount += churnAmount
 			for _, ID := range itemIDs {
