@@ -53,7 +53,12 @@ func loadItems(c config) (chan loadItemsJob, error) {
 				log.WithField("count", i).Debug("Loaded items")
 			}
 
-			in <- fmt.Sprintf("%s/%s", itemsDirPath, itemFilepath.Name())
+			filename := itemFilepath.Name()
+			if filename == ".gitkeep" {
+				continue
+			}
+
+			in <- fmt.Sprintf("%s/%s", itemsDirPath, filename)
 		}
 
 		close(in)

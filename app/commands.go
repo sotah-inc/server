@@ -175,6 +175,11 @@ func api(c config, m messenger) error {
 	}
 	for job := range loadedItems {
 		if job.err != nil {
+			log.WithFields(log.Fields{
+				"filepath": job.filepath,
+				"error":    job.err.Error(),
+			}).Error("Failed to load image")
+
 			return job.err
 		}
 
