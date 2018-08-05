@@ -61,11 +61,12 @@ func (reas realms) getAuctions(res resolver, wList getAuctionsWhitelist) chan ge
 		for rea := range in {
 			aucs, lastModified, err := rea.getAuctions(res)
 			if lastModified.IsZero() {
-				log.WithField("realm", rea.Slug).Debug("No auctions received")
-			} else {
-				log.WithField("realm", rea.Slug).Debug("Received auctions")
+				rea.LogEntry().Debug("No auctions received")
+
+				continue
 			}
 
+			rea.LogEntry().Debug("Received auctions")
 			out <- getAuctionsJob{err, rea, aucs, lastModified}
 		}
 	}
@@ -212,10 +213,7 @@ func (rea realm) downloadAndCache(aFile blizzard.AuctionFile, res resolver) (bli
 	}
 
 	// writing the auction data to the cache dir
-	log.WithFields(log.Fields{
-		"region": rea.region.Name,
-		"realm":  rea.Slug,
-	}).Debug("Writing auction data to cache dir")
+	rea.LogEntry().Debug("Writing auction data to cache dir")
 	encodedBody, err := util.GzipEncode(body)
 	if err != nil {
 		return blizzard.Auctions{}, err
@@ -245,7 +243,7 @@ func (rea realm) loadAuctions(c *config) (blizzard.Auctions, time.Time, error) {
 	}
 
 	// loading the gzipped cached auctions file
-	log.WithFields(log.Fields{"region": rea.region.Name, "realm": rea.Slug}).Info("Loading auctions from filepath")
+	rea.LogEntry().Info("Loading auctions from filepath")
 	aucs, err := blizzard.NewAuctionsFromGzFilepath(cachedAuctionsFilepath)
 	if err != nil {
 		return blizzard.Auctions{}, time.Time{}, err

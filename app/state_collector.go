@@ -78,10 +78,6 @@ func (sta state) collectRegions(res resolver) {
 				continue
 			}
 
-			if job.lastModified.IsZero() {
-				continue
-			}
-
 			itemIDs, churnAmount := sta.auctionsIntake(job)
 			totalChurnAmount += churnAmount
 			for _, ID := range itemIDs {
