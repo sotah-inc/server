@@ -129,12 +129,15 @@ func (sta state) collectRegions(res resolver) {
 	// gathering owner and item metrics
 	totalOwners := 0
 	currentItemIds := map[blizzard.ItemID]struct{}{}
+	totalAuctions := 0
 	for _, reg := range sta.regions {
 		for _, rea := range sta.statuses[reg.Name].Realms {
+			realmAuctions := sta.auctions[reg.Name][rea.Slug]
 			realmOwnerNames := map[ownerName]struct{}{}
-			for _, auc := range sta.auctions[reg.Name][rea.Slug] {
+			for _, auc := range realmAuctions {
 				realmOwnerNames[auc.Owner] = struct{}{}
 				currentItemIds[auc.Item.ID] = struct{}{}
+				totalAuctions += len(auc.AucList)
 			}
 			totalOwners += len(realmOwnerNames)
 		}
@@ -153,5 +156,6 @@ func (sta state) collectRegions(res resolver) {
 		"collector_duration":  int64(time.Now().Unix() - startTime.Unix()),
 		"total_churn_amount":  int64(totalChurnAmount),
 		"churn_ratio":         int64(churnRatio * 1000),
+		"total_auctions":      int64(totalAuctions),
 	})
 }
