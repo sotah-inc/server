@@ -68,9 +68,9 @@ func (sta state) collectRegions(res resolver) {
 		}).Info("Downloading region")
 		auctionsOut := sta.statuses[reg.Name].Realms.getAuctionsOrAll(sta.resolver, wList)
 		for job := range auctionsOut {
-			itemIDs, churnAmount := sta.auctionsIntake(job)
-			totalChurnAmount += churnAmount
-			for _, ID := range itemIDs {
+			result := sta.auctionsIntake(job)
+			totalChurnAmount += result.removedAuctionsCount
+			for _, ID := range result.itemIds {
 				_, ok := sta.items[ID]
 				if ok {
 					continue

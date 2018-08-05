@@ -64,7 +64,12 @@ func (sta state) listenForGenericTestErrors(stop listenStopChan) error {
 	return nil
 }
 
-func (sta state) auctionsIntake(job getAuctionsJob) ([]blizzard.ItemID, int) {
+type auctionsIntakeResult struct {
+	itemIds              []blizzard.ItemID
+	removedAuctionsCount int
+}
+
+func (sta state) auctionsIntake(job getAuctionsJob) auctionsIntakeResult {
 	rea := job.realm
 	reg := rea.region
 
@@ -76,11 +81,9 @@ func (sta state) auctionsIntake(job getAuctionsJob) ([]blizzard.ItemID, int) {
 		}
 	}
 	for _, auc := range job.auctions.Auctions {
-		if _, ok := removedAuctionIds[auc.Auc]; !ok {
-			continue
+		if _, ok := removedAuctionIds[auc.Auc]; ok {
+			delete(removedAuctionIds, auc.Auc)
 		}
-
-		delete(removedAuctionIds, auc.Auc)
 	}
 
 	// compacting the auctions
@@ -101,7 +104,9 @@ func (sta state) auctionsIntake(job getAuctionsJob) ([]blizzard.ItemID, int) {
 	}
 
 	// returning a list of item ids for syncing
-	return minimizedAuctions.itemIds(), len(removedAuctionIds)
+	return auctionsIntakeResult{
+		itemIds: minimizedAuctions.itemIds(),
+	}
 }
 
 type listenStopChan chan interface{}
