@@ -38,11 +38,11 @@ func (sta state) collectRegions(res resolver) {
 	log.Info("Collecting regions")
 
 	// gathering the total number of auctions pre-collection
-	totalAuctions := 0
+	totalPreviousAuctions := 0
 	for _, reg := range sta.regions {
 		for _, rea := range sta.statuses[reg.Name].Realms {
 			for _, auc := range sta.auctions[reg.Name][rea.Slug] {
-				totalAuctions += len(auc.AucList)
+				totalPreviousAuctions += len(auc.AucList)
 			}
 		}
 	}
@@ -154,12 +154,18 @@ func (sta state) collectRegions(res resolver) {
 		}
 	}
 
+	// calculating churn ratio
+	churnRatio := float32(0)
+	if totalPreviousAuctions > 0 {
+		churnRatio = float32(totalChurnAmount) / float32(totalPreviousAuctions)
+	}
+
 	sta.messenger.publishMetric(telegrafMetrics{
 		"item_count":          int64(len(sta.items)),
 		"current_owner_count": int64(totalOwners),
 		"current_item_count":  int64(len(currentItemIds)),
 		"collector_duration":  int64(time.Now().Unix() - startTime.Unix()),
 		"total_churn_amount":  int64(totalChurnAmount),
-		"churn_ratio":         int64(totalChurnAmount / totalAuctions * 1000),
+		"churn_ratio":         int64(churnRatio * 1000),
 	})
 }
