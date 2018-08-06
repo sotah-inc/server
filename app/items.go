@@ -48,8 +48,9 @@ func loadItems(c config) (chan loadItemsJob, error) {
 
 	// queueing up the realms
 	go func() {
+		itemsFilepathCount := len(itemsFilepaths)
 		for i, itemFilepath := range itemsFilepaths {
-			if i%100 == 0 {
+			if i == 0 || i%5000 == 0 || i == itemsFilepathCount-1 {
 				log.WithField("count", i).Debug("Loaded items")
 			}
 
