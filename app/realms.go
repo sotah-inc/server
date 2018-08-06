@@ -137,6 +137,14 @@ func (reas realms) loadAuctions(c *config) chan loadAuctionsJob {
 	// queueing up the realms
 	go func() {
 		for _, rea := range reas {
+			wList := c.getRegionWhitelist(rea.region)
+			if wList != nil {
+				resolvedWhiteList := *wList
+				if _, ok := resolvedWhiteList[rea.Slug]; !ok {
+					continue
+				}
+			}
+
 			log.WithField("realm", rea.Slug).Debug("Queueing up auction for loading")
 			in <- rea
 		}
