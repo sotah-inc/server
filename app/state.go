@@ -15,6 +15,17 @@ type requestError struct {
 	message string
 }
 
+func newState(mess messenger, res resolver) state {
+	return state{
+		messenger: mess,
+		resolver:  res,
+		regions:   res.config.Regions,
+		statuses:  map[regionName]status{},
+		auctions:  map[regionName]map[blizzard.RealmSlug]miniAuctionList{},
+		items:     map[blizzard.ItemID]blizzard.Item{},
+	}
+}
+
 type state struct {
 	messenger messenger
 	resolver  resolver

@@ -131,14 +131,7 @@ func api(c config, m messenger) error {
 
 	// establishing a state
 	res := newResolver(c, m)
-	sta := state{
-		messenger: m,
-		resolver:  res,
-		regions:   c.Regions,
-		statuses:  map[regionName]status{},
-		auctions:  map[regionName]map[blizzard.RealmSlug]miniAuctionList{},
-		items:     map[blizzard.ItemID]blizzard.Item{},
-	}
+	sta := newState(m, res)
 
 	// ensuring cache-dirs exist
 	cacheDirs := []string{
