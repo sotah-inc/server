@@ -82,6 +82,8 @@ func (sto store) writeRealmAuctions(rea realm, lastModified time.Time, body []by
 	}
 
 	wc := bkt.Object(sto.getRealmAuctionsObjectName(lastModified)).NewWriter(sto.context)
+	wc.ContentType = "application/json"
+	wc.ContentEncoding = "gzip"
 	wc.Write(body)
 	return wc.Close()
 }
