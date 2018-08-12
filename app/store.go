@@ -6,6 +6,7 @@ import (
 	"time"
 
 	storage "cloud.google.com/go/storage"
+	log "github.com/sirupsen/logrus"
 )
 
 func newStore(projectID string) (store, error) {
@@ -80,6 +81,12 @@ func (sto store) writeRealmAuctions(rea realm, lastModified time.Time, body []by
 	if err != nil {
 		return err
 	}
+
+	log.WithFields(log.Fields{
+		"region": rea.region.Name,
+		"realm":  rea.Slug,
+		"length": len(body),
+	}).Debug("Writing auctions to gcloud storage")
 
 	wc := bkt.Object(sto.getRealmAuctionsObjectName(lastModified)).NewWriter(sto.context)
 	wc.ContentType = "application/json"
