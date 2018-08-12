@@ -7,6 +7,7 @@ import (
 
 	storage "cloud.google.com/go/storage"
 	log "github.com/sirupsen/logrus"
+	"google.golang.org/api/iterator"
 )
 
 func newStore(projectID string) (store, error) {
@@ -93,4 +94,28 @@ func (sto store) writeRealmAuctions(rea realm, lastModified time.Time, body []by
 	wc.ContentEncoding = "gzip"
 	wc.Write(body)
 	return wc.Close()
+}
+
+func (sto store) getTotalRealmAuctionsSize(rea realm) (int64, error) {
+	log.WithFields(log.Fields{
+		"region": rea.region.Name,
+		"realm":  rea.Slug,
+	}).Debug("Gathering total bucket size")
+
+	it := sto.getRealmBucket(rea).Objects(sto.context, nil)
+	totalSize := int64(0)
+	for {
+		objAttrs, err := it.Next()
+		if err != nil {
+			if err == iterator.Done {
+				break
+			}
+
+			return 0, err
+		}
+
+		totalSize += objAttrs.Size
+	}
+
+	return totalSize, nil
 }

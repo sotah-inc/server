@@ -126,10 +126,11 @@ func (sta state) collectRegions(res resolver) {
 	}
 	log.WithField("items", len(iconNames)).Info("Synced item icons")
 
-	// gathering owner and item metrics
+	// gathering owner, item, and storage metrics
 	totalOwners := 0
 	currentItemIds := map[blizzard.ItemID]struct{}{}
 	totalAuctions := 0
+	totalStorageSize := int64(0)
 	for _, reg := range sta.regions {
 		for _, rea := range sta.statuses[reg.Name].Realms {
 			realmAuctions := sta.auctions[reg.Name][rea.Slug]
@@ -140,6 +141,19 @@ func (sta state) collectRegions(res resolver) {
 				totalAuctions += len(auc.AucList)
 			}
 			totalOwners += len(realmOwnerNames)
+
+			if res.config.UseGCloudStorage {
+				totalRealmStorageSize, err := res.store.getTotalRealmAuctionsSize(rea)
+				if err != nil {
+					log.WithFields(log.Fields{
+						"region": rea.region.Name,
+						"realm":  rea.Slug,
+						"error":  err.Error(),
+					}).Info("Failed to fetch total realm auction size")
+				}
+
+				totalStorageSize += totalRealmStorageSize
+			}
 		}
 	}
 
@@ -157,5 +171,6 @@ func (sta state) collectRegions(res resolver) {
 		"total_churn_amount":  int64(totalChurnAmount),
 		"churn_ratio":         int64(churnRatio * 1000),
 		"total_auctions":      int64(totalAuctions),
+		"total_storage_size":  totalStorageSize,
 	})
 }
