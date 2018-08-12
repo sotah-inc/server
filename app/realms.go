@@ -247,8 +247,10 @@ func (rea realm) downloadAndCache(aFile blizzard.AuctionFile, res resolver) (bli
 	}
 
 	// writing the auction data to the gcloud storage
-	if err := res.store.writeRealmAuctions(rea, aFile.LastModifiedAsTime(), encodedBody); err != nil {
-		return blizzard.Auctions{}, err
+	if res.config.UseGCloudStorage {
+		if err := res.store.writeRealmAuctions(rea, aFile.LastModifiedAsTime(), encodedBody); err != nil {
+			return blizzard.Auctions{}, err
+		}
 	}
 
 	return blizzard.NewAuctions(body)
