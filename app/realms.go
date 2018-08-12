@@ -234,13 +234,20 @@ func (rea realm) downloadAndCache(aFile blizzard.AuctionFile, res resolver) (bli
 		return blizzard.Auctions{}, err
 	}
 
+	// gathering the encoded body
+	encodedBody, err := util.GzipEncode(body)
+
 	// writing the auction data to the cache dir
 	rea.LogEntry().Debug("Writing auction data to cache dir")
-	encodedBody, err := util.GzipEncode(body)
 	if err != nil {
 		return blizzard.Auctions{}, err
 	}
 	if err := util.WriteFile(auctionsFilepath, encodedBody); err != nil {
+		return blizzard.Auctions{}, err
+	}
+
+	// writing the auction data to the gcloud storage
+	if err := res.store.writeRealmAuctions(rea, aFile.LastModifiedAsTime(), encodedBody); err != nil {
 		return blizzard.Auctions{}, err
 	}
 
