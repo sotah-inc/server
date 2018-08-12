@@ -6,10 +6,11 @@ import (
 	"github.com/ihsw/sotah-server/app/blizzard"
 )
 
-func newResolver(c config, mess messenger) resolver {
+func newResolver(c config, mess messenger, stor storage) resolver {
 	return resolver{
 		config:    &c,
 		messenger: mess,
+		storage:   stor,
 
 		getStatusURL:      blizzard.DefaultGetStatusURL,
 		getAuctionInfoURL: blizzard.DefaultGetAuctionInfoURL,
@@ -18,6 +19,19 @@ func newResolver(c config, mess messenger) resolver {
 		getItemIconURL:    defaultGetItemIconURL,
 		getItemClassesURL: blizzard.DefaultGetItemClassesURL,
 	}
+}
+
+type resolver struct {
+	config    *config
+	messenger messenger
+	storage   storage
+
+	getStatusURL      blizzard.GetStatusURLFunc
+	getAuctionInfoURL blizzard.GetAuctionInfoURLFunc
+	getAuctionsURL    blizzard.GetAuctionsURLFunc
+	getItemURL        blizzard.GetItemURLFunc
+	getItemIconURL    getItemIconURLFunc
+	getItemClassesURL blizzard.GetItemClassesURLFunc
 }
 
 func (r resolver) appendAPIKey(destination string) (string, error) {
@@ -40,16 +54,4 @@ func (r resolver) appendAPIKey(destination string) (string, error) {
 	u.RawQuery = q.Encode()
 
 	return u.String(), nil
-}
-
-type resolver struct {
-	config    *config
-	messenger messenger
-
-	getStatusURL      blizzard.GetStatusURLFunc
-	getAuctionInfoURL blizzard.GetAuctionInfoURLFunc
-	getAuctionsURL    blizzard.GetAuctionsURLFunc
-	getItemURL        blizzard.GetItemURLFunc
-	getItemIconURL    getItemIconURLFunc
-	getItemClassesURL blizzard.GetItemClassesURLFunc
 }

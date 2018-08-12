@@ -29,11 +29,12 @@ func newConfig(body []byte) (config, error) {
 }
 
 type config struct {
-	APIKey      string                               `json:"api_key"`
-	Regions     regionList                           `json:"regions"`
-	Whitelist   map[regionName]*getAuctionsWhitelist `json:"whitelist"`
-	CacheDir    string                               `json:"cache_dir"`
-	UseCacheDir bool                                 `json:"use_cache_dir"`
+	APIKey           string                               `json:"api_key"`
+	Regions          regionList                           `json:"regions"`
+	Whitelist        map[regionName]*getAuctionsWhitelist `json:"whitelist"`
+	CacheDir         string                               `json:"cache_dir"`
+	UseCacheDir      bool                                 `json:"use_cache_dir"`
+	UseGCloudStorage bool                                 `json:"use_gcloud_storage"`
 }
 
 func (c config) getRegionWhitelist(reg region) *getAuctionsWhitelist {

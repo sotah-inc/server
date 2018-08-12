@@ -4,10 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/ihsw/sotah-server/app/commands"
-
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -21,6 +19,7 @@ func main() {
 		apiKey         = app.Flag("api-key", "Blizzard Mashery API key").OverrideDefaultFromEnvar("API_KEY").String()
 		verbosity      = app.Flag("verbosity", "Log verbosity").Default("info").Short('v').String()
 		cacheDir       = app.Flag("cache-dir", "Directory to cache data files to").Required().String()
+		projectID      = app.Flag("project-id", "GCloud Storage Project ID").Default("").OverrideDefaultFromEnvar("PROJECT_ID").String()
 
 		apiTestCommand = app.Command(commands.APITest, "For running sotah-api tests.")
 		apiCommand     = app.Command(commands.API, "For running sotah-server.")
@@ -76,11 +75,14 @@ func main() {
 		return
 	}
 
+	// connecting storage
+	stor := newStorage(*projectID)
+
 	log.WithField("command", cmd).Info("Running command")
 
 	switch cmd {
 	case apiTestCommand.FullCommand():
-		err := apiTest(c, mess, *apiTestDataDir)
+		err := apiTest(c, mess, stor, *apiTestDataDir)
 		if err != nil {
 			fmt.Printf("Could not run api test command: %s\n", err.Error())
 			os.Exit(1)
@@ -92,7 +94,7 @@ func main() {
 
 		return
 	case apiCommand.FullCommand():
-		err := api(c, mess)
+		err := api(c, mess, stor)
 		if err != nil {
 			fmt.Printf("Could not run api command: %s\n", err.Error())
 			os.Exit(1)

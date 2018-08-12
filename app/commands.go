@@ -11,11 +11,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func api(c config, m messenger) error {
+func api(c config, m messenger, s storage) error {
 	log.Info("Starting api")
 
 	// establishing a state
-	res := newResolver(c, m)
+	res := newResolver(c, m, s)
 	sta := newState(m, res)
 
 	// ensuring cache-dirs exist
