@@ -11,7 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func api(c config, m messenger, s storage) error {
+func api(c config, m messenger, s store) error {
 	log.Info("Starting api")
 
 	// establishing a state

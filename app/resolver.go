@@ -6,11 +6,11 @@ import (
 	"github.com/ihsw/sotah-server/app/blizzard"
 )
 
-func newResolver(c config, mess messenger, stor storage) resolver {
+func newResolver(c config, mess messenger, stor store) resolver {
 	return resolver{
 		config:    &c,
 		messenger: mess,
-		storage:   stor,
+		store:     stor,
 
 		getStatusURL:      blizzard.DefaultGetStatusURL,
 		getAuctionInfoURL: blizzard.DefaultGetAuctionInfoURL,
@@ -24,7 +24,7 @@ func newResolver(c config, mess messenger, stor storage) resolver {
 type resolver struct {
 	config    *config
 	messenger messenger
-	storage   storage
+	store     store
 
 	getStatusURL      blizzard.GetStatusURLFunc
 	getAuctionInfoURL blizzard.GetAuctionInfoURLFunc

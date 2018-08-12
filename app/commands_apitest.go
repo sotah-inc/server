@@ -12,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func apiTest(c config, m messenger, s storage, dataDir string) error {
+func apiTest(c config, m messenger, s store, dataDir string) error {
 	log.Info("Starting api-test")
 
 	dataDirPath, err := filepath.Abs(dataDir)
