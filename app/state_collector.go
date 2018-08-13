@@ -141,19 +141,23 @@ func (sta state) collectRegions(res resolver) {
 				totalAuctions += len(auc.AucList)
 			}
 			totalOwners += len(realmOwnerNames)
+		}
 
-			if res.config.UseGCloudStorage {
-				totalRealmStorageSize, err := res.store.getTotalRealmAuctionsSize(rea)
-				if err != nil {
+		if res.config.UseGCloudStorage {
+			totalAuctionSizeOut := res.store.getTotalRealmsAuctionSize(sta.statuses[reg.Name].Realms)
+			for job := range totalAuctionSizeOut {
+				if job.err != nil {
 					log.WithFields(log.Fields{
-						"region": rea.region.Name,
-						"realm":  rea.Slug,
-						"error":  err.Error(),
-						"bucket": res.store.getRealmBucketName(rea),
+						"region": job.realm.region.Name,
+						"realm":  job.realm.Slug,
+						"error":  job.err.Error(),
+						"bucket": res.store.getRealmBucketName(job.realm),
 					}).Info("Failed to fetch total realm auction size")
+
+					continue
 				}
 
-				totalStorageSize += totalRealmStorageSize
+				totalStorageSize += job.totalSize
 			}
 		}
 	}

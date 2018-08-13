@@ -6,6 +6,7 @@ import (
 	"time"
 
 	storage "cloud.google.com/go/storage"
+	"github.com/ihsw/sotah-server/app/util"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/api/iterator"
 )
@@ -118,4 +119,39 @@ func (sto store) getTotalRealmAuctionsSize(rea realm) (int64, error) {
 	}
 
 	return totalSize, nil
+}
+
+type getTotalRealmAuctionSizeJob struct {
+	realm     realm
+	totalSize int64
+	err       error
+}
+
+func (sto store) getTotalRealmsAuctionSize(reas realms) chan getTotalRealmAuctionSizeJob {
+	// establishing channels
+	out := make(chan getTotalRealmAuctionSizeJob)
+	in := make(chan realm)
+
+	// spinning up the workers for gathering total realm auction size
+	worker := func() {
+		for rea := range in {
+			totalSize, err := sto.getTotalRealmAuctionsSize(rea)
+			out <- getTotalRealmAuctionSizeJob{rea, totalSize, err}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(4, worker, postWork)
+
+	// queueing up the realms
+	go func() {
+		for _, rea := range reas {
+			in <- rea
+		}
+
+		close(in)
+	}()
+
+	return out
 }
