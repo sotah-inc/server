@@ -103,6 +103,15 @@ func (sto store) getTotalRealmAuctionsSize(rea realm) (int64, error) {
 		"realm":  rea.Slug,
 	}).Debug("Gathering total bucket size")
 
+	exists, err := sto.realmBucketExists(rea)
+	if err != nil {
+		return 0, err
+	}
+
+	if !exists {
+		return 0, nil
+	}
+
 	it := sto.getRealmBucket(rea).Objects(sto.context, nil)
 	totalSize := int64(0)
 	for {
