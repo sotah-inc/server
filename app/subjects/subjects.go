@@ -19,4 +19,5 @@ const (
 	Items             Subject = "items"
 	Info              Subject = "info"
 	AppMetrics        Subject = "appMetrics"
+	Boot              Subject = "boot"
 )

@@ -17,12 +17,14 @@ type requestError struct {
 
 func newState(mess messenger, res resolver) state {
 	return state{
-		messenger: mess,
-		resolver:  res,
-		regions:   res.config.Regions,
-		statuses:  map[regionName]status{},
-		auctions:  map[regionName]map[blizzard.RealmSlug]miniAuctionList{},
-		items:     map[blizzard.ItemID]blizzard.Item{},
+		messenger:   mess,
+		resolver:    res,
+		regions:     res.config.Regions,
+		statuses:    map[regionName]status{},
+		auctions:    map[regionName]map[blizzard.RealmSlug]miniAuctionList{},
+		items:       map[blizzard.ItemID]blizzard.Item{},
+		expansions:  res.config.Expansions,
+		professions: res.config.Professions,
 	}
 }
 
@@ -36,6 +38,8 @@ type state struct {
 	auctions    map[regionName]map[blizzard.RealmSlug]miniAuctionList
 	items       itemsMap
 	itemClasses blizzard.ItemClasses
+	expansions  []expansion
+	professions []profession
 }
 
 func (sta state) listenForRegions(stop listenStopChan) error {
@@ -52,6 +56,41 @@ func (sta state) listenForRegions(stop listenStopChan) error {
 		}
 
 		m.Data = string(encodedRegions)
+		sta.messenger.replyTo(natsMsg, m)
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type bootResponse struct {
+	Regions     regionList           `json:"regions"`
+	ItemClasses blizzard.ItemClasses `json:"item_classes"`
+	Expansions  []expansion          `json:"expansions"`
+	Professions []profession         `json:"professions"`
+}
+
+func (sta state) listenForBoot(stop listenStopChan) error {
+	err := sta.messenger.subscribe(subjects.Regions, stop, func(natsMsg nats.Msg) {
+		m := newMessage()
+
+		encodedResponse, err := json.Marshal(bootResponse{
+			Regions:     sta.regions,
+			ItemClasses: sta.itemClasses,
+			Expansions:  sta.expansions,
+			Professions: sta.professions,
+		})
+		if err != nil {
+			m.Err = err.Error()
+			m.Code = codes.MsgJSONParseError
+			sta.messenger.replyTo(natsMsg, m)
+
+			return
+		}
+
+		m.Data = string(encodedResponse)
 		sta.messenger.replyTo(natsMsg, m)
 	})
 	if err != nil {
