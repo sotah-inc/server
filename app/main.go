@@ -76,11 +76,14 @@ func main() {
 	}
 
 	// connecting storage
-	stor, err := newStore(*projectID)
-	if err != nil {
-		log.Fatalf("Could not connect store: %s\n", err.Error())
+	stor := store{}
+	if c.UseGCloudStorage {
+		stor, err = newStore(*projectID)
+		if err != nil {
+			log.Fatalf("Could not connect store: %s\n", err.Error())
 
-		return
+			return
+		}
 	}
 
 	log.WithField("command", cmd).Info("Running command")
