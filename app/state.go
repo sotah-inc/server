@@ -73,7 +73,7 @@ type bootResponse struct {
 }
 
 func (sta state) listenForBoot(stop listenStopChan) error {
-	err := sta.messenger.subscribe(subjects.Regions, stop, func(natsMsg nats.Msg) {
+	err := sta.messenger.subscribe(subjects.Boot, stop, func(natsMsg nats.Msg) {
 		m := newMessage()
 
 		encodedResponse, err := json.Marshal(bootResponse{
