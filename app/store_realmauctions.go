@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"time"
 
 	storage "cloud.google.com/go/storage"
+	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/util"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/api/iterator"
@@ -146,4 +148,108 @@ func (sto store) getTotalRealmsAuctionSize(reas realms) chan getTotalRealmAuctio
 	}()
 
 	return out
+}
+
+func (sto store) loadRealmsAuctions(c *config, reas realms) chan loadAuctionsJob {
+	// establishing channels
+	out := make(chan loadAuctionsJob)
+	in := make(chan realm)
+
+	// spinning up the workers for fetching auctions
+	worker := func() {
+		for rea := range in {
+			aucs, lastModified, err := rea.loadAuctions(c)
+			if lastModified.IsZero() {
+				continue
+			}
+
+			out <- loadAuctionsJob{err, rea, aucs, lastModified}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(4, worker, postWork)
+
+	// queueing up the realms
+	go func() {
+		for _, rea := range reas {
+			wList := c.getRegionWhitelist(rea.region)
+			if wList != nil {
+				resolvedWhiteList := *wList
+				if _, ok := resolvedWhiteList[rea.Slug]; !ok {
+					continue
+				}
+			}
+
+			log.WithField("realm", rea.Slug).Debug("Queueing up auction for store loading")
+			in <- rea
+		}
+
+		close(in)
+	}()
+
+	return out
+}
+
+func (sto store) loadRealmAuctions(rea realm) (blizzard.Auctions, time.Time, error) {
+	hasBucket, err := sto.realmAuctionsBucketExists(rea)
+	if err != nil {
+		return blizzard.Auctions{}, time.Time{}, err
+	}
+
+	if !hasBucket {
+		return blizzard.Auctions{}, time.Time{}, nil
+	}
+
+	bkt, err := sto.resolveRealmAuctionsBucket(rea)
+	if err != nil {
+		return blizzard.Auctions{}, time.Time{}, err
+	}
+
+	lastCreated := time.Time{}
+	var obj *storage.ObjectHandle
+	it := bkt.Objects(sto.context, nil)
+	for {
+		objAttrs, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+
+		if err != nil {
+			return blizzard.Auctions{}, time.Time{}, err
+		}
+
+		if obj == nil || lastCreated.IsZero() || lastCreated.Before(objAttrs.Created) {
+			obj = bkt.Object(objAttrs.Name)
+			lastCreated = objAttrs.Created
+		}
+	}
+
+	if obj == nil {
+		return blizzard.Auctions{}, time.Time{}, nil
+	}
+
+	reader, err := obj.NewReader(sto.context)
+	if err != nil {
+		return blizzard.Auctions{}, time.Time{}, err
+	}
+	defer reader.Close()
+
+	body, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return blizzard.Auctions{}, time.Time{}, err
+	}
+
+	decodedBody, err := util.GzipDecode(body)
+	if err != nil {
+		return blizzard.Auctions{}, time.Time{}, err
+	}
+
+	aucs, err := blizzard.NewAuctions(decodedBody)
+	if err != nil {
+		return blizzard.Auctions{}, time.Time{}, err
+	}
+
+	return aucs, lastCreated, nil
 }
