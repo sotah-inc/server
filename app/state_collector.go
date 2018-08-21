@@ -104,7 +104,7 @@ func (sta state) collectRegions(res resolver) {
 					continue
 				}
 
-				sta.items[job.ID] = job.item
+				sta.items[job.ID] = item{job.item, ""}
 			}
 			log.WithField("items", len(regionItemIDs)).Info("Fetched items")
 		}

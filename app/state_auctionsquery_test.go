@@ -35,7 +35,7 @@ func TestListenForAuctionsQuery(t *testing.T) {
 	if !assert.Nil(t, err) {
 		return
 	}
-	sta.items = map[blizzard.ItemID]blizzard.Item{}
+	sta.items = map[blizzard.ItemID]item{}
 	for _, resultItem := range ilResult.Items {
 		sta.items[resultItem.Item.ID] = resultItem.Item
 	}

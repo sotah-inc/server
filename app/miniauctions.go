@@ -222,7 +222,7 @@ func newMiniAuction(auc blizzard.Auction) miniAuction {
 	}
 
 	return miniAuction{
-		blizzard.Item{ID: auc.Item, Name: "", NormalizedName: ""},
+		item{blizzard.Item{ID: auc.Item, Name: "", NormalizedName: ""}, ""},
 		ownerName(auc.Owner),
 		auc.OwnerRealm,
 		auc.Bid,
@@ -235,13 +235,13 @@ func newMiniAuction(auc blizzard.Auction) miniAuction {
 }
 
 type miniAuction struct {
-	Item       blizzard.Item `json:"item"`
-	Owner      ownerName     `json:"owner"`
-	OwnerRealm string        `json:"ownerRealm"`
-	Bid        int64         `json:"bid"`
-	Buyout     int64         `json:"buyout"`
-	BuyoutPer  float32       `json:"buyoutPer"`
-	Quantity   int64         `json:"quantity"`
-	TimeLeft   string        `json:"timeLeft"`
-	AucList    []int64       `json:"aucList"`
+	Item       item      `json:"item"`
+	Owner      ownerName `json:"owner"`
+	OwnerRealm string    `json:"ownerRealm"`
+	Bid        int64     `json:"bid"`
+	Buyout     int64     `json:"buyout"`
+	BuyoutPer  float32   `json:"buyoutPer"`
+	Quantity   int64     `json:"quantity"`
+	TimeLeft   string    `json:"timeLeft"`
+	AucList    []int64   `json:"aucList"`
 }

@@ -28,7 +28,7 @@ func TestListenForItems(t *testing.T) {
 	}
 
 	// attaching the items to the state
-	sta.items = map[blizzard.ItemID]blizzard.Item{}
+	sta.items = map[blizzard.ItemID]item{}
 	for _, resultItem := range result.Items {
 		sta.items[resultItem.Item.ID] = resultItem.Item
 	}
@@ -82,7 +82,7 @@ func TestListenForItemsFiltered(t *testing.T) {
 	}
 
 	// attaching the items to the state
-	sta.items = map[blizzard.ItemID]blizzard.Item{}
+	sta.items = map[blizzard.ItemID]item{}
 	for _, resultItem := range result.Items {
 		sta.items[resultItem.Item.ID] = resultItem.Item
 	}

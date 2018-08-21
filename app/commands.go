@@ -61,7 +61,7 @@ func api(c config, m messenger, s store) error {
 			return job.err
 		}
 
-		sta.items[job.item.ID] = job.item
+		sta.items[job.item.ID] = item{job.item, ""}
 	}
 
 	// gathering item-classes

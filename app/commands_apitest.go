@@ -38,7 +38,7 @@ func apiTest(c config, m messenger, s store, dataDir string) error {
 		regions:   c.Regions,
 		statuses:  map[regionName]status{},
 		auctions:  map[regionName]map[blizzard.RealmSlug]miniAuctionList{},
-		items:     map[blizzard.ItemID]blizzard.Item{},
+		items:     map[blizzard.ItemID]item{},
 	}
 	for _, reg := range c.Regions {
 		// loading realm statuses
@@ -90,7 +90,7 @@ func apiTest(c config, m messenger, s store, dataDir string) error {
 				continue
 			}
 
-			sta.items[job.ID] = job.item
+			sta.items[job.ID] = item{job.item, ""}
 		}
 		log.WithField("items", len(regionItemIDs)).Info("Fetched items")
 	}

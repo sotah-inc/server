@@ -22,7 +22,7 @@ func newState(mess messenger, res resolver) state {
 		regions:     res.config.Regions,
 		statuses:    map[regionName]status{},
 		auctions:    map[regionName]map[blizzard.RealmSlug]miniAuctionList{},
-		items:       map[blizzard.ItemID]blizzard.Item{},
+		items:       map[blizzard.ItemID]item{},
 		expansions:  res.config.Expansions,
 		professions: res.config.Professions,
 	}

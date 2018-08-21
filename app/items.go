@@ -171,7 +171,13 @@ func getItem(ID blizzard.ItemID, res resolver) (blizzard.Item, error) {
 	return blizzard.NewItemFromFilepath(itemFilepath)
 }
 
-type itemsMap map[blizzard.ItemID]blizzard.Item
+type itemsMap map[blizzard.ItemID]item
+
+type item struct {
+	blizzard.Item
+
+	IconURL string `json:"icon_url"`
+}
 
 func (iMap itemsMap) getItemIcons() []string {
 	iconsMap := map[string]struct{}{}

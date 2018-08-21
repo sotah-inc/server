@@ -13,10 +13,10 @@ import (
 )
 
 type auctionsQueryItem struct {
-	Target string        `json:"target"`
-	Item   blizzard.Item `json:"item"`
-	Owner  owner         `json:"owner"`
-	Rank   int           `json:"rank"`
+	Target string `json:"target"`
+	Item   item   `json:"item"`
+	Owner  owner  `json:"owner"`
+	Rank   int    `json:"rank"`
 }
 
 type auctionsQueryItems []auctionsQueryItem
@@ -148,7 +148,7 @@ func (request auctionsQueryRequest) resolve(sta state) (auctionsQueryResult, err
 	for _, ownerValue := range oResult.Owners {
 		aqResult.Items[i] = auctionsQueryItem{
 			Owner:  ownerValue,
-			Item:   blizzard.Item{},
+			Item:   item{},
 			Target: ownerValue.NormalizedName,
 		}
 		i++
