@@ -78,18 +78,18 @@ func (sto store) writeItemIcon(bkt *storage.BucketHandle, iconName string, body 
 		"length": len(body),
 	}).Debug("Writing item-icon to gcloud storage")
 
-	// setting acl of item-icon object to public
-	obj := bkt.Object(sto.getItemIconsBucketName(iconName))
-	acl := obj.ACL()
-	if err := acl.Set(sto.context, storage.AllUsers, storage.RoleReader); err != nil {
-		return "", err
-	}
-
 	// writing it out
+	obj := bkt.Object(sto.getItemIconsBucketName(iconName))
 	wc := obj.NewWriter(sto.context)
 	wc.ContentType = "image/jpeg"
 	wc.Write(body)
 	if err := wc.Close(); err != nil {
+		return "", err
+	}
+
+	// setting acl of item-icon object to public
+	acl := obj.ACL()
+	if err := acl.Set(sto.context, storage.AllUsers, storage.RoleReader); err != nil {
 		return "", err
 	}
 
