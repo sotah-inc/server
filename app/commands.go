@@ -64,6 +64,68 @@ func api(c config, m messenger, s store) error {
 		sta.items[job.item.ID] = job.item
 	}
 
+	// gathering item-classes
+	primaryRegion, err := c.Regions.getPrimaryRegion()
+	if err != nil {
+		return err
+	}
+	uri, err := res.appendAPIKey(res.getItemClassesURL(primaryRegion.Hostname))
+	if err != nil {
+		return err
+	}
+	iClasses, resp, err := blizzard.NewItemClassesFromHTTP(uri)
+	if err != nil {
+		return err
+	}
+	sta.itemClasses = iClasses
+	if err := sta.messenger.publishPlanMetaMetric(resp); err != nil {
+		return err
+	}
+
+	// gathering profession icons into storage
+	if c.UseGCloudStorage {
+		iconNames := make([]string, len(c.Professions))
+		for i, prof := range c.Professions {
+			iconNames[i] = prof.Icon
+		}
+
+		syncedIcons, err := s.syncItemIcons(iconNames, res)
+		if err != nil {
+			return err
+		}
+		for job := range syncedIcons {
+			if job.err != nil {
+				return job.err
+			}
+
+			for i, prof := range c.Professions {
+				if prof.Icon != job.iconName {
+					continue
+				}
+
+				c.Professions[i].IconURL = job.iconURL
+			}
+		}
+	}
+
+	// opening all listeners
+	sta.listeners = newListeners(subjectListeners{
+		subjects.GenericTestErrors: sta.listenForGenericTestErrors,
+		subjects.Status:            sta.listenForStatus,
+		subjects.Regions:           sta.listenForRegions,
+		subjects.Auctions:          sta.listenForAuctions,
+		subjects.Owners:            sta.listenForOwners,
+		subjects.ItemsQuery:        sta.listenForItemsQuery,
+		subjects.AuctionsQuery:     sta.listenForAuctionsQuery,
+		subjects.ItemClasses:       sta.listenForItemClasses,
+		subjects.PriceList:         sta.listenForPriceList,
+		subjects.Items:             sta.listenForItems,
+		subjects.Boot:              sta.listenForBoot,
+	})
+	if err := sta.listeners.listen(); err != nil {
+		return err
+	}
+
 	// loading up auctions from the file cache
 	for _, reg := range sta.regions {
 		loadedAuctions := sta.statuses[reg.Name].Realms.loadAuctions(res.config)
@@ -86,42 +148,6 @@ func api(c config, m messenger, s store) error {
 				break
 			}
 		}
-	}
-
-	// gathering item-classes
-	primaryRegion, err := c.Regions.getPrimaryRegion()
-	if err != nil {
-		return err
-	}
-	uri, err := res.appendAPIKey(res.getItemClassesURL(primaryRegion.Hostname))
-	if err != nil {
-		return err
-	}
-	iClasses, resp, err := blizzard.NewItemClassesFromHTTP(uri)
-	if err != nil {
-		return err
-	}
-	sta.itemClasses = iClasses
-	if err := sta.messenger.publishPlanMetaMetric(resp); err != nil {
-		return err
-	}
-
-	// opening all listeners
-	sta.listeners = newListeners(subjectListeners{
-		subjects.GenericTestErrors: sta.listenForGenericTestErrors,
-		subjects.Status:            sta.listenForStatus,
-		subjects.Regions:           sta.listenForRegions,
-		subjects.Auctions:          sta.listenForAuctions,
-		subjects.Owners:            sta.listenForOwners,
-		subjects.ItemsQuery:        sta.listenForItemsQuery,
-		subjects.AuctionsQuery:     sta.listenForAuctionsQuery,
-		subjects.ItemClasses:       sta.listenForItemClasses,
-		subjects.PriceList:         sta.listenForPriceList,
-		subjects.Items:             sta.listenForItems,
-		subjects.Boot:              sta.listenForBoot,
-	})
-	if err := sta.listeners.listen(); err != nil {
-		return err
 	}
 
 	// starting up a collector

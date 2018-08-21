@@ -151,7 +151,7 @@ func (sta state) collectRegions(res resolver) {
 						"region": job.realm.region.Name,
 						"realm":  job.realm.Slug,
 						"error":  job.err.Error(),
-						"bucket": res.store.getRealmBucketName(job.realm),
+						"bucket": res.store.getRealmAuctionsBucketName(job.realm),
 					}).Info("Failed to fetch total realm auction size")
 
 					continue
