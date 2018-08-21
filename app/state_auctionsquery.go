@@ -37,11 +37,11 @@ func (aqItems auctionsQueryItems) limit() auctionsQueryItems {
 
 func (aqItems auctionsQueryItems) filterLowRank() auctionsQueryItems {
 	out := auctionsQueryItems{}
-	for _, item := range aqItems {
-		if item.Rank == -1 {
+	for _, itemValue := range aqItems {
+		if itemValue.Rank == -1 {
 			continue
 		}
-		out = append(out, item)
+		out = append(out, itemValue)
 	}
 
 	return out

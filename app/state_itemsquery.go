@@ -36,11 +36,11 @@ func (iqItems itemsQueryItems) limit() itemsQueryItems {
 
 func (iqItems itemsQueryItems) filterLowRank() itemsQueryItems {
 	out := itemsQueryItems{}
-	for _, item := range iqItems {
-		if item.Rank == -1 {
+	for _, itemValue := range iqItems {
+		if itemValue.Rank == -1 {
 			continue
 		}
-		out = append(out, item)
+		out = append(out, itemValue)
 	}
 
 	return out

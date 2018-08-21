@@ -173,28 +173,42 @@ func getItem(ID blizzard.ItemID, res resolver) (blizzard.Item, error) {
 
 type itemsMap map[blizzard.ItemID]item
 
+func (iMap itemsMap) getItemIconsMap() itemIconItemIdsMap {
+	iconsMap := map[string]itemIds{}
+	for itemID, iValue := range iMap {
+		if iValue.Icon == "" {
+			continue
+		}
+
+		if _, ok := iconsMap[iValue.Icon]; !ok {
+			iconsMap[iValue.Icon] = itemIds{itemID}
+
+			continue
+		}
+
+		iconsMap[iValue.Icon] = append(iconsMap[iValue.Icon], itemID)
+	}
+
+	return iconsMap
+}
+
 type item struct {
 	blizzard.Item
 
 	IconURL string `json:"icon_url"`
 }
 
-func (iMap itemsMap) getItemIcons() []string {
-	iconsMap := map[string]struct{}{}
-	for _, iValue := range iMap {
-		if iValue.Icon == "" {
-			continue
-		}
+type itemIds []blizzard.ItemID
+type itemIconItemIdsMap map[string]itemIds
 
-		iconsMap[iValue.Icon] = struct{}{}
-	}
-
+func (iconsMap itemIconItemIdsMap) getItemIcons() []string {
+	iconNames := make([]string, len(iconsMap))
 	i := 0
-	out := make([]string, len(iconsMap))
 	for iconName := range iconsMap {
-		out[i] = iconName
+		iconNames[i] = iconName
+
 		i++
 	}
 
-	return out
+	return iconNames
 }

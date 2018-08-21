@@ -111,20 +111,44 @@ func (sta state) collectRegions(res resolver) {
 	}
 
 	// re-syncing all item icons
-	iconNames := sta.items.getItemIcons()
-	log.WithField("items", len(iconNames)).Info("Syncing item icons")
-	itemIconsOut := syncItemIcons(iconNames, res)
-	for job := range itemIconsOut {
-		if job.err != nil {
-			log.WithFields(log.Fields{
-				"item":  job.icon,
-				"error": job.err.Error(),
-			}).Info("Failed to sync item icon")
+	iconsMap := sta.items.getItemIconsMap()
+	log.WithField("items", len(iconsMap)).Info("Syncing item-icons")
+	if res.config.UseGCloudStorage {
+		itemIconsOut, err := res.store.syncItemIcons(iconsMap.getItemIcons(), res)
+		if err != nil {
+			log.WithField("error", err.Error()).Info("Failed to start syncing item-icons")
+		}
 
-			continue
+		for job := range itemIconsOut {
+			if job.err != nil {
+				log.WithFields(log.Fields{
+					"iconName": job.iconName,
+					"error":    job.err.Error(),
+				}).Info("Failed to sync item icon")
+
+				continue
+			}
+
+			for _, itemID := range iconsMap[job.iconName] {
+				itemValue := sta.items[itemID]
+				itemValue.IconURL = job.iconURL
+				sta.items[itemID] = itemValue
+			}
+		}
+	} else {
+		itemIconsOut := syncItemIcons(iconsMap.getItemIcons(), res)
+		for job := range itemIconsOut {
+			if job.err != nil {
+				log.WithFields(log.Fields{
+					"item":  job.icon,
+					"error": job.err.Error(),
+				}).Info("Failed to sync item icon")
+
+				continue
+			}
 		}
 	}
-	log.WithField("items", len(iconNames)).Info("Synced item icons")
+	log.WithField("items", len(iconsMap)).Info("Synced item-icons")
 
 	// gathering owner, item, and storage metrics
 	totalOwners := 0
