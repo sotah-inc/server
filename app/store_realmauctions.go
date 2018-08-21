@@ -230,6 +230,8 @@ func (sto store) loadRealmAuctions(rea realm) (blizzard.Auctions, time.Time, err
 		return blizzard.Auctions{}, time.Time{}, nil
 	}
 
+	rea.LogEntry().Info("Loading auctions from store")
+
 	reader, err := obj.NewReader(sto.context)
 	if err != nil {
 		return blizzard.Auctions{}, time.Time{}, err
