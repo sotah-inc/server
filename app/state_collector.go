@@ -104,6 +104,10 @@ func (sta state) collectRegions(res resolver) {
 					continue
 				}
 
+				if _, ok := sta.items[job.ID]; ok {
+					continue
+				}
+
 				sta.items[job.ID] = item{job.item, ""}
 			}
 			log.WithField("items", len(regionItemIDs)).Info("Fetched items")
@@ -130,6 +134,10 @@ func (sta state) collectRegions(res resolver) {
 			}
 
 			for _, itemID := range iconsMap[job.iconName] {
+				if sta.items[itemID].IconURL != "" {
+					continue
+				}
+
 				itemValue := sta.items[itemID]
 				itemValue.IconURL = job.iconURL
 				sta.items[itemID] = itemValue
