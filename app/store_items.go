@@ -3,11 +3,14 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"strconv"
+	"strings"
 
 	storage "cloud.google.com/go/storage"
 	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/util"
 	log "github.com/sirupsen/logrus"
+	"google.golang.org/api/iterator"
 )
 
 const itemsBucketName = "sotah-items"
@@ -132,20 +135,7 @@ func (sto store) getItem(bkt *storage.BucketHandle, ID blizzard.ItemID, res reso
 	}
 
 	if exists {
-		obj := bkt.Object(sto.getItemObjectName(ID))
-
-		reader, err := obj.NewReader(sto.context)
-		if err != nil {
-			return blizzard.Item{}, err
-		}
-		defer reader.Close()
-
-		body, err := ioutil.ReadAll(reader)
-		if err != nil {
-			return blizzard.Item{}, err
-		}
-
-		return blizzard.NewItem(body)
+		return sto.loadItem(bkt, ID)
 	}
 
 	primaryRegion, err := res.config.Regions.getPrimaryRegion()
@@ -178,4 +168,79 @@ func (sto store) getItem(bkt *storage.BucketHandle, ID blizzard.ItemID, res reso
 	}
 
 	return item, nil
+}
+
+func (sto store) loadItem(bkt *storage.BucketHandle, ID blizzard.ItemID) (blizzard.Item, error) {
+	obj := bkt.Object(sto.getItemObjectName(ID))
+
+	reader, err := obj.NewReader(sto.context)
+	if err != nil {
+		return blizzard.Item{}, err
+	}
+	defer reader.Close()
+
+	body, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return blizzard.Item{}, err
+	}
+
+	return blizzard.NewItem(body)
+}
+
+func (sto store) loadItems() (chan loadItemsJob, error) {
+	// resolving the item-icons bucket
+	bkt, err := sto.resolveItemsBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	// establishing channels
+	out := make(chan loadItemsJob)
+	in := make(chan blizzard.ItemID)
+
+	// spinning up the workers
+	worker := func() {
+		for ID := range in {
+			itemValue, err := sto.loadItem(bkt, ID)
+			out <- loadItemsJob{err, strconv.Itoa(int(ID)), itemValue}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(8, worker, postWork)
+
+	// queueing up
+	go func() {
+		it := bkt.Objects(sto.context, nil)
+		for {
+			objAttrs, err := it.Next()
+			if err != nil {
+				if err == iterator.Done {
+					break
+				}
+
+				log.WithField("error", err.Error()).Info("Failed to iterate over item objects")
+
+				continue
+			}
+
+			s := strings.Split(objAttrs.Name, ".")
+			ID, err := strconv.Atoi(s[0])
+			if err != nil {
+				log.WithFields(log.Fields{
+					"error": err.Error(),
+					"name":  objAttrs.Name,
+				}).Info("Failed to parse object name")
+
+				continue
+			}
+
+			in <- blizzard.ItemID(ID)
+		}
+
+		close(in)
+	}()
+
+	return out, nil
 }

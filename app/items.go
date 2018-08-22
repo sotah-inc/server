@@ -19,7 +19,15 @@ type loadItemsJob struct {
 	item     blizzard.Item
 }
 
-func loadItems(c config) (chan loadItemsJob, error) {
+func loadItems(res resolver) (chan loadItemsJob, error) {
+	if res.config.UseGCloudStorage {
+		return res.store.loadItems()
+	}
+
+	return loadItemsFromFilecache(*res.config)
+}
+
+func loadItemsFromFilecache(c config) (chan loadItemsJob, error) {
 	// listing out files in items dir
 	itemsDirPath, err := filepath.Abs(fmt.Sprintf("%s/items", c.CacheDir))
 	if err != nil {

@@ -48,8 +48,8 @@ func api(c config, m messenger, s store) error {
 		}
 	}
 
-	// loading up items from the file cache
-	loadedItems, err := loadItems(*res.config)
+	// loading up items
+	loadedItems, err := loadItems(res)
 	if err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func api(c config, m messenger, s store) error {
 			log.WithFields(log.Fields{
 				"filepath": job.filepath,
 				"error":    job.err.Error(),
-			}).Error("Failed to load image")
+			}).Error("Failed to load item")
 
 			return job.err
 		}
