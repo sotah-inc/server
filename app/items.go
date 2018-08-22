@@ -75,6 +75,14 @@ type getItemsJob struct {
 }
 
 func getItems(IDs []blizzard.ItemID, res resolver) chan getItemsJob {
+	if res.config.UseGCloudStorage {
+		return res.store.getItems(IDs, res)
+	}
+
+	return getItemsFromFilecache(IDs, res)
+}
+
+func getItemsFromFilecache(IDs []blizzard.ItemID, res resolver) chan getItemsJob {
 	// establishing channels
 	out := make(chan getItemsJob)
 	in := make(chan blizzard.ItemID)
