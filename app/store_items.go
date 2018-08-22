@@ -61,14 +61,14 @@ func (sto store) getItemObjectName(ID blizzard.ItemID) string {
 	return fmt.Sprintf("%d.json.gz", ID)
 }
 
-func (sto store) writeItem(bkt *storage.BucketHandle, ID blizzard.ItemID, body []byte) error {
+func (sto store) writeItem(ID blizzard.ItemID, body []byte) error {
 	log.WithFields(log.Fields{
 		"ID":     ID,
 		"length": len(body),
 	}).Debug("Writing item to gcloud storage")
 
 	// writing it out
-	obj := bkt.Object(sto.getItemObjectName(ID))
+	obj := sto.itemsBucket.Object(sto.getItemObjectName(ID))
 	wc := obj.NewWriter(sto.context)
 	wc.ContentType = "application/json"
 	wc.ContentEncoding = "gzip"
@@ -80,8 +80,8 @@ func (sto store) writeItem(bkt *storage.BucketHandle, ID blizzard.ItemID, body [
 	return nil
 }
 
-func (sto store) itemExists(bkt *storage.BucketHandle, ID blizzard.ItemID) (bool, error) {
-	_, err := bkt.Object(sto.getItemObjectName(ID)).Attrs(sto.context)
+func (sto store) itemExists(ID blizzard.ItemID) (bool, error) {
+	_, err := sto.itemsBucket.Object(sto.getItemObjectName(ID)).Attrs(sto.context)
 	if err != nil {
 		if err != storage.ErrObjectNotExist {
 			return false, err
@@ -94,12 +94,6 @@ func (sto store) itemExists(bkt *storage.BucketHandle, ID blizzard.ItemID) (bool
 }
 
 func (sto store) getItems(IDs []blizzard.ItemID, res resolver) (chan getItemsJob, error) {
-	// resolving the item-icons bucket
-	bkt, err := sto.resolveItemsBucket()
-	if err != nil {
-		return nil, err
-	}
-
 	// establishing channels
 	out := make(chan getItemsJob)
 	in := make(chan blizzard.ItemID)
@@ -107,7 +101,7 @@ func (sto store) getItems(IDs []blizzard.ItemID, res resolver) (chan getItemsJob
 	// spinning up the workers
 	worker := func() {
 		for ID := range in {
-			itemValue, iconURL, err := sto.getItem(bkt, ID, res)
+			itemValue, iconURL, err := sto.getItem(ID, res)
 			out <- getItemsJob{err, ID, itemValue, iconURL}
 		}
 	}
@@ -128,14 +122,14 @@ func (sto store) getItems(IDs []blizzard.ItemID, res resolver) (chan getItemsJob
 	return out, nil
 }
 
-func (sto store) getItem(bkt *storage.BucketHandle, ID blizzard.ItemID, res resolver) (blizzard.Item, string, error) {
-	exists, err := sto.itemExists(bkt, ID)
+func (sto store) getItem(ID blizzard.ItemID, res resolver) (blizzard.Item, string, error) {
+	exists, err := sto.itemExists(ID)
 	if err != nil {
 		return blizzard.Item{}, "", err
 	}
 
 	if exists {
-		return sto.loadItem(bkt, ID, res)
+		return sto.loadItem(ID, res)
 	}
 
 	primaryRegion, err := res.config.Regions.getPrimaryRegion()
@@ -163,17 +157,15 @@ func (sto store) getItem(bkt *storage.BucketHandle, ID blizzard.ItemID, res reso
 		return blizzard.Item{}, "", err
 	}
 
-	if err := sto.writeItem(bkt, ID, encodedBody); err != nil {
+	if err := sto.writeItem(ID, encodedBody); err != nil {
 		return blizzard.Item{}, "", err
 	}
 
 	return sto.fulfilItemIcon(itemValue, res)
 }
 
-func (sto store) loadItem(bkt *storage.BucketHandle, ID blizzard.ItemID, res resolver) (blizzard.Item, string, error) {
-	obj := bkt.Object(sto.getItemObjectName(ID))
-
-	reader, err := obj.NewReader(sto.context)
+func (sto store) loadItem(ID blizzard.ItemID, res resolver) (blizzard.Item, string, error) {
+	reader, err := sto.itemsBucket.Object(sto.getItemObjectName(ID)).NewReader(sto.context)
 	if err != nil {
 		return blizzard.Item{}, "", err
 	}
@@ -193,12 +185,6 @@ func (sto store) loadItem(bkt *storage.BucketHandle, ID blizzard.ItemID, res res
 }
 
 func (sto store) loadItems(res resolver) (chan loadItemsJob, error) {
-	// resolving the item-icons bucket
-	bkt, err := sto.resolveItemsBucket()
-	if err != nil {
-		return nil, err
-	}
-
 	// establishing channels
 	out := make(chan loadItemsJob)
 	in := make(chan blizzard.ItemID)
@@ -206,7 +192,7 @@ func (sto store) loadItems(res resolver) (chan loadItemsJob, error) {
 	// spinning up the workers
 	worker := func() {
 		for ID := range in {
-			itemValue, iconURL, err := sto.loadItem(bkt, ID, res)
+			itemValue, iconURL, err := sto.loadItem(ID, res)
 			out <- loadItemsJob{err, strconv.Itoa(int(ID)), itemValue, iconURL}
 		}
 	}
@@ -218,7 +204,7 @@ func (sto store) loadItems(res resolver) (chan loadItemsJob, error) {
 	// queueing up
 	go func() {
 		i := 0
-		it := bkt.Objects(sto.context, nil)
+		it := sto.itemsBucket.Objects(sto.context, nil)
 		for {
 			if i == 0 || i%5000 == 0 {
 				log.WithField("count", i).Debug("Loaded items from store")

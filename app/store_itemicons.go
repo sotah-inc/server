@@ -11,8 +11,8 @@ import (
 
 const storeItemIconURLFormat = "https://storage.googleapis.com/%s/%s"
 
-func (sto store) getStoreItemIconURLFunc(bkt *storage.BucketHandle, obj *storage.ObjectHandle) (string, error) {
-	bktAttrs, err := bkt.Attrs(sto.context)
+func (sto store) getStoreItemIconURLFunc(obj *storage.ObjectHandle) (string, error) {
+	bktAttrs, err := sto.itemIconsBucket.Attrs(sto.context)
 	if err != nil {
 		return "", err
 	}
@@ -94,11 +94,11 @@ func (sto store) writeItemIcon(bkt *storage.BucketHandle, iconName string, body 
 		return "", err
 	}
 
-	return sto.getStoreItemIconURLFunc(bkt, obj)
+	return sto.getStoreItemIconURLFunc(obj)
 }
 
-func (sto store) itemIconExists(bkt *storage.BucketHandle, iconName string) (bool, error) {
-	_, err := bkt.Object(sto.getItemIconObjectName(iconName)).Attrs(sto.context)
+func (sto store) itemIconExists(iconName string) (bool, error) {
+	_, err := sto.itemIconsBucket.Object(sto.getItemIconObjectName(iconName)).Attrs(sto.context)
 	if err != nil {
 		if err != storage.ErrObjectNotExist {
 			return false, err
@@ -117,12 +117,6 @@ type syncItemIconStoreJob struct {
 }
 
 func (sto store) syncItemIcons(iconNames []string, res resolver) (chan syncItemIconStoreJob, error) {
-	// resolving the item-icons bucket
-	bkt, err := sto.resolveItemIconsBucket()
-	if err != nil {
-		return nil, err
-	}
-
 	// establishing channels
 	out := make(chan syncItemIconStoreJob)
 	in := make(chan string)
@@ -130,7 +124,7 @@ func (sto store) syncItemIcons(iconNames []string, res resolver) (chan syncItemI
 	// spinning up the workers
 	worker := func() {
 		for iconName := range in {
-			iconURL, err := sto.syncItemIcon(bkt, iconName, res)
+			iconURL, err := sto.syncItemIcon(iconName, res)
 			out <- syncItemIconStoreJob{err, iconName, iconURL}
 		}
 	}
@@ -151,14 +145,16 @@ func (sto store) syncItemIcons(iconNames []string, res resolver) (chan syncItemI
 	return out, nil
 }
 
-func (sto store) syncItemIcon(bkt *storage.BucketHandle, iconName string, res resolver) (string, error) {
-	exists, err := sto.itemIconExists(bkt, iconName)
+func (sto store) syncItemIcon(iconName string, res resolver) (string, error) {
+	bkt := sto.itemIconsBucket
+
+	exists, err := sto.itemIconExists(iconName)
 	if err != nil {
 		return "", err
 	}
 
 	if exists {
-		return sto.getStoreItemIconURLFunc(bkt, bkt.Object(sto.getItemIconObjectName(iconName)))
+		return sto.getStoreItemIconURLFunc(bkt.Object(sto.getItemIconObjectName(iconName)))
 	}
 
 	body, err := util.Download(res.getItemIconURL(iconName))
@@ -179,17 +175,12 @@ func (sto store) fulfilItemIcon(itemValue blizzard.Item, res resolver) (blizzard
 		return itemValue, "", nil
 	}
 
-	itemIconBucket, err := sto.resolveItemIconsBucket()
-	if err != nil {
-		return blizzard.Item{}, "", err
-	}
-
-	iconExists, err := sto.itemIconExists(itemIconBucket, itemValue.Icon)
+	iconExists, err := sto.itemIconExists(itemValue.Icon)
 	if err != nil {
 		return blizzard.Item{}, "", err
 	}
 	if !iconExists {
-		iconURL, err := sto.syncItemIcon(itemIconBucket, itemValue.Icon, res)
+		iconURL, err := sto.syncItemIcon(itemValue.Icon, res)
 		if err != nil {
 			return blizzard.Item{}, "", err
 		}
@@ -197,7 +188,7 @@ func (sto store) fulfilItemIcon(itemValue blizzard.Item, res resolver) (blizzard
 		return itemValue, iconURL, nil
 	}
 
-	iconURL, err := sto.getStoreItemIconURLFunc(itemIconBucket, itemIconBucket.Object(sto.getItemIconObjectName(itemValue.Icon)))
+	iconURL, err := sto.getStoreItemIconURLFunc(sto.itemIconsBucket.Object(sto.getItemIconObjectName(itemValue.Icon)))
 	if err != nil {
 		return blizzard.Item{}, "", err
 	}
