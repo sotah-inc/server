@@ -212,8 +212,13 @@ func (sto store) loadItems() (chan loadItemsJob, error) {
 
 	// queueing up
 	go func() {
+		i := 0
 		it := bkt.Objects(sto.context, nil)
 		for {
+			if i == 0 || i%5000 == 0 {
+				log.WithField("count", i).Debug("Loaded items from store")
+			}
+
 			objAttrs, err := it.Next()
 			if err != nil {
 				if err == iterator.Done {
@@ -237,6 +242,7 @@ func (sto store) loadItems() (chan loadItemsJob, error) {
 			}
 
 			in <- blizzard.ItemID(ID)
+			i++
 		}
 
 		close(in)
