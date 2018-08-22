@@ -126,7 +126,7 @@ func api(c config, m messenger, s store) error {
 		return err
 	}
 
-	// loading up auctions from the file cache
+	// loading up auctions
 	for _, reg := range sta.regions {
 		loadedAuctions := sta.statuses[reg.Name].Realms.loadAuctions(res)
 		for job := range loadedAuctions {

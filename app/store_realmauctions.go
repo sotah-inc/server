@@ -158,7 +158,7 @@ func (sto store) loadRealmsAuctions(c *config, reas realms) chan loadAuctionsJob
 	// spinning up the workers for fetching auctions
 	worker := func() {
 		for rea := range in {
-			aucs, lastModified, err := rea.loadAuctions(c)
+			aucs, lastModified, err := sto.loadRealmAuctions(rea)
 			if lastModified.IsZero() {
 				continue
 			}
