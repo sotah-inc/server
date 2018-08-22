@@ -17,11 +17,12 @@ type loadItemsJob struct {
 	err      error
 	filepath string
 	item     blizzard.Item
+	iconURL  string
 }
 
 func loadItems(res resolver) (chan loadItemsJob, error) {
 	if res.config.UseGCloudStorage {
-		return res.store.loadItems()
+		return res.store.loadItems(res)
 	}
 
 	return loadItemsFromFilecache(*res.config)
@@ -77,9 +78,10 @@ func loadItemsFromFilecache(c config) (chan loadItemsJob, error) {
 }
 
 type getItemsJob struct {
-	err  error
-	ID   blizzard.ItemID
-	item blizzard.Item
+	err     error
+	ID      blizzard.ItemID
+	item    blizzard.Item
+	iconURL string
 }
 
 func getItems(IDs []blizzard.ItemID, res resolver) (chan getItemsJob, error) {

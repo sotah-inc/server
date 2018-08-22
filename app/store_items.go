@@ -107,8 +107,8 @@ func (sto store) getItems(IDs []blizzard.ItemID, res resolver) (chan getItemsJob
 	// spinning up the workers
 	worker := func() {
 		for ID := range in {
-			itemValue, err := sto.getItem(bkt, ID, res)
-			out <- getItemsJob{err, ID, itemValue}
+			itemValue, iconURL, err := sto.getItem(bkt, ID, res)
+			out <- getItemsJob{err, ID, itemValue, iconURL}
 		}
 	}
 	postWork := func() {
@@ -128,66 +128,71 @@ func (sto store) getItems(IDs []blizzard.ItemID, res resolver) (chan getItemsJob
 	return out, nil
 }
 
-func (sto store) getItem(bkt *storage.BucketHandle, ID blizzard.ItemID, res resolver) (blizzard.Item, error) {
+func (sto store) getItem(bkt *storage.BucketHandle, ID blizzard.ItemID, res resolver) (blizzard.Item, string, error) {
 	exists, err := sto.itemExists(bkt, ID)
 	if err != nil {
-		return blizzard.Item{}, err
+		return blizzard.Item{}, "", err
 	}
 
 	if exists {
-		return sto.loadItem(bkt, ID)
+		return sto.loadItem(bkt, ID, res)
 	}
 
 	primaryRegion, err := res.config.Regions.getPrimaryRegion()
 	if err != nil {
-		return blizzard.Item{}, err
+		return blizzard.Item{}, "", err
 	}
 
 	uri, err := res.appendAPIKey(res.getItemURL(primaryRegion.Hostname, ID))
 	if err != nil {
-		return blizzard.Item{}, err
+		return blizzard.Item{}, "", err
 	}
 
 	log.WithField("item", ID).Info("Fetching item")
 
-	item, resp, err := blizzard.NewItemFromHTTP(uri)
+	itemValue, resp, err := blizzard.NewItemFromHTTP(uri)
 	if err != nil {
-		return blizzard.Item{}, err
+		return blizzard.Item{}, "", err
 	}
 	if err := res.messenger.publishPlanMetaMetric(resp); err != nil {
-		return blizzard.Item{}, err
+		return blizzard.Item{}, "", err
 	}
 
 	encodedBody, err := util.GzipEncode(resp.Body)
 	if err != nil {
-		return blizzard.Item{}, err
+		return blizzard.Item{}, "", err
 	}
 
 	if err := sto.writeItem(bkt, ID, encodedBody); err != nil {
-		return blizzard.Item{}, err
+		return blizzard.Item{}, "", err
 	}
 
-	return item, nil
+	return sto.fulfilItemIcon(itemValue, res)
 }
 
-func (sto store) loadItem(bkt *storage.BucketHandle, ID blizzard.ItemID) (blizzard.Item, error) {
+func (sto store) loadItem(bkt *storage.BucketHandle, ID blizzard.ItemID, res resolver) (blizzard.Item, string, error) {
 	obj := bkt.Object(sto.getItemObjectName(ID))
 
 	reader, err := obj.NewReader(sto.context)
 	if err != nil {
-		return blizzard.Item{}, err
+		return blizzard.Item{}, "", err
 	}
 	defer reader.Close()
 
 	body, err := ioutil.ReadAll(reader)
 	if err != nil {
-		return blizzard.Item{}, err
+		return blizzard.Item{}, "", err
 	}
 
-	return blizzard.NewItem(body)
+	itemValue, err := blizzard.NewItem(body)
+	if err != nil {
+		return blizzard.Item{}, "", err
+	}
+
+	return sto.fulfilItemIcon(itemValue, res)
 }
 
-func (sto store) loadItems() (chan loadItemsJob, error) {
+func (sto store) loadItems(res resolver) (chan loadItemsJob, error) {
 	// resolving the item-icons bucket
 	bkt, err := sto.resolveItemsBucket()
 	if err != nil {
@@ -201,8 +206,8 @@ func (sto store) loadItems() (chan loadItemsJob, error) {
 	// spinning up the workers
 	worker := func() {
 		for ID := range in {
-			itemValue, err := sto.loadItem(bkt, ID)
-			out <- loadItemsJob{err, strconv.Itoa(int(ID)), itemValue}
+			itemValue, iconURL, err := sto.loadItem(bkt, ID, res)
+			out <- loadItemsJob{err, strconv.Itoa(int(ID)), itemValue, iconURL}
 		}
 	}
 	postWork := func() {

@@ -63,7 +63,7 @@ func api(c config, m messenger, s store) error {
 			return job.err
 		}
 
-		sta.items[job.item.ID] = item{job.item, ""}
+		sta.items[job.item.ID] = item{job.item, job.iconURL}
 	}
 
 	// gathering item-classes

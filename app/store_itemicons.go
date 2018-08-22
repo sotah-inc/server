@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	storage "cloud.google.com/go/storage"
+	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/util"
 	log "github.com/sirupsen/logrus"
 )
@@ -166,4 +167,31 @@ func (sto store) syncItemIcon(bkt *storage.BucketHandle, iconName string, res re
 	}
 
 	return sto.writeItemIcon(bkt, iconName, body)
+}
+
+func (sto store) fulfilItemIcon(itemValue blizzard.Item, res resolver) (blizzard.Item, string, error) {
+	itemIconBucket, err := sto.resolveItemIconsBucket()
+	if err != nil {
+		return blizzard.Item{}, "", err
+	}
+
+	iconExists, err := sto.itemIconExists(itemIconBucket, itemValue.Icon)
+	if err != nil {
+		return blizzard.Item{}, "", err
+	}
+	if !iconExists {
+		iconURL, err := sto.syncItemIcon(itemIconBucket, itemValue.Icon, res)
+		if err != nil {
+			return blizzard.Item{}, "", err
+		}
+
+		return itemValue, iconURL, nil
+	}
+
+	iconURL, err := sto.getStoreItemIconURLFunc(itemIconBucket, itemIconBucket.Object(sto.getItemIconObjectName(itemValue.Icon)))
+	if err != nil {
+		return blizzard.Item{}, "", err
+	}
+
+	return itemValue, iconURL, nil
 }
