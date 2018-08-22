@@ -175,6 +175,10 @@ func (sto store) syncItemIcon(bkt *storage.BucketHandle, iconName string, res re
 }
 
 func (sto store) fulfilItemIcon(itemValue blizzard.Item, res resolver) (blizzard.Item, string, error) {
+	if itemValue.Icon == "" {
+		return itemValue, "", nil
+	}
+
 	itemIconBucket, err := sto.resolveItemIconsBucket()
 	if err != nil {
 		return blizzard.Item{}, "", err
