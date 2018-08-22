@@ -118,7 +118,7 @@ func (sta state) collectRegions(res resolver) {
 	}
 
 	// re-syncing all item icons
-	iconsMap := sta.items.getItemIconsMap()
+	iconsMap := sta.items.getItemIconsMap(true)
 	log.WithField("items", len(iconsMap)).Info("Syncing item-icons")
 	if res.config.UseGCloudStorage {
 		itemIconsOut, err := res.store.syncItemIcons(iconsMap.getItemIcons(), res)

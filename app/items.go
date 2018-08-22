@@ -174,9 +174,13 @@ func getItem(ID blizzard.ItemID, res resolver) (blizzard.Item, error) {
 
 type itemsMap map[blizzard.ItemID]item
 
-func (iMap itemsMap) getItemIconsMap() itemIconItemIdsMap {
+func (iMap itemsMap) getItemIconsMap(excludeWithURL bool) itemIconItemIdsMap {
 	iconsMap := map[string]itemIds{}
 	for itemID, iValue := range iMap {
+		if excludeWithURL && iValue.IconURL != "" {
+			continue
+		}
+
 		if iValue.Icon == "" {
 			continue
 		}
