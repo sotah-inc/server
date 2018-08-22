@@ -113,23 +113,6 @@ func getItem(ID blizzard.ItemID, res resolver) (blizzard.Item, error) {
 		return blizzard.Item{}, err
 	}
 
-	if res.config.UseCacheDir == false {
-		uri, err := res.appendAPIKey(blizzard.DefaultGetItemURL(primaryRegion.Hostname, ID))
-		if err != nil {
-			return blizzard.Item{}, err
-		}
-
-		item, resp, err := blizzard.NewItemFromHTTP(uri)
-		if err != nil {
-			return blizzard.Item{}, err
-		}
-		if err := res.messenger.publishPlanMetaMetric(resp); err != nil {
-			return blizzard.Item{}, err
-		}
-
-		return item, nil
-	}
-
 	if res.config.CacheDir == "" {
 		return blizzard.Item{}, errors.New("Cache dir cannot be blank")
 	}
