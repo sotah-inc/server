@@ -163,7 +163,12 @@ func (sto store) syncItemIcon(bkt *storage.BucketHandle, iconName string, res re
 
 	body, err := util.Download(res.getItemIconURL(iconName))
 	if err != nil {
-		return "", err
+		log.WithFields(log.Fields{
+			"iconName": iconName,
+			"error":    err.Error(),
+		}).Info("Failed to sync item icon (gcloud store)")
+
+		return "", nil
 	}
 
 	return sto.writeItemIcon(bkt, iconName, body)
