@@ -18,17 +18,19 @@ func api(c config, m messenger, s store) error {
 	res := newResolver(c, m, s)
 	sta := newState(m, res)
 
-	// ensuring cache-dirs exist
-	cacheDirs := []string{
-		fmt.Sprintf("%s/auctions", c.CacheDir),
-		fmt.Sprintf("%s/items", c.CacheDir),
-		fmt.Sprintf("%s/item-icons", c.CacheDir),
-	}
-	for _, reg := range sta.regions {
-		cacheDirs = append(cacheDirs, fmt.Sprintf("%s/auctions/%s", c.CacheDir, reg.Name))
-	}
-	if err := util.EnsureDirsExist(cacheDirs); err != nil {
-		return err
+	// optionally ensuring cache-dirs exist
+	if !c.UseGCloudStorage {
+		cacheDirs := []string{
+			fmt.Sprintf("%s/auctions", c.CacheDir),
+			fmt.Sprintf("%s/items", c.CacheDir),
+			fmt.Sprintf("%s/item-icons", c.CacheDir),
+		}
+		for _, reg := range sta.regions {
+			cacheDirs = append(cacheDirs, fmt.Sprintf("%s/auctions/%s", c.CacheDir, reg.Name))
+		}
+		if err := util.EnsureDirsExist(cacheDirs); err != nil {
+			return err
+		}
 	}
 
 	// filling state with region statuses and a blank list of auctions

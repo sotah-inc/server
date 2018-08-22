@@ -10,7 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const itemsBucketName = "item"
+const itemsBucketName = "sotah-items"
 
 func (sto store) getItemsBucket() *storage.BucketHandle {
 	return sto.client.Bucket(itemsBucketName)
