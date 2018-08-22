@@ -267,12 +267,7 @@ func (sto store) loadRealmAuctions(rea realm) (blizzard.Auctions, time.Time, err
 		return blizzard.Auctions{}, time.Time{}, err
 	}
 
-	decodedBody, err := util.GzipDecode(body)
-	if err != nil {
-		return blizzard.Auctions{}, time.Time{}, err
-	}
-
-	aucs, err := blizzard.NewAuctions(decodedBody)
+	aucs, err := blizzard.NewAuctions(body)
 	if err != nil {
 		return blizzard.Auctions{}, time.Time{}, err
 	}
