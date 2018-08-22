@@ -236,7 +236,20 @@ func (rea realm) downloadAndCache(aFile blizzard.AuctionFile, res resolver) (bli
 	// gathering the encoded body
 	encodedBody, err := util.GzipEncode(body)
 
-	if res.config.UseCacheDir {
+	if res.config.UseGCloudStorage {
+		rea.LogEntry().Debug("Writing auction data to gcloud store")
+
+		// writing the auction data to the gcloud storage
+		if err := res.store.writeRealmAuctions(rea, aFile.LastModifiedAsTime(), encodedBody); err != nil {
+			log.WithFields(log.Fields{
+				"region": rea.region.Name,
+				"realm":  rea.Slug,
+				"error":  err.Error(),
+			}).Debug("Failed to write auctions to gcloud storage")
+
+			return blizzard.Auctions{}, err
+		}
+	} else {
 		// validating config
 		if res.config.CacheDir == "" {
 			return blizzard.Auctions{}, errors.New("Cache dir cannot be blank")
@@ -254,17 +267,6 @@ func (rea realm) downloadAndCache(aFile blizzard.AuctionFile, res resolver) (bli
 			return blizzard.Auctions{}, err
 		}
 		if err := util.WriteFile(auctionsFilepath, encodedBody); err != nil {
-			return blizzard.Auctions{}, err
-		}
-	} else if res.config.UseGCloudStorage {
-		// writing the auction data to the gcloud storage
-		if err := res.store.writeRealmAuctions(rea, aFile.LastModifiedAsTime(), encodedBody); err != nil {
-			log.WithFields(log.Fields{
-				"region": rea.region.Name,
-				"realm":  rea.Slug,
-				"error":  err.Error(),
-			}).Debug("Failed to write auctions to gcloud storage")
-
 			return blizzard.Auctions{}, err
 		}
 	}
