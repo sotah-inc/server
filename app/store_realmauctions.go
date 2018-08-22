@@ -159,7 +159,24 @@ func (sto store) loadRealmsAuctions(c *config, reas realms) chan loadAuctionsJob
 	worker := func() {
 		for rea := range in {
 			aucs, lastModified, err := sto.loadRealmAuctions(rea)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"region": rea.region.Name,
+					"realm":  rea.Slug,
+					"error":  err.Error(),
+				}).Info("Failed to load store auctions")
+
+				out <- loadAuctionsJob{err, rea, blizzard.Auctions{}, time.Time{}}
+
+				continue
+			}
+
 			if lastModified.IsZero() {
+				log.WithFields(log.Fields{
+					"region": rea.region.Name,
+					"realm":  rea.Slug,
+				}).Info("No auctions were loaded")
+
 				continue
 			}
 
@@ -199,6 +216,11 @@ func (sto store) loadRealmAuctions(rea realm) (blizzard.Auctions, time.Time, err
 	}
 
 	if !hasBucket {
+		log.WithFields(log.Fields{
+			"region": rea.region.Name,
+			"realm":  rea.Slug,
+		}).Info("Realm has no bucket")
+
 		return blizzard.Auctions{}, time.Time{}, nil
 	}
 
@@ -227,6 +249,8 @@ func (sto store) loadRealmAuctions(rea realm) (blizzard.Auctions, time.Time, err
 	}
 
 	if obj == nil {
+		rea.LogEntry().Info("Found no auctions in store")
+
 		return blizzard.Auctions{}, time.Time{}, nil
 	}
 
@@ -252,6 +276,11 @@ func (sto store) loadRealmAuctions(rea realm) (blizzard.Auctions, time.Time, err
 	if err != nil {
 		return blizzard.Auctions{}, time.Time{}, err
 	}
+
+	log.WithFields(log.Fields{
+		"region": rea.region.Name,
+		"realm":  rea.Slug,
+	}).Info("Loaded auctions from store")
 
 	return aucs, lastCreated, nil
 }
