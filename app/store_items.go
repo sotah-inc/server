@@ -168,7 +168,12 @@ func (sto store) getItem(bkt *storage.BucketHandle, ID blizzard.ItemID, res reso
 		return blizzard.Item{}, err
 	}
 
-	if err := sto.writeItem(bkt, ID, resp.Body); err != nil {
+	encodedBody, err := util.GzipEncode(resp.Body)
+	if err != nil {
+		return blizzard.Item{}, err
+	}
+
+	if err := sto.writeItem(bkt, ID, encodedBody); err != nil {
 		return blizzard.Item{}, err
 	}
 
