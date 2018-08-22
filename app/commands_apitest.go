@@ -78,7 +78,7 @@ func apiTest(c config, m messenger, s store, dataDir string) error {
 
 		// downloading items found in this region
 		log.WithField("items", len(regionItemIDs)).Info("Fetching items")
-		itemsOut := getItems(regionItemIDs, res)
+		itemsOut, nil := getItems(regionItemIDs, res)
 		for job := range itemsOut {
 			if job.err != nil {
 				log.WithFields(log.Fields{

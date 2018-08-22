@@ -68,7 +68,7 @@ func (sto store) resolveItemIconsBucket() (*storage.BucketHandle, error) {
 
 	return sto.getItemIconsBucket(), nil
 }
-func (sto store) getItemIconsBucketName(iconName string) string {
+func (sto store) getItemIconObjectName(iconName string) string {
 	return fmt.Sprintf("%s.jpg", iconName)
 }
 
@@ -79,7 +79,7 @@ func (sto store) writeItemIcon(bkt *storage.BucketHandle, iconName string, body 
 	}).Debug("Writing item-icon to gcloud storage")
 
 	// writing it out
-	obj := bkt.Object(sto.getItemIconsBucketName(iconName))
+	obj := bkt.Object(sto.getItemIconObjectName(iconName))
 	wc := obj.NewWriter(sto.context)
 	wc.ContentType = "image/jpeg"
 	wc.Write(body)
@@ -97,7 +97,7 @@ func (sto store) writeItemIcon(bkt *storage.BucketHandle, iconName string, body 
 }
 
 func (sto store) itemIconExists(bkt *storage.BucketHandle, iconName string) (bool, error) {
-	_, err := bkt.Object(sto.getItemIconsBucketName(iconName)).Attrs(sto.context)
+	_, err := bkt.Object(sto.getItemIconObjectName(iconName)).Attrs(sto.context)
 	if err != nil {
 		if err != storage.ErrObjectNotExist {
 			return false, err
@@ -157,7 +157,7 @@ func (sto store) syncItemIcon(bkt *storage.BucketHandle, iconName string, res re
 	}
 
 	if exists {
-		return sto.getStoreItemIconURLFunc(bkt, bkt.Object(sto.getItemIconsBucketName(iconName)))
+		return sto.getStoreItemIconURLFunc(bkt, bkt.Object(sto.getItemIconObjectName(iconName)))
 	}
 
 	body, err := util.Download(res.getItemIconURL(iconName))

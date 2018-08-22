@@ -74,12 +74,12 @@ type getItemsJob struct {
 	item blizzard.Item
 }
 
-func getItems(IDs []blizzard.ItemID, res resolver) chan getItemsJob {
+func getItems(IDs []blizzard.ItemID, res resolver) (chan getItemsJob, error) {
 	if res.config.UseGCloudStorage {
 		return res.store.getItems(IDs, res)
 	}
 
-	return getItemsFromFilecache(IDs, res)
+	return getItemsFromFilecache(IDs, res), nil
 }
 
 func getItemsFromFilecache(IDs []blizzard.ItemID, res resolver) chan getItemsJob {
