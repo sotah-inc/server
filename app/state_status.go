@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 
 	"github.com/ihsw/sotah-server/app/codes"
 	"github.com/ihsw/sotah-server/app/subjects"
@@ -64,21 +63,13 @@ func (sta state) listenForStatus(stop listenStopChan) error {
 			return
 		}
 
-		regionStatus, ok := sta.statuses[sr.RegionName]
+		regionStatus, ok := sta.statuses[reg.Name]
 		if !ok {
-			regionStatus, err = reg.getStatus(sta.resolver)
-			if err != nil {
-				m.Err = fmt.Sprintf("Could not fetch region: %s", err.Error())
-				m.Code = codes.GenericError
-				sta.messenger.replyTo(natsMsg, m)
+			m.Err = err.Error()
+			m.Code = codes.NotFound
+			sta.messenger.replyTo(natsMsg, m)
 
-				return
-			}
-
-			sta.statuses[reg.Name] = regionStatus
-			for _, realm := range regionStatus.Realms {
-				sta.auctions[reg.Name][realm.Slug] = miniAuctionList{}
-			}
+			return
 		}
 
 		encodedStatus, err := json.Marshal(regionStatus)
