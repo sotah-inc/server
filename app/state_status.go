@@ -65,7 +65,7 @@ func (sta state) listenForStatus(stop listenStopChan) error {
 
 		regionStatus, ok := sta.statuses[reg.Name]
 		if !ok {
-			m.Err = err.Error()
+			m.Err = "Region found but not in statuses"
 			m.Code = codes.NotFound
 			sta.messenger.replyTo(natsMsg, m)
 
