@@ -46,7 +46,7 @@ func apiTest(c config, m messenger, s store, dataDir string) error {
 		if err != nil {
 			return err
 		}
-		sta.statuses[reg.Name] = status{Status: stat, region: reg}
+		sta.statuses[reg.Name] = status{Status: stat, region: reg, Realms: newRealms(reg, stat.Realms)}
 
 		// misc
 		regionItemIDsMap := map[blizzard.ItemID]struct{}{}
