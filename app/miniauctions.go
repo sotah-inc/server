@@ -224,7 +224,7 @@ func newMiniAuction(auc blizzard.Auction) miniAuction {
 }
 
 type miniAuction struct {
-	ItemID     blizzard.ItemID `json:"item_id"`
+	ItemID     blizzard.ItemID `json:"itemId"`
 	Owner      ownerName       `json:"owner"`
 	OwnerRealm string          `json:"ownerRealm"`
 	Bid        int64           `json:"bid"`
