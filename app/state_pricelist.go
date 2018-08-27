@@ -1,12 +1,14 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 
 	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/codes"
 	"github.com/ihsw/sotah-server/app/subjects"
+	"github.com/ihsw/sotah-server/app/util"
 	"github.com/nats-io/go-nats"
 )
 
@@ -80,7 +82,12 @@ func (plResponse priceListResponse) encodeForMessage() (string, error) {
 		return "", err
 	}
 
-	return string(jsonEncodedMessage), nil
+	gzipEncodedMessage, err := util.GzipEncode(jsonEncodedMessage)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(gzipEncodedMessage), nil
 }
 
 func (sta state) listenForPriceList(stop listenStopChan) error {
