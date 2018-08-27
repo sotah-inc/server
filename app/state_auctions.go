@@ -170,9 +170,6 @@ func (sta state) listenForAuctions(stop listenStopChan) error {
 			return
 		}
 
-		// appending item names where appropriate
-		aResponse.AuctionList = aResponse.AuctionList.appendItemNames(sta.items)
-
 		// encoding the auctions list for output
 		data, err := aResponse.encodeForMessage()
 		if err != nil {

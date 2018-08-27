@@ -144,7 +144,7 @@ func newPriceList(itemIds []blizzard.ItemID, maList miniAuctionList) priceList {
 	}
 
 	for _, mAuction := range maList {
-		id := mAuction.Item.ID
+		id := mAuction.ItemID
 
 		if _, ok := itemIDMap[id]; !ok {
 			continue

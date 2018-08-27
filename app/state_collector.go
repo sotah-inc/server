@@ -171,7 +171,7 @@ func (sta state) collectRegions(res resolver) {
 			realmOwnerNames := map[ownerName]struct{}{}
 			for _, auc := range realmAuctions {
 				realmOwnerNames[auc.Owner] = struct{}{}
-				currentItemIds[auc.Item.ID] = struct{}{}
+				currentItemIds[auc.ItemID] = struct{}{}
 				totalAuctions += len(auc.AucList)
 			}
 			totalOwners += len(realmOwnerNames)

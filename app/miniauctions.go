@@ -164,7 +164,7 @@ func (maList miniAuctionList) filterByItemIDs(itemIDFilters []blizzard.ItemID) m
 	out := miniAuctionList{}
 	for _, ma := range maList {
 		for _, itemIDFilter := range itemIDFilters {
-			if ma.Item.ID == itemIDFilter {
+			if ma.ItemID == itemIDFilter {
 				out = append(out, ma)
 			}
 		}
@@ -176,7 +176,7 @@ func (maList miniAuctionList) filterByItemIDs(itemIDFilters []blizzard.ItemID) m
 func (maList miniAuctionList) itemIds() []blizzard.ItemID {
 	result := map[blizzard.ItemID]struct{}{}
 	for _, ma := range maList {
-		result[ma.Item.ID] = struct{}{}
+		result[ma.ItemID] = struct{}{}
 	}
 
 	out := []blizzard.ItemID{}
@@ -185,17 +185,6 @@ func (maList miniAuctionList) itemIds() []blizzard.ItemID {
 	}
 
 	return out
-}
-
-func (maList miniAuctionList) appendItemNames(iMap itemsMap) miniAuctionList {
-	for i, mAuction := range maList {
-		foundItem, ok := iMap[mAuction.Item.ID]
-		if ok {
-			maList[i].Item = foundItem
-		}
-	}
-
-	return maList
 }
 
 type miniAuctions map[miniAuctionHash]miniAuction
@@ -222,7 +211,7 @@ func newMiniAuction(auc blizzard.Auction) miniAuction {
 	}
 
 	return miniAuction{
-		item{blizzard.Item{ID: auc.Item, Name: "", NormalizedName: ""}, ""},
+		auc.Item,
 		ownerName(auc.Owner),
 		auc.OwnerRealm,
 		auc.Bid,
@@ -235,13 +224,13 @@ func newMiniAuction(auc blizzard.Auction) miniAuction {
 }
 
 type miniAuction struct {
-	Item       item      `json:"item"`
-	Owner      ownerName `json:"owner"`
-	OwnerRealm string    `json:"ownerRealm"`
-	Bid        int64     `json:"bid"`
-	Buyout     int64     `json:"buyout"`
-	BuyoutPer  float32   `json:"buyoutPer"`
-	Quantity   int64     `json:"quantity"`
-	TimeLeft   string    `json:"timeLeft"`
-	AucList    []int64   `json:"aucList"`
+	ItemID     blizzard.ItemID `json:"item_id"`
+	Owner      ownerName       `json:"owner"`
+	OwnerRealm string          `json:"ownerRealm"`
+	Bid        int64           `json:"bid"`
+	Buyout     int64           `json:"buyout"`
+	BuyoutPer  float32         `json:"buyoutPer"`
+	Quantity   int64           `json:"quantity"`
+	TimeLeft   string          `json:"timeLeft"`
+	AucList    []int64         `json:"aucList"`
 }
