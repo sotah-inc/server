@@ -12,10 +12,6 @@ import (
 	nats "github.com/nats-io/go-nats"
 )
 
-type itemsResult struct {
-	Items itemsMap `json:"items"`
-}
-
 func newItemsRequest(payload []byte) (itemsRequest, error) {
 	iRequest := &itemsRequest{}
 	err := json.Unmarshal(payload, &iRequest)
@@ -30,8 +26,8 @@ type itemsRequest struct {
 	ItemIds []blizzard.ItemID `json:"itemIds"`
 }
 
-func (iRequest itemsRequest) resolve(sta state) itemsResult {
-	iResult := itemsResult{Items: itemsMap{}}
+func (iRequest itemsRequest) resolve(sta state) itemsMap {
+	iMap := itemsMap{}
 
 	for _, ID := range iRequest.ItemIds {
 		itemValue, ok := sta.items[ID]
@@ -39,10 +35,28 @@ func (iRequest itemsRequest) resolve(sta state) itemsResult {
 			continue
 		}
 
-		iResult.Items[ID] = itemValue
+		iMap[ID] = itemValue
 	}
 
-	return iResult
+	return iMap
+}
+
+type itemsResponse struct {
+	Items itemsMap `json:"items"`
+}
+
+func (iResponse itemsResponse) encodeForMessage() (string, error) {
+	encodedResult, err := json.Marshal(iResponse)
+	if err != nil {
+		return "", err
+	}
+
+	gzippedResult, err := util.GzipEncode(encodedResult)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(gzippedResult), nil
 }
 
 func (sta state) listenForItems(stop listenStopChan) error {
@@ -59,27 +73,17 @@ func (sta state) listenForItems(stop listenStopChan) error {
 			return
 		}
 
-		iResult := iRequest.resolve(sta)
-
-		encodedResult, err := json.Marshal(iResult)
+		iResponse := itemsResponse{iRequest.resolve(sta)}
+		data, err := iResponse.encodeForMessage()
 		if err != nil {
 			m.Err = err.Error()
-			m.Code = codes.GenericError
+			m.Code = codes.MsgJSONParseError
 			sta.messenger.replyTo(natsMsg, m)
 
 			return
 		}
 
-		gzippedResult, err := util.GzipEncode(encodedResult)
-		if err != nil {
-			m.Err = err.Error()
-			m.Code = codes.GenericError
-			sta.messenger.replyTo(natsMsg, m)
-
-			return
-		}
-
-		m.Data = string(base64.StdEncoding.EncodeToString(gzippedResult))
+		m.Data = data
 		sta.messenger.replyTo(natsMsg, m)
 	})
 	if err != nil {
