@@ -145,7 +145,7 @@ func newPriceList(itemIds []blizzard.ItemID, maList miniAuctionList) priceList {
 
 		p, ok := pList[id]
 		if !ok {
-			p = prices{0, 0}
+			p = prices{0, 0, 0}
 		}
 
 		auctionBid := float64(mAuction.Bid / mAuction.Quantity)
@@ -158,6 +158,8 @@ func newPriceList(itemIds []blizzard.ItemID, maList miniAuctionList) priceList {
 			p.Buyout = auctionBuyout
 		}
 
+		p.Volume += mAuction.Quantity * int64(len(mAuction.AucList))
+
 		pList[id] = p
 	}
 
@@ -169,4 +171,5 @@ type priceList map[blizzard.ItemID]prices
 type prices struct {
 	Bid    float64 `json:"bid"`
 	Buyout float64 `json:"buyout"`
+	Volume int64   `json:"volume"`
 }
