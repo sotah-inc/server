@@ -1,12 +1,14 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 
 	"github.com/ihsw/sotah-server/app/blizzard"
 
 	"github.com/ihsw/sotah-server/app/codes"
 	"github.com/ihsw/sotah-server/app/subjects"
+	"github.com/ihsw/sotah-server/app/util"
 	nats "github.com/nats-io/go-nats"
 )
 
@@ -68,7 +70,16 @@ func (sta state) listenForItems(stop listenStopChan) error {
 			return
 		}
 
-		m.Data = string(encodedResult)
+		gzippedResult, err := util.GzipEncode(encodedResult)
+		if err != nil {
+			m.Err = err.Error()
+			m.Code = codes.GenericError
+			sta.messenger.replyTo(natsMsg, m)
+
+			return
+		}
+
+		m.Data = string(base64.StdEncoding.EncodeToString(gzippedResult))
 		sta.messenger.replyTo(natsMsg, m)
 	})
 	if err != nil {
