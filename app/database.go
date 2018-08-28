@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/ihsw/sotah-server/app/blizzard"
@@ -8,7 +9,7 @@ import (
 	"github.com/boltdb/bolt"
 )
 
-func newDatabase(c config, rea realm) (database, error) {
+func newDatabase(c config, rea realm, itemIds []blizzard.ItemID) (database, error) {
 	dbFilepath, err := rea.databaseFilepath(&c)
 	if err != nil {
 		return database{}, err
@@ -27,12 +28,27 @@ type database struct {
 	realm realm
 }
 
-func newDatabases(c config, stas statuses) (databases, error) {
+func newDatabases(c config, stas statuses, itemIds []blizzard.ItemID) (databases, error) {
 	dbs := databases{}
 	for rName, sta := range stas {
 		dbs[rName] = map[blizzard.RealmSlug]database{}
 		for _, rea := range sta.Realms {
-			dBase, err := newDatabase(c, rea)
+			dBase, err := newDatabase(c, rea, itemIds)
+			if err != nil {
+				return databases{}, err
+			}
+
+			err = dBase.db.Batch(func(tx *bolt.Tx) error {
+				for _, itemID := range itemIds {
+					if _, err := tx.CreateBucketIfNotExists([]byte(fmt.Sprintf("item-prices/%d", itemID))); err != nil {
+						return err
+					}
+
+					return nil
+				}
+
+				return nil
+			})
 			if err != nil {
 				return databases{}, err
 			}
