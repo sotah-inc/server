@@ -33,7 +33,6 @@ type config struct {
 	Regions          regionList                           `json:"regions"`
 	Whitelist        map[regionName]*getAuctionsWhitelist `json:"whitelist"`
 	CacheDir         string                               `json:"cache_dir"`
-	UseCacheDir      bool                                 `json:"use_cache_dir"`
 	UseGCloudStorage bool                                 `json:"use_gcloud_storage"`
 	Expansions       []expansion                          `json:"expansions"`
 	Professions      []profession                         `json:"professions"`
