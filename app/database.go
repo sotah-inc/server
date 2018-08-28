@@ -40,7 +40,7 @@ func newDatabases(c config, stas statuses, itemIds []blizzard.ItemID) (databases
 			continue
 		}
 
-		filteredRealms := sta.Realms.filterWithWhitelist(*wList)
+		filteredRealms := sta.Realms.filterWithWhitelist(wList)
 		log.WithField("count", len(filteredRealms)).Info("Initializing databases")
 		for _, rea := range filteredRealms {
 			dBase, err := newDatabase(c, rea, itemIds)

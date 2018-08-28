@@ -182,17 +182,9 @@ func (sta state) auctionsIntake(job getAuctionsJob) (auctionsIntakeResult, error
 				return err
 			}
 
-			log.WithFields(log.Fields{
-				"itemId": itemID,
-				"region": reg.Name,
-				"realm":  rea.Slug,
-			}).Info("Writing pricelist")
-
 			if err = b.Put(lastModifiedKey, result); err != nil {
 				return err
 			}
-
-			return nil
 		}
 
 		return nil

@@ -35,10 +35,16 @@ type getAuctionsJob struct {
 
 type realms []realm
 
-func (reas realms) filterWithWhitelist(wList getAuctionsWhitelist) realms {
+func (reas realms) filterWithWhitelist(wList *getAuctionsWhitelist) realms {
+	if wList == nil {
+		return reas
+	}
+
+	wListValue := *wList
+
 	out := realms{}
 	for _, rea := range reas {
-		if _, ok := wList[rea.Slug]; !ok {
+		if _, ok := wListValue[rea.Slug]; !ok {
 			continue
 		}
 
