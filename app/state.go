@@ -182,7 +182,7 @@ func (sta state) auctionsIntake(job getAuctionsJob) (auctionsIntakeResult, error
 			}
 
 			log.WithFields(log.Fields{
-				"itemId": itemIds,
+				"itemId": itemID,
 				"region": reg.Name,
 				"realm":  rea.Slug,
 			}).Info("Writing pricelist")
