@@ -35,6 +35,19 @@ type getAuctionsJob struct {
 
 type realms []realm
 
+func (reas realms) filterWithWhitelist(wList getAuctionsWhitelist) realms {
+	out := realms{}
+	for _, rea := range reas {
+		if _, ok := wList[rea.Slug]; !ok {
+			continue
+		}
+
+		out = append(out, rea)
+	}
+
+	return out
+}
+
 func (reas realms) getAuctionsOrAll(res resolver, wList *getAuctionsWhitelist) chan getAuctionsJob {
 	if wList == nil {
 		return reas.getAllAuctions(res)
@@ -145,7 +158,7 @@ func (reas realms) loadAuctionsFromCacheDir(c *config) chan loadAuctionsJob {
 	// queueing up the realms
 	go func() {
 		for _, rea := range reas {
-			wList := c.getRegionWhitelist(rea.region)
+			wList := c.getRegionWhitelist(rea.region.Name)
 			if wList != nil {
 				resolvedWhiteList := *wList
 				if _, ok := resolvedWhiteList[rea.Slug]; !ok {

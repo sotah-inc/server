@@ -38,9 +38,9 @@ type config struct {
 	Professions      []profession                         `json:"professions"`
 }
 
-func (c config) getRegionWhitelist(reg region) *getAuctionsWhitelist {
-	if _, ok := c.Whitelist[reg.Name]; ok {
-		return c.Whitelist[reg.Name]
+func (c config) getRegionWhitelist(rName regionName) *getAuctionsWhitelist {
+	if _, ok := c.Whitelist[rName]; ok {
+		return c.Whitelist[rName]
 	}
 
 	return nil

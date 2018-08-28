@@ -191,7 +191,7 @@ func (sto store) loadRealmsAuctions(c *config, reas realms) chan loadAuctionsJob
 	// queueing up the realms
 	go func() {
 		for _, rea := range reas {
-			wList := c.getRegionWhitelist(rea.region)
+			wList := c.getRegionWhitelist(rea.region.Name)
 			if wList != nil {
 				resolvedWhiteList := *wList
 				if _, ok := resolvedWhiteList[rea.Slug]; !ok {

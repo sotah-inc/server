@@ -168,6 +168,7 @@ func (sta state) auctionsIntake(job getAuctionsJob) (auctionsIntakeResult, error
 	log.WithFields(log.Fields{
 		"region": reg.Name,
 		"realm":  rea.Slug,
+		"count":  len(pLists),
 	}).Info("Writing pricelists")
 	err := db.Batch(func(tx *bolt.Tx) error {
 		for itemID, pList := range pLists {

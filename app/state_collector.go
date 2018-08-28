@@ -52,7 +52,7 @@ func (sta state) collectRegions(res resolver) {
 	totalChurnAmount := 0
 	for _, reg := range sta.regions {
 		// gathering whitelist for this region
-		wList := res.config.getRegionWhitelist(reg)
+		wList := res.config.getRegionWhitelist(reg.Name)
 		if wList != nil && len(*wList) == 0 {
 			continue
 		}

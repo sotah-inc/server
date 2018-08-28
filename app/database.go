@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ihsw/sotah-server/app/blizzard"
-
 	"github.com/boltdb/bolt"
+	"github.com/ihsw/sotah-server/app/blizzard"
+	log "github.com/sirupsen/logrus"
 )
 
 func newDatabase(c config, rea realm, itemIds []blizzard.ItemID) (database, error) {
@@ -31,13 +31,28 @@ type database struct {
 func newDatabases(c config, stas statuses, itemIds []blizzard.ItemID) (databases, error) {
 	dbs := databases{}
 	for rName, sta := range stas {
+		// misc
 		dbs[rName] = map[blizzard.RealmSlug]database{}
-		for _, rea := range sta.Realms {
+
+		// gathering whitelist for this region
+		wList := c.getRegionWhitelist(rName)
+		if wList != nil && len(*wList) == 0 {
+			continue
+		}
+
+		filteredRealms := sta.Realms.filterWithWhitelist(*wList)
+		log.WithField("count", len(filteredRealms)).Info("Initializing databases")
+		for _, rea := range filteredRealms {
 			dBase, err := newDatabase(c, rea, itemIds)
 			if err != nil {
 				return databases{}, err
 			}
 
+			log.WithFields(log.Fields{
+				"region": rName,
+				"realm":  rea.Slug,
+				"count":  len(itemIds),
+			}).Info("Ensuring item-price buckets exist")
 			err = dBase.db.Batch(func(tx *bolt.Tx) error {
 				for _, itemID := range itemIds {
 					if _, err := tx.CreateBucketIfNotExists([]byte(fmt.Sprintf("item-prices/%d", itemID))); err != nil {
