@@ -1,8 +1,11 @@
 package main
 
 import (
+	"encoding/binary"
 	"encoding/json"
+	"fmt"
 
+	"github.com/boltdb/bolt"
 	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/codes"
 	"github.com/ihsw/sotah-server/app/subjects"
@@ -20,7 +23,7 @@ func newState(mess messenger, res resolver) state {
 		messenger:   mess,
 		resolver:    res,
 		regions:     res.config.Regions,
-		statuses:    map[regionName]status{},
+		statuses:    statuses{},
 		auctions:    map[regionName]map[blizzard.RealmSlug]miniAuctionList{},
 		items:       map[blizzard.ItemID]item{},
 		expansions:  res.config.Expansions,
@@ -32,9 +35,10 @@ type state struct {
 	messenger messenger
 	resolver  resolver
 	listeners listeners
+	databases databases
 
 	regions     []region
-	statuses    map[regionName]status
+	statuses    statuses
 	auctions    map[regionName]map[blizzard.RealmSlug]miniAuctionList
 	items       itemsMap
 	itemClasses blizzard.ItemClasses
@@ -119,7 +123,7 @@ type auctionsIntakeResult struct {
 	removedAuctionsCount int
 }
 
-func (sta state) auctionsIntake(job getAuctionsJob) auctionsIntakeResult {
+func (sta state) auctionsIntake(job getAuctionsJob) (auctionsIntakeResult, error) {
 	rea := job.realm
 	reg := rea.region
 
@@ -153,10 +157,39 @@ func (sta state) auctionsIntake(job getAuctionsJob) auctionsIntakeResult {
 		break
 	}
 
-	// returning a list of item ids for syncing
-	return auctionsIntakeResult{
-		itemIds: minimizedAuctions.itemIds(),
+	// misc
+	itemIds := minimizedAuctions.itemIds()
+
+	// writing pricelists to db
+	lastModifiedKey := make([]byte, 8)
+	binary.LittleEndian.PutUint64(lastModifiedKey, uint64(job.lastModified.Unix()))
+	pLists := newPriceList(itemIds, minimizedAuctions)
+	db := sta.databases[reg.Name][rea.Slug].db
+	err := db.Batch(func(tx *bolt.Tx) error {
+		for itemID, pList := range pLists {
+			b, err := tx.CreateBucketIfNotExists([]byte(fmt.Sprintf("item-prices/%d", itemID)))
+			if err != nil {
+				return err
+			}
+
+			result, err := json.Marshal(pList)
+			if err != nil {
+				return err
+			}
+
+			if err = b.Put(lastModifiedKey, result); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return auctionsIntakeResult{}, err
 	}
+
+	// returning a list of item ids for syncing
+	return auctionsIntakeResult{itemIds: itemIds}, nil
 }
 
 type listenStopChan chan interface{}

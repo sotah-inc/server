@@ -48,6 +48,22 @@ func api(c config, m messenger, s store) error {
 		}
 	}
 
+	// loading up databases
+	cacheDirs := []string{
+		fmt.Sprintf("%s/databases", c.CacheDir),
+	}
+	for _, reg := range sta.regions {
+		cacheDirs = append(cacheDirs, fmt.Sprintf("%s/databases/%s", c.CacheDir, reg.Name))
+	}
+	if err := util.EnsureDirsExist(cacheDirs); err != nil {
+		return err
+	}
+	dbs, err := newDatabases(c, sta.statuses)
+	if err != nil {
+		return err
+	}
+	sta.databases = dbs
+
 	// loading up items
 	loadedItems, err := loadItems(res)
 	if err != nil {

@@ -349,3 +349,5 @@ type status struct {
 	region region
 	Realms realms `json:"realms"`
 }
+
+type statuses map[regionName]status

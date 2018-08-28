@@ -68,7 +68,15 @@ func (sta state) collectRegions(res resolver) {
 		}).Info("Downloading region")
 		auctionsOut := sta.statuses[reg.Name].Realms.getAuctionsOrAll(sta.resolver, wList)
 		for job := range auctionsOut {
-			result := sta.auctionsIntake(job)
+			result, err := sta.auctionsIntake(job)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"region": reg.Name,
+					"realm":  job.realm.Slug,
+					"error":  err.Error(),
+				}).Info("Failed to intake auctions")
+			}
+
 			totalChurnAmount += result.removedAuctionsCount
 			for _, ID := range result.itemIds {
 				_, ok := sta.items[ID]
