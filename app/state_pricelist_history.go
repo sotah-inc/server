@@ -85,6 +85,7 @@ func (sta state) listenForPriceListHistory(stop listenStopChan) error {
 			return
 		}
 
+		// encoding the message for the response
 		data, err := plhResponse.encodeForMessage()
 		if err != nil {
 			m.Err = err.Error()
