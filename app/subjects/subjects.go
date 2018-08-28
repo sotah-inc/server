@@ -16,6 +16,7 @@ const (
 	AuctionsQuery     Subject = "auctionsQuery"
 	ItemClasses       Subject = "itemClasses"
 	PriceList         Subject = "priceList"
+	PriceListHistory  Subject = "priceListHistory"
 	Items             Subject = "items"
 	Info              Subject = "info"
 	AppMetrics        Subject = "appMetrics"
