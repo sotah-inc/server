@@ -3,20 +3,29 @@ package main
 import (
 	"encoding/json"
 
+	"github.com/boltdb/bolt"
 	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/codes"
 	"github.com/ihsw/sotah-server/app/subjects"
 	"github.com/nats-io/go-nats"
 )
 
-func newPriceListHistoryRequest(payload []byte) (priceListRequest, error) {
-	pList := &priceListRequest{}
-	err := json.Unmarshal(payload, &pList)
+type priceListHistoryResponse struct {
+	History map[int64]priceList `json:"history"`
+}
+
+func (plhResponse priceListHistoryResponse) encodeForMessage() (string, error) {
+	return "", nil
+}
+
+func newPriceListHistoryRequest(payload []byte) (priceListHistoryRequest, error) {
+	plhRequest := &priceListHistoryRequest{}
+	err := json.Unmarshal(payload, &plhRequest)
 	if err != nil {
-		return priceListRequest{}, err
+		return priceListHistoryRequest{}, err
 	}
 
-	return *pList, nil
+	return *plhRequest, nil
 }
 
 type priceListHistoryRequest struct {
@@ -53,8 +62,8 @@ func (sta state) listenForPriceListHistory(stop listenStopChan) error {
 			return
 		}
 
-		// going over this realms history
-		_, reErr := plhRequest.resolve(sta)
+		// resolving the database from the request
+		realmDatabase, reErr := plhRequest.resolve(sta)
 		if reErr.code != codes.Ok {
 			m.Err = reErr.message
 			m.Code = reErr.code
@@ -63,7 +72,29 @@ func (sta state) listenForPriceListHistory(stop listenStopChan) error {
 			return
 		}
 
-		m.Data = ""
+		// gathering up pricelist history
+		plhResponse := priceListHistoryResponse{History: map[int64]priceList{}}
+		err = realmDatabase.db.View(func(tx *bolt.Tx) error {
+			return nil
+		})
+		if err != nil {
+			m.Err = err.Error()
+			m.Code = codes.MsgJSONParseError
+			sta.messenger.replyTo(natsMsg, m)
+
+			return
+		}
+
+		data, err := plhResponse.encodeForMessage()
+		if err != nil {
+			m.Err = err.Error()
+			m.Code = codes.MsgJSONParseError
+			sta.messenger.replyTo(natsMsg, m)
+
+			return
+		}
+
+		m.Data = data
 		sta.messenger.replyTo(natsMsg, m)
 	})
 	if err != nil {
