@@ -274,26 +274,26 @@ func (rea realm) downloadAndCache(aFile blizzard.AuctionFile, res resolver) (bli
 
 			return blizzard.Auctions{}, err
 		}
-	} else {
-		// validating config
-		if res.config.CacheDir == "" {
-			return blizzard.Auctions{}, errors.New("Cache dir cannot be blank")
-		}
+	}
 
-		// gathering auctions filepath
-		auctionsFilepath, err := rea.auctionsFilepath(res.config)
-		if err != nil {
-			return blizzard.Auctions{}, err
-		}
+	// validating config
+	if res.config.CacheDir == "" {
+		return blizzard.Auctions{}, errors.New("Cache dir cannot be blank")
+	}
 
-		// writing the auction data to the cache dir
-		rea.LogEntry().Debug("Writing auction data to cache dir")
-		if err != nil {
-			return blizzard.Auctions{}, err
-		}
-		if err := util.WriteFile(auctionsFilepath, encodedBody); err != nil {
-			return blizzard.Auctions{}, err
-		}
+	// gathering auctions filepath
+	auctionsFilepath, err := rea.auctionsFilepath(res.config)
+	if err != nil {
+		return blizzard.Auctions{}, err
+	}
+
+	// writing the auction data to the cache dir
+	rea.LogEntry().Debug("Writing auction data to cache dir")
+	if err != nil {
+		return blizzard.Auctions{}, err
+	}
+	if err := util.WriteFile(auctionsFilepath, encodedBody); err != nil {
+		return blizzard.Auctions{}, err
 	}
 
 	return blizzard.NewAuctions(body)

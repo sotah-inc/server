@@ -116,5 +116,15 @@ func main() {
 		return
 	case syncItemsCommand.FullCommand():
 		err := syncItems(c, stor)
+		if err != nil {
+			fmt.Printf("Could not run sync-items command: %s\n", err.Error())
+			os.Exit(1)
+
+			return
+		}
+
+		os.Exit(0)
+
+		return
 	}
 }
