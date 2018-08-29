@@ -50,6 +50,57 @@ type auctionsIntakeRequest struct {
 }
 
 func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
+	// spinning up a worker for handling auctions-intake requests
+	in := make(chan auctionsIntakeRequest, 10)
+	go func() {
+		for aiRequest := range in {
+			regionRealms, err := aiRequest.resolve(sta)
+			if err != nil {
+				log.WithField("error", err.Error()).Info("Failed to resolve auctions-intake-request")
+
+				continue
+			}
+
+			totalRealms := 0
+			for rName, reas := range sta.statuses {
+				totalRealms += len(reas.Realms.filterWithWhitelist(sta.resolver.config.Whitelist[rName]))
+			}
+			processedRealms := 0
+			for _, reas := range regionRealms {
+				processedRealms += len(reas)
+			}
+
+			startTime := time.Now()
+
+			for _, reas := range regionRealms {
+				loadedAuctions := reas.loadAuctionsFromCacheDir(sta.resolver.config)
+				for job := range loadedAuctions {
+					if job.err != nil {
+						log.WithFields(log.Fields{
+							"region": job.realm.region.Name,
+							"realm":  job.realm.Slug,
+							"error":  err.Error(),
+						}).Info("Failed to load auctions from filecache")
+
+						continue
+					}
+
+					sta.auctions[job.realm.region.Name][job.realm.Slug] = newMiniAuctionListFromBlizzardAuctions(job.auctions.Auctions)
+				}
+			}
+
+			log.WithFields(log.Fields{
+				"total_realms":     totalRealms,
+				"processed_realms": processedRealms,
+			}).Info("Processed all realms")
+			sta.messenger.publishMetric(telegrafMetrics{
+				"intake_duration": int64(time.Now().Unix() - startTime.Unix()),
+				"intake_count":    int64(processedRealms),
+			})
+		}
+	}()
+
+	// starting up a listener for auctions-intake
 	err := sta.messenger.subscribe(subjects.AuctionsIntake, stop, func(natsMsg nats.Msg) {
 		// resolving the request
 		aiRequest, err := newAuctionsIntakeRequest(natsMsg.Data)
@@ -59,49 +110,7 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 			return
 		}
 
-		regionRealms, err := aiRequest.resolve(sta)
-		if err != nil {
-			log.WithField("error", err.Error()).Info("Failed to resolve auctions-intake-request")
-
-			return
-		}
-
-		totalRealms := 0
-		for rName, reas := range sta.statuses {
-			totalRealms += len(reas.Realms.filterWithWhitelist(sta.resolver.config.Whitelist[rName]))
-		}
-		processedRealms := 0
-		for _, reas := range regionRealms {
-			processedRealms += len(reas)
-		}
-
-		startTime := time.Now()
-
-		for _, reas := range regionRealms {
-			loadedAuctions := reas.loadAuctionsFromCacheDir(sta.resolver.config)
-			for job := range loadedAuctions {
-				if job.err != nil {
-					log.WithFields(log.Fields{
-						"region": job.realm.region.Name,
-						"realm":  job.realm.Slug,
-						"error":  err.Error(),
-					}).Info("Failed to load auctions from filecache")
-
-					continue
-				}
-
-				sta.auctions[job.realm.region.Name][job.realm.Slug] = newMiniAuctionListFromBlizzardAuctions(job.auctions.Auctions)
-			}
-		}
-
-		log.WithFields(log.Fields{
-			"total_realms":     totalRealms,
-			"processed_realms": processedRealms,
-		}).Info("Processed all realms")
-		sta.messenger.publishMetric(telegrafMetrics{
-			"intake_duration": int64(time.Now().Unix() - startTime.Unix()),
-			"intake_count":    int64(processedRealms),
-		})
+		in <- aiRequest
 	})
 	if err != nil {
 		return err
