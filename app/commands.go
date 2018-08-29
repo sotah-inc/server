@@ -32,19 +32,25 @@ func api(c config, m messenger, s store) error {
 		return err
 	}
 
-	// filling state with region statuses and a blank list of auctions
+	// filling state with region statuses
 	for _, reg := range sta.regions {
+		if c.Whitelist[reg.Name] != nil && len(*c.Whitelist[reg.Name]) == 0 {
+			log.WithField("region", reg.Name).Info("Filtering out region from status")
+
+			continue
+		}
+
 		regionStatus, err := reg.getStatus(res)
 		if err != nil {
+			log.WithFields(log.Fields{
+				"region": reg.Name,
+				"error":  err.Error(),
+			}).Info("Failed to fetch status")
+
 			return err
 		}
 
 		sta.statuses[reg.Name] = regionStatus
-
-		sta.auctions[reg.Name] = map[blizzard.RealmSlug]miniAuctionList{}
-		for _, rea := range regionStatus.Realms {
-			sta.auctions[reg.Name][rea.Slug] = miniAuctionList{}
-		}
 	}
 
 	// loading up items
@@ -123,41 +129,14 @@ func api(c config, m messenger, s store) error {
 		subjects.GenericTestErrors: sta.listenForGenericTestErrors,
 		subjects.Status:            sta.listenForStatus,
 		subjects.Regions:           sta.listenForRegions,
-		subjects.Auctions:          sta.listenForAuctions,
 		subjects.Owners:            sta.listenForOwners,
 		subjects.ItemsQuery:        sta.listenForItemsQuery,
-		subjects.AuctionsQuery:     sta.listenForAuctionsQuery,
 		subjects.ItemClasses:       sta.listenForItemClasses,
-		subjects.PriceList:         sta.listenForPriceList,
 		subjects.Items:             sta.listenForItems,
 		subjects.Boot:              sta.listenForBoot,
 	})
 	if err := sta.listeners.listen(); err != nil {
 		return err
-	}
-
-	// loading up auctions
-	for _, reg := range sta.regions {
-		loadedAuctions := sta.statuses[reg.Name].Realms.loadAuctions(res)
-		for job := range loadedAuctions {
-			if job.err != nil {
-				return job.err
-			}
-
-			// pushing the auctions onto the state
-			sta.auctions[reg.Name][job.realm.Slug] = newMiniAuctionListFromBlizzardAuctions(job.auctions.Auctions)
-
-			// setting the realm last-modified
-			for i, statusRealm := range sta.statuses[reg.Name].Realms {
-				if statusRealm.Slug != job.realm.Slug {
-					continue
-				}
-
-				sta.statuses[reg.Name].Realms[i].LastModified = job.lastModified.Unix()
-
-				break
-			}
-		}
 	}
 
 	// starting up a collector

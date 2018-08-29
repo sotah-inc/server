@@ -1,11 +1,8 @@
 package main
 
 import (
-	"encoding/binary"
 	"encoding/json"
-	"fmt"
 
-	"github.com/boltdb/bolt"
 	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/codes"
 	"github.com/ihsw/sotah-server/app/subjects"
@@ -140,12 +137,6 @@ func (sta state) auctionsIntake(job getAuctionsJob) (auctionsIntakeResult, error
 		}
 	}
 
-	// compacting the auctions
-	minimizedAuctions := newMiniAuctionListFromBlizzardAuctions(job.auctions.Auctions)
-
-	// loading the minimized auctions into state
-	sta.auctions[reg.Name][rea.Slug] = minimizedAuctions
-
 	// setting the realm last-modified
 	for i, statusRealm := range sta.statuses[reg.Name].Realms {
 		if statusRealm.Slug != rea.Slug {
@@ -157,41 +148,8 @@ func (sta state) auctionsIntake(job getAuctionsJob) (auctionsIntakeResult, error
 		break
 	}
 
-	// misc
-	itemIds := minimizedAuctions.itemIds()
-
-	// writing pricelists to db
-	lastModifiedKey := make([]byte, 8)
-	binary.LittleEndian.PutUint64(lastModifiedKey, uint64(job.lastModified.Unix()))
-	pLists := newPriceList(itemIds, minimizedAuctions)
-	db := sta.databases[reg.Name][rea.Slug].db
-	log.WithFields(log.Fields{
-		"region": reg.Name,
-		"realm":  rea.Slug,
-		"count":  len(pLists),
-	}).Info("Writing pricelists")
-	err := db.Batch(func(tx *bolt.Tx) error {
-		for itemID, pList := range pLists {
-			b, err := tx.CreateBucketIfNotExists([]byte(fmt.Sprintf("item-prices/%d", itemID)))
-			if err != nil {
-				return err
-			}
-
-			result, err := json.Marshal(pList)
-			if err != nil {
-				return err
-			}
-
-			if err = b.Put(lastModifiedKey, result); err != nil {
-				return err
-			}
-		}
-
-		return nil
-	})
-	if err != nil {
-		return auctionsIntakeResult{}, err
-	}
+	// gathering item-ids for item fetching
+	itemIds := newMiniAuctionListFromBlizzardAuctions(job.auctions.Auctions).itemIds()
 
 	// returning a list of item ids for syncing
 	return auctionsIntakeResult{itemIds: itemIds}, nil

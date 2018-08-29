@@ -1,7 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"time"
+
+	"github.com/ihsw/sotah-server/app/subjects"
 
 	"github.com/ihsw/sotah-server/app/blizzard"
 	log "github.com/sirupsen/logrus"
@@ -13,7 +16,7 @@ func (sta state) startCollector(stopChan workerStopChan, res resolver) workerSto
 
 	onStop := make(workerStopChan)
 	go func() {
-		ticker := time.NewTicker(10 * time.Minute)
+		ticker := time.NewTicker(1 * time.Minute)
 
 		log.Info("Starting collector")
 	outer:
@@ -50,6 +53,7 @@ func (sta state) collectRegions(res resolver) {
 	// going over the list of regions
 	startTime := time.Now()
 	totalChurnAmount := 0
+	collectedRegionRealmSlugs := map[regionName][]blizzard.RealmSlug{}
 	for _, reg := range sta.regions {
 		// gathering whitelist for this region
 		wList := res.config.getRegionWhitelist(reg.Name)
@@ -59,6 +63,7 @@ func (sta state) collectRegions(res resolver) {
 
 		// misc
 		regionItemIDsMap := map[blizzard.ItemID]struct{}{}
+		collectedRegionRealmSlugs[reg.Name] = []blizzard.RealmSlug{}
 
 		// downloading auctions in a region
 		log.WithFields(log.Fields{
@@ -76,6 +81,8 @@ func (sta state) collectRegions(res resolver) {
 					"error":  err.Error(),
 				}).Info("Failed to intake auctions")
 			}
+
+			collectedRegionRealmSlugs[reg.Name] = append(collectedRegionRealmSlugs[reg.Name], job.realm.Slug)
 
 			totalChurnAmount += result.removedAuctionsCount
 			for _, ID := range result.itemIds {
@@ -116,6 +123,15 @@ func (sta state) collectRegions(res resolver) {
 			}
 			log.WithField("items", len(regionItemIDs)).Info("Fetched items")
 		}
+	}
+
+	// publishing for intake into live auctions
+	aiRequest := auctionsIntakeRequest{collectedRegionRealmSlugs}
+	encodedAiRequest, err := json.Marshal(aiRequest)
+	if err != nil {
+		log.WithField("error", err.Error()).Info("Failed to marshal auctions-intake-request")
+	} else {
+		res.messenger.publish(subjects.AuctionsIntake, encodedAiRequest)
 	}
 
 	// re-syncing all item icons

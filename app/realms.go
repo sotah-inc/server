@@ -132,12 +132,12 @@ type loadAuctionsJob struct {
 	lastModified time.Time
 }
 
-func (reas realms) loadAuctions(res resolver) chan loadAuctionsJob {
-	if res.config.UseGCloudStorage {
-		return res.store.loadRealmsAuctions(res.config, reas)
+func (reas realms) loadAuctions(c *config, sto store) chan loadAuctionsJob {
+	if c.UseGCloudStorage {
+		return sto.loadRealmsAuctions(c, reas)
 	}
 
-	return reas.loadAuctionsFromCacheDir(res.config)
+	return reas.loadAuctionsFromCacheDir(c)
 }
 
 func (reas realms) loadAuctionsFromCacheDir(c *config) chan loadAuctionsJob {
