@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"fmt"
 	"time"
 
@@ -8,6 +9,10 @@ import (
 	"github.com/ihsw/sotah-server/app/blizzard"
 	log "github.com/sirupsen/logrus"
 )
+
+func itemIDPricelistBucketName(ID blizzard.ItemID) []byte {
+	return []byte(fmt.Sprintf("item-prices/%d", ID))
+}
 
 func newDatabase(c config, rea realm, itemIds []blizzard.ItemID) (database, error) {
 	dbFilepath, err := rea.databaseFilepath(&c)
@@ -23,9 +28,40 @@ func newDatabase(c config, rea realm, itemIds []blizzard.ItemID) (database, erro
 	return database{db, rea}, nil
 }
 
+type priceListHistory map[int64]priceList
+
 type database struct {
 	db    *bolt.DB
 	realm realm
+}
+
+func (dBase database) getPricelistHistory(ID blizzard.ItemID) (priceListHistory, error) {
+	plHistory := map[int64]priceList{}
+	err := dBase.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(itemIDPricelistBucketName(ID))
+		if b == nil {
+			return nil
+		}
+
+		b.ForEach(func(k, v []byte) error {
+			unixTime := int64(binary.BigEndian.Uint64(k))
+			pList, err := newPriceListFromBytes(v)
+			if err != nil {
+				return err
+			}
+
+			plHistory[unixTime] = pList
+
+			return nil
+		})
+
+		return nil
+	})
+	if err != nil {
+		return priceListHistory{}, err
+	}
+
+	return plHistory, nil
 }
 
 func newDatabases(c config, stas statuses, itemIds []blizzard.ItemID) (databases, error) {

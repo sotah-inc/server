@@ -1,12 +1,14 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 
 	"github.com/boltdb/bolt"
 	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/codes"
 	"github.com/ihsw/sotah-server/app/subjects"
+	"github.com/ihsw/sotah-server/app/util"
 	"github.com/nats-io/go-nats"
 )
 
@@ -15,7 +17,17 @@ type priceListHistoryResponse struct {
 }
 
 func (plhResponse priceListHistoryResponse) encodeForMessage() (string, error) {
-	return "", nil
+	jsonEncodedResponse, err := json.Marshal(plhResponse)
+	if err != nil {
+		return "", err
+	}
+
+	gzipEncodedResponse, err := util.GzipEncode(jsonEncodedResponse)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(gzipEncodedResponse), nil
 }
 
 func newPriceListHistoryRequest(payload []byte) (priceListHistoryRequest, error) {
