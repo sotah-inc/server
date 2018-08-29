@@ -241,3 +241,77 @@ func (sto store) loadItems(res resolver) (chan loadItemsJob, error) {
 
 	return out, nil
 }
+
+func (sto store) exportItem(ID blizzard.ItemID) ([]byte, error) {
+	reader, err := sto.itemsBucket.Object(sto.getItemObjectName(ID)).NewReader(sto.context)
+	if err != nil {
+		return []byte{}, err
+	}
+	defer reader.Close()
+
+	return ioutil.ReadAll(reader)
+}
+
+type exportItemsJob struct {
+	err  error
+	ID   blizzard.ItemID
+	data []byte
+}
+
+func (sto store) exportItems() chan exportItemsJob {
+	// establishing channels
+	out := make(chan exportItemsJob)
+	in := make(chan blizzard.ItemID)
+
+	// spinning up the workers
+	worker := func() {
+		for ID := range in {
+			data, err := sto.exportItem(ID)
+			out <- exportItemsJob{err, ID, data}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(8, worker, postWork)
+
+	// queueing up
+	go func() {
+		i := 0
+		it := sto.itemsBucket.Objects(sto.context, nil)
+		for {
+			if i == 0 || i%5000 == 0 {
+				log.WithField("count", i).Debug("Exported items from store")
+			}
+
+			objAttrs, err := it.Next()
+			if err != nil {
+				if err == iterator.Done {
+					break
+				}
+
+				log.WithField("error", err.Error()).Info("Failed to iterate over item objects")
+
+				continue
+			}
+
+			s := strings.Split(objAttrs.Name, ".")
+			ID, err := strconv.Atoi(s[0])
+			if err != nil {
+				log.WithFields(log.Fields{
+					"error": err.Error(),
+					"name":  objAttrs.Name,
+				}).Info("Failed to parse object name")
+
+				continue
+			}
+
+			in <- blizzard.ItemID(ID)
+			i++
+		}
+
+		close(in)
+	}()
+
+	return out
+}

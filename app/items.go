@@ -13,6 +13,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+func getItemFilepath(c config, ID blizzard.ItemID) (string, error) {
+	return filepath.Abs(
+		fmt.Sprintf("%s/items/%d.json", c.CacheDir, ID),
+	)
+}
+
 type loadItemsJob struct {
 	err      error
 	filepath string
@@ -135,9 +141,7 @@ func getItem(ID blizzard.ItemID, res resolver) (blizzard.Item, error) {
 		return blizzard.Item{}, errors.New("Cache dir cannot be blank")
 	}
 
-	itemFilepath, err := filepath.Abs(
-		fmt.Sprintf("%s/items/%d.json", res.config.CacheDir, ID),
-	)
+	itemFilepath, err := getItemFilepath(*res.config, ID)
 	if err != nil {
 		return blizzard.Item{}, err
 	}

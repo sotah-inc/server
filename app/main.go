@@ -21,9 +21,10 @@ func main() {
 		cacheDir       = app.Flag("cache-dir", "Directory to cache data files to").Required().String()
 		projectID      = app.Flag("project-id", "GCloud Storage Project ID").Default("").OverrideDefaultFromEnvar("PROJECT_ID").String()
 
-		apiTestCommand = app.Command(commands.APITest, "For running sotah-api tests.")
-		apiCommand     = app.Command(commands.API, "For running sotah-server.")
-		apiTestDataDir = apiTestCommand.Flag("data-dir", "Directory to load test fixtures from").Required().Short('d').String()
+		apiTestCommand   = app.Command(commands.APITest, "For running sotah-api tests.")
+		apiTestDataDir   = apiTestCommand.Flag("data-dir", "Directory to load test fixtures from").Required().Short('d').String()
+		apiCommand       = app.Command(commands.API, "For running sotah-server.")
+		syncItemsCommand = app.Command(commands.SyncItems, "For syncing items in gcloud storage to local disk.")
 	)
 	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
 
@@ -113,5 +114,7 @@ func main() {
 		os.Exit(0)
 
 		return
+	case syncItemsCommand.FullCommand():
+		err := syncItems(c, stor)
 	}
 }
