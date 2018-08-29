@@ -100,14 +100,7 @@ func (sta state) collectRegions(res resolver) {
 
 			// downloading items found in this region
 			log.WithField("items", len(regionItemIDs)).Info("Fetching items")
-			itemsOut, err := getItems(regionItemIDs, res)
-			if err != nil {
-				log.WithFields(log.Fields{
-					"region": reg.Name,
-					"error":  err.Error(),
-				}).Info("Failed to start getting items")
-			}
-
+			itemsOut := getItems(regionItemIDs, res)
 			for job := range itemsOut {
 				if job.err != nil {
 					log.WithFields(log.Fields{

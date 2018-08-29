@@ -26,14 +26,6 @@ type loadItemsJob struct {
 	iconURL  string
 }
 
-func loadItems(res resolver) (chan loadItemsJob, error) {
-	if res.config.UseGCloudStorage {
-		return res.store.loadItems(res)
-	}
-
-	return loadItemsFromFilecache(*res.config)
-}
-
 func loadItemsFromFilecache(c config) (chan loadItemsJob, error) {
 	// listing out files in items dir
 	itemsDirPath, err := filepath.Abs(fmt.Sprintf("%s/items", c.CacheDir))
@@ -90,15 +82,7 @@ type getItemsJob struct {
 	iconURL string
 }
 
-func getItems(IDs []blizzard.ItemID, res resolver) (chan getItemsJob, error) {
-	if res.config.UseGCloudStorage {
-		return res.store.getItems(IDs, res)
-	}
-
-	return getItemsFromFilecache(IDs, res), nil
-}
-
-func getItemsFromFilecache(IDs []blizzard.ItemID, res resolver) chan getItemsJob {
+func getItems(IDs []blizzard.ItemID, res resolver) chan getItemsJob {
 	// establishing channels
 	out := make(chan getItemsJob)
 	in := make(chan blizzard.ItemID)
