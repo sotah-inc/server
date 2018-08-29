@@ -38,7 +38,21 @@ func pricelistHistories(c config, m messenger, s store) error {
 	}
 	for i, reg := range regions {
 		sta.regions[i] = *reg
+
+		stas, err := newStatusFromMessenger(*reg, m)
+		if err != nil {
+			return err
+		}
+
+		sta.statuses[reg.Name] = stas
 	}
+
+	// loading up databases
+	// dbs, err := newDatabases(c, sta.statuses, itemIds)
+	// if err != nil {
+	// 	return err
+	// }
+	// sta.databases = dbs
 
 	// opening all listeners
 	sta.listeners = newListeners(subjectListeners{

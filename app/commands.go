@@ -73,13 +73,6 @@ func api(c config, m messenger, s store) error {
 		itemIds = append(itemIds, job.item.ID)
 	}
 
-	// loading up databases
-	dbs, err := newDatabases(c, sta.statuses, itemIds)
-	if err != nil {
-		return err
-	}
-	sta.databases = dbs
-
 	// gathering item-classes
 	primaryRegion, err := c.Regions.getPrimaryRegion()
 	if err != nil {
