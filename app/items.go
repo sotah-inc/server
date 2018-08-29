@@ -90,8 +90,8 @@ func getItems(IDs []blizzard.ItemID, res resolver) chan getItemsJob {
 	// spinning up the workers for fetching items
 	worker := func() {
 		for ID := range in {
-			itemValue, err := getItem(ID, res)
-			out <- getItemsJob{err: err, item: itemValue, ID: ID}
+			itemValue, iconURL, err := getItem(ID, res)
+			out <- getItemsJob{err, ID, itemValue, iconURL}
 		}
 	}
 	postWork := func() {
@@ -111,38 +111,38 @@ func getItems(IDs []blizzard.ItemID, res resolver) chan getItemsJob {
 	return out
 }
 
-func getItem(ID blizzard.ItemID, res resolver) (blizzard.Item, error) {
+func getItem(ID blizzard.ItemID, res resolver) (blizzard.Item, string, error) {
 	if res.config == nil {
-		return blizzard.Item{}, errors.New("Config cannot be nil")
+		return blizzard.Item{}, "", errors.New("Config cannot be nil")
 	}
 
 	if res.config.CacheDir == "" {
-		return blizzard.Item{}, errors.New("Cache dir cannot be blank")
+		return blizzard.Item{}, "", errors.New("Cache dir cannot be blank")
 	}
 
 	itemFilepath, err := getItemFilepath(*res.config, ID)
 	if err != nil {
-		return blizzard.Item{}, err
+		return blizzard.Item{}, "", err
 	}
 
 	if _, err := os.Stat(itemFilepath); err != nil {
 		if !os.IsNotExist(err) {
-			return blizzard.Item{}, err
+			return blizzard.Item{}, "", err
 		}
 
 		// optionally checking gcloud store
 		if res.config.UseGCloudStorage {
 			exists, err := res.store.itemExists(ID)
 			if err != nil {
-				return blizzard.Item{}, err
+				return blizzard.Item{}, "", err
 			}
 			if exists {
-				itemValue, _, err := res.store.loadItem(ID, res)
+				itemValue, iconURL, err := res.store.loadItem(ID, res)
 				if err != nil {
-					return blizzard.Item{}, err
+					return blizzard.Item{}, "", err
 				}
 
-				return itemValue, nil
+				return itemValue, iconURL, nil
 			}
 		}
 
@@ -151,41 +151,50 @@ func getItem(ID blizzard.ItemID, res resolver) (blizzard.Item, error) {
 		// checking blizzard api
 		primaryRegion, err := res.config.Regions.getPrimaryRegion()
 		if err != nil {
-			return blizzard.Item{}, err
+			return blizzard.Item{}, "", err
 		}
 		uri, err := res.appendAPIKey(res.getItemURL(primaryRegion.Hostname, ID))
 		if err != nil {
-			return blizzard.Item{}, err
+			return blizzard.Item{}, "", err
 		}
 		item, resp, err := blizzard.NewItemFromHTTP(uri)
 		if err != nil {
-			return blizzard.Item{}, err
+			return blizzard.Item{}, "", err
 		}
 		if err := res.messenger.publishPlanMetaMetric(resp); err != nil {
-			return blizzard.Item{}, err
+			return blizzard.Item{}, "", err
 		}
 
 		// writing it back to disk
 		if err := util.WriteFile(itemFilepath, resp.Body); err != nil {
-			return blizzard.Item{}, err
+			return blizzard.Item{}, "", err
 		}
 
 		// optionally writing it back to gcloud store
 		if res.config.UseGCloudStorage {
 			encodedBody, err := util.GzipEncode(resp.Body)
 			if err != nil {
-				return blizzard.Item{}, err
+				return blizzard.Item{}, "", err
 			}
 
 			if err := res.store.writeItem(ID, encodedBody); err != nil {
-				return blizzard.Item{}, err
+				return blizzard.Item{}, "", err
 			}
 		}
 
-		return item, nil
+		return item, "", nil
 	}
 
-	return blizzard.NewItemFromFilepath(itemFilepath)
+	itemValue, err := blizzard.NewItemFromFilepath(itemFilepath)
+	if err != nil {
+		return blizzard.Item{}, "", err
+	}
+
+	if res.config.UseGCloudStorage {
+		return res.store.fulfilItemIcon(itemValue, res)
+	}
+
+	return itemValue, "", nil
 }
 
 type itemsMap map[blizzard.ItemID]item
