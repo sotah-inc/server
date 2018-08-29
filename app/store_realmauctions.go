@@ -269,7 +269,16 @@ func (sto store) loadRealmAuctions(rea realm) (blizzard.Auctions, time.Time, err
 
 	aucs, err := blizzard.NewAuctions(body)
 	if err != nil {
-		return blizzard.Auctions{}, time.Time{}, err
+		log.WithFields(log.Fields{
+			"region": rea.region.Name,
+			"realm":  rea.Slug,
+		}).Info("Failed to parse realm auctions, deleting")
+
+		if err := obj.Delete(sto.context); err != nil {
+			return blizzard.Auctions{}, time.Time{}, err
+		}
+
+		return blizzard.Auctions{}, time.Time{}, nil
 	}
 
 	log.WithFields(log.Fields{
