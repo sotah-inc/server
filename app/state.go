@@ -124,19 +124,6 @@ func (sta state) auctionsIntake(job getAuctionsJob) (auctionsIntakeResult, error
 	rea := job.realm
 	reg := rea.region
 
-	// storing deleted auction ids for calculating the churn rate
-	removedAuctionIds := map[int64]struct{}{}
-	for _, mAuction := range sta.auctions[reg.Name][rea.Slug] {
-		for _, auc := range mAuction.AucList {
-			removedAuctionIds[auc] = struct{}{}
-		}
-	}
-	for _, auc := range job.auctions.Auctions {
-		if _, ok := removedAuctionIds[auc.Auc]; ok {
-			delete(removedAuctionIds, auc.Auc)
-		}
-	}
-
 	// setting the realm last-modified
 	for i, statusRealm := range sta.statuses[reg.Name].Realms {
 		if statusRealm.Slug != rea.Slug {
@@ -149,7 +136,16 @@ func (sta state) auctionsIntake(job getAuctionsJob) (auctionsIntakeResult, error
 	}
 
 	// gathering item-ids for item fetching
-	itemIds := newMiniAuctionListFromBlizzardAuctions(job.auctions.Auctions).itemIds()
+	itemIdsMap := map[blizzard.ItemID]struct{}{}
+	for _, auc := range job.auctions.Auctions {
+		itemIdsMap[auc.Item] = struct{}{}
+	}
+	itemIds := make([]blizzard.ItemID, len(itemIdsMap))
+	i := 0
+	for ID := range itemIdsMap {
+		itemIds[i] = ID
+		i++
+	}
 
 	// returning a list of item ids for syncing
 	return auctionsIntakeResult{itemIds: itemIds}, nil

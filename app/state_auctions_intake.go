@@ -70,9 +70,27 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 				processedRealms += len(reas)
 			}
 
+			// misc
 			startTime := time.Now()
 
-			for _, reas := range regionRealms {
+			// metrics
+			currentItemIds := map[blizzard.ItemID]struct{}{}
+			totalPreviousAuctions := 0
+			totalRemovedAuctions := 0
+			totalNewAuctions := 0
+			totalOwners := 0
+			totalAuctions := 0
+
+			// going over auctions in the filecache
+			for rName, reas := range regionRealms {
+				// gathering the total number of auctions pre-collection
+				for _, rea := range reas {
+					for _, auc := range sta.auctions[rName][rea.Slug] {
+						totalPreviousAuctions += len(auc.AucList)
+					}
+				}
+
+				// loading auctions from file cache
 				loadedAuctions := reas.loadAuctionsFromCacheDir(sta.resolver.config)
 				for job := range loadedAuctions {
 					if job.err != nil {
@@ -85,7 +103,46 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 						continue
 					}
 
+					// gathering previous and new auction ids for comparison
+					removedAuctionIds := map[int64]struct{}{}
+					for _, mAuction := range sta.auctions[job.realm.region.Name][job.realm.Slug] {
+						for _, auc := range mAuction.AucList {
+							removedAuctionIds[auc] = struct{}{}
+						}
+					}
+					newAuctionIds := map[int64]struct{}{}
+					for _, auc := range job.auctions.Auctions {
+						if _, ok := removedAuctionIds[auc.Auc]; ok {
+							delete(removedAuctionIds, auc.Auc)
+						}
+
+						newAuctionIds[auc.Auc] = struct{}{}
+					}
+					for _, mAuction := range sta.auctions[job.realm.region.Name][job.realm.Slug] {
+						for _, auc := range mAuction.AucList {
+							if _, ok := newAuctionIds[auc]; ok {
+								delete(newAuctionIds, auc)
+							}
+						}
+					}
+					totalRemovedAuctions += len(removedAuctionIds)
+					totalNewAuctions += len(newAuctionIds)
+
 					sta.auctions[job.realm.region.Name][job.realm.Slug] = newMiniAuctionListFromBlizzardAuctions(job.auctions.Auctions)
+				}
+
+				// going over current auctions for metrics
+				for _, rea := range reas {
+					for _, auc := range sta.auctions[rName][rea.Slug] {
+						// going over new auctions data
+						realmOwnerNames := map[ownerName]struct{}{}
+						for _, auc := range sta.auctions[rName][rea.Slug] {
+							realmOwnerNames[ownerName(auc.Owner)] = struct{}{}
+							currentItemIds[auc.ItemID] = struct{}{}
+						}
+						totalAuctions += len(auc.AucList)
+						totalOwners += len(realmOwnerNames)
+					}
 				}
 			}
 
@@ -94,8 +151,14 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 				"processed_realms": processedRealms,
 			}).Info("Processed all realms")
 			sta.messenger.publishMetric(telegrafMetrics{
-				"intake_duration": int64(time.Now().Unix() - startTime.Unix()),
-				"intake_count":    int64(processedRealms),
+				"intake_duration":        int64(time.Now().Unix() - startTime.Unix()),
+				"intake_count":           int64(processedRealms),
+				"total_auctions":         int64(totalAuctions),
+				"total_new_auctions":     int64(totalNewAuctions),
+				"total_removed_auctions": int64(totalRemovedAuctions),
+				"item_count":             int64(len(sta.items)),
+				"current_owner_count":    int64(totalOwners),
+				"current_item_count":     int64(len(currentItemIds)),
 			})
 		}
 	}()

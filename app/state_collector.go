@@ -40,19 +40,8 @@ func (sta state) startCollector(stopChan workerStopChan, res resolver) workerSto
 func (sta state) collectRegions(res resolver) {
 	log.Info("Collecting regions")
 
-	// gathering the total number of auctions pre-collection
-	totalPreviousAuctions := 0
-	for _, reg := range sta.regions {
-		for _, rea := range sta.statuses[reg.Name].Realms {
-			for _, auc := range sta.auctions[reg.Name][rea.Slug] {
-				totalPreviousAuctions += len(auc.AucList)
-			}
-		}
-	}
-
 	// going over the list of regions
 	startTime := time.Now()
-	totalChurnAmount := 0
 	collectedRegionRealmSlugs := map[regionName][]blizzard.RealmSlug{}
 	for _, reg := range sta.regions {
 		// gathering whitelist for this region
@@ -83,8 +72,6 @@ func (sta state) collectRegions(res resolver) {
 			}
 
 			collectedRegionRealmSlugs[reg.Name] = append(collectedRegionRealmSlugs[reg.Name], job.realm.Slug)
-
-			totalChurnAmount += result.removedAuctionsCount
 			for _, ID := range result.itemIds {
 				_, ok := sta.items[ID]
 				if ok {
@@ -178,36 +165,7 @@ func (sta state) collectRegions(res resolver) {
 	}
 	log.WithField("items", len(iconsMap)).Info("Synced item-icons")
 
-	// gathering owner, item, and storage metrics
-	totalOwners := 0
-	currentItemIds := map[blizzard.ItemID]struct{}{}
-	totalAuctions := 0
-	for _, reg := range sta.regions {
-		for _, rea := range sta.statuses[reg.Name].Realms {
-			realmAuctions := sta.auctions[reg.Name][rea.Slug]
-			realmOwnerNames := map[ownerName]struct{}{}
-			for _, auc := range realmAuctions {
-				realmOwnerNames[auc.Owner] = struct{}{}
-				currentItemIds[auc.ItemID] = struct{}{}
-				totalAuctions += len(auc.AucList)
-			}
-			totalOwners += len(realmOwnerNames)
-		}
-	}
-
-	// calculating churn ratio
-	churnRatio := float32(0)
-	if totalPreviousAuctions > 0 {
-		churnRatio = float32(totalChurnAmount) / float32(totalPreviousAuctions)
-	}
-
 	sta.messenger.publishMetric(telegrafMetrics{
-		"item_count":          int64(len(sta.items)),
-		"current_owner_count": int64(totalOwners),
-		"current_item_count":  int64(len(currentItemIds)),
-		"collector_duration":  int64(time.Now().Unix() - startTime.Unix()),
-		"total_churn_amount":  int64(totalChurnAmount),
-		"churn_ratio":         int64(churnRatio * 1000),
-		"total_auctions":      int64(totalAuctions),
+		"collector_duration": int64(time.Now().Unix() - startTime.Unix()),
 	})
 }
