@@ -153,19 +153,17 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 
 			// going over current auctions for metrics
 			log.Info("Going over all auctions for post-intake metrics")
-			if false {
-				for _, reg := range sta.regions {
-					for _, rea := range sta.statuses[reg.Name].Realms {
+			for _, reg := range sta.regions {
+				for _, rea := range sta.statuses[reg.Name].Realms {
+					for _, auc := range sta.auctions[reg.Name][rea.Slug] {
+						// going over new auctions data
+						realmOwnerNames := map[ownerName]struct{}{}
 						for _, auc := range sta.auctions[reg.Name][rea.Slug] {
-							// going over new auctions data
-							realmOwnerNames := map[ownerName]struct{}{}
-							for _, auc := range sta.auctions[reg.Name][rea.Slug] {
-								realmOwnerNames[ownerName(auc.Owner)] = struct{}{}
-								currentItemIds[auc.ItemID] = struct{}{}
-							}
-							totalAuctions += len(auc.AucList)
-							totalOwners += len(realmOwnerNames)
+							realmOwnerNames[ownerName(auc.Owner)] = struct{}{}
+							currentItemIds[auc.ItemID] = struct{}{}
 						}
+						totalAuctions += len(auc.AucList)
+						totalOwners += len(realmOwnerNames)
 					}
 				}
 			}
