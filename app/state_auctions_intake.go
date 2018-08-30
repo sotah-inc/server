@@ -154,7 +154,14 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 			// going over current auctions for metrics
 			log.Info("Going over all auctions for post-intake metrics")
 			for _, reg := range sta.regions {
+				log.WithField("region", reg.Name).Info("Going over region to gather post-intake metrics")
+
 				for _, rea := range sta.statuses[reg.Name].Realms {
+					log.WithFields(log.Fields{
+						"region": reg.Name,
+						"realm":  rea.Slug,
+					}).Info("Going over realm to gather post-intake metrics")
+
 					for _, auc := range sta.auctions[reg.Name][rea.Slug] {
 						// going over new auctions data
 						realmOwnerNames := map[ownerName]struct{}{}
