@@ -90,12 +90,10 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 
 			// gathering the total number of auctions pre-intake
 			log.Info("Going over all auctions to for pre-intake metrics")
-			if false {
-				for _, reg := range sta.regions {
-					for _, rea := range sta.statuses[reg.Name].Realms {
-						for _, auc := range sta.auctions[reg.Name][rea.Slug] {
-							totalPreviousAuctions += len(auc.AucList)
-						}
+			for _, reg := range sta.regions {
+				for _, rea := range sta.statuses[reg.Name].Realms {
+					for _, auc := range sta.auctions[reg.Name][rea.Slug] {
+						totalPreviousAuctions += len(auc.AucList)
 					}
 				}
 			}
