@@ -170,17 +170,17 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 	// starting up a listener for auctions-intake
 	err := sta.messenger.subscribe(subjects.AuctionsIntake, stop, func(natsMsg nats.Msg) {
 		// resolving the request
-		aiRequest, err := newAuctionsIntakeRequest(natsMsg.Data)
-		if err != nil {
-			log.Info("Failed to parse auctions-intake-request")
+		// aiRequest, err := newAuctionsIntakeRequest(natsMsg.Data)
+		// if err != nil {
+		// log.Info("Failed to parse auctions-intake-request")
 
-			return
-		}
+		// return
+		// }
 
 		log.WithField("intake_buffer_size", len(in)).Info("Received auctions-intake-request")
 		sta.messenger.publishMetric(telegrafMetrics{"intake_buffer_size": int64(len(in))})
 
-		in <- aiRequest
+		// in <- aiRequest
 	})
 	if err != nil {
 		return err
