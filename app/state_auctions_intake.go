@@ -139,6 +139,7 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 
 					sta.auctions[job.realm.region.Name][job.realm.Slug] = newMiniAuctionListFromBlizzardAuctions(job.auctions.Auctions)
 				}
+				log.WithField("region", rName).Info("Finished loading auctions from cache")
 
 				// going over current auctions for metrics
 				for _, rea := range reas {
