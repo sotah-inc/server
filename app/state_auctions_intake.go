@@ -113,10 +113,6 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 						continue
 					}
 
-					if true {
-						continue
-					}
-
 					// gathering previous and new auction ids for comparison
 					removedAuctionIds := map[int64]struct{}{}
 					for _, mAuction := range sta.auctions[job.realm.region.Name][job.realm.Slug] {
@@ -148,8 +144,9 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 					"region": rName,
 					"realms": len(reas),
 				}).Info("Finished loading auctions from filecache")
+
 				if true {
-					break
+					continue
 				}
 
 				// going over current auctions for metrics
