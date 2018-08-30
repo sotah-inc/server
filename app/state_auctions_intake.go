@@ -95,6 +95,10 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 					}
 				}
 
+				if true {
+					continue
+				}
+
 				// loading auctions from file cache
 				loadedAuctions := reas.loadAuctions(sta.resolver.config, sta.resolver.store)
 				for job := range loadedAuctions {
