@@ -108,6 +108,10 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 						continue
 					}
 
+					if true {
+						continue
+					}
+
 					// gathering previous and new auction ids for comparison
 					removedAuctionIds := map[int64]struct{}{}
 					for _, mAuction := range sta.auctions[job.realm.region.Name][job.realm.Slug] {
