@@ -70,6 +70,11 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 				processedRealms += len(reas)
 			}
 
+			log.WithFields(log.Fields{
+				"processed_realms": processedRealms,
+				"total_realms":     totalRealms,
+			}).Info("Handling auctions-intake-request")
+
 			// misc
 			startTime := time.Now()
 
@@ -171,6 +176,9 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 
 			return
 		}
+
+		log.WithField("intake_buffer_size", len(in)).Info("Received auctions-intake-request")
+		sta.messenger.publishMetric(telegrafMetrics{"intake_buffer_size": int64(len(in))})
 
 		in <- aiRequest
 	})
