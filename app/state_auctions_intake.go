@@ -88,11 +88,14 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 			totalOwners := 0
 			totalAuctions := 0
 
-			// gathering the total number of auctions pre-collection
-			for _, reg := range sta.regions {
-				for _, rea := range sta.statuses[reg.Name].Realms {
-					for _, auc := range sta.auctions[reg.Name][rea.Slug] {
-						totalPreviousAuctions += len(auc.AucList)
+			// gathering the total number of auctions pre-intake
+			log.Info("Going over all auctions to for pre-intake metrics")
+			if false {
+				for _, reg := range sta.regions {
+					for _, rea := range sta.statuses[reg.Name].Realms {
+						for _, auc := range sta.auctions[reg.Name][rea.Slug] {
+							totalPreviousAuctions += len(auc.AucList)
+						}
 					}
 				}
 			}
@@ -151,6 +154,7 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 			}
 
 			// going over current auctions for metrics
+			log.Info("Going over all auctions for post-intake metrics")
 			if false {
 				for _, reg := range sta.regions {
 					for _, rea := range sta.statuses[reg.Name].Realms {
