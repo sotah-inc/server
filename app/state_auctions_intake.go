@@ -148,6 +148,9 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 					"region": rName,
 					"realms": len(reas),
 				}).Info("Finished loading auctions from filecache")
+				if true {
+					break
+				}
 
 				// going over current auctions for metrics
 				for _, rea := range reas {
@@ -162,8 +165,6 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 						totalOwners += len(realmOwnerNames)
 					}
 				}
-
-				break
 			}
 
 			log.WithFields(log.Fields{
