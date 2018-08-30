@@ -53,7 +53,9 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 	// spinning up a worker for handling auctions-intake requests
 	in := make(chan auctionsIntakeRequest, 10)
 	go func() {
-		for aiRequest := range in {
+		for {
+			aiRequest := <-in
+
 			regionRealms, err := aiRequest.resolve(sta)
 			if err != nil {
 				log.WithField("error", err.Error()).Info("Failed to resolve auctions-intake-request")
