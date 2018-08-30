@@ -88,6 +88,11 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 
 			// going over auctions in the filecache
 			for rName, reas := range regionRealms {
+				log.WithFields(log.Fields{
+					"region": rName,
+					"realms": len(reas),
+				}).Info("Going over realms")
+
 				// gathering the total number of auctions pre-collection
 				for _, rea := range reas {
 					for _, auc := range sta.auctions[rName][rea.Slug] {
@@ -139,7 +144,10 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 
 					sta.auctions[job.realm.region.Name][job.realm.Slug] = newMiniAuctionListFromBlizzardAuctions(job.auctions.Auctions)
 				}
-				log.WithField("region", rName).Info("Finished loading auctions from cache")
+				log.WithFields(log.Fields{
+					"region": rName,
+					"realms": len(reas),
+				}).Info("Finished loading auctions from filecache")
 
 				// going over current auctions for metrics
 				for _, rea := range reas {
@@ -154,6 +162,8 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 						totalOwners += len(realmOwnerNames)
 					}
 				}
+
+				break
 			}
 
 			log.WithFields(log.Fields{
