@@ -322,6 +322,7 @@ func (rea realm) loadAuctions(c *config) (blizzard.Auctions, time.Time, error) {
 	if err != nil {
 		return blizzard.Auctions{}, time.Time{}, err
 	}
+	rea.LogEntry().Info("Finished loading auctions from filepath")
 
 	return aucs, cachedAuctionsStat.ModTime(), nil
 }
