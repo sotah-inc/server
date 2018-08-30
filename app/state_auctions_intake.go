@@ -156,7 +156,6 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 				"total_auctions":         int64(totalAuctions),
 				"total_new_auctions":     int64(totalNewAuctions),
 				"total_removed_auctions": int64(totalRemovedAuctions),
-				"item_count":             int64(len(sta.items)),
 				"current_owner_count":    int64(totalOwners),
 				"current_item_count":     int64(len(currentItemIds)),
 			})
