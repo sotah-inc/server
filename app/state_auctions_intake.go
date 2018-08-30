@@ -88,19 +88,21 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 			totalOwners := 0
 			totalAuctions := 0
 
+			// gathering the total number of auctions pre-collection
+			for _, reg := range sta.regions {
+				for _, rea := range sta.statuses[reg.Name].Realms {
+					for _, auc := range sta.auctions[reg.Name][rea.Slug] {
+						totalPreviousAuctions += len(auc.AucList)
+					}
+				}
+			}
+
 			// going over auctions in the filecache
 			for rName, reas := range regionRealms {
 				log.WithFields(log.Fields{
 					"region": rName,
 					"realms": len(reas),
 				}).Info("Going over realms")
-
-				// gathering the total number of auctions pre-collection
-				for _, rea := range reas {
-					for _, auc := range sta.auctions[rName][rea.Slug] {
-						totalPreviousAuctions += len(auc.AucList)
-					}
-				}
 
 				// loading auctions from file cache
 				loadedAuctions := reas.loadAuctionsFromCacheDir(sta.resolver.config)
