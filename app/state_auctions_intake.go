@@ -144,20 +144,20 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 					"region": rName,
 					"realms": len(reas),
 				}).Info("Finished loading auctions from filecache")
+			}
 
-				// going over current auctions for metrics
-				for _, reg := range sta.regions {
-					for _, rea := range sta.statuses[reg.Name].Realms {
-						for _, auc := range sta.auctions[rName][rea.Slug] {
-							// going over new auctions data
-							realmOwnerNames := map[ownerName]struct{}{}
-							for _, auc := range sta.auctions[rName][rea.Slug] {
-								realmOwnerNames[ownerName(auc.Owner)] = struct{}{}
-								currentItemIds[auc.ItemID] = struct{}{}
-							}
-							totalAuctions += len(auc.AucList)
-							totalOwners += len(realmOwnerNames)
+			// going over current auctions for metrics
+			for _, reg := range sta.regions {
+				for _, rea := range sta.statuses[reg.Name].Realms {
+					for _, auc := range sta.auctions[reg.Name][rea.Slug] {
+						// going over new auctions data
+						realmOwnerNames := map[ownerName]struct{}{}
+						for _, auc := range sta.auctions[reg.Name][rea.Slug] {
+							realmOwnerNames[ownerName(auc.Owner)] = struct{}{}
+							currentItemIds[auc.ItemID] = struct{}{}
 						}
+						totalAuctions += len(auc.AucList)
+						totalOwners += len(realmOwnerNames)
 					}
 				}
 			}
