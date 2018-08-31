@@ -42,7 +42,7 @@ func (sta state) collectRegions(res resolver) {
 
 	// going over the list of regions
 	startTime := time.Now()
-	collectedRegionRealmSlugs := map[regionName][]blizzard.RealmSlug{}
+	irData := intakeRequestData{}
 	for _, reg := range sta.regions {
 		// gathering whitelist for this region
 		wList := res.config.getRegionWhitelist(reg.Name)
@@ -52,7 +52,7 @@ func (sta state) collectRegions(res resolver) {
 
 		// misc
 		regionItemIDsMap := map[blizzard.ItemID]struct{}{}
-		collectedRegionRealmSlugs[reg.Name] = []blizzard.RealmSlug{}
+		irData[reg.Name] = map[blizzard.RealmSlug]int64{}
 
 		// downloading auctions in a region
 		log.WithFields(log.Fields{
@@ -71,7 +71,7 @@ func (sta state) collectRegions(res resolver) {
 				}).Info("Failed to intake auctions")
 			}
 
-			collectedRegionRealmSlugs[reg.Name] = append(collectedRegionRealmSlugs[reg.Name], job.realm.Slug)
+			irData[reg.Name][job.realm.Slug] = job.lastModified.Unix()
 			for _, ID := range result.itemIds {
 				_, ok := sta.items[ID]
 				if ok {
@@ -113,7 +113,7 @@ func (sta state) collectRegions(res resolver) {
 	}
 
 	// publishing for intake into live auctions
-	aiRequest := auctionsIntakeRequest{collectedRegionRealmSlugs}
+	aiRequest := auctionsIntakeRequest{irData}
 	encodedAiRequest, err := json.Marshal(aiRequest)
 	if err != nil {
 		log.WithField("error", err.Error()).Info("Failed to marshal auctions-intake-request")

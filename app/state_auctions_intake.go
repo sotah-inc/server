@@ -21,14 +21,19 @@ func newAuctionsIntakeRequest(payload []byte) (auctionsIntakeRequest, error) {
 	return *ar, nil
 }
 
+type realmMapValue struct {
+	realm        realm
+	lastModified time.Time
+}
+
 type realmMap struct {
-	values map[blizzard.RealmSlug]realm
+	values map[blizzard.RealmSlug]realmMapValue
 }
 
 func (rMap realmMap) toRealms() realms {
 	out := realms{}
-	for _, rea := range rMap.values {
-		out = append(out, rea)
+	for _, rValue := range rMap.values {
+		out = append(out, rValue.realm)
 	}
 
 	return out
@@ -41,24 +46,24 @@ func (aiRequest auctionsIntakeRequest) resolve(sta state) (regionRealmMap, regio
 	excludedRegionRealms := regionRealmMap{}
 	for _, reg := range sta.regions {
 		wList := sta.resolver.config.Whitelist[reg.Name]
-		includedRegionRealms[reg.Name] = realmMap{map[blizzard.RealmSlug]realm{}}
+		includedRegionRealms[reg.Name] = realmMap{map[blizzard.RealmSlug]realmMapValue{}}
 
-		excludedRegionRealms[reg.Name] = realmMap{map[blizzard.RealmSlug]realm{}}
+		excludedRegionRealms[reg.Name] = realmMap{map[blizzard.RealmSlug]realmMapValue{}}
 		for _, rea := range sta.statuses[reg.Name].Realms.filterWithWhitelist(wList) {
-			excludedRegionRealms[reg.Name].values[rea.Slug] = rea
+			excludedRegionRealms[reg.Name].values[rea.Slug] = realmMapValue{rea, time.Time{}}
 		}
 	}
 
-	for rName, realmSlugs := range aiRequest.RegionRealmSlugs {
+	for rName, realmSlugs := range aiRequest.RegionRealmTimestamps {
 		wList := sta.resolver.config.Whitelist[rName]
 
-		for _, realmSlug := range realmSlugs {
+		for realmSlug, unixTimestamp := range realmSlugs {
 			for _, rea := range sta.statuses[rName].Realms.filterWithWhitelist(wList) {
 				if rea.Slug != realmSlug {
 					continue
 				}
 
-				includedRegionRealms[rName].values[realmSlug] = rea
+				includedRegionRealms[rName].values[realmSlug] = realmMapValue{rea, time.Unix(unixTimestamp, 0)}
 				delete(excludedRegionRealms[rName].values, realmSlug)
 			}
 		}
@@ -67,8 +72,10 @@ func (aiRequest auctionsIntakeRequest) resolve(sta state) (regionRealmMap, regio
 	return includedRegionRealms, excludedRegionRealms, nil
 }
 
+type intakeRequestData = map[regionName]map[blizzard.RealmSlug]int64
+
 type auctionsIntakeRequest struct {
-	RegionRealmSlugs map[regionName][]blizzard.RealmSlug `json:"region_realmslugs"`
+	RegionRealmTimestamps intakeRequestData `json:"region_realm_timestamps"`
 }
 
 func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
