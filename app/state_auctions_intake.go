@@ -232,7 +232,7 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 			return
 		}
 
-		log.WithField("intake_buffer_size", len(in)).Info("Received auctions-intake-request")
+		log.WithFields(log.Fields{"intake_buffer_size": len(in), "data": string(natsMsg.Data)}).Info("Received auctions-intake-request")
 		sta.messenger.publishMetric(telegrafMetrics{"intake_buffer_size": int64(len(in))})
 
 		in <- aiRequest
