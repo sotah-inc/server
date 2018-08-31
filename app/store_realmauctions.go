@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"time"
 
 	storage "cloud.google.com/go/storage"
@@ -256,18 +255,7 @@ func (sto store) loadRealmAuctions(rea realm) (blizzard.Auctions, time.Time, err
 
 	rea.LogEntry().Info("Loading auctions from store")
 
-	reader, err := obj.NewReader(sto.context)
-	if err != nil {
-		return blizzard.Auctions{}, time.Time{}, err
-	}
-	defer reader.Close()
-
-	body, err := ioutil.ReadAll(reader)
-	if err != nil {
-		return blizzard.Auctions{}, time.Time{}, err
-	}
-
-	aucs, err := blizzard.NewAuctions(body)
+	aucs, err := blizzard.NewAuctionsFromGcloudObject(sto.context, obj)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"region": rea.region.Name,
