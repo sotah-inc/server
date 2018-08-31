@@ -274,6 +274,8 @@ func (rea realm) downloadAndCache(aFile blizzard.AuctionFile, res resolver) (bli
 
 			return blizzard.Auctions{}, err
 		}
+
+		return blizzard.NewAuctions(body)
 	}
 
 	// validating config
