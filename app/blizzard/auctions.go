@@ -1,11 +1,14 @@
 package blizzard
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"time"
 
+	"cloud.google.com/go/storage"
 	"github.com/ihsw/sotah-server/app/util"
 )
 
@@ -93,6 +96,22 @@ func DefaultGetAuctionsURL(url string) string { return url }
 
 // GetAuctionsURLFunc defines the expected function signature when generating a url for downloading auctions
 type GetAuctionsURLFunc func(url string) string
+
+// NewAuctionsFromGcloudObject fetches json from a gcloud store object
+func NewAuctionsFromGcloudObject(ctx context.Context, obj *storage.ObjectHandle) (Auctions, error) {
+	reader, err := obj.NewReader(ctx)
+	if err != nil {
+		return Auctions{}, err
+	}
+	defer reader.Close()
+
+	body, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return Auctions{}, err
+	}
+
+	return NewAuctions(body)
+}
 
 // NewAuctionsFromHTTP fetches json from the http api for auctions
 func NewAuctionsFromHTTP(url string) (Auctions, error) {
