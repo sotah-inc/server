@@ -81,12 +81,9 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 			startTime := time.Now()
 
 			// metrics
-			currentItemIds := map[blizzard.ItemID]struct{}{}
 			totalPreviousAuctions := 0
 			totalRemovedAuctions := 0
 			totalNewAuctions := 0
-			totalOwners := 0
-			totalAuctions := 0
 
 			// gathering the total number of auctions pre-intake
 			log.Info("Going over all auctions to for pre-intake metrics")
@@ -152,25 +149,30 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 			}
 
 			// going over current auctions for metrics
+			totalAuctions := 0
+			totalOwners := 0
+			currentItemIds := map[blizzard.ItemID]struct{}{}
 			log.Info("Going over all auctions for post-intake metrics")
-			for _, reg := range sta.regions {
-				log.WithField("region", reg.Name).Info("Going over region to gather post-intake metrics")
+			if false {
+				for _, reg := range sta.regions {
+					log.WithField("region", reg.Name).Info("Going over region to gather post-intake metrics")
 
-				for _, rea := range sta.statuses[reg.Name].Realms {
-					log.WithFields(log.Fields{
-						"region": reg.Name,
-						"realm":  rea.Slug,
-					}).Info("Going over realm to gather post-intake metrics")
+					for _, rea := range sta.statuses[reg.Name].Realms {
+						log.WithFields(log.Fields{
+							"region": reg.Name,
+							"realm":  rea.Slug,
+						}).Info("Going over realm to gather post-intake metrics")
 
-					for _, auc := range sta.auctions[reg.Name][rea.Slug] {
-						// going over new auctions data
-						realmOwnerNames := map[ownerName]struct{}{}
 						for _, auc := range sta.auctions[reg.Name][rea.Slug] {
-							realmOwnerNames[ownerName(auc.Owner)] = struct{}{}
-							currentItemIds[auc.ItemID] = struct{}{}
+							// going over new auctions data
+							realmOwnerNames := map[ownerName]struct{}{}
+							for _, auc := range sta.auctions[reg.Name][rea.Slug] {
+								realmOwnerNames[ownerName(auc.Owner)] = struct{}{}
+								currentItemIds[auc.ItemID] = struct{}{}
+							}
+							totalAuctions += len(auc.AucList)
+							totalOwners += len(realmOwnerNames)
 						}
-						totalAuctions += len(auc.AucList)
-						totalOwners += len(realmOwnerNames)
 					}
 				}
 			}
