@@ -165,7 +165,7 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 							"region": job.realm.region.Name,
 							"realm":  job.realm.Slug,
 							"error":  err.Error(),
-						}).Info("Failed to load auctions from filecache")
+						}).Info("Failed to load auctions")
 
 						continue
 					}
@@ -207,7 +207,7 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 				log.WithFields(log.Fields{
 					"region": rName,
 					"realms": len(rMap.values),
-				}).Info("Finished loading auctions from filecache")
+				}).Info("Finished loading auctions")
 			}
 
 			log.WithFields(log.Fields{
@@ -238,7 +238,7 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 			return
 		}
 
-		log.WithFields(log.Fields{"intake_buffer_size": len(in), "data": string(natsMsg.Data)}).Info("Received auctions-intake-request")
+		log.WithFields(log.Fields{"intake_buffer_size": len(in)}).Info("Received auctions-intake-request")
 		sta.messenger.publishMetric(telegrafMetrics{"intake_buffer_size": int64(len(in))})
 
 		in <- aiRequest
