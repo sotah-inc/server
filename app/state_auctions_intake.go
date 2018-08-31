@@ -40,23 +40,26 @@ func (aiRequest auctionsIntakeRequest) resolve(sta state) (regionRealmMap, regio
 	includedRegionRealms := regionRealmMap{}
 	excludedRegionRealms := regionRealmMap{}
 	for _, reg := range sta.regions {
+		wList := sta.resolver.config.Whitelist[reg.Name]
 		includedRegionRealms[reg.Name] = realmMap{map[blizzard.RealmSlug]realm{}}
 
 		excludedRegionRealms[reg.Name] = realmMap{map[blizzard.RealmSlug]realm{}}
-		for _, rea := range sta.statuses[reg.Name].Realms {
+		for _, rea := range sta.statuses[reg.Name].Realms.filterWithWhitelist(wList) {
 			excludedRegionRealms[reg.Name].values[rea.Slug] = rea
 		}
 	}
 
-	for rNAme, realmSlugs := range aiRequest.RegionRealmSlugs {
+	for rName, realmSlugs := range aiRequest.RegionRealmSlugs {
+		wList := sta.resolver.config.Whitelist[rName]
+
 		for _, realmSlug := range realmSlugs {
-			for _, rea := range sta.statuses[rNAme].Realms {
+			for _, rea := range sta.statuses[rName].Realms.filterWithWhitelist(wList) {
 				if rea.Slug != realmSlug {
 					continue
 				}
 
-				includedRegionRealms[rNAme].values[realmSlug] = rea
-				delete(excludedRegionRealms[rNAme].values, realmSlug)
+				includedRegionRealms[rName].values[realmSlug] = rea
+				delete(excludedRegionRealms[rName].values, realmSlug)
 			}
 		}
 	}
@@ -75,7 +78,7 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 		for {
 			aiRequest := <-in
 
-			includedRegionRealms, _, err := aiRequest.resolve(sta)
+			includedRegionRealms, excludedRegionRealms, err := aiRequest.resolve(sta)
 			if err != nil {
 				log.WithField("error", err.Error()).Info("Failed to resolve auctions-intake-request")
 
@@ -86,14 +89,19 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 			for rName, reas := range sta.statuses {
 				totalRealms += len(reas.Realms.filterWithWhitelist(sta.resolver.config.Whitelist[rName]))
 			}
-			processedRealms := 0
+			includedRealmCount := 0
 			for _, reas := range includedRegionRealms {
-				processedRealms += len(reas.values)
+				includedRealmCount += len(reas.values)
+			}
+			excludedRealmCount := 0
+			for _, reas := range excludedRegionRealms {
+				excludedRealmCount += len(reas.values)
 			}
 
 			log.WithFields(log.Fields{
-				"processed_realms": processedRealms,
-				"total_realms":     totalRealms,
+				"included_realms": includedRealmCount,
+				"excluded_realms": excludedRealmCount,
+				"total_realms":    totalRealms,
 			}).Info("Handling auctions-intake-request")
 
 			// misc
@@ -197,12 +205,13 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 			}
 
 			log.WithFields(log.Fields{
-				"total_realms":     totalRealms,
-				"processed_realms": processedRealms,
+				"total_realms":    totalRealms,
+				"included_realms": includedRealmCount,
+				"excluded_realms": excludedRealmCount,
 			}).Info("Processed all realms")
 			sta.messenger.publishMetric(telegrafMetrics{
 				"intake_duration":        int64(time.Now().Unix() - startTime.Unix()),
-				"intake_count":           int64(processedRealms),
+				"intake_count":           int64(includedRealmCount),
 				"total_auctions":         int64(totalAuctions),
 				"total_new_auctions":     int64(totalNewAuctions),
 				"total_removed_auctions": int64(totalRemovedAuctions),
