@@ -152,7 +152,7 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 				}).Info("Going over realms")
 
 				// loading auctions from file cache
-				loadedAuctions := rMap.toRealms().loadAuctionsFromCacheDir(sta.resolver.config)
+				loadedAuctions := sta.resolver.store.loadRegionRealmMap(rMap)
 				for job := range loadedAuctions {
 					if job.err != nil {
 						log.WithFields(log.Fields{

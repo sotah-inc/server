@@ -169,6 +169,57 @@ func (sto store) getTotalRealmsAuctionSize(reas realms) chan getTotalRealmAuctio
 	return out
 }
 
+func (sto store) loadRegionRealmMap(rMap realmMap) chan loadAuctionsJob {
+	// establishing channels
+	out := make(chan loadAuctionsJob)
+	in := make(chan realmMapValue)
+
+	// spinning up the workers for fetching auctions
+	worker := func() {
+		for rValue := range in {
+			aucs, lastModified, err := sto.loadRealmAuctions(rValue.realm, rValue.lastModified)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"region": rValue.realm.region.Name,
+					"realm":  rValue.realm.Slug,
+					"error":  err.Error(),
+				}).Info("Failed to load store auctions")
+
+				out <- loadAuctionsJob{err, rValue.realm, blizzard.Auctions{}, time.Time{}}
+
+				continue
+			}
+
+			if lastModified.IsZero() {
+				log.WithFields(log.Fields{
+					"region": rValue.realm.region.Name,
+					"realm":  rValue.realm.Slug,
+				}).Info("No auctions were loaded")
+
+				continue
+			}
+
+			out <- loadAuctionsJob{err, rValue.realm, aucs, lastModified}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(4, worker, postWork)
+
+	// queueing up the realms
+	go func() {
+		for _, rValue := range rMap.values {
+			log.WithField("realm", rValue.realm.Slug).Debug("Queueing up auction for store loading")
+			in <- rValue
+		}
+
+		close(in)
+	}()
+
+	return out
+}
+
 func (sto store) loadRealmsAuctions(c *config, reas realms) chan loadAuctionsJob {
 	// establishing channels
 	out := make(chan loadAuctionsJob)
