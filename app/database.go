@@ -91,7 +91,7 @@ func newDatabases(c config, stas statuses, itemIds []blizzard.ItemID) (databases
 			}).Info("Ensuring item-price buckets exist")
 			err = dBase.db.Batch(func(tx *bolt.Tx) error {
 				for _, itemID := range itemIds {
-					if _, err := tx.CreateBucketIfNotExists([]byte(fmt.Sprintf("item-prices/%d", itemID))); err != nil {
+					if _, err := tx.CreateBucketIfNotExists(itemIDPricelistBucketName(itemID)); err != nil {
 						return err
 					}
 
