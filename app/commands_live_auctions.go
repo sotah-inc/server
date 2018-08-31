@@ -77,7 +77,7 @@ func liveAuctions(c config, m messenger, s store) error {
 
 	// loading up auctions
 	for _, reg := range sta.regions {
-		loadedAuctions := sta.statuses[reg.Name].Realms.loadAuctionsFromCacheDir(&c)
+		loadedAuctions := sta.statuses[reg.Name].Realms.loadAuctions(&c, s)
 		for job := range loadedAuctions {
 			if job.err != nil {
 				return job.err
