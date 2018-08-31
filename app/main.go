@@ -21,11 +21,12 @@ func main() {
 		cacheDir       = app.Flag("cache-dir", "Directory to cache data files to").Required().String()
 		projectID      = app.Flag("project-id", "GCloud Storage Project ID").Default("").OverrideDefaultFromEnvar("PROJECT_ID").String()
 
-		apiTestCommand      = app.Command(commands.APITest, "For running sotah-api tests.")
-		apiTestDataDir      = apiTestCommand.Flag("data-dir", "Directory to load test fixtures from").Required().Short('d').String()
-		apiCommand          = app.Command(commands.API, "For running sotah-server.")
-		syncItemsCommand    = app.Command(commands.SyncItems, "For syncing items in gcloud storage to local disk.")
-		liveAuctionsCommand = app.Command(commands.LiveAuctions, "For in-memory storage of current auctions.")
+		apiTestCommand            = app.Command(commands.APITest, "For running sotah-api tests.")
+		apiTestDataDir            = apiTestCommand.Flag("data-dir", "Directory to load test fixtures from").Required().Short('d').String()
+		apiCommand                = app.Command(commands.API, "For running sotah-server.")
+		syncItemsCommand          = app.Command(commands.SyncItems, "For syncing items in gcloud storage to local disk.")
+		liveAuctionsCommand       = app.Command(commands.LiveAuctions, "For in-memory storage of current auctions.")
+		pricelistHistoriesCommand = app.Command(commands.PricelistHistories, "For on-disk storage of pricelist histories.")
 	)
 	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
 
@@ -131,6 +132,18 @@ func main() {
 		err := liveAuctions(c, mess, stor)
 		if err != nil {
 			fmt.Printf("Could not run live-auctions command: %s\n", err.Error())
+			os.Exit(1)
+
+			return
+		}
+
+		os.Exit(0)
+
+		return
+	case pricelistHistoriesCommand.FullCommand():
+		err := pricelistHistories(c, mess, stor)
+		if err != nil {
+			fmt.Printf("Could not run pricelist-histories command: %s\n", err.Error())
 			os.Exit(1)
 
 			return
