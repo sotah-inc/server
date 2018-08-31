@@ -8,6 +8,7 @@ import (
 
 	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/subjects"
+	"github.com/ihsw/sotah-server/app/util"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -37,15 +38,37 @@ func pricelistHistories(c config, m messenger, s store) error {
 			return fmt.Errorf("Failed to fetch regions after %d attempts", attempts)
 		}
 	}
+
 	for i, reg := range regions {
 		sta.regions[i] = *reg
+	}
 
-		stas, err := newStatusFromMessenger(*reg, m)
-		if err != nil {
-			return err
+	// filling state with statuses
+	for _, reg := range regions {
+		if c.Whitelist[reg.Name] != nil && len(*c.Whitelist[reg.Name]) == 0 {
+			log.WithField("region", reg.Name).Info("Filtering out region from initialization")
+
+			continue
 		}
 
-		sta.statuses[reg.Name] = stas
+		regionStatus, err := newStatusFromMessenger(*reg, m)
+		if err != nil {
+			log.WithField("region", reg.Name).Info("Could not fetch status for region")
+
+			return err
+		}
+		sta.statuses[reg.Name] = regionStatus
+	}
+
+	// ensuring cache-dirs exist
+	cacheDirs := []string{
+		fmt.Sprintf("%s/databases", c.CacheDir),
+	}
+	for _, reg := range sta.regions {
+		cacheDirs = append(cacheDirs, fmt.Sprintf("%s/databases/%s", c.CacheDir, reg.Name))
+	}
+	if err := util.EnsureDirsExist(cacheDirs); err != nil {
+		return err
 	}
 
 	// loading up items
