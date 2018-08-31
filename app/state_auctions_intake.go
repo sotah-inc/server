@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"time"
 
 	"github.com/ihsw/sotah-server/app/blizzard"
@@ -22,27 +21,47 @@ func newAuctionsIntakeRequest(payload []byte) (auctionsIntakeRequest, error) {
 	return *ar, nil
 }
 
-func (aiRequest auctionsIntakeRequest) resolve(sta state) (map[regionName]realms, error) {
-	out := map[regionName]realms{}
-	for rNAme, realmSlugs := range aiRequest.RegionRealmSlugs {
-		statusValue, ok := sta.statuses[rNAme]
-		if !ok {
-			return nil, errors.New("Invalid region")
-		}
+type realmMap struct {
+	values map[blizzard.RealmSlug]realm
+}
 
-		out[rNAme] = realms{}
-		for _, rea := range statusValue.Realms {
-			for _, inRealm := range realmSlugs {
-				if rea.Slug != inRealm {
+func (rMap realmMap) toRealms() realms {
+	out := realms{}
+	for _, rea := range rMap.values {
+		out = append(out, rea)
+	}
+
+	return out
+}
+
+type regionRealmMap = map[regionName]realmMap
+
+func (aiRequest auctionsIntakeRequest) resolve(sta state) (regionRealmMap, regionRealmMap, error) {
+	includedRegionRealms := regionRealmMap{}
+	excludedRegionRealms := regionRealmMap{}
+	for _, reg := range sta.regions {
+		includedRegionRealms[reg.Name] = realmMap{map[blizzard.RealmSlug]realm{}}
+
+		excludedRegionRealms[reg.Name] = realmMap{map[blizzard.RealmSlug]realm{}}
+		for _, rea := range sta.statuses[reg.Name].Realms {
+			excludedRegionRealms[reg.Name].values[rea.Slug] = rea
+		}
+	}
+
+	for rNAme, realmSlugs := range aiRequest.RegionRealmSlugs {
+		for _, realmSlug := range realmSlugs {
+			for _, rea := range sta.statuses[rNAme].Realms {
+				if rea.Slug != realmSlug {
 					continue
 				}
 
-				out[rNAme] = append(out[rNAme], rea)
+				includedRegionRealms[rNAme].values[realmSlug] = rea
+				delete(excludedRegionRealms[rNAme].values, realmSlug)
 			}
 		}
 	}
 
-	return out, nil
+	return includedRegionRealms, excludedRegionRealms, nil
 }
 
 type auctionsIntakeRequest struct {
@@ -56,7 +75,7 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 		for {
 			aiRequest := <-in
 
-			regionRealms, err := aiRequest.resolve(sta)
+			includedRegionRealms, _, err := aiRequest.resolve(sta)
 			if err != nil {
 				log.WithField("error", err.Error()).Info("Failed to resolve auctions-intake-request")
 
@@ -68,8 +87,8 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 				totalRealms += len(reas.Realms.filterWithWhitelist(sta.resolver.config.Whitelist[rName]))
 			}
 			processedRealms := 0
-			for _, reas := range regionRealms {
-				processedRealms += len(reas)
+			for _, reas := range includedRegionRealms {
+				processedRealms += len(reas.values)
 			}
 
 			log.WithFields(log.Fields{
@@ -96,14 +115,14 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 			}
 
 			// going over auctions in the filecache
-			for rName, reas := range regionRealms {
+			for rName, rMap := range includedRegionRealms {
 				log.WithFields(log.Fields{
 					"region": rName,
-					"realms": len(reas),
+					"realms": len(rMap.values),
 				}).Info("Going over realms")
 
 				// loading auctions from file cache
-				loadedAuctions := reas.loadAuctionsFromCacheDir(sta.resolver.config)
+				loadedAuctions := rMap.toRealms().loadAuctionsFromCacheDir(sta.resolver.config)
 				for job := range loadedAuctions {
 					if job.err != nil {
 						log.WithFields(log.Fields{
@@ -144,7 +163,7 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 				}
 				log.WithFields(log.Fields{
 					"region": rName,
-					"realms": len(reas),
+					"realms": len(rMap.values),
 				}).Info("Finished loading auctions from filecache")
 			}
 
