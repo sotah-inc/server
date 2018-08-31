@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/codes"
@@ -17,14 +18,15 @@ type requestError struct {
 
 func newState(mess messenger, res resolver) state {
 	return state{
-		messenger:   mess,
-		resolver:    res,
-		regions:     res.config.Regions,
-		statuses:    statuses{},
-		auctions:    map[regionName]map[blizzard.RealmSlug]miniAuctionList{},
-		items:       map[blizzard.ItemID]item{},
-		expansions:  res.config.Expansions,
-		professions: res.config.Professions,
+		messenger:             mess,
+		resolver:              res,
+		regions:               res.config.Regions,
+		statuses:              statuses{},
+		auctionIntakeStatuses: map[regionName]map[blizzard.RealmSlug]time.Time{},
+		auctions:              map[regionName]map[blizzard.RealmSlug]miniAuctionList{},
+		items:                 map[blizzard.ItemID]item{},
+		expansions:            res.config.Expansions,
+		professions:           res.config.Professions,
 	}
 }
 
@@ -34,13 +36,14 @@ type state struct {
 	listeners listeners
 	databases databases
 
-	regions     []region
-	statuses    statuses
-	auctions    map[regionName]map[blizzard.RealmSlug]miniAuctionList
-	items       itemsMap
-	itemClasses blizzard.ItemClasses
-	expansions  []expansion
-	professions []profession
+	regions               []region
+	statuses              statuses
+	auctionIntakeStatuses map[regionName]map[blizzard.RealmSlug]time.Time
+	auctions              map[regionName]map[blizzard.RealmSlug]miniAuctionList
+	items                 itemsMap
+	itemClasses           blizzard.ItemClasses
+	expansions            []expansion
+	professions           []profession
 }
 
 func (sta state) listenForRegions(stop listenStopChan) error {
