@@ -242,6 +242,8 @@ func (sto store) getRealmAuctionsObjectAtTimeOrLatest(bkt *storage.BucketHandle,
 }
 
 func (sto store) getRealmAuctionsObjectAtTime(bkt *storage.BucketHandle, targetTime time.Time) (*storage.ObjectHandle, error) {
+	log.WithField("target-time", targetTime.Unix()).Info("Fetching realm-auctions object at time")
+
 	exists, err := sto.realmAuctionsObjectExists(bkt, targetTime)
 	if err != nil {
 		return nil, err
@@ -255,6 +257,8 @@ func (sto store) getRealmAuctionsObjectAtTime(bkt *storage.BucketHandle, targetT
 }
 
 func (sto store) getLatestRealmAuctionsObject(bkt *storage.BucketHandle) (*storage.ObjectHandle, time.Time, error) {
+	log.Info("Fetching latest realm-auctions object")
+
 	var obj *storage.ObjectHandle
 	var objAttrs *storage.ObjectAttrs
 	lastCreated := time.Time{}
