@@ -1,7 +1,10 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	storage "cloud.google.com/go/storage"
@@ -60,6 +63,23 @@ func (sto store) resolveRealmAuctionsBucket(rea realm) (*storage.BucketHandle, e
 
 func (sto store) getRealmAuctionsObjectName(lastModified time.Time) string {
 	return fmt.Sprintf("%d.json.gz", lastModified.Unix())
+}
+
+func (sto store) getRealmAuctionsObject(bkt *storage.BucketHandle, lastModified time.Time) *storage.ObjectHandle {
+	return bkt.Object(sto.getRealmAuctionsObjectName(lastModified))
+}
+
+func (sto store) realmAuctionsObjectExists(bkt *storage.BucketHandle, lastModified time.Time) (bool, error) {
+	_, err := sto.getRealmAuctionsObject(bkt, lastModified).Attrs(sto.context)
+	if err != nil {
+		if err != storage.ErrObjectNotExist {
+			return false, err
+		}
+
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func (sto store) writeRealmAuctions(rea realm, lastModified time.Time, body []byte) error {
@@ -157,7 +177,7 @@ func (sto store) loadRealmsAuctions(c *config, reas realms) chan loadAuctionsJob
 	// spinning up the workers for fetching auctions
 	worker := func() {
 		for rea := range in {
-			aucs, lastModified, err := sto.loadRealmAuctions(rea)
+			aucs, lastModified, err := sto.loadRealmAuctions(rea, time.Time{})
 			if err != nil {
 				log.WithFields(log.Fields{
 					"region": rea.region.Name,
@@ -208,7 +228,68 @@ func (sto store) loadRealmsAuctions(c *config, reas realms) chan loadAuctionsJob
 	return out
 }
 
-func (sto store) loadRealmAuctions(rea realm) (blizzard.Auctions, time.Time, error) {
+func (sto store) getRealmAuctionsObjectAtTimeOrLatest(bkt *storage.BucketHandle, targetTime time.Time) (*storage.ObjectHandle, time.Time, error) {
+	if targetTime.IsZero() {
+		return sto.getLatestRealmAuctionsObject(bkt)
+	}
+
+	obj, err := sto.getRealmAuctionsObjectAtTime(bkt, targetTime)
+	if err != nil {
+		return nil, time.Time{}, err
+	}
+
+	return obj, targetTime, nil
+}
+
+func (sto store) getRealmAuctionsObjectAtTime(bkt *storage.BucketHandle, targetTime time.Time) (*storage.ObjectHandle, error) {
+	exists, err := sto.realmAuctionsObjectExists(bkt, targetTime)
+	if err != nil {
+		return nil, err
+	}
+
+	if !exists {
+		return nil, errors.New("Realm auctions object does not exist")
+	}
+
+	return sto.getRealmAuctionsObject(bkt, targetTime), nil
+}
+
+func (sto store) getLatestRealmAuctionsObject(bkt *storage.BucketHandle) (*storage.ObjectHandle, time.Time, error) {
+	var obj *storage.ObjectHandle
+	var objAttrs *storage.ObjectAttrs
+	lastCreated := time.Time{}
+	it := bkt.Objects(sto.context, nil)
+	for {
+		nextObjAttrs, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return nil, time.Time{}, err
+		}
+
+		if obj == nil || lastCreated.IsZero() || lastCreated.Before(nextObjAttrs.Created) {
+			obj = bkt.Object(nextObjAttrs.Name)
+			objAttrs = nextObjAttrs
+			lastCreated = nextObjAttrs.Created
+		}
+	}
+
+	if obj == nil {
+		return nil, time.Time{}, nil
+	}
+
+	s := strings.Split(objAttrs.Name, ".")
+	lastModifiedUnix, err := strconv.Atoi(s[0])
+	if err != nil {
+		return nil, time.Time{}, err
+	}
+	lastModified := time.Unix(int64(lastModifiedUnix), 0)
+
+	return obj, lastModified, nil
+}
+
+func (sto store) loadRealmAuctions(rea realm, targetTime time.Time) (blizzard.Auctions, time.Time, error) {
 	hasBucket, err := sto.realmAuctionsBucketExists(rea)
 	if err != nil {
 		return blizzard.Auctions{}, time.Time{}, err
@@ -228,23 +309,9 @@ func (sto store) loadRealmAuctions(rea realm) (blizzard.Auctions, time.Time, err
 		return blizzard.Auctions{}, time.Time{}, err
 	}
 
-	lastCreated := time.Time{}
-	var obj *storage.ObjectHandle
-	it := bkt.Objects(sto.context, nil)
-	for {
-		objAttrs, err := it.Next()
-		if err == iterator.Done {
-			break
-		}
-
-		if err != nil {
-			return blizzard.Auctions{}, time.Time{}, err
-		}
-
-		if obj == nil || lastCreated.IsZero() || lastCreated.Before(objAttrs.Created) {
-			obj = bkt.Object(objAttrs.Name)
-			lastCreated = objAttrs.Created
-		}
+	obj, lastModified, err := sto.getRealmAuctionsObjectAtTimeOrLatest(bkt, targetTime)
+	if err != nil {
+		return blizzard.Auctions{}, time.Time{}, err
 	}
 
 	if obj == nil {
@@ -274,5 +341,5 @@ func (sto store) loadRealmAuctions(rea realm) (blizzard.Auctions, time.Time, err
 		"realm":  rea.Slug,
 	}).Info("Loaded auctions from store")
 
-	return aucs, lastCreated, nil
+	return aucs, lastModified, nil
 }
