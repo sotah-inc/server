@@ -225,6 +225,13 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 				"current_owner_count":     int64(totalOwners),
 				"current_item_count":      int64(len(currentItemIds)),
 			})
+
+			encodedAiRequest, err := json.Marshal(aiRequest)
+			if err != nil {
+				log.WithField("error", err.Error()).Info("Failed to marshal auctions-intake-request")
+			} else {
+				sta.resolver.messenger.publish(subjects.PricelistsIntake, encodedAiRequest)
+			}
 		}
 	}()
 
