@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/subjects"
 	log "github.com/sirupsen/logrus"
 )
@@ -47,12 +48,31 @@ func pricelistHistories(c config, m messenger, s store) error {
 		sta.statuses[reg.Name] = stas
 	}
 
+	// loading up items
+	loadedItems, err := loadItemsFromFilecache(*res.config)
+	if err != nil {
+		return err
+	}
+	itemIds := []blizzard.ItemID{}
+	for job := range loadedItems {
+		if job.err != nil {
+			log.WithFields(log.Fields{
+				"filepath": job.filepath,
+				"error":    job.err.Error(),
+			}).Error("Failed to load item")
+
+			return job.err
+		}
+
+		itemIds = append(itemIds, job.item.ID)
+	}
+
 	// loading up databases
-	// dbs, err := newDatabases(c, sta.statuses, itemIds)
-	// if err != nil {
-	// 	return err
-	// }
-	// sta.databases = dbs
+	dbs, err := newDatabases(c, sta.statuses, itemIds)
+	if err != nil {
+		return err
+	}
+	sta.databases = dbs
 
 	// opening all listeners
 	sta.listeners = newListeners(subjectListeners{

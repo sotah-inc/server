@@ -1,62 +1,79 @@
 package main
 
 import (
-	"encoding/json"
-
-	"github.com/ihsw/sotah-server/app/blizzard"
-
 	"github.com/ihsw/sotah-server/app/subjects"
 	nats "github.com/nats-io/go-nats"
+	log "github.com/sirupsen/logrus"
 )
 
-func newPricelistsIntakeRequest(payload []byte) (pricelistsIntakeRequest, error) {
-	piRequest := &pricelistsIntakeRequest{}
-	err := json.Unmarshal(payload, &piRequest)
-	if err != nil {
-		return pricelistsIntakeRequest{}, err
-	}
-
-	return *piRequest, nil
-}
-
-type pricelistsIntakeRequest struct {
-	RegionResults map[regionName]map[blizzard.RealmSlug]int64 `json:"results"`
-}
-
 func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
+	// spinning up a worker for handling pricelists-intake requests
+	in := make(chan auctionsIntakeRequest, 10)
+	go func() {
+		for {
+			aiRequest := <-in
+
+			includedRegionRealms, _, err := aiRequest.resolve(sta)
+			if err != nil {
+				log.WithField("error", err.Error()).Info("Failed to resolve auctions-intake-request")
+
+				continue
+			}
+
+			includedRealmCount := 0
+			for _, reas := range includedRegionRealms {
+				includedRealmCount += len(reas.values)
+			}
+
+			// going over auctions in the filecache
+			for rName, rMap := range includedRegionRealms {
+				log.WithFields(log.Fields{
+					"region": rName,
+					"realms": len(rMap.values),
+				}).Info("Going over realms")
+
+				// loading auctions from file cache
+				loadedAuctions := func() chan loadAuctionsJob {
+					if sta.resolver.config.UseGCloudStorage {
+						return sta.resolver.store.loadRegionRealmMap(rMap)
+					}
+
+					return rMap.toRealms().loadAuctionsFromCacheDir(sta.resolver.config)
+				}()
+				for job := range loadedAuctions {
+					if job.err != nil {
+						log.WithFields(log.Fields{
+							"region": job.realm.region.Name,
+							"realm":  job.realm.Slug,
+							"error":  err.Error(),
+						}).Info("Failed to load auctions from filecache")
+
+						continue
+					}
+				}
+				log.WithFields(log.Fields{
+					"region": rName,
+					"realms": len(rMap.values),
+				}).Info("Finished loading auctions")
+			}
+
+			log.WithFields(log.Fields{"included_realms": includedRealmCount}).Info("Processed all realms")
+		}
+	}()
+
 	err := sta.messenger.subscribe(subjects.PricelistsIntake, stop, func(natsMsg nats.Msg) {
-		// // writing pricelists to db
-		// lastModifiedKey := make([]byte, 8)
-		// binary.LittleEndian.PutUint64(lastModifiedKey, uint64(job.lastModified.Unix()))
-		// pLists := newPriceList(itemIds, minimizedAuctions)
-		// db := sta.databases[reg.Name][rea.Slug].db
-		// log.WithFields(log.Fields{
-		// 	"region": reg.Name,
-		// 	"realm":  rea.Slug,
-		// 	"count":  len(pLists),
-		// }).Info("Writing pricelists")
-		// err := db.Batch(func(tx *bolt.Tx) error {
-		// 	for itemID, pList := range pLists {
-		// 		b, err := tx.CreateBucketIfNotExists([]byte(fmt.Sprintf("item-prices/%d", itemID)))
-		// 		if err != nil {
-		// 			return err
-		// 		}
+		// resolving the request
+		aiRequest, err := newAuctionsIntakeRequest(natsMsg.Data)
+		if err != nil {
+			log.Info("Failed to parse auctions-intake-request")
 
-		// 		result, err := json.Marshal(pList)
-		// 		if err != nil {
-		// 			return err
-		// 		}
+			return
+		}
 
-		// 		if err = b.Put(lastModifiedKey, result); err != nil {
-		// 			return err
-		// 		}
-		// 	}
+		log.WithFields(log.Fields{"intake_buffer_size": len(in)}).Info("Received auctions-intake-request")
+		sta.messenger.publishMetric(telegrafMetrics{"intake_buffer_size": int64(len(in))})
 
-		// 	return nil
-		// })
-		// if err != nil {
-		// 	return auctionsIntakeResult{}, err
-		// }
+		in <- aiRequest
 	})
 	if err != nil {
 		return err
