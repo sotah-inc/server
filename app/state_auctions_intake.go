@@ -111,6 +111,9 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 			totalPreviousAuctions := 0
 			totalRemovedAuctions := 0
 			totalNewAuctions := 0
+			totalAuctions := 0
+			totalOwners := 0
+			currentItemIds := map[blizzard.ItemID]struct{}{}
 
 			// gathering the total number of auctions pre-intake
 			log.Info("Going over all auctions to for pre-intake metrics")
@@ -119,6 +122,18 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 					for _, auc := range sta.auctions[reg.Name][rea.Slug] {
 						totalPreviousAuctions += len(auc.AucList)
 					}
+				}
+			}
+			for rName, regionRealms := range excludedRegionRealms {
+				for rSlug := range regionRealms.values {
+
+					realmOwnerNames := map[ownerName]struct{}{}
+					for _, auc := range sta.auctions[rName][rSlug] {
+						totalAuctions += len(auc.AucList)
+						realmOwnerNames[ownerName(auc.Owner)] = struct{}{}
+						currentItemIds[auc.ItemID] = struct{}{}
+					}
+					totalOwners += len(realmOwnerNames)
 				}
 			}
 
@@ -142,6 +157,9 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 						continue
 					}
 
+					// gathering metrics of new auctions
+					totalAuctions += len(job.auctions.Auctions)
+
 					// gathering previous and new auction ids for comparison
 					removedAuctionIds := map[int64]struct{}{}
 					for _, mAuction := range sta.auctions[job.realm.region.Name][job.realm.Slug] {
@@ -149,6 +167,7 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 							removedAuctionIds[auc] = struct{}{}
 						}
 					}
+					realmOwnerNames := map[ownerName]struct{}{}
 					newAuctionIds := map[int64]struct{}{}
 					for _, auc := range job.auctions.Auctions {
 						if _, ok := removedAuctionIds[auc.Auc]; ok {
@@ -156,7 +175,10 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 						}
 
 						newAuctionIds[auc.Auc] = struct{}{}
+						realmOwnerNames[ownerName(auc.Owner)] = struct{}{}
+						currentItemIds[auc.Item] = struct{}{}
 					}
+					totalOwners += len(realmOwnerNames)
 					for _, mAuction := range sta.auctions[job.realm.region.Name][job.realm.Slug] {
 						for _, auc := range mAuction.AucList {
 							if _, ok := newAuctionIds[auc]; ok {
@@ -173,35 +195,6 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 					"region": rName,
 					"realms": len(rMap.values),
 				}).Info("Finished loading auctions from filecache")
-			}
-
-			// going over current auctions for metrics
-			totalAuctions := 0
-			totalOwners := 0
-			currentItemIds := map[blizzard.ItemID]struct{}{}
-			log.Info("Going over all auctions for post-intake metrics")
-			if false {
-				for _, reg := range sta.regions {
-					log.WithField("region", reg.Name).Info("Going over region to gather post-intake metrics")
-
-					for _, rea := range sta.statuses[reg.Name].Realms {
-						log.WithFields(log.Fields{
-							"region": reg.Name,
-							"realm":  rea.Slug,
-						}).Info("Going over realm to gather post-intake metrics")
-
-						for _, auc := range sta.auctions[reg.Name][rea.Slug] {
-							// going over new auctions data
-							realmOwnerNames := map[ownerName]struct{}{}
-							for _, auc := range sta.auctions[reg.Name][rea.Slug] {
-								realmOwnerNames[ownerName(auc.Owner)] = struct{}{}
-								currentItemIds[auc.ItemID] = struct{}{}
-							}
-							totalAuctions += len(auc.AucList)
-							totalOwners += len(realmOwnerNames)
-						}
-					}
-				}
 			}
 
 			log.WithFields(log.Fields{
