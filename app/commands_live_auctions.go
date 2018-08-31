@@ -64,17 +64,6 @@ func liveAuctions(c config, m messenger, s store) error {
 		}
 	}
 
-	// opening all listeners
-	sta.listeners = newListeners(subjectListeners{
-		subjects.Auctions:       sta.listenForAuctions,
-		subjects.AuctionsIntake: sta.listenForAuctionsIntake,
-		subjects.AuctionsQuery:  sta.listenForAuctionsQuery,
-		subjects.PriceList:      sta.listenForPriceList,
-	})
-	if err := sta.listeners.listen(); err != nil {
-		return err
-	}
-
 	// loading up auctions
 	for _, reg := range sta.regions {
 		loadedAuctions := sta.statuses[reg.Name].Realms.loadAuctions(&c, s)
@@ -97,6 +86,17 @@ func liveAuctions(c config, m messenger, s store) error {
 				break
 			}
 		}
+	}
+
+	// opening all listeners
+	sta.listeners = newListeners(subjectListeners{
+		subjects.Auctions:       sta.listenForAuctions,
+		subjects.AuctionsIntake: sta.listenForAuctionsIntake,
+		subjects.AuctionsQuery:  sta.listenForAuctionsQuery,
+		subjects.PriceList:      sta.listenForPriceList,
+	})
+	if err := sta.listeners.listen(); err != nil {
+		return err
 	}
 
 	// catching SIGINT
