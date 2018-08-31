@@ -58,7 +58,6 @@ func api(c config, m messenger, s store) error {
 	if err != nil {
 		return err
 	}
-	itemIds := []blizzard.ItemID{}
 	for job := range loadedItems {
 		if job.err != nil {
 			log.WithFields(log.Fields{
@@ -70,7 +69,6 @@ func api(c config, m messenger, s store) error {
 		}
 
 		sta.items[job.item.ID] = item{job.item, job.iconURL}
-		itemIds = append(itemIds, job.item.ID)
 	}
 
 	// gathering item-classes
