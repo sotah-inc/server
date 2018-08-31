@@ -76,7 +76,8 @@ func pricelistHistories(c config, m messenger, s store) error {
 
 	// opening all listeners
 	sta.listeners = newListeners(subjectListeners{
-		subjects.PricelistsIntake: sta.listenForAuctions,
+		subjects.PricelistsIntake: sta.listenForPricelistsIntake,
+		subjects.PriceListHistory: sta.listenForPriceListHistory,
 	})
 	if err := sta.listeners.listen(); err != nil {
 		return err
