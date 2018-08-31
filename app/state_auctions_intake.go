@@ -152,7 +152,13 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 				}).Info("Going over realms")
 
 				// loading auctions from file cache
-				loadedAuctions := sta.resolver.store.loadRegionRealmMap(rMap)
+				loadedAuctions := func() chan loadAuctionsJob {
+					if sta.resolver.config.UseGCloudStorage {
+						return sta.resolver.store.loadRegionRealmMap(rMap)
+					}
+
+					return rMap.toRealms().loadAuctionsFromCacheDir(sta.resolver.config)
+				}()
 				for job := range loadedAuctions {
 					if job.err != nil {
 						log.WithFields(log.Fields{
