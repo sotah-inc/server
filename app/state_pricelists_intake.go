@@ -83,10 +83,10 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 				}).Info("Finished loading auctions")
 			}
 
-			log.WithFields(log.Fields{
+			log.WithFields(log.Fields{"included_realms": includedRealmCount}).Info("Processed all realms")
+			sta.messenger.publishMetric(telegrafMetrics{
 				"pricelists_intake_duration": int64(time.Now().Unix() - startTime.Unix()),
-				"included_realms":            includedRealmCount,
-			}).Info("Processed all realms")
+			})
 		}
 	}()
 
