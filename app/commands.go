@@ -113,6 +113,10 @@ func api(c config, m messenger, s store) error {
 				c.Professions[i].IconURL = job.iconURL
 			}
 		}
+	} else {
+		for i, prof := range c.Professions {
+			c.Professions[i].IconURL = defaultGetItemIconURL(prof.Icon)
+		}
 	}
 
 	// opening all listeners
