@@ -74,7 +74,7 @@ func (dBase database) getPricelistHistory(ID blizzard.ItemID) (priceListHistory,
 		}
 
 		b.ForEach(func(k, v []byte) error {
-			unixTime := int64(binary.BigEndian.Uint64(k))
+			unixTime := int64(binary.LittleEndian.Uint64(k))
 			pricesValue, err := newPricesFromBytes(v)
 			if err != nil {
 				return err
