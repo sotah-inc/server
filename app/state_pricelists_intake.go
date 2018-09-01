@@ -76,6 +76,21 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 
 						continue
 					}
+
+					mAuctions := newMiniAuctionListFromBlizzardAuctions(job.auctions.Auctions)
+					err := sta.databases[job.realm.region.Name][job.realm.Slug].persistPricelists(
+						job.lastModified,
+						newPriceList(mAuctions.itemIds(), mAuctions),
+					)
+					if err != nil {
+						log.WithFields(log.Fields{
+							"region": job.realm.region.Name,
+							"realm":  job.realm.Slug,
+							"error":  err.Error(),
+						}).Info("Failed to persist auctions to database")
+
+						continue
+					}
 				}
 				log.WithFields(log.Fields{
 					"region": rName,

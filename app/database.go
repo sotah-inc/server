@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -33,6 +34,29 @@ type priceListHistory map[int64]priceList
 type database struct {
 	db    *bolt.DB
 	realm realm
+}
+
+func (dBase database) persistPricelists(targetDate time.Time, pList priceList) error {
+	return dBase.db.Batch(func(tx *bolt.Tx) error {
+		for ID, pricesValue := range pList {
+			b, err := tx.CreateBucketIfNotExists(itemIDPricelistBucketName(ID))
+			if err != nil {
+				return err
+			}
+
+			key := make([]byte, 8)
+			binary.LittleEndian.PutUint64(key, uint64(targetDate.Unix()))
+
+			encodedPricesValue, err := json.Marshal(pricesValue)
+			if err != nil {
+				return err
+			}
+
+			b.Put(key, encodedPricesValue)
+		}
+
+		return nil
+	})
 }
 
 func (dBase database) getPricelistHistory(ID blizzard.ItemID) (priceListHistory, error) {
