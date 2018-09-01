@@ -37,6 +37,12 @@ type database struct {
 }
 
 func (dBase database) persistPricelists(targetDate time.Time, pList priceList) error {
+	log.WithFields(log.Fields{
+		"region":     dBase.realm.region.Name,
+		"realm":      dBase.realm.Slug,
+		"pricelists": len(pList),
+	}).Info("Writing pricelists")
+
 	return dBase.db.Batch(func(tx *bolt.Tx) error {
 		for ID, pricesValue := range pList {
 			b, err := tx.CreateBucketIfNotExists(itemIDPricelistBucketName(ID))
