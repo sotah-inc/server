@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/ihsw/sotah-server/app/subjects"
 	nats "github.com/nats-io/go-nats"
 	log "github.com/sirupsen/logrus"
@@ -20,12 +22,36 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 				continue
 			}
 
+			includedRegionRealms, excludedRegionRealms, err := aiRequest.resolve(sta)
+			if err != nil {
+				log.WithField("error", err.Error()).Info("Failed to resolve auctions-intake-request")
+
+				continue
+			}
+
+			totalRealms := 0
+			for rName, reas := range sta.statuses {
+				totalRealms += len(reas.Realms.filterWithWhitelist(sta.resolver.config.Whitelist[rName]))
+			}
 			includedRealmCount := 0
 			for _, reas := range includedRegionRealms {
 				includedRealmCount += len(reas.values)
 			}
+			excludedRealmCount := 0
+			for _, reas := range excludedRegionRealms {
+				excludedRealmCount += len(reas.values)
+			}
 
-			// going over auctions in the filecache
+			log.WithFields(log.Fields{
+				"included_realms": includedRealmCount,
+				"excluded_realms": excludedRealmCount,
+				"total_realms":    totalRealms,
+			}).Info("Handling auctions-intake-request")
+
+			// misc
+			startTime := time.Now()
+
+			// going over auctions
 			for rName, rMap := range includedRegionRealms {
 				log.WithFields(log.Fields{
 					"region": rName,
@@ -57,7 +83,10 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 				}).Info("Finished loading auctions")
 			}
 
-			log.WithFields(log.Fields{"included_realms": includedRealmCount}).Info("Processed all realms")
+			log.WithFields(log.Fields{
+				"pricelists_intake_duration": int64(time.Now().Unix() - startTime.Unix()),
+				"included_realms":            includedRealmCount,
+			}).Info("Processed all realms")
 		}
 	}()
 

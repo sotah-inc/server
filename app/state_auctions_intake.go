@@ -216,14 +216,14 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 				"excluded_realms": excludedRealmCount,
 			}).Info("Processed all realms")
 			sta.messenger.publishMetric(telegrafMetrics{
-				"intake_duration":         int64(time.Now().Unix() - startTime.Unix()),
-				"intake_count":            int64(includedRealmCount),
-				"total_auctions":          int64(totalAuctions),
-				"total_previous_auctions": int64(totalPreviousAuctions),
-				"total_new_auctions":      int64(totalNewAuctions),
-				"total_removed_auctions":  int64(totalRemovedAuctions),
-				"current_owner_count":     int64(totalOwners),
-				"current_item_count":      int64(len(currentItemIds)),
+				"auctions_intake_duration": int64(time.Now().Unix() - startTime.Unix()),
+				"intake_count":             int64(includedRealmCount),
+				"total_auctions":           int64(totalAuctions),
+				"total_previous_auctions":  int64(totalPreviousAuctions),
+				"total_new_auctions":       int64(totalNewAuctions),
+				"total_removed_auctions":   int64(totalRemovedAuctions),
+				"current_owner_count":      int64(totalOwners),
+				"current_item_count":       int64(len(currentItemIds)),
 			})
 
 			encodedAiRequest, err := json.Marshal(aiRequest)
