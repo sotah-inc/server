@@ -45,7 +45,7 @@ func loadItemsFromFilecache(c config) (chan loadItemsJob, error) {
 	worker := func() {
 		for itemFilepath := range in {
 			itemValue, err := blizzard.NewItemFromFilepath(itemFilepath)
-			out <- loadItemsJob{err: err, item: itemValue, filepath: itemFilepath}
+			out <- loadItemsJob{err: err, item: itemValue, filepath: itemFilepath, iconURL: defaultGetItemIconURL(itemValue.Icon)}
 		}
 	}
 	postWork := func() {
