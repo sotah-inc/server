@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 
-	"github.com/boltdb/bolt"
 	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/codes"
 	"github.com/ihsw/sotah-server/app/subjects"
@@ -13,7 +12,7 @@ import (
 )
 
 type priceListHistoryResponse struct {
-	History map[int64]priceList `json:"history"`
+	History map[blizzard.ItemID]priceListHistory `json:"history"`
 }
 
 func (plhResponse priceListHistoryResponse) encodeForMessage() (string, error) {
@@ -85,16 +84,18 @@ func (sta state) listenForPriceListHistory(stop listenStopChan) error {
 		}
 
 		// gathering up pricelist history
-		plhResponse := priceListHistoryResponse{History: map[int64]priceList{}}
-		err = realmDatabase.db.View(func(tx *bolt.Tx) error {
-			return nil
-		})
-		if err != nil {
-			m.Err = err.Error()
-			m.Code = codes.MsgJSONParseError
-			sta.messenger.replyTo(natsMsg, m)
+		plhResponse := priceListHistoryResponse{History: map[blizzard.ItemID]priceListHistory{}}
+		for _, ID := range plhRequest.ItemIds {
+			plHistory, err := realmDatabase.getPricelistHistory(ID)
+			if err != nil {
+				m.Err = err.Error()
+				m.Code = codes.GenericError
+				sta.messenger.replyTo(natsMsg, m)
 
-			return
+				return
+			}
+
+			plhResponse.History[ID] = plHistory
 		}
 
 		// encoding the message for the response

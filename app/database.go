@@ -29,7 +29,7 @@ func newDatabase(c config, rea realm, itemIds []blizzard.ItemID) (database, erro
 	return database{db, rea}, nil
 }
 
-type priceListHistory map[int64]priceList
+type priceListHistory map[int64]prices
 
 type database struct {
 	db    *bolt.DB
@@ -66,7 +66,7 @@ func (dBase database) persistPricelists(targetDate time.Time, pList priceList) e
 }
 
 func (dBase database) getPricelistHistory(ID blizzard.ItemID) (priceListHistory, error) {
-	plHistory := map[int64]priceList{}
+	plHistory := priceListHistory{}
 	err := dBase.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(itemIDPricelistBucketName(ID))
 		if b == nil {
@@ -75,12 +75,12 @@ func (dBase database) getPricelistHistory(ID blizzard.ItemID) (priceListHistory,
 
 		b.ForEach(func(k, v []byte) error {
 			unixTime := int64(binary.BigEndian.Uint64(k))
-			pList, err := newPriceListFromBytes(v)
+			pricesValue, err := newPricesFromBytes(v)
 			if err != nil {
 				return err
 			}
 
-			plHistory[unixTime] = pList
+			plHistory[unixTime] = pricesValue
 
 			return nil
 		})

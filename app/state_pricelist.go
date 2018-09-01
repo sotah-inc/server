@@ -173,16 +173,16 @@ func newPriceList(itemIds []blizzard.ItemID, maList miniAuctionList) priceList {
 	return pList
 }
 
-func newPriceListFromBytes(data []byte) (priceList, error) {
-	pList := priceList{}
-	if err := json.Unmarshal(data, &pList); err != nil {
-		return priceList{}, err
+type priceList map[blizzard.ItemID]prices
+
+func newPricesFromBytes(data []byte) (prices, error) {
+	pricesValue := prices{}
+	if err := json.Unmarshal(data, &pricesValue); err != nil {
+		return prices{}, err
 	}
 
-	return pList, nil
+	return pricesValue, nil
 }
-
-type priceList map[blizzard.ItemID]prices
 
 type prices struct {
 	Bid    float64 `json:"bid"`
