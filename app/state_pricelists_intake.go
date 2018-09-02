@@ -4,11 +4,37 @@ import (
 	"time"
 
 	"github.com/ihsw/sotah-server/app/subjects"
+	"github.com/ihsw/sotah-server/app/util"
 	nats "github.com/nats-io/go-nats"
 	log "github.com/sirupsen/logrus"
 )
 
 func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
+	// spinning up the workers for persisting realm prices
+	loadIn := make(chan loadAuctionsJob)
+	worker := func() {
+		for job := range loadIn {
+			mAuctions := newMiniAuctionListFromBlizzardAuctions(job.auctions.Auctions)
+			err := sta.databases[job.realm.region.Name][job.realm.Slug].persistPricelists(
+				job.lastModified,
+				newPriceList(mAuctions.itemIds(), mAuctions),
+			)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"region": job.realm.region.Name,
+					"realm":  job.realm.Slug,
+					"error":  err.Error(),
+				}).Info("Failed to persist auctions to database")
+
+				continue
+			}
+		}
+	}
+	postWork := func() {
+		return
+	}
+	util.Work(2, worker, postWork)
+
 	// spinning up a worker for handling pricelists-intake requests
 	in := make(chan auctionsIntakeRequest, 10)
 	go func() {
@@ -77,20 +103,7 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 						continue
 					}
 
-					mAuctions := newMiniAuctionListFromBlizzardAuctions(job.auctions.Auctions)
-					err := sta.databases[job.realm.region.Name][job.realm.Slug].persistPricelists(
-						job.lastModified,
-						newPriceList(mAuctions.itemIds(), mAuctions),
-					)
-					if err != nil {
-						log.WithFields(log.Fields{
-							"region": job.realm.region.Name,
-							"realm":  job.realm.Slug,
-							"error":  err.Error(),
-						}).Info("Failed to persist auctions to database")
-
-						continue
-					}
+					loadIn <- job
 				}
 				log.WithFields(log.Fields{
 					"region": rName,
