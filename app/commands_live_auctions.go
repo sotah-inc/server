@@ -96,6 +96,7 @@ func liveAuctions(c config, m messenger, s store) error {
 		subjects.PriceList:          sta.listenForPriceList,
 		subjects.Owners:             sta.listenForOwners,
 		subjects.OwnersQueryByItems: sta.listenForOwnersQueryByItems,
+		subjects.OwnersQuery:        sta.listenForOwnersQuery,
 	})
 	if err := sta.listeners.listen(); err != nil {
 		return err

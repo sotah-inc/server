@@ -15,6 +15,7 @@ const (
 	GenericTestErrors  Subject = "genericTestErrors"
 	Owners             Subject = "owners"
 	OwnersQueryByItems Subject = "ownersQueryByItems"
+	OwnersQuery        Subject = "ownersQuery"
 	ItemsQuery         Subject = "itemsQuery"
 	AuctionsQuery      Subject = "auctionsQuery"
 	ItemClasses        Subject = "itemClasses"
