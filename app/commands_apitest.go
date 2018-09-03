@@ -103,7 +103,6 @@ func apiTest(c config, m messenger, s store, dataDir string) error {
 		subjects.Auctions:          sta.listenForAuctions,
 		subjects.Owners:            sta.listenForOwners,
 		subjects.ItemsQuery:        sta.listenForItemsQuery,
-		subjects.AuctionsQuery:     sta.listenForAuctionsQuery,
 		subjects.ItemClasses:       sta.listenForItemClasses,
 		subjects.PriceList:         sta.listenForPriceList,
 		subjects.Items:             sta.listenForItems,

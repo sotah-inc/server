@@ -18,7 +18,7 @@ type ownersQueryItem struct {
 	Rank   int    `json:"rank"`
 }
 
-type ownersQueryItems []auctionsQueryItem
+type ownersQueryItems []ownersQueryItem
 
 func (aqItems ownersQueryItems) limit() ownersQueryItems {
 	listLength := len(aqItems)
@@ -127,9 +127,8 @@ func (request ownersQueryRequest) resolve(sta state) (ownersQueryResult, error) 
 	}
 	i := 0
 	for _, ownerValue := range oResult.Owners {
-		aqResult.Items[i] = auctionsQueryItem{
+		aqResult.Items[i] = ownersQueryItem{
 			Owner:  ownerValue,
-			Item:   item{},
 			Target: ownerValue.NormalizedName,
 		}
 		i++
@@ -169,9 +168,9 @@ func (sta state) listenForOwnersQuery(stop listenStopChan) error {
 				result.Items[i] = oqItem
 			}
 			result.Items = result.Items.filterLowRank()
-			sort.Sort(auctionsQueryItemsByRank(result.Items))
+			sort.Sort(ownersQueryItemsByRank(result.Items))
 		} else {
-			sort.Sort(auctionsQueryItemsByNames(result.Items))
+			sort.Sort(ownersQueryItemsByNames(result.Items))
 		}
 
 		// truncating

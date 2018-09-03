@@ -92,7 +92,6 @@ func liveAuctions(c config, m messenger, s store) error {
 	sta.listeners = newListeners(subjectListeners{
 		subjects.Auctions:           sta.listenForAuctions,
 		subjects.AuctionsIntake:     sta.listenForAuctionsIntake,
-		subjects.AuctionsQuery:      sta.listenForAuctionsQuery,
 		subjects.PriceList:          sta.listenForPriceList,
 		subjects.Owners:             sta.listenForOwners,
 		subjects.OwnersQueryByItems: sta.listenForOwnersQueryByItems,
