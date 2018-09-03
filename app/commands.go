@@ -134,6 +134,7 @@ func api(c config, m messenger, s store) error {
 		subjects.ItemClasses:       sta.listenForItemClasses,
 		subjects.Items:             sta.listenForItems,
 		subjects.Boot:              sta.listenForBoot,
+		subjects.SessionSecret:     sta.listenForSessionSecret,
 	})
 	if err := sta.listeners.listen(); err != nil {
 		return err
