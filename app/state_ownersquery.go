@@ -14,7 +14,6 @@ import (
 
 type ownersQueryItem struct {
 	Target string `json:"target"`
-	Item   item   `json:"item"`
 	Owner  owner  `json:"owner"`
 	Rank   int    `json:"rank"`
 }
@@ -70,7 +69,7 @@ func newOwnersQueryResult(payload []byte) (ownersQueryResult, error) {
 }
 
 type ownersQueryResult struct {
-	Items auctionsQueryItems `json:"items"`
+	Items ownersQueryItems `json:"items"`
 }
 
 func newOwnersQueryRequest(payload []byte) (ownersQueryRequest, error) {
@@ -124,7 +123,7 @@ func (request ownersQueryRequest) resolve(sta state) (ownersQueryResult, error) 
 
 	// formatting owners and items into an auctions-query result
 	aqResult := ownersQueryResult{
-		Items: make(auctionsQueryItems, len(oResult.Owners)+len(iqResult.Items)),
+		Items: make(ownersQueryItems, len(oResult.Owners)),
 	}
 	i := 0
 	for _, ownerValue := range oResult.Owners {
@@ -132,14 +131,6 @@ func (request ownersQueryRequest) resolve(sta state) (ownersQueryResult, error) 
 			Owner:  ownerValue,
 			Item:   item{},
 			Target: ownerValue.NormalizedName,
-		}
-		i++
-	}
-	for _, iqItem := range iqResult.Items {
-		aqResult.Items[i] = auctionsQueryItem{
-			Owner:  owner{},
-			Item:   iqItem.Item,
-			Target: iqItem.Item.NormalizedName,
 		}
 		i++
 	}
@@ -152,7 +143,7 @@ func (sta state) listenForOwnersQuery(stop listenStopChan) error {
 		m := newMessage()
 
 		// resolving the request
-		request, err := newAuctionsQueryRequest(natsMsg.Data)
+		request, err := newOwnersQueryRequest(natsMsg.Data)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
@@ -162,7 +153,7 @@ func (sta state) listenForOwnersQuery(stop listenStopChan) error {
 		}
 
 		// resolving result from the request and state
-		aqResult, err := request.resolve(sta)
+		result, err := request.resolve(sta)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.NotFound
@@ -173,21 +164,21 @@ func (sta state) listenForOwnersQuery(stop listenStopChan) error {
 
 		// optionally sorting by rank and truncating or sorting by name
 		if request.Query != "" {
-			for i, aqItem := range aqResult.Items {
-				aqItem.Rank = fuzzy.RankMatchFold(request.Query, aqItem.Target)
-				aqResult.Items[i] = aqItem
+			for i, oqItem := range result.Items {
+				oqItem.Rank = fuzzy.RankMatchFold(request.Query, oqItem.Target)
+				result.Items[i] = oqItem
 			}
-			aqResult.Items = aqResult.Items.filterLowRank()
-			sort.Sort(auctionsQueryItemsByRank(aqResult.Items))
+			result.Items = result.Items.filterLowRank()
+			sort.Sort(auctionsQueryItemsByRank(result.Items))
 		} else {
-			sort.Sort(auctionsQueryItemsByNames(aqResult.Items))
+			sort.Sort(auctionsQueryItemsByNames(result.Items))
 		}
 
 		// truncating
-		aqResult.Items = aqResult.Items.limit()
+		result.Items = result.Items.limit()
 
 		// marshalling for messenger
-		encodedMessage, err := json.Marshal(aqResult)
+		encodedMessage, err := json.Marshal(result)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
