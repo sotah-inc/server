@@ -11,14 +11,14 @@ import (
 )
 
 type ownerItemsOwnership struct {
-	OwnedValue  int64 `json:"value_owned"`
-	OwnedVolume int64 `json:"volume_owned"`
+	OwnedValue  int64 `json:"owned_value"`
+	OwnedVolume int64 `json:"owned_volume"`
 }
 
 type ownersQueryResultByItems struct {
 	Ownership   map[ownerName]ownerItemsOwnership `json:"ownership"`
-	TotalValue  int64
-	TotalVolume int64
+	TotalValue  int64                             `json:"total_value"`
+	TotalVolume int64                             `json:"total_volume"`
 }
 
 func newOwnersQueryRequestByItem(payload []byte) (ownersQueryRequestByItems, error) {
@@ -32,9 +32,9 @@ func newOwnersQueryRequestByItem(payload []byte) (ownersQueryRequestByItems, err
 }
 
 type ownersQueryRequestByItems struct {
-	RegionName regionName
-	RealmSlug  blizzard.RealmSlug
-	Items      []blizzard.ItemID
+	RegionName regionName         `json:"region_name"`
+	RealmSlug  blizzard.RealmSlug `json:"realm_slug"`
+	Items      []blizzard.ItemID  `json:"items"`
 }
 
 func (request ownersQueryRequestByItems) resolve(sta state) (miniAuctionList, requestError) {
