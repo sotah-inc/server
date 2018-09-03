@@ -23,4 +23,5 @@ const (
 	Info              Subject = "info"
 	AppMetrics        Subject = "appMetrics"
 	Boot              Subject = "boot"
+	SessionSecret     Subject = "sessionSecret"
 )

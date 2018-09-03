@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/twinj/uuid"
+
 	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/codes"
 	"github.com/ihsw/sotah-server/app/subjects"
@@ -31,10 +33,11 @@ func newState(mess messenger, res resolver) state {
 }
 
 type state struct {
-	messenger messenger
-	resolver  resolver
-	listeners listeners
-	databases databases
+	messenger     messenger
+	resolver      resolver
+	listeners     listeners
+	databases     databases
+	sessionSecret uuid.Uuid
 
 	regions               []region
 	statuses              statuses

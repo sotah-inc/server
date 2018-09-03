@@ -9,6 +9,7 @@ import (
 	"github.com/ihsw/sotah-server/app/subjects"
 	"github.com/ihsw/sotah-server/app/util"
 	log "github.com/sirupsen/logrus"
+	"github.com/twinj/uuid"
 )
 
 func api(c config, m messenger, s store) error {
@@ -17,6 +18,10 @@ func api(c config, m messenger, s store) error {
 	// establishing a state
 	res := newResolver(c, m, s)
 	sta := newState(m, res)
+
+	// creating a uuid4 api-session secret
+	uuid.Init()
+	sta.sessionSecret = uuid.NewV4()
 
 	// ensuring cache-dirs exist
 	cacheDirs := []string{
