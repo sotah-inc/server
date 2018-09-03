@@ -129,7 +129,6 @@ func api(c config, m messenger, s store) error {
 		subjects.GenericTestErrors: sta.listenForGenericTestErrors,
 		subjects.Status:            sta.listenForStatus,
 		subjects.Regions:           sta.listenForRegions,
-		subjects.Owners:            sta.listenForOwners,
 		subjects.ItemsQuery:        sta.listenForItemsQuery,
 		subjects.ItemClasses:       sta.listenForItemClasses,
 		subjects.Items:             sta.listenForItems,
