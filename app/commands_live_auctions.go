@@ -90,11 +90,12 @@ func liveAuctions(c config, m messenger, s store) error {
 
 	// opening all listeners
 	sta.listeners = newListeners(subjectListeners{
-		subjects.Auctions:       sta.listenForAuctions,
-		subjects.AuctionsIntake: sta.listenForAuctionsIntake,
-		subjects.AuctionsQuery:  sta.listenForAuctionsQuery,
-		subjects.PriceList:      sta.listenForPriceList,
-		subjects.Owners:         sta.listenForOwners,
+		subjects.Auctions:           sta.listenForAuctions,
+		subjects.AuctionsIntake:     sta.listenForAuctionsIntake,
+		subjects.AuctionsQuery:      sta.listenForAuctionsQuery,
+		subjects.PriceList:          sta.listenForPriceList,
+		subjects.Owners:             sta.listenForOwners,
+		subjects.OwnersQueryByItems: sta.listenForOwnersQueryByItems,
 	})
 	if err := sta.listeners.listen(); err != nil {
 		return err
