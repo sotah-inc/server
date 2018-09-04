@@ -33,7 +33,7 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 	postWork := func() {
 		return
 	}
-	util.Work(8, worker, postWork)
+	util.Work(4, worker, postWork)
 
 	// spinning up a worker for handling pricelists-intake requests
 	in := make(chan auctionsIntakeRequest, 10)
