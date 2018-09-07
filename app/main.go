@@ -5,9 +5,8 @@ import (
 	"net"
 	"os"
 
-	logrusstash "github.com/bshuster-repo/logrus-logstash-hook"
 	"github.com/ihsw/sotah-server/app/commands"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -34,25 +33,22 @@ func main() {
 	)
 	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
 
-	logVerbosity, err := logrus.ParseLevel(*verbosity)
+	logVerbosity, err := log.ParseLevel(*verbosity)
 	if err != nil {
 		fmt.Print(err.Error())
 
 		return
 	}
-
-	log := logrus.New()
 	log.SetLevel(logVerbosity)
+
+	// optionally adding logstash hook
 	if logstashHost != nil && logstashPort != nil {
-		conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", *logstashHost, *logstashPort))
+		_, err := net.Dial("tcp", fmt.Sprintf("%s:%d", *logstashHost, *logstashPort))
 		if err != nil {
 			fmt.Print(err.Error())
 
 			return
 		}
-
-		hook := logrusstash.New(conn, logrusstash.DefaultFormatter(logrus.Fields{}))
-		log.Hooks.Add(hook)
 	}
 	log.Info("Starting")
 
