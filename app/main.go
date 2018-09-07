@@ -8,7 +8,7 @@ import (
 	logrusstash "github.com/bshuster-repo/logrus-logstash-hook"
 	"github.com/ihsw/sotah-server/app/commands"
 	"github.com/ihsw/sotah-server/app/logging"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -35,52 +35,59 @@ func main() {
 	)
 	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
 
-	logVerbosity, err := log.ParseLevel(*verbosity)
+	logVerbosity, err := logrus.ParseLevel(*verbosity)
 	if err != nil {
-		fmt.Print(err.Error())
+		logging.WithField("error", err.Error()).Fatal("Could not parse log level")
 
 		return
 	}
-	log.SetLevel(logVerbosity)
+	logging.SetLevel(logVerbosity)
 
 	// optionally adding logstash hook
 	if logstashHost != nil && logstashPort != nil {
 		conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", *logstashHost, *logstashPort))
 		if err != nil {
-			fmt.Print(err.Error())
+			logging.WithFields(logrus.Fields{
+				"error": err.Error(),
+				"host":  *logstashHost,
+				"port":  *logstashPort,
+			}).Fatal("Could not dial logstash host")
 
 			return
 		}
 
-		logging.AddHook(logrusstash.New(conn, logrusstash.DefaultFormatter(log.Fields{})))
+		logging.AddHook(logrusstash.New(conn, logrusstash.DefaultFormatter(logrus.Fields{})))
 	}
-	log.Info("Starting")
+	logging.Info("Starting")
 
 	// loading the config file
 	c, err := newConfigFromFilepath(*configFilepath)
 	if err != nil {
-		log.Fatalf("Could not fetch config: %s\n", err.Error())
+		logging.WithFields(logrus.Fields{
+			"error":    err.Error(),
+			"filepath": *configFilepath,
+		}).Fatal("Could not fetch config")
 
 		return
 	}
 
 	// optionally overriding api key in config
 	if len(*apiKey) > 0 {
-		log.WithField("api-key", *apiKey).Info("Overriding api key found in config")
+		logging.WithField("api-key", *apiKey).Info("Overriding api key found in config")
 
 		c.APIKey = *apiKey
 	}
 
 	// optionally overriding cache-dir in config
 	if len(*cacheDir) > 0 {
-		log.WithField("cache-dir", *cacheDir).Info("Overriding cache-dir found in config")
+		logging.WithField("cache-dir", *cacheDir).Info("Overriding cache-dir found in config")
 
 		c.CacheDir = *cacheDir
 	}
 
 	// validating the cache dir
 	if c.CacheDir == "" {
-		log.Fatal("Cache-dir cannot be blank")
+		logging.Fatal("Cache-dir cannot be blank")
 
 		return
 	}
@@ -88,7 +95,11 @@ func main() {
 	// connecting the messenger
 	mess, err := newMessenger(*natsHost, *natsPort)
 	if err != nil {
-		log.Fatalf("Could not connect messenger: %s\n", err.Error())
+		logging.WithFields(logrus.Fields{
+			"error": err.Error(),
+			"host":  *natsHost,
+			"port":  *natsPort,
+		}).Fatal("Could not connect messenger")
 
 		return
 	}
@@ -98,20 +109,25 @@ func main() {
 	if c.UseGCloudStorage {
 		stor, err = newStore(*projectID)
 		if err != nil {
-			log.Fatalf("Could not connect store: %s\n", err.Error())
+			logging.WithFields(logrus.Fields{
+				"error":     err.Error(),
+				"projectId": *projectID,
+			}).Fatal("Could not connect store")
 
 			return
 		}
 	}
 
-	log.WithField("command", cmd).Info("Running command")
+	logging.WithField("command", cmd).Info("Running command")
 
 	switch cmd {
 	case apiTestCommand.FullCommand():
 		err := apiTest(c, mess, stor, *apiTestDataDir)
 		if err != nil {
-			fmt.Printf("Could not run api test command: %s\n", err.Error())
-			os.Exit(1)
+			logging.WithFields(logrus.Fields{
+				"error":   err.Error(),
+				"command": cmd,
+			}).Fatal("Could not run command")
 
 			return
 		}
@@ -122,8 +138,10 @@ func main() {
 	case apiCommand.FullCommand():
 		err := api(c, mess, stor)
 		if err != nil {
-			fmt.Printf("Could not run api command: %s\n", err.Error())
-			os.Exit(1)
+			logging.WithFields(logrus.Fields{
+				"error":   err.Error(),
+				"command": cmd,
+			}).Fatal("Could not run command")
 
 			return
 		}
@@ -134,8 +152,10 @@ func main() {
 	case syncItemsCommand.FullCommand():
 		err := syncItems(c, stor)
 		if err != nil {
-			fmt.Printf("Could not run sync-items command: %s\n", err.Error())
-			os.Exit(1)
+			logging.WithFields(logrus.Fields{
+				"error":   err.Error(),
+				"command": cmd,
+			}).Fatal("Could not run command")
 
 			return
 		}
@@ -146,8 +166,10 @@ func main() {
 	case liveAuctionsCommand.FullCommand():
 		err := liveAuctions(c, mess, stor)
 		if err != nil {
-			fmt.Printf("Could not run live-auctions command: %s\n", err.Error())
-			os.Exit(1)
+			logging.WithFields(logrus.Fields{
+				"error":   err.Error(),
+				"command": cmd,
+			}).Fatal("Could not run command")
 
 			return
 		}
@@ -158,8 +180,10 @@ func main() {
 	case pricelistHistoriesCommand.FullCommand():
 		err := pricelistHistories(c, mess, stor)
 		if err != nil {
-			fmt.Printf("Could not run pricelist-histories command: %s\n", err.Error())
-			os.Exit(1)
+			logging.WithFields(logrus.Fields{
+				"error":   err.Error(),
+				"command": cmd,
+			}).Fatal("Could not run command")
 
 			return
 		}

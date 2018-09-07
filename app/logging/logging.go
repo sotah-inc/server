@@ -11,6 +11,11 @@ func AddHook(hook logrus.Hook) {
 	logger.Hooks.Add(hook)
 }
 
+// SetLevel sets log level
+func SetLevel(level logrus.Level) {
+	logger.SetLevel(level)
+}
+
 // Info logs
 func Info(args ...interface{}) {
 	logger.Info(args...)
@@ -24,4 +29,24 @@ func Debug(args ...interface{}) {
 // Error logs
 func Error(args ...interface{}) {
 	logger.Error(args...)
+}
+
+// Fatal logs
+func Fatal(args ...interface{}) {
+	logger.Fatal(args...)
+}
+
+// Fatalf logs
+func Fatalf(format string, args ...interface{}) {
+	logger.Fatalf(format, args...)
+}
+
+// WithField logs
+func WithField(key string, value interface{}) *logrus.Entry {
+	return logger.WithField(key, value)
+}
+
+// WithFields logs
+func WithFields(fields logrus.Fields) *logrus.Entry {
+	return logger.WithFields(fields)
 }
