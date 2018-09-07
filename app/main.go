@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"os"
 
+	logrusstash "github.com/bshuster-repo/logrus-logstash-hook"
 	"github.com/ihsw/sotah-server/app/commands"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -20,6 +22,8 @@ func main() {
 		verbosity      = app.Flag("verbosity", "Log verbosity").Default("info").Short('v').String()
 		cacheDir       = app.Flag("cache-dir", "Directory to cache data files to").Required().String()
 		projectID      = app.Flag("project-id", "GCloud Storage Project ID").Default("").OverrideDefaultFromEnvar("PROJECT_ID").String()
+		logstashHost   = app.Flag("logstash-host", "Logstash host").OverrideDefaultFromEnvar("LOGSTASH_HOST").String()
+		logstashPort   = app.Flag("logstash-port", "Logstash port").OverrideDefaultFromEnvar("LOGSTASH_PORT").Int()
 
 		apiTestCommand            = app.Command(commands.APITest, "For running sotah-api tests.")
 		apiTestDataDir            = apiTestCommand.Flag("data-dir", "Directory to load test fixtures from").Required().Short('d').String()
@@ -30,15 +34,26 @@ func main() {
 	)
 	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
 
-	logVerbosity, err := log.ParseLevel(*verbosity)
+	logVerbosity, err := logrus.ParseLevel(*verbosity)
 	if err != nil {
 		fmt.Print(err.Error())
 
 		return
 	}
 
+	log := logrus.New()
 	log.SetLevel(logVerbosity)
+	if logstashHost != nil && logstashPort != nil {
+		conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", *logstashHost, *logstashPort))
+		if err != nil {
+			fmt.Print(err.Error())
 
+			return
+		}
+
+		hook := logrusstash.New(conn, logrusstash.DefaultFormatter(logrus.Fields{}))
+		log.Hooks.Add(hook)
+	}
 	log.Info("Starting")
 
 	// loading the config file
