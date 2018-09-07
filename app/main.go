@@ -5,7 +5,9 @@ import (
 	"net"
 	"os"
 
+	logrusstash "github.com/bshuster-repo/logrus-logstash-hook"
 	"github.com/ihsw/sotah-server/app/commands"
+	"github.com/ihsw/sotah-server/app/logging"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
@@ -43,12 +45,14 @@ func main() {
 
 	// optionally adding logstash hook
 	if logstashHost != nil && logstashPort != nil {
-		_, err := net.Dial("tcp", fmt.Sprintf("%s:%d", *logstashHost, *logstashPort))
+		conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", *logstashHost, *logstashPort))
 		if err != nil {
 			fmt.Print(err.Error())
 
 			return
 		}
+
+		logging.AddHook(logrusstash.New(conn, logrusstash.DefaultFormatter(log.Fields{})))
 	}
 	log.Info("Starting")
 
