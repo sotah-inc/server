@@ -49,6 +49,8 @@ func main() {
 	var logstashConn net.Conn
 	hasLogstashParams := logstashHost != nil && logstashPort != nil && *logstashHost != "" && *logstashPort != 0
 	if hasLogstashParams {
+		logging.Info("Connecting to logstash")
+
 		if logstashConn, err = net.Dial("tcp", fmt.Sprintf("%s:%d", *logstashHost, *logstashPort)); err != nil {
 			logging.WithFields(logrus.Fields{
 				"error": err.Error(),
