@@ -73,7 +73,7 @@ func newMessenger(host string, port int) (messenger, error) {
 }
 
 func (mess messenger) subscribe(subject subjects.Subject, stop listenStopChan, cb func(nats.Msg)) error {
-	logging.WithField("subject", subject).Info("Subscribing to subject")
+	logging.WithField("subject", subject).Debug("Subscribing to subject")
 
 	sub, err := mess.conn.Subscribe(string(subject), func(natsMsg *nats.Msg) {
 		logging.WithField("subject", subject).Debug("Received request")
