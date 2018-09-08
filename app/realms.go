@@ -97,7 +97,7 @@ func (reas realms) getAuctions(res resolver, wList getAuctionsWhitelist) chan ge
 				logging.WithFields(logrus.Fields{
 					"region": rea.region.Name,
 					"realm":  rea.Slug,
-				}).Debug("No auctions received")
+				}).Info("No auctions received")
 
 				continue
 			}
@@ -159,8 +159,13 @@ func (reas realms) loadAuctionsFromCacheDir(c *config) chan loadAuctionsJob {
 	// spinning up the workers for fetching auctions
 	worker := func() {
 		for rea := range in {
-			aucs, lastModified, err := rea.loadAuctions(c)
+			aucs, lastModified, err := rea.loadAuctionsFromFilecache(c)
 			if lastModified.IsZero() {
+				logging.WithFields(logrus.Fields{
+					"region": rea.region.Name,
+					"realm":  rea.Slug,
+				}).Error("Last-modified was blank when loading auctions from filecache")
+
 				continue
 			}
 
@@ -327,7 +332,7 @@ func (rea realm) downloadAndCache(aFile blizzard.AuctionFile, res resolver) (bli
 	return blizzard.NewAuctions(body)
 }
 
-func (rea realm) loadAuctions(c *config) (blizzard.Auctions, time.Time, error) {
+func (rea realm) loadAuctionsFromFilecache(c *config) (blizzard.Auctions, time.Time, error) {
 	// resolving the cached auctions filepath
 	cachedAuctionsFilepath, err := rea.auctionsFilepath(c)
 	if err != nil {

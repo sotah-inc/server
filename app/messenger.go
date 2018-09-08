@@ -106,11 +106,20 @@ func (mess messenger) replyTo(natsMsg nats.Msg, m message) error {
 		return err
 	}
 
-	logging.WithFields(logrus.Fields{
-		"reply_to":       natsMsg.Reply,
-		"payload_length": len(jsonMessage),
-		"code":           m.Code,
-	}).Debug("Publishing a reply")
+	if m.Code != codes.Ok {
+		logging.WithFields(logrus.Fields{
+			"error":          m.Err,
+			"code":           m.Code,
+			"reply_to":       natsMsg.Reply,
+			"payload_length": len(jsonMessage),
+		}).Error("Publishing an erroneous reply")
+	} else {
+		logging.WithFields(logrus.Fields{
+			"reply_to":       natsMsg.Reply,
+			"payload_length": len(jsonMessage),
+			"code":           m.Code,
+		}).Debug("Publishing a reply")
+	}
 
 	// attempting to publish it
 	err = mess.conn.Publish(natsMsg.Reply, jsonMessage)

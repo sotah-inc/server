@@ -9,8 +9,9 @@ import (
 
 	storage "cloud.google.com/go/storage"
 	"github.com/ihsw/sotah-server/app/blizzard"
+	"github.com/ihsw/sotah-server/app/logging"
 	"github.com/ihsw/sotah-server/app/util"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/api/iterator"
 )
 
@@ -88,7 +89,7 @@ func (sto store) writeRealmAuctions(rea realm, lastModified time.Time, body []by
 		return err
 	}
 
-	log.WithFields(log.Fields{
+	logging.WithFields(logrus.Fields{
 		"region": rea.region.Name,
 		"realm":  rea.Slug,
 		"length": len(body),
@@ -102,7 +103,7 @@ func (sto store) writeRealmAuctions(rea realm, lastModified time.Time, body []by
 }
 
 func (sto store) getTotalRealmAuctionsSize(rea realm) (int64, error) {
-	log.WithFields(log.Fields{
+	logging.WithFields(logrus.Fields{
 		"region": rea.region.Name,
 		"realm":  rea.Slug,
 	}).Debug("Gathering total bucket size")
@@ -179,11 +180,11 @@ func (sto store) loadRegionRealmMap(rMap realmMap) chan loadAuctionsJob {
 		for rValue := range in {
 			aucs, lastModified, err := sto.loadRealmAuctions(rValue.realm, rValue.lastModified)
 			if err != nil {
-				log.WithFields(log.Fields{
+				logging.WithFields(logrus.Fields{
+					"error":  err.Error(),
 					"region": rValue.realm.region.Name,
 					"realm":  rValue.realm.Slug,
-					"error":  err.Error(),
-				}).Info("Failed to load store auctions")
+				}).Error("Failed to load store auctions")
 
 				out <- loadAuctionsJob{err, rValue.realm, blizzard.Auctions{}, time.Time{}}
 
@@ -191,7 +192,7 @@ func (sto store) loadRegionRealmMap(rMap realmMap) chan loadAuctionsJob {
 			}
 
 			if lastModified.IsZero() {
-				log.WithFields(log.Fields{
+				logging.WithFields(logrus.Fields{
 					"region": rValue.realm.region.Name,
 					"realm":  rValue.realm.Slug,
 				}).Info("No auctions were loaded")
@@ -210,7 +211,7 @@ func (sto store) loadRegionRealmMap(rMap realmMap) chan loadAuctionsJob {
 	// queueing up the realms
 	go func() {
 		for _, rValue := range rMap.values {
-			log.WithField("realm", rValue.realm.Slug).Debug("Queueing up auction for store loading")
+			logging.WithField("realm", rValue.realm.Slug).Debug("Queueing up auction for store loading")
 			in <- rValue
 		}
 
@@ -230,11 +231,11 @@ func (sto store) loadRealmsAuctions(c *config, reas realms) chan loadAuctionsJob
 		for rea := range in {
 			aucs, lastModified, err := sto.loadRealmAuctions(rea, time.Time{})
 			if err != nil {
-				log.WithFields(log.Fields{
+				logging.WithFields(logrus.Fields{
+					"error":  err.Error(),
 					"region": rea.region.Name,
 					"realm":  rea.Slug,
-					"error":  err.Error(),
-				}).Info("Failed to load store auctions")
+				}).Error("Failed to load store auctions")
 
 				out <- loadAuctionsJob{err, rea, blizzard.Auctions{}, time.Time{}}
 
@@ -242,7 +243,7 @@ func (sto store) loadRealmsAuctions(c *config, reas realms) chan loadAuctionsJob
 			}
 
 			if lastModified.IsZero() {
-				log.WithFields(log.Fields{
+				logging.WithFields(logrus.Fields{
 					"region": rea.region.Name,
 					"realm":  rea.Slug,
 				}).Info("No auctions were loaded")
@@ -269,7 +270,7 @@ func (sto store) loadRealmsAuctions(c *config, reas realms) chan loadAuctionsJob
 				}
 			}
 
-			log.WithField("realm", rea.Slug).Debug("Queueing up auction for store loading")
+			logging.WithField("realm", rea.Slug).Debug("Queueing up auction for store loading")
 			in <- rea
 		}
 
@@ -293,7 +294,7 @@ func (sto store) getRealmAuctionsObjectAtTimeOrLatest(bkt *storage.BucketHandle,
 }
 
 func (sto store) getRealmAuctionsObjectAtTime(bkt *storage.BucketHandle, targetTime time.Time) (*storage.ObjectHandle, error) {
-	log.WithField("target-time", targetTime.Unix()).Info("Fetching realm-auctions object at time")
+	logging.WithField("targetTime", targetTime.Unix()).Debug("Fetching realm-auctions object at time")
 
 	exists, err := sto.realmAuctionsObjectExists(bkt, targetTime)
 	if err != nil {
@@ -308,7 +309,7 @@ func (sto store) getRealmAuctionsObjectAtTime(bkt *storage.BucketHandle, targetT
 }
 
 func (sto store) getLatestRealmAuctionsObject(bkt *storage.BucketHandle) (*storage.ObjectHandle, time.Time, error) {
-	log.Info("Fetching latest realm-auctions object")
+	logging.Debug("Fetching latest realm-auctions object from bucket")
 
 	var obj *storage.ObjectHandle
 	var objAttrs *storage.ObjectAttrs
@@ -351,10 +352,10 @@ func (sto store) loadRealmAuctions(rea realm, targetTime time.Time) (blizzard.Au
 	}
 
 	if !hasBucket {
-		log.WithFields(log.Fields{
+		logging.WithFields(logrus.Fields{
 			"region": rea.region.Name,
 			"realm":  rea.Slug,
-		}).Info("Realm has no bucket")
+		}).Error("Realm has no bucket")
 
 		return blizzard.Auctions{}, time.Time{}, nil
 	}
@@ -370,19 +371,26 @@ func (sto store) loadRealmAuctions(rea realm, targetTime time.Time) (blizzard.Au
 	}
 
 	if obj == nil {
-		rea.LogEntry().Info("Found no auctions in store")
+		logging.WithFields(logrus.Fields{
+			"region": rea.region.Name,
+			"realm":  rea.Slug,
+		}).Info("Found no auctions in store")
 
 		return blizzard.Auctions{}, time.Time{}, nil
 	}
 
-	rea.LogEntry().Info("Loading auctions from store")
+	logging.WithFields(logrus.Fields{
+		"region": rea.region.Name,
+		"realm":  rea.Slug,
+	}).Info("Loading auctions from store")
 
 	aucs, err := blizzard.NewAuctionsFromGcloudObject(sto.context, obj)
 	if err != nil {
-		log.WithFields(log.Fields{
+		logging.WithFields(logrus.Fields{
+			"error":  err.Error(),
 			"region": rea.region.Name,
 			"realm":  rea.Slug,
-		}).Info("Failed to parse realm auctions, deleting")
+		}).Error("Failed to parse realm auctions, deleting and returning blank auctions")
 
 		if err := obj.Delete(sto.context); err != nil {
 			return blizzard.Auctions{}, time.Time{}, err
@@ -391,7 +399,7 @@ func (sto store) loadRealmAuctions(rea realm, targetTime time.Time) (blizzard.Au
 		return blizzard.Auctions{}, time.Time{}, nil
 	}
 
-	log.WithFields(log.Fields{
+	logging.WithFields(logrus.Fields{
 		"region": rea.region.Name,
 		"realm":  rea.Slug,
 	}).Info("Loaded auctions from store")

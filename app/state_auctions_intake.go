@@ -5,10 +5,11 @@ import (
 	"time"
 
 	"github.com/ihsw/sotah-server/app/blizzard"
+	"github.com/ihsw/sotah-server/app/logging"
 
 	"github.com/ihsw/sotah-server/app/subjects"
 	nats "github.com/nats-io/go-nats"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 func newAuctionsIntakeRequest(payload []byte) (auctionsIntakeRequest, error) {
@@ -87,7 +88,7 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 
 			includedRegionRealms, excludedRegionRealms, err := aiRequest.resolve(sta)
 			if err != nil {
-				log.WithField("error", err.Error()).Info("Failed to resolve auctions-intake-request")
+				logging.WithField("error", err.Error()).Error("Failed to resolve auctions-intake-request")
 
 				continue
 			}
@@ -105,7 +106,7 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 				excludedRealmCount += len(reas.values)
 			}
 
-			log.WithFields(log.Fields{
+			logging.WithFields(logrus.Fields{
 				"included_realms": includedRealmCount,
 				"excluded_realms": excludedRealmCount,
 				"total_realms":    totalRealms,
@@ -123,7 +124,7 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 			currentItemIds := map[blizzard.ItemID]struct{}{}
 
 			// gathering the total number of auctions pre-intake
-			log.Info("Going over all auctions to for pre-intake metrics")
+			logging.Info("Going over all auctions to for pre-intake metrics")
 			for _, reg := range sta.regions {
 				for _, rea := range sta.statuses[reg.Name].Realms {
 					for _, auc := range sta.auctions[reg.Name][rea.Slug] {
@@ -146,10 +147,10 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 
 			// going over auctions in the filecache
 			for rName, rMap := range includedRegionRealms {
-				log.WithFields(log.Fields{
+				logging.WithFields(logrus.Fields{
 					"region": rName,
 					"realms": len(rMap.values),
-				}).Info("Going over realms")
+				}).Debug("Going over realms")
 
 				// loading auctions from file cache
 				loadedAuctions := func() chan loadAuctionsJob {
@@ -161,11 +162,11 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 				}()
 				for job := range loadedAuctions {
 					if job.err != nil {
-						log.WithFields(log.Fields{
+						logging.WithFields(logrus.Fields{
+							"error":  err.Error(),
 							"region": job.realm.region.Name,
 							"realm":  job.realm.Slug,
-							"error":  err.Error(),
-						}).Info("Failed to load auctions")
+						}).Error("Failed to load auctions")
 
 						continue
 					}
@@ -204,13 +205,13 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 
 					sta.auctions[job.realm.region.Name][job.realm.Slug] = newMiniAuctionListFromBlizzardAuctions(job.auctions.Auctions)
 				}
-				log.WithFields(log.Fields{
+				logging.WithFields(logrus.Fields{
 					"region": rName,
 					"realms": len(rMap.values),
-				}).Info("Finished loading auctions")
+				}).Debug("Finished loading auctions")
 			}
 
-			log.WithFields(log.Fields{
+			logging.WithFields(logrus.Fields{
 				"total_realms":    totalRealms,
 				"included_realms": includedRealmCount,
 				"excluded_realms": excludedRealmCount,
@@ -228,7 +229,7 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 
 			encodedAiRequest, err := json.Marshal(aiRequest)
 			if err != nil {
-				log.WithField("error", err.Error()).Info("Failed to marshal auctions-intake-request")
+				logging.WithField("error", err.Error()).Error("Failed to marshal auctions-intake-request")
 			} else {
 				sta.resolver.messenger.publish(subjects.PricelistsIntake, encodedAiRequest)
 			}
@@ -240,12 +241,12 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 		// resolving the request
 		aiRequest, err := newAuctionsIntakeRequest(natsMsg.Data)
 		if err != nil {
-			log.Info("Failed to parse auctions-intake-request")
+			logging.WithField("error", err.Error()).Error("Failed to parse auctions-intake-request")
 
 			return
 		}
 
-		log.WithFields(log.Fields{"intake_buffer_size": len(in)}).Info("Received auctions-intake-request")
+		logging.WithFields(logrus.Fields{"intake_buffer_size": len(in)}).Info("Received auctions-intake-request")
 		sta.messenger.publishMetric(telegrafMetrics{"intake_buffer_size": int64(len(in))})
 
 		in <- aiRequest

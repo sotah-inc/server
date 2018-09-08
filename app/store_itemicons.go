@@ -5,8 +5,9 @@ import (
 
 	storage "cloud.google.com/go/storage"
 	"github.com/ihsw/sotah-server/app/blizzard"
+	"github.com/ihsw/sotah-server/app/logging"
 	"github.com/ihsw/sotah-server/app/util"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 const storeItemIconURLFormat = "https://storage.googleapis.com/%s/%s"
@@ -74,7 +75,7 @@ func (sto store) getItemIconObjectName(iconName string) string {
 }
 
 func (sto store) writeItemIcon(bkt *storage.BucketHandle, iconName string, body []byte) (string, error) {
-	log.WithFields(log.Fields{
+	logging.WithFields(logrus.Fields{
 		"icon":   iconName,
 		"length": len(body),
 	}).Debug("Writing item-icon to gcloud storage")
@@ -159,10 +160,10 @@ func (sto store) syncItemIcon(iconName string, res resolver) (string, error) {
 
 	body, err := util.Download(res.getItemIconURL(iconName))
 	if err != nil {
-		log.WithFields(log.Fields{
-			"iconName": iconName,
+		logging.WithFields(logrus.Fields{
 			"error":    err.Error(),
-		}).Info("Failed to sync item icon (gcloud store)")
+			"iconName": iconName,
+		}).Error("Failed to sync item icon (gcloud store)")
 
 		return "", nil
 	}

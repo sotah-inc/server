@@ -3,10 +3,11 @@ package main
 import (
 	"time"
 
+	"github.com/ihsw/sotah-server/app/logging"
 	"github.com/ihsw/sotah-server/app/subjects"
 	"github.com/ihsw/sotah-server/app/util"
 	nats "github.com/nats-io/go-nats"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
@@ -14,17 +15,27 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 	loadIn := make(chan loadAuctionsJob)
 	worker := func() {
 		for job := range loadIn {
+			if job.err != nil {
+				logging.WithFields(logrus.Fields{
+					"error":  job.err.Error(),
+					"region": job.realm.region.Name,
+					"realm":  job.realm.Slug,
+				}).Error("Erroneous job was passed into pricelist intake channel")
+
+				continue
+			}
+
 			mAuctions := newMiniAuctionListFromBlizzardAuctions(job.auctions.Auctions)
 			err := sta.databases[job.realm.region.Name][job.realm.Slug].persistPricelists(
 				job.lastModified,
 				newPriceList(mAuctions.itemIds(), mAuctions),
 			)
 			if err != nil {
-				log.WithFields(log.Fields{
+				logging.WithFields(logrus.Fields{
+					"error":  err.Error(),
 					"region": job.realm.region.Name,
 					"realm":  job.realm.Slug,
-					"error":  err.Error(),
-				}).Info("Failed to persist auctions to database")
+				}).Error("Failed to persist auctions to database")
 
 				continue
 			}
@@ -41,16 +52,9 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 		for {
 			aiRequest := <-in
 
-			includedRegionRealms, _, err := aiRequest.resolve(sta)
-			if err != nil {
-				log.WithField("error", err.Error()).Info("Failed to resolve auctions-intake-request")
-
-				continue
-			}
-
 			includedRegionRealms, excludedRegionRealms, err := aiRequest.resolve(sta)
 			if err != nil {
-				log.WithField("error", err.Error()).Info("Failed to resolve auctions-intake-request")
+				logging.WithField("error", err.Error()).Info("Failed to resolve auctions-intake-request")
 
 				continue
 			}
@@ -68,7 +72,7 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 				excludedRealmCount += len(reas.values)
 			}
 
-			log.WithFields(log.Fields{
+			logging.WithFields(logrus.Fields{
 				"included_realms": includedRealmCount,
 				"excluded_realms": excludedRealmCount,
 				"total_realms":    totalRealms,
@@ -79,10 +83,10 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 
 			// going over auctions
 			for rName, rMap := range includedRegionRealms {
-				log.WithFields(log.Fields{
+				logging.WithFields(logrus.Fields{
 					"region": rName,
 					"realms": len(rMap.values),
-				}).Info("Going over realms")
+				}).Debug("Going over realms to load auctions")
 
 				// loading auctions from file cache
 				loadedAuctions := func() chan loadAuctionsJob {
@@ -94,24 +98,24 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 				}()
 				for job := range loadedAuctions {
 					if job.err != nil {
-						log.WithFields(log.Fields{
+						logging.WithFields(logrus.Fields{
+							"error":  err.Error(),
 							"region": job.realm.region.Name,
 							"realm":  job.realm.Slug,
-							"error":  err.Error(),
-						}).Info("Failed to load auctions from filecache")
+						}).Error("Failed to load auctions")
 
 						continue
 					}
 
 					loadIn <- job
 				}
-				log.WithFields(log.Fields{
+				logging.WithFields(logrus.Fields{
 					"region": rName,
 					"realms": len(rMap.values),
-				}).Info("Finished loading auctions")
+				}).Debug("Finished loading auctions")
 			}
 
-			log.WithFields(log.Fields{"included_realms": includedRealmCount}).Info("Processed all realms")
+			logging.WithFields(logrus.Fields{"included_realms": includedRealmCount}).Info("Processed all realms")
 			sta.messenger.publishMetric(telegrafMetrics{
 				"pricelists_intake_duration": int64(time.Now().Unix() - startTime.Unix()),
 			})
@@ -122,12 +126,12 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 		// resolving the request
 		aiRequest, err := newAuctionsIntakeRequest(natsMsg.Data)
 		if err != nil {
-			log.Info("Failed to parse auctions-intake-request")
+			logging.WithField("error", err.Error()).Error("Failed to parse auctions-intake-request")
 
 			return
 		}
 
-		log.WithFields(log.Fields{"intake_buffer_size": len(in)}).Info("Received auctions-intake-request")
+		logging.WithFields(logrus.Fields{"intake_buffer_size": len(in)}).Info("Received auctions-intake-request")
 		sta.messenger.publishMetric(telegrafMetrics{"intake_buffer_size": int64(len(in))})
 
 		in <- aiRequest

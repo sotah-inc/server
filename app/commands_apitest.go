@@ -7,13 +7,14 @@ import (
 	"path/filepath"
 
 	"github.com/ihsw/sotah-server/app/blizzard"
+	"github.com/ihsw/sotah-server/app/logging"
 	"github.com/ihsw/sotah-server/app/subjects"
 	"github.com/ihsw/sotah-server/app/util"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 func apiTest(c config, m messenger, s store, dataDir string) error {
-	log.Info("Starting api-test")
+	logging.Info("Starting api-test")
 
 	dataDirPath, err := filepath.Abs(dataDir)
 	if err != nil {
@@ -77,22 +78,22 @@ func apiTest(c config, m messenger, s store, dataDir string) error {
 		}
 
 		// downloading items found in this region
-		log.WithField("items", len(regionItemIDs)).Info("Fetching items")
+		logging.WithField("items", len(regionItemIDs)).Info("Fetching items")
 		itemsOut := getItems(regionItemIDs, res)
 		for job := range itemsOut {
 			if job.err != nil {
-				log.WithFields(log.Fields{
+				logging.WithFields(logrus.Fields{
 					"region": reg.Name,
 					"item":   job.ID,
 					"error":  job.err.Error(),
-				}).Info("Failed to fetch item")
+				}).Error("Failed to fetch item")
 
 				continue
 			}
 
 			sta.items[job.ID] = item{job.item, ""}
 		}
-		log.WithField("items", len(regionItemIDs)).Info("Fetched items")
+		logging.WithField("items", len(regionItemIDs)).Info("Fetched items")
 	}
 
 	// opening all listeners
@@ -112,12 +113,12 @@ func apiTest(c config, m messenger, s store, dataDir string) error {
 	}
 
 	// catching SIGINT
-	log.Info("Waiting for SIGINT")
+	logging.Info("Waiting for SIGINT")
 	sigIn := make(chan os.Signal, 1)
 	signal.Notify(sigIn, os.Interrupt)
 	<-sigIn
 
-	log.Info("Caught SIGINT, exiting")
+	logging.Info("Caught SIGINT, exiting")
 
 	// stopping listeners
 	sta.listeners.stop()

@@ -8,8 +8,9 @@ import (
 
 	storage "cloud.google.com/go/storage"
 	"github.com/ihsw/sotah-server/app/blizzard"
+	"github.com/ihsw/sotah-server/app/logging"
 	"github.com/ihsw/sotah-server/app/util"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/api/iterator"
 )
 
@@ -62,7 +63,7 @@ func (sto store) getItemObjectName(ID blizzard.ItemID) string {
 }
 
 func (sto store) writeItem(ID blizzard.ItemID, body []byte) error {
-	log.WithFields(log.Fields{
+	logging.WithFields(logrus.Fields{
 		"ID":     ID,
 		"length": len(body),
 	}).Debug("Writing item to gcloud storage")
@@ -152,7 +153,7 @@ func (sto store) exportItems() chan exportItemsJob {
 		it := sto.itemsBucket.Objects(sto.context, nil)
 		for {
 			if i == 0 || i%5000 == 0 {
-				log.WithField("count", i).Debug("Exported items from store")
+				logging.WithField("count", i).Debug("Exported items from store")
 			}
 
 			objAttrs, err := it.Next()
@@ -161,7 +162,7 @@ func (sto store) exportItems() chan exportItemsJob {
 					break
 				}
 
-				log.WithField("error", err.Error()).Info("Failed to iterate over item objects")
+				logging.WithField("error", err.Error()).Error("Failed to iterate over item objects")
 
 				continue
 			}
@@ -169,10 +170,10 @@ func (sto store) exportItems() chan exportItemsJob {
 			s := strings.Split(objAttrs.Name, ".")
 			ID, err := strconv.Atoi(s[0])
 			if err != nil {
-				log.WithFields(log.Fields{
+				logging.WithFields(logrus.Fields{
 					"error": err.Error(),
 					"name":  objAttrs.Name,
-				}).Info("Failed to parse object name")
+				}).Error("Failed to parse object name")
 
 				continue
 			}
