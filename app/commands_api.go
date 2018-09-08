@@ -41,7 +41,7 @@ func api(c config, m messenger, s store) error {
 	// filling state with region statuses
 	for _, reg := range sta.regions {
 		if c.Whitelist[reg.Name] != nil && len(*c.Whitelist[reg.Name]) == 0 {
-			logging.WithField("region", reg.Name).Info("Filtering out region from status")
+			logging.WithField("region", reg.Name).Debug("Filtering out region from status")
 
 			continue
 		}
