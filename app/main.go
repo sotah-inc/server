@@ -152,7 +152,7 @@ func main() {
 			logVerbosity,
 			logrusstash.New(
 				logstashConn,
-				logrusstash.DefaultFormatter(logrus.Fields{"command": cmd}),rese
+				logrusstash.DefaultFormatter(logrus.Fields{"command": cmd}),
 			),
 		)
 	}
