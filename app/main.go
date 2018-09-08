@@ -46,9 +46,10 @@ func main() {
 	logging.SetLevel(logVerbosity)
 
 	// optionally adding logstash hook
-	if logstashHost != nil && logstashPort != nil {
-		conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", *logstashHost, *logstashPort))
-		if err != nil {
+	var logstashConn net.Conn
+	hasLogstashParams := logstashHost != nil && logstashPort != nil
+	if hasLogstashParams {
+		if logstashConn, err = net.Dial("tcp", fmt.Sprintf("%s:%d", *logstashHost, *logstashPort)); err != nil {
 			logging.WithFields(logrus.Fields{
 				"error": err.Error(),
 				"host":  *logstashHost,
@@ -58,7 +59,7 @@ func main() {
 			return
 		}
 
-		logging.AddHook(logrusstash.New(conn, logrusstash.DefaultFormatter(logrus.Fields{})))
+		logging.AddHook(logrusstash.New(logstashConn, logrusstash.DefaultFormatter(logrus.Fields{})))
 	}
 	logging.Info("Starting")
 
@@ -144,6 +145,16 @@ func main() {
 		logging.WithField("command", cmd).Fatal("Invalid command")
 
 		return
+	}
+
+	if hasLogstashParams {
+		logging.ResetLogger(
+			logVerbosity,
+			logrusstash.New(
+				logstashConn,
+				logrusstash.DefaultFormatter(logrus.Fields{"command": cmd}),rese
+			),
+		)
 	}
 
 	cmdFunc()

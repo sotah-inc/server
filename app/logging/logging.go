@@ -6,6 +6,13 @@ import (
 
 var logger = logrus.New()
 
+// ResetLogger re-establishes the logger instance
+func ResetLogger(level logrus.Level, hook logrus.Hook) {
+	logger = logrus.New()
+	logger.SetLevel(level)
+	logger.AddHook(hook)
+}
+
 // AddHook adds a hook to the internal logrus instance
 func AddHook(hook logrus.Hook) {
 	logger.Hooks.Add(hook)
