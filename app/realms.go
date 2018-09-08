@@ -316,7 +316,6 @@ func (rea realm) downloadAndCache(aFile blizzard.AuctionFile, res resolver) (bli
 
 	// writing the auction data to the cache dir
 	logging.WithFields(logrus.Fields{
-		"error":       err.Error(),
 		"region":      rea.region.Name,
 		"realm":       rea.Slug,
 		"filepath":    auctionsFilepath,
