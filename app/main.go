@@ -150,10 +150,7 @@ func main() {
 	if hasLogstashParams {
 		logging.ResetLogger(
 			logVerbosity,
-			logrusstash.New(
-				logstashConn,
-				logrusstash.DefaultFormatter(logrus.Fields{"command": cmd}),
-			),
+			logrusstash.New(logstashConn, logrusstash.DefaultFormatter(logrus.Fields{"command": cmd})),
 		)
 	}
 
