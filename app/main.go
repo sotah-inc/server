@@ -12,6 +12,8 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
+type commandMap map[string]func() error
+
 func main() {
 	// parsing the command flags
 	var (
@@ -120,76 +122,29 @@ func main() {
 
 	logging.WithField("command", cmd).Info("Running command")
 
-	switch cmd {
-	case apiTestCommand.FullCommand():
-		err := apiTest(c, mess, stor, *apiTestDataDir)
-		if err != nil {
-			logging.WithFields(logrus.Fields{
-				"error":   err.Error(),
-				"command": cmd,
-			}).Fatal("Could not run command")
-
-			return
-		}
-
-		os.Exit(0)
-
-		return
-	case apiCommand.FullCommand():
-		err := api(c, mess, stor)
-		if err != nil {
-			logging.WithFields(logrus.Fields{
-				"error":   err.Error(),
-				"command": cmd,
-			}).Fatal("Could not run command")
-
-			return
-		}
-
-		os.Exit(0)
-
-		return
-	case syncItemsCommand.FullCommand():
-		err := syncItems(c, stor)
-		if err != nil {
-			logging.WithFields(logrus.Fields{
-				"error":   err.Error(),
-				"command": cmd,
-			}).Fatal("Could not run command")
-
-			return
-		}
-
-		os.Exit(0)
-
-		return
-	case liveAuctionsCommand.FullCommand():
-		err := liveAuctions(c, mess, stor)
-		if err != nil {
-			logging.WithFields(logrus.Fields{
-				"error":   err.Error(),
-				"command": cmd,
-			}).Fatal("Could not run command")
-
-			return
-		}
-
-		os.Exit(0)
-
-		return
-	case pricelistHistoriesCommand.FullCommand():
-		err := pricelistHistories(c, mess, stor)
-		if err != nil {
-			logging.WithFields(logrus.Fields{
-				"error":   err.Error(),
-				"command": cmd,
-			}).Fatal("Could not run command")
-
-			return
-		}
-
-		os.Exit(0)
+	cMap := commandMap{
+		apiTestCommand.FullCommand(): func() error {
+			return apiTest(c, mess, stor, *apiTestDataDir)
+		},
+		apiCommand.FullCommand(): func() error {
+			return api(c, mess, stor)
+		},
+		syncItemsCommand.FullCommand(): func() error {
+			return syncItems(c, stor)
+		},
+		liveAuctionsCommand.FullCommand(): func() error {
+			return liveAuctions(c, mess, stor)
+		},
+		pricelistHistoriesCommand.FullCommand(): func() error {
+			return pricelistHistories(c, mess, stor)
+		},
+	}
+	cmdFunc, ok := cMap[cmd]
+	if !ok {
+		logging.WithField("command", cmd).Fatal("Invalid command")
 
 		return
 	}
+
+	cmdFunc()
 }
