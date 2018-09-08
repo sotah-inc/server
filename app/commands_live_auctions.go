@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"github.com/ihsw/sotah-server/app/blizzard"
+	"github.com/ihsw/sotah-server/app/logging"
 	"github.com/ihsw/sotah-server/app/subjects"
-	log "github.com/sirupsen/logrus"
 )
 
 func liveAuctions(c config, m messenger, s store) error {
-	log.Info("Starting live-auctions")
+	logging.Info("Starting live-auctions")
 
 	// establishing a state
 	res := newResolver(c, m, s)
@@ -27,7 +27,7 @@ func liveAuctions(c config, m messenger, s store) error {
 		if err == nil {
 			break
 		} else {
-			log.Info("Could not fetch regions, retrying in 250ms")
+			logging.WithField("attempts", attempts).Info("Could not fetch regions, retrying in 250ms")
 
 			attempts++
 			time.Sleep(250 * time.Millisecond)
@@ -45,14 +45,14 @@ func liveAuctions(c config, m messenger, s store) error {
 	// filling state with blank list of auctions
 	for _, reg := range regions {
 		if c.Whitelist[reg.Name] != nil && len(*c.Whitelist[reg.Name]) == 0 {
-			log.WithField("region", reg.Name).Info("Filtering out region from initialization")
+			logging.WithField("region", reg.Name).Info("Filtering out region from initialization")
 
 			continue
 		}
 
 		regionStatus, err := newStatusFromMessenger(*reg, m)
 		if err != nil {
-			log.WithField("region", reg.Name).Info("Could not fetch status for region")
+			logging.WithField("region", reg.Name).Info("Could not fetch status for region")
 
 			return err
 		}
@@ -102,16 +102,16 @@ func liveAuctions(c config, m messenger, s store) error {
 	}
 
 	// catching SIGINT
-	log.Info("Waiting for SIGINT")
+	logging.Info("Waiting for SIGINT")
 	sigIn := make(chan os.Signal, 1)
 	signal.Notify(sigIn, os.Interrupt)
 	<-sigIn
 
-	log.Info("Caught SIGINT, exiting")
+	logging.Info("Caught SIGINT, exiting")
 
 	// stopping listeners
 	sta.listeners.stop()
 
-	log.Info("Exiting")
+	logging.Info("Exiting")
 	return nil
 }

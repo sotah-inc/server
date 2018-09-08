@@ -7,13 +7,14 @@ import (
 	"time"
 
 	"github.com/ihsw/sotah-server/app/blizzard"
+	"github.com/ihsw/sotah-server/app/logging"
 	"github.com/ihsw/sotah-server/app/subjects"
 	"github.com/ihsw/sotah-server/app/util"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 func pricelistHistories(c config, m messenger, s store) error {
-	log.Info("Starting pricelist-histories")
+	logging.Info("Starting pricelist-histories")
 
 	// establishing a state
 	res := newResolver(c, m, s)
@@ -28,7 +29,7 @@ func pricelistHistories(c config, m messenger, s store) error {
 		if err == nil {
 			break
 		} else {
-			log.Info("Could not fetch regions, retrying in 250ms")
+			logging.Info("Could not fetch regions, retrying in 250ms")
 
 			attempts++
 			time.Sleep(250 * time.Millisecond)
@@ -46,14 +47,14 @@ func pricelistHistories(c config, m messenger, s store) error {
 	// filling state with statuses
 	for _, reg := range regions {
 		if c.Whitelist[reg.Name] != nil && len(*c.Whitelist[reg.Name]) == 0 {
-			log.WithField("region", reg.Name).Info("Filtering out region from initialization")
+			logging.WithField("region", reg.Name).Info("Filtering out region from initialization")
 
 			continue
 		}
 
 		regionStatus, err := newStatusFromMessenger(*reg, m)
 		if err != nil {
-			log.WithField("region", reg.Name).Info("Could not fetch status for region")
+			logging.WithField("region", reg.Name).Info("Could not fetch status for region")
 
 			return err
 		}
@@ -79,9 +80,9 @@ func pricelistHistories(c config, m messenger, s store) error {
 	itemIds := []blizzard.ItemID{}
 	for job := range loadedItems {
 		if job.err != nil {
-			log.WithFields(log.Fields{
-				"filepath": job.filepath,
+			logging.WithFields(logrus.Fields{
 				"error":    job.err.Error(),
+				"filepath": job.filepath,
 			}).Error("Failed to load item")
 
 			return job.err
@@ -107,16 +108,16 @@ func pricelistHistories(c config, m messenger, s store) error {
 	}
 
 	// catching SIGINT
-	log.Info("Waiting for SIGINT")
+	logging.Info("Waiting for SIGINT")
 	sigIn := make(chan os.Signal, 1)
 	signal.Notify(sigIn, os.Interrupt)
 	<-sigIn
 
-	log.Info("Caught SIGINT, exiting")
+	logging.Info("Caught SIGINT, exiting")
 
 	// stopping listeners
 	sta.listeners.stop()
 
-	log.Info("Exiting")
+	logging.Info("Exiting")
 	return nil
 }

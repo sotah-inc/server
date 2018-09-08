@@ -3,12 +3,12 @@ package main
 import (
 	"fmt"
 
+	"github.com/ihsw/sotah-server/app/logging"
 	"github.com/ihsw/sotah-server/app/util"
-	log "github.com/sirupsen/logrus"
 )
 
 func syncItems(c config, s store) error {
-	log.Info("Starting sync-items")
+	logging.Info("Starting sync-items")
 
 	// ensuring items dir exists
 	if err := util.EnsureDirsExist([]string{fmt.Sprintf("%s/items", c.CacheDir)}); err != nil {

@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/ihsw/sotah-server/app/logging"
 	"github.com/ihsw/sotah-server/app/util"
-	log "github.com/sirupsen/logrus"
 )
 
 const itemIconURLFormat = "https://render-us.worldofwarcraft.com/icons/56/%s.jpg"
@@ -73,8 +73,7 @@ func syncItemIcon(name string, res resolver) error {
 			return err
 		}
 
-		log.WithField("name", name).Info("Fetching item-icon")
-
+		logging.WithField("name", name).Debug("Fetching item-icon")
 		body, err := util.Download(res.getItemIconURL(name))
 		if err != nil {
 			return err

@@ -8,9 +8,8 @@ import (
 	"path/filepath"
 
 	"github.com/ihsw/sotah-server/app/blizzard"
+	"github.com/ihsw/sotah-server/app/logging"
 	"github.com/ihsw/sotah-server/app/util"
-
-	log "github.com/sirupsen/logrus"
 )
 
 func getItemFilepath(c config, ID blizzard.ItemID) (string, error) {
@@ -58,7 +57,7 @@ func loadItemsFromFilecache(c config) (chan loadItemsJob, error) {
 		itemsFilepathCount := len(itemsFilepaths)
 		for i, itemFilepath := range itemsFilepaths {
 			if i == 0 || i%5000 == 0 || i == itemsFilepathCount-1 {
-				log.WithField("count", i).Debug("Loaded items")
+				logging.WithField("count", i).Debug("Loaded items")
 			}
 
 			filename := itemFilepath.Name()
@@ -146,7 +145,7 @@ func getItem(ID blizzard.ItemID, res resolver) (blizzard.Item, string, error) {
 			}
 		}
 
-		log.WithField("item", ID).Info("Fetching item")
+		logging.WithField("item", ID).Debug("Fetching item")
 
 		// checking blizzard api
 		primaryRegion, err := res.config.Regions.getPrimaryRegion()

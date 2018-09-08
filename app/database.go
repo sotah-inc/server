@@ -8,7 +8,8 @@ import (
 
 	"github.com/boltdb/bolt"
 	"github.com/ihsw/sotah-server/app/blizzard"
-	log "github.com/sirupsen/logrus"
+	"github.com/ihsw/sotah-server/app/logging"
+	"github.com/sirupsen/logrus"
 )
 
 func itemIDPricelistBucketName(ID blizzard.ItemID) []byte {
@@ -37,7 +38,7 @@ type database struct {
 }
 
 func (dBase database) persistPricelists(targetDate time.Time, pList priceList) error {
-	log.WithFields(log.Fields{
+	logging.WithFields(logrus.Fields{
 		"region":     dBase.realm.region.Name,
 		"realm":      dBase.realm.Slug,
 		"pricelists": len(pList),
@@ -107,18 +108,18 @@ func newDatabases(c config, stas statuses, itemIds []blizzard.ItemID) (databases
 		}
 
 		filteredRealms := sta.Realms.filterWithWhitelist(wList)
-		log.WithField("count", len(filteredRealms)).Info("Initializing databases")
+		logging.WithField("count", len(filteredRealms)).Info("Initializing databases")
 		for _, rea := range filteredRealms {
 			dBase, err := newDatabase(c, rea, itemIds)
 			if err != nil {
 				return databases{}, err
 			}
 
-			log.WithFields(log.Fields{
+			logging.WithFields(logrus.Fields{
 				"region": rName,
 				"realm":  rea.Slug,
 				"count":  len(itemIds),
-			}).Info("Ensuring item-price buckets exist")
+			}).Debug("Ensuring item-price buckets exist")
 			err = dBase.db.Batch(func(tx *bolt.Tx) error {
 				for _, itemID := range itemIds {
 					if _, err := tx.CreateBucketIfNotExists(itemIDPricelistBucketName(itemID)); err != nil {

@@ -9,12 +9,11 @@ import (
 	"time"
 
 	"github.com/ihsw/sotah-server/app/blizzard"
-
-	log "github.com/sirupsen/logrus"
-
 	"github.com/ihsw/sotah-server/app/codes"
+	"github.com/ihsw/sotah-server/app/logging"
 	"github.com/ihsw/sotah-server/app/subjects"
 	"github.com/nats-io/go-nats"
+	"github.com/sirupsen/logrus"
 )
 
 type messenger struct {
@@ -61,7 +60,7 @@ func newMessenger(host string, port int) (messenger, error) {
 
 	natsURI := fmt.Sprintf("nats://%s:%d", host, port)
 
-	log.WithField("uri", natsURI).Info("Connecting to nats")
+	logging.WithField("uri", natsURI).Info("Connecting to nats")
 
 	conn, err := nats.Connect(natsURI)
 	if err != nil {
@@ -74,10 +73,10 @@ func newMessenger(host string, port int) (messenger, error) {
 }
 
 func (mess messenger) subscribe(subject subjects.Subject, stop listenStopChan, cb func(nats.Msg)) error {
-	log.WithField("subject", subject).Info("Subscribing to subject")
+	logging.WithField("subject", subject).Info("Subscribing to subject")
 
 	sub, err := mess.conn.Subscribe(string(subject), func(natsMsg *nats.Msg) {
-		log.WithField("subject", subject).Debug("Received request")
+		logging.WithField("subject", subject).Debug("Received request")
 
 		cb(*natsMsg)
 	})
@@ -88,7 +87,7 @@ func (mess messenger) subscribe(subject subjects.Subject, stop listenStopChan, c
 	go func() {
 		<-stop
 
-		log.WithField("subject", subject).Info("Unsubscribing from subject")
+		logging.WithField("subject", subject).Info("Unsubscribing from subject")
 
 		sub.Unsubscribe()
 	}()
@@ -107,15 +106,16 @@ func (mess messenger) replyTo(natsMsg nats.Msg, m message) error {
 		return err
 	}
 
-	log.WithFields(log.Fields{
+	logging.WithFields(logrus.Fields{
 		"reply_to":       natsMsg.Reply,
 		"payload_length": len(jsonMessage),
+		"code":           m.Code,
 	}).Debug("Publishing a reply")
 
 	// attempting to publish it
 	err = mess.conn.Publish(natsMsg.Reply, jsonMessage)
 	if err != nil {
-		log.WithFields(log.Fields{
+		logging.WithFields(logrus.Fields{
 			"error":   err.Error(),
 			"subject": natsMsg.Reply,
 		}).Error("Failed to publish message")

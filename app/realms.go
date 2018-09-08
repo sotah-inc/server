@@ -10,9 +10,10 @@ import (
 
 	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/codes"
+	"github.com/ihsw/sotah-server/app/logging"
 	"github.com/ihsw/sotah-server/app/subjects"
 	"github.com/ihsw/sotah-server/app/util"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 type getAuctionsWhitelist map[blizzard.RealmSlug]interface{}
@@ -82,24 +83,31 @@ func (reas realms) getAuctions(res resolver, wList getAuctionsWhitelist) chan ge
 
 			// optionally skipping draining out due to error
 			if err != nil {
-				log.WithFields(log.Fields{
+				logging.WithFields(logrus.Fields{
+					"error":  err.Error(),
 					"region": rea.region.Name,
 					"realm":  rea.Slug,
-					"error":  err.Error(),
-				}).Info("Auction fetch failure")
+				}).Error("Auction fetch failure")
 
 				continue
 			}
 
 			// optionally skipping draining out due to no new data
 			if lastModified.IsZero() {
-				rea.LogEntry().Debug("No auctions received")
+				logging.WithFields(logrus.Fields{
+					"region": rea.region.Name,
+					"realm":  rea.Slug,
+				}).Debug("No auctions received")
 
 				continue
 			}
 
 			// draining out
-			rea.LogEntry().Debug("Received auctions")
+			logging.WithFields(logrus.Fields{
+				"region":   rea.region.Name,
+				"realm":    rea.Slug,
+				"auctions": len(aucs.Auctions),
+			}).Debug("Auctions received")
 			out <- getAuctionsJob{nil, rea, aucs, lastModified}
 		}
 	}
@@ -115,7 +123,10 @@ func (reas realms) getAuctions(res resolver, wList getAuctionsWhitelist) chan ge
 				continue
 			}
 
-			log.WithField("realm", rea.Slug).Debug("Queueing up auction for downloading")
+			logging.WithFields(logrus.Fields{
+				"region": rea.region.Name,
+				"realm":  rea.Slug,
+			}).Debug("Queueing up auction for downloading")
 			in <- rea
 		}
 
@@ -172,7 +183,10 @@ func (reas realms) loadAuctionsFromCacheDir(c *config) chan loadAuctionsJob {
 				}
 			}
 
-			log.WithField("realm", rea.Slug).Debug("Queueing up auction for loading")
+			logging.WithFields(logrus.Fields{
+				"region": rea.region.Name,
+				"realm":  rea.Slug,
+			}).Debug("Queueing up auction for loading")
 			in <- rea
 		}
 
@@ -188,8 +202,8 @@ type realm struct {
 	LastModified int64 `json:"last_modified"`
 }
 
-func (rea realm) LogEntry() *log.Entry {
-	return log.WithFields(log.Fields{"region": rea.region.Name, "realm": rea.Slug})
+func (rea realm) LogEntry() *logrus.Entry {
+	return logging.WithFields(logrus.Fields{"region": rea.region.Name, "realm": rea.Slug})
 }
 
 func (rea realm) auctionsFilepath(c *config) (string, error) {
@@ -262,14 +276,20 @@ func (rea realm) downloadAndCache(aFile blizzard.AuctionFile, res resolver) (bli
 	encodedBody, err := util.GzipEncode(body)
 
 	if res.config.UseGCloudStorage {
-		rea.LogEntry().Debug("Writing auction data to gcloud store")
+		logging.WithFields(logrus.Fields{
+			"region":       rea.region.Name,
+			"realm":        rea.Slug,
+			"lastModified": aFile.LastModifiedAsTime().Unix(),
+			"encodedBody":  len(encodedBody),
+		}).Debug("Writing auction data to gcloud store")
 
 		// writing the auction data to the gcloud storage
 		if err := res.store.writeRealmAuctions(rea, aFile.LastModifiedAsTime(), encodedBody); err != nil {
-			log.WithFields(log.Fields{
-				"region": rea.region.Name,
-				"realm":  rea.Slug,
-				"error":  err.Error(),
+			logging.WithFields(logrus.Fields{
+				"error":        err.Error(),
+				"region":       rea.region.Name,
+				"realm":        rea.Slug,
+				"lastModified": aFile.LastModifiedAsTime().Unix(),
 			}).Debug("Failed to write auctions to gcloud storage")
 
 			return blizzard.Auctions{}, err
@@ -290,7 +310,13 @@ func (rea realm) downloadAndCache(aFile blizzard.AuctionFile, res resolver) (bli
 	}
 
 	// writing the auction data to the cache dir
-	rea.LogEntry().Debug("Writing auction data to cache dir")
+	logging.WithFields(logrus.Fields{
+		"error":       err.Error(),
+		"region":      rea.region.Name,
+		"realm":       rea.Slug,
+		"filepath":    auctionsFilepath,
+		"encodedBody": len(encodedBody),
+	}).Debug("Writing auction data to cache dir")
 	if err != nil {
 		return blizzard.Auctions{}, err
 	}
@@ -319,12 +345,20 @@ func (rea realm) loadAuctions(c *config) (blizzard.Auctions, time.Time, error) {
 	}
 
 	// loading the gzipped cached auctions file
-	rea.LogEntry().Info("Loading auctions from filepath")
+	logging.WithFields(logrus.Fields{
+		"region":   rea.region.Name,
+		"realm":    rea.Slug,
+		"filepath": cachedAuctionsFilepath,
+	}).Debug("Loading auctions from filepath")
 	aucs, err := blizzard.NewAuctionsFromGzFilepath(cachedAuctionsFilepath)
 	if err != nil {
 		return blizzard.Auctions{}, time.Time{}, err
 	}
-	rea.LogEntry().Info("Finished loading auctions from filepath")
+	logging.WithFields(logrus.Fields{
+		"region":   rea.region.Name,
+		"realm":    rea.Slug,
+		"filepath": cachedAuctionsFilepath,
+	}).Debug("Finished loading auctions from filepath")
 
 	return aucs, cachedAuctionsStat.ModTime(), nil
 }
