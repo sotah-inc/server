@@ -6,14 +6,15 @@ import (
 	"os/signal"
 
 	"github.com/ihsw/sotah-server/app/blizzard"
+	"github.com/ihsw/sotah-server/app/logging"
 	"github.com/ihsw/sotah-server/app/subjects"
 	"github.com/ihsw/sotah-server/app/util"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/twinj/uuid"
 )
 
 func api(c config, m messenger, s store) error {
-	log.Info("Starting api")
+	logging.Info("Starting api")
 
 	// establishing a state
 	res := newResolver(c, m, s)
@@ -40,17 +41,17 @@ func api(c config, m messenger, s store) error {
 	// filling state with region statuses
 	for _, reg := range sta.regions {
 		if c.Whitelist[reg.Name] != nil && len(*c.Whitelist[reg.Name]) == 0 {
-			log.WithField("region", reg.Name).Info("Filtering out region from status")
+			logging.WithField("region", reg.Name).Info("Filtering out region from status")
 
 			continue
 		}
 
 		regionStatus, err := reg.getStatus(res)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"region": reg.Name,
+			logging.WithFields(logrus.Fields{
 				"error":  err.Error(),
-			}).Info("Failed to fetch status")
+				"region": reg.Name,
+			}).Error("Failed to fetch status")
 
 			return err
 		}
@@ -65,9 +66,9 @@ func api(c config, m messenger, s store) error {
 	}
 	for job := range loadedItems {
 		if job.err != nil {
-			log.WithFields(log.Fields{
-				"filepath": job.filepath,
+			logging.WithFields(logrus.Fields{
 				"error":    job.err.Error(),
+				"filepath": job.filepath,
 			}).Error("Failed to load item")
 
 			return job.err
@@ -144,21 +145,22 @@ func api(c config, m messenger, s store) error {
 	onCollectorStop := sta.startCollector(collectorStop, res)
 
 	// catching SIGINT
+	logging.Info("Waiting for SIGINT")
 	sigIn := make(chan os.Signal, 1)
 	signal.Notify(sigIn, os.Interrupt)
 	<-sigIn
 
-	log.Info("Caught SIGINT, exiting")
+	logging.Info("Caught SIGINT, exiting")
 
 	// stopping listeners
 	sta.listeners.stop()
 
-	log.Info("Stopping collector")
+	logging.Info("Stopping collector")
 	collectorStop <- struct{}{}
 
-	log.Info("Waiting for collector to stop")
+	logging.Info("Waiting for collector to stop")
 	<-onCollectorStop
 
-	log.Info("Exiting")
+	logging.Info("Exiting")
 	return nil
 }
