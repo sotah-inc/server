@@ -160,5 +160,10 @@ func main() {
 		)
 	}
 
-	cmdFunc()
+	if err := cmdFunc(); err != nil {
+		logging.WithFields(logrus.Fields{
+			"error":   err.Error,
+			"command": cmd,
+		}).Fatal("Failed to execute command")
+	}
 }
