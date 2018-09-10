@@ -9,4 +9,5 @@ var (
 	SyncItems          = "sync-items"
 	LiveAuctions       = "live-auctions"
 	PricelistHistories = "pricelist-histories"
+	PruneStore         = "prune-store"
 )

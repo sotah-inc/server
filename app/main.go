@@ -34,6 +34,7 @@ func main() {
 		syncItemsCommand          = app.Command(commands.SyncItems, "For syncing items in gcloud storage to local disk.")
 		liveAuctionsCommand       = app.Command(commands.LiveAuctions, "For in-memory storage of current auctions.")
 		pricelistHistoriesCommand = app.Command(commands.PricelistHistories, "For on-disk storage of pricelist histories.")
+		pruneStoreCommand         = app.Command(commands.PruneStore, "For pruning gcloud store of non-primary region auctions.")
 	)
 	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
 
@@ -140,6 +141,9 @@ func main() {
 		},
 		pricelistHistoriesCommand.FullCommand(): func() error {
 			return pricelistHistories(c, mess, stor)
+		},
+		pruneStoreCommand.FullCommand(): func() error {
+			return pruneStore(c, mess, stor)
 		},
 	}
 	cmdFunc, ok := cMap[cmd]
