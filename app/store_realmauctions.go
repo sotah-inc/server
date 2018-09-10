@@ -382,7 +382,7 @@ func (sto store) loadRealmAuctions(rea realm, targetTime time.Time) (blizzard.Au
 	logging.WithFields(logrus.Fields{
 		"region": rea.region.Name,
 		"realm":  rea.Slug,
-	}).Info("Loading auctions from store")
+	}).Debug("Loading auctions from store")
 
 	aucs, err := blizzard.NewAuctionsFromGcloudObject(sto.context, obj)
 	if err != nil {
@@ -402,7 +402,7 @@ func (sto store) loadRealmAuctions(rea realm, targetTime time.Time) (blizzard.Au
 	logging.WithFields(logrus.Fields{
 		"region": rea.region.Name,
 		"realm":  rea.Slug,
-	}).Info("Loaded auctions from store")
+	}).Debug("Loaded auctions from store")
 
 	return aucs, lastModified, nil
 }
