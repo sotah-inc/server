@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"time"
 
+	storage "cloud.google.com/go/storage"
 	"github.com/ihsw/sotah-server/app/logging"
+	"github.com/ihsw/sotah-server/app/util"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/api/iterator"
 )
 
 func pruneStore(c config, m messenger, s store) error {
@@ -50,29 +53,80 @@ func pruneStore(c config, m messenger, s store) error {
 		sta.statuses[reg.Name] = regionStatus
 	}
 
-	// going over statuses to prune buckets
-	for _, reg := range sta.regions {
-		if reg.Primary {
-			continue
-		}
+	// establishing channels
+	out := make(chan error)
+	in := make(chan *storage.BucketHandle)
 
-		for _, rea := range sta.statuses[reg.Name].Realms {
-			exists, err := s.realmAuctionsBucketExists(rea)
-			if err != nil {
-				return err
+	// spinning up the workers
+	worker := func() {
+		for bkt := range in {
+			i := 0
+			it := bkt.Objects(s.context, nil)
+			for {
+				if i == 0 || i%5 == 0 {
+					logging.WithField("count", i).Debug("Deleted object from bucket")
+				}
+
+				objAttrs, err := it.Next()
+				if err != nil {
+					if err == iterator.Done {
+						break
+					}
+
+					logging.WithField("error", err.Error()).Error("Failed to iterate over item objects")
+
+					continue
+				}
+
+				obj := bkt.Object(objAttrs.Name)
+				if err := obj.Delete(s.context); err != nil {
+					out <- err
+				}
+
+				i++
 			}
 
-			if !exists {
+			if err := bkt.Delete(s.context); err != nil {
+				out <- err
+			}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(8, worker, postWork)
+
+	// queueing up
+	go func() {
+		// going over statuses to prune buckets
+		for _, reg := range sta.regions {
+			if reg.Primary {
 				continue
 			}
 
-			logging.WithFields(logrus.Fields{"region": reg.Name, "realm": rea.Slug}).Debug("Removing realm-auctions from store")
+			for _, rea := range sta.statuses[reg.Name].Realms {
+				exists, err := s.realmAuctionsBucketExists(rea)
+				if err != nil {
+					out <- err
+				}
 
-			bkt := s.getRealmAuctionsBucket(rea)
-			if err := bkt.Delete(s.context); err != nil {
-				return err
+				if !exists {
+					continue
+				}
+
+				logging.WithFields(logrus.Fields{"region": reg.Name, "realm": rea.Slug}).Debug("Removing realm-auctions from store")
+
+				bkt := s.getRealmAuctionsBucket(rea)
+				in <- bkt
 			}
 		}
+
+		close(in)
+	}()
+
+	// going over results
+	for err := range out {
+		logging.WithField("error", err.Error()).Error("Failed")
 	}
 
 	return nil
