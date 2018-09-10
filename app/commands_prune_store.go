@@ -68,10 +68,10 @@ func pruneStore(c config, m messenger, s store) error {
 
 			logging.WithFields(logrus.Fields{"region": reg.Name, "realm": rea.Slug}).Debug("Removing realm-auctions from store")
 
-			// bkt := s.getRealmAuctionsBucket(rea)
-			// if err := bkt.Delete(s.context); err != nil {
-			// 	return err
-			// }
+			bkt := s.getRealmAuctionsBucket(rea)
+			if err := bkt.Delete(s.context); err != nil {
+				return err
+			}
 		}
 	}
 
