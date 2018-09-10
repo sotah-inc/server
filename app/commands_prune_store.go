@@ -41,12 +41,6 @@ func pruneStore(c config, m messenger, s store) error {
 
 	// filling state with statuses
 	for _, reg := range regions {
-		if c.Whitelist[reg.Name] != nil && len(*c.Whitelist[reg.Name]) == 0 {
-			logging.WithField("region", reg.Name).Debug("Filtering out region from initialization")
-
-			continue
-		}
-
 		regionStatus, err := newStatusFromMessenger(*reg, m)
 		if err != nil {
 			logging.WithField("region", reg.Name).Info("Could not fetch status for region")
