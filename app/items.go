@@ -81,7 +81,7 @@ type getItemsJob struct {
 	iconURL string
 }
 
-func getItems(IDs []blizzard.ItemID, res resolver) chan getItemsJob {
+func getItems(IDs []blizzard.ItemID, ibMap itemBlacklistMap, res resolver) chan getItemsJob {
 	// establishing channels
 	out := make(chan getItemsJob)
 	in := make(chan blizzard.ItemID)
@@ -101,6 +101,10 @@ func getItems(IDs []blizzard.ItemID, res resolver) chan getItemsJob {
 	// queueing up the realms
 	go func() {
 		for _, ID := range IDs {
+			if _, ok := ibMap[ID]; ok {
+				continue
+			}
+
 			in <- ID
 		}
 

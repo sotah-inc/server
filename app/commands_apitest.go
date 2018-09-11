@@ -79,7 +79,7 @@ func apiTest(c config, m messenger, s store, dataDir string) error {
 
 		// downloading items found in this region
 		logging.WithField("items", len(regionItemIDs)).Info("Fetching items")
-		itemsOut := getItems(regionItemIDs, res)
+		itemsOut := getItems(regionItemIDs, sta.itemBlacklist, res)
 		for job := range itemsOut {
 			if job.err != nil {
 				logging.WithFields(logrus.Fields{
