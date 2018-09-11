@@ -4,6 +4,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"math"
+	"sort"
 
 	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/codes"
@@ -137,10 +139,12 @@ func (sta state) listenForPriceList(stop listenStopChan) error {
 
 func newPriceList(itemIds []blizzard.ItemID, maList miniAuctionList) priceList {
 	pList := map[blizzard.ItemID]prices{}
-
 	itemIDMap := make(map[blizzard.ItemID]struct{}, len(itemIds))
+	itemBuyoutPers := make(map[blizzard.ItemID][]float64, len(itemIds))
 	for _, id := range itemIds {
+		pList[id] = prices{}
 		itemIDMap[id] = struct{}{}
+		itemBuyoutPers[id] = []float64{}
 	}
 
 	for _, mAuction := range maList {
@@ -150,22 +154,52 @@ func newPriceList(itemIds []blizzard.ItemID, maList miniAuctionList) priceList {
 			continue
 		}
 
-		p, ok := pList[id]
-		if !ok {
-			p = prices{0, 0, 0}
-		}
+		p := pList[id]
 
-		auctionBid := float64(mAuction.Bid / mAuction.Quantity)
-		if p.Bid == 0 || auctionBid < p.Bid {
-			p.Bid = auctionBid
-		}
+		if mAuction.Buyout > 0 {
+			auctionBuyoutPer := float64(mAuction.Buyout / mAuction.Quantity)
 
-		auctionBuyout := float64(mAuction.Buyout / mAuction.Quantity)
-		if p.Buyout == 0 || auctionBuyout < p.Buyout {
-			p.Buyout = auctionBuyout
+			itemBuyoutPers[id] = append(itemBuyoutPers[id], auctionBuyoutPer)
+
+			if p.MinBuyoutPer == 0 || auctionBuyoutPer < p.MinBuyoutPer {
+				p.MinBuyoutPer = auctionBuyoutPer
+			}
+			if p.MaxBuyoutPer == 0 || auctionBuyoutPer > p.MaxBuyoutPer {
+				p.MaxBuyoutPer = auctionBuyoutPer
+			}
 		}
 
 		p.Volume += mAuction.Quantity * int64(len(mAuction.AucList))
+
+		pList[id] = p
+	}
+
+	for id, buyouts := range itemBuyoutPers {
+		if len(buyouts) == 0 {
+			continue
+		}
+
+		p := pList[id]
+
+		// gathering total and calculating average
+		total := float64(0)
+		for _, buyout := range buyouts {
+			total += buyout
+		}
+		p.AverageBuyoutPer = total / float64(len(buyouts))
+
+		// sorting buyouts and calculating median
+		buyoutsSlice := sort.Float64Slice(buyouts)
+		buyoutsSlice.Sort()
+		hasEvenMembers := len(buyoutsSlice)%2 == 0
+		median := float64(0)
+		if hasEvenMembers {
+			middle := float64(len(buyoutsSlice)) / 2
+			median = (buyoutsSlice[int(math.Floor(middle))] + buyoutsSlice[int(math.Ceil(middle))]) / 2
+		} else {
+			median = buyoutsSlice[(len(buyoutsSlice)-1)/2]
+		}
+		p.MedianBuyoutPer = median
 
 		pList[id] = p
 	}
@@ -185,7 +219,9 @@ func newPricesFromBytes(data []byte) (prices, error) {
 }
 
 type prices struct {
-	Bid    float64 `json:"bid"`
-	Buyout float64 `json:"buyout"`
-	Volume int64   `json:"volume"`
+	MinBuyoutPer     float64 `json:"min_buyout_per"`
+	MaxBuyoutPer     float64 `json:"max_buyout_per"`
+	AverageBuyoutPer float64 `json:"average_buyout_per"`
+	MedianBuyoutPer  float64 `json:"median_buyout_per"`
+	Volume           int64   `json:"volume"`
 }
