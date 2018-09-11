@@ -51,7 +51,7 @@ func (dBase database) persistPricelists(targetDate time.Time, pList priceList) e
 		"region":     dBase.realm.region.Name,
 		"realm":      dBase.realm.Slug,
 		"pricelists": len(pList),
-	}).Info("Writing pricelists")
+	}).Debug("Writing pricelists")
 
 	return dBase.db.Update(func(txn *badger.Txn) error {
 		for ID, pricesValue := range pList {
@@ -64,6 +64,12 @@ func (dBase database) persistPricelists(targetDate time.Time, pList priceList) e
 
 			txn.Set(key, encodedPricesValue)
 		}
+
+		logging.WithFields(logrus.Fields{
+			"region":     dBase.realm.region.Name,
+			"realm":      dBase.realm.Slug,
+			"pricelists": len(pList),
+		}).Debug("Finished writing pricelists")
 
 		return nil
 	})
