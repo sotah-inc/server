@@ -27,6 +27,7 @@ func newState(mess messenger, res resolver) state {
 		items:                 map[blizzard.ItemID]item{},
 		expansions:            res.config.Expansions,
 		professions:           res.config.Professions,
+		itemBlacklist:         map[blizzard.ItemID]struct{}{},
 	}
 }
 
@@ -45,6 +46,7 @@ type state struct {
 	itemClasses           blizzard.ItemClasses
 	expansions            []expansion
 	professions           []profession
+	itemBlacklist         map[blizzard.ItemID]struct{}
 }
 
 type listenStopChan chan interface{}

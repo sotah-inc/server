@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 
+	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/logging"
 	"github.com/ihsw/sotah-server/app/util"
 )
@@ -35,6 +36,7 @@ type config struct {
 	UseGCloudStorage bool                                 `json:"use_gcloud_storage"`
 	Expansions       []expansion                          `json:"expansions"`
 	Professions      []profession                         `json:"professions"`
+	ItemBlacklist    []blizzard.ItemID                    `json:"item_blacklist"`
 }
 
 func (c config) getRegionWhitelist(rName regionName) *getAuctionsWhitelist {
