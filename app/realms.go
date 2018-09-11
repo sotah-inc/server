@@ -219,7 +219,7 @@ func (rea realm) auctionsFilepath(c *config) (string, error) {
 
 func (rea realm) databaseFilepath(c *config) (string, error) {
 	return filepath.Abs(
-		fmt.Sprintf("%s/databases/%s/%s.db", c.CacheDir, rea.region.Name, rea.Slug),
+		fmt.Sprintf("%s/databases/%s/%s", c.CacheDir, rea.region.Name, rea.Slug),
 	)
 }
 

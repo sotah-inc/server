@@ -1,28 +1,37 @@
 package main
 
 import (
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
-	"github.com/boltdb/bolt"
+	"github.com/dgraph-io/badger"
+
 	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/logging"
 	"github.com/sirupsen/logrus"
 )
 
-func itemIDPricelistBucketName(ID blizzard.ItemID) []byte {
+func itemPricelistBucketPrefix(ID blizzard.ItemID) []byte {
 	return []byte(fmt.Sprintf("item-prices/%d", ID))
 }
 
-func newDatabase(c config, rea realm, itemIds []blizzard.ItemID) (database, error) {
+func itemPricelistBucketName(ID blizzard.ItemID, targetDate time.Time) []byte {
+	return []byte(fmt.Sprintf("%s/%d", itemPricelistBucketPrefix(ID), targetDate.Unix()))
+}
+
+func newDatabase(c config, rea realm) (database, error) {
 	dbFilepath, err := rea.databaseFilepath(&c)
 	if err != nil {
 		return database{}, err
 	}
 
-	db, err := bolt.Open(dbFilepath, 0600, &bolt.Options{Timeout: 1 * time.Second})
+	opts := badger.DefaultOptions
+	opts.Dir = dbFilepath
+	opts.ValueDir = dbFilepath
+	db, err := badger.Open(opts)
 	if err != nil {
 		return database{}, err
 	}
@@ -33,7 +42,7 @@ func newDatabase(c config, rea realm, itemIds []blizzard.ItemID) (database, erro
 type priceListHistory map[int64]prices
 
 type database struct {
-	db    *bolt.DB
+	db    *badger.DB
 	realm realm
 }
 
@@ -44,22 +53,16 @@ func (dBase database) persistPricelists(targetDate time.Time, pList priceList) e
 		"pricelists": len(pList),
 	}).Info("Writing pricelists")
 
-	return dBase.db.Batch(func(tx *bolt.Tx) error {
+	return dBase.db.Update(func(txn *badger.Txn) error {
 		for ID, pricesValue := range pList {
-			b, err := tx.CreateBucketIfNotExists(itemIDPricelistBucketName(ID))
-			if err != nil {
-				return err
-			}
-
-			key := make([]byte, 8)
-			binary.LittleEndian.PutUint64(key, uint64(targetDate.Unix()))
+			key := itemPricelistBucketName(ID, targetDate)
 
 			encodedPricesValue, err := json.Marshal(pricesValue)
 			if err != nil {
 				return err
 			}
 
-			b.Put(key, encodedPricesValue)
+			txn.Set(key, encodedPricesValue)
 		}
 
 		return nil
@@ -68,23 +71,32 @@ func (dBase database) persistPricelists(targetDate time.Time, pList priceList) e
 
 func (dBase database) getPricelistHistory(ID blizzard.ItemID) (priceListHistory, error) {
 	plHistory := priceListHistory{}
-	err := dBase.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(itemIDPricelistBucketName(ID))
-		if b == nil {
-			return nil
-		}
+	err := dBase.db.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		it := txn.NewIterator(opts)
+		defer it.Close()
 
-		b.ForEach(func(k, v []byte) error {
-			unixTime := int64(binary.LittleEndian.Uint64(k))
-			pricesValue, err := newPricesFromBytes(v)
+		prefix := itemPricelistBucketPrefix(ID)
+		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
+			itItem := it.Item()
+			k := itItem.Key()
+			v, err := itItem.Value()
 			if err != nil {
 				return err
 			}
 
-			plHistory[unixTime] = pricesValue
+			s := strings.Split(string(k), "/")
+			targetTimeUnix, err := strconv.Atoi(s[2])
+			if err != nil {
+				return err
+			}
 
-			return nil
-		})
+			p, err := newPricesFromBytes(v)
+			if err != nil {
+				return err
+			}
+			plHistory[int64(targetTimeUnix)] = p
+		}
 
 		return nil
 	})
@@ -110,27 +122,7 @@ func newDatabases(c config, stas statuses, itemIds []blizzard.ItemID) (databases
 		filteredRealms := sta.Realms.filterWithWhitelist(wList)
 		logging.WithField("count", len(filteredRealms)).Info("Initializing databases")
 		for _, rea := range filteredRealms {
-			dBase, err := newDatabase(c, rea, itemIds)
-			if err != nil {
-				return databases{}, err
-			}
-
-			logging.WithFields(logrus.Fields{
-				"region": rName,
-				"realm":  rea.Slug,
-				"count":  len(itemIds),
-			}).Debug("Ensuring item-price buckets exist")
-			err = dBase.db.Batch(func(tx *bolt.Tx) error {
-				for _, itemID := range itemIds {
-					if _, err := tx.CreateBucketIfNotExists(itemIDPricelistBucketName(itemID)); err != nil {
-						return err
-					}
-
-					return nil
-				}
-
-				return nil
-			})
+			dBase, err := newDatabase(c, rea)
 			if err != nil {
 				return databases{}, err
 			}

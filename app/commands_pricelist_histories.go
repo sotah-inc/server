@@ -67,6 +67,9 @@ func pricelistHistories(c config, m messenger, s store) error {
 	}
 	for _, reg := range sta.regions {
 		cacheDirs = append(cacheDirs, fmt.Sprintf("%s/databases/%s", c.CacheDir, reg.Name))
+		for _, rea := range sta.statuses[reg.Name].Realms {
+			cacheDirs = append(cacheDirs, fmt.Sprintf("%s/databases/%s/%s", c.CacheDir, reg.Name, rea.Slug))
+		}
 	}
 	if err := util.EnsureDirsExist(cacheDirs); err != nil {
 		return err
