@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/dgraph-io/badger"
+	badgerOptions "github.com/dgraph-io/badger/options"
 
 	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/logging"
@@ -31,6 +32,7 @@ func newDatabase(c config, reg region) (database, error) {
 	opts := badger.DefaultOptions
 	opts.Dir = dbFilepath
 	opts.ValueDir = dbFilepath
+	opts.ValueLogLoadingMode = badgerOptions.FileIO
 	db, err := badger.Open(opts)
 	if err != nil {
 		return database{}, err
