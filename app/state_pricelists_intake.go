@@ -103,6 +103,7 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 					aiRequest.RegionRealmTimestamps[reg.Name] = map[blizzard.RealmSlug]int64{}
 
 					for _, rea := range sta.statuses[reg.Name].Realms {
+						// validating taht the realm-auctions bucket exists
 						exists, err := sta.resolver.store.realmAuctionsBucketExists(rea)
 						if err != nil {
 							logging.WithFields(logrus.Fields{
@@ -113,13 +114,18 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 
 							continue
 						}
-
 						if exists == false {
 							continue
 						}
 
+						logging.WithFields(logrus.Fields{
+							"region": reg.Name,
+							"realm":  rea.Slug,
+						}).Debug("Checking store for realm-auctions-object for processing")
+
+						// checking the store for the latest realm-auctions object for processing
 						bkt := sta.resolver.store.getRealmAuctionsBucket(rea)
-						_, targetTime, err := sta.resolver.store.getLatestRealmAuctionsObjectForProcessing(bkt)
+						obj, targetTime, err := sta.resolver.store.getLatestRealmAuctionsObjectForProcessing(bkt)
 						if err != nil {
 							logging.WithFields(logrus.Fields{
 								"error":  err.Error(),
@@ -130,6 +136,7 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 							continue
 						}
 
+						// optionally halting on no results returned
 						if targetTime.IsZero() {
 							logging.WithFields(logrus.Fields{
 								"region": reg.Name,
@@ -139,8 +146,39 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 							continue
 						}
 
+						// gathering obj attrs for updating metadata
+						objAttrs, err := obj.Attrs(sta.resolver.store.context)
+						if err != nil {
+							logging.WithFields(logrus.Fields{
+								"error":  err.Error(),
+								"region": reg.Name,
+								"realm":  rea.Slug,
+							}).Error("Failed to gathering obj attrs")
+
+							continue
+						}
+
 						hasResults = true
 						aiRequest.RegionRealmTimestamps[reg.Name][rea.Slug] = targetTime.Unix()
+
+						objMeta := func() map[string]string {
+							if objAttrs.Metadata == nil {
+								return map[string]string{}
+							}
+
+							return objAttrs.Metadata
+						}()
+						objMeta["state"] = "queued"
+						if _, err := obj.Update(sta.resolver.store.context, storage.ObjectAttrsToUpdate{Metadata: objMeta}); err != nil {
+							logging.WithFields(logrus.Fields{
+								"error":         err.Error(),
+								"region":        reg.Name,
+								"realm":         rea.Slug,
+								"last-modified": targetTime.Unix(),
+							}).Error("Failed to update metadata of object")
+
+							continue
+						}
 					}
 				}
 
