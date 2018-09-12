@@ -33,6 +33,7 @@ func newDatabase(c config, reg region) (database, error) {
 	opts.Dir = dbFilepath
 	opts.ValueDir = dbFilepath
 	opts.ValueLogLoadingMode = badgerOptions.FileIO
+	opts.MaxTableSize = 4 << 20 // 4MB
 	db, err := badger.Open(opts)
 	if err != nil {
 		return database{}, err
