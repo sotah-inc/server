@@ -94,6 +94,8 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 	collectorIn := make(chan auctionsIntakeRequest)
 	if sta.resolver.config.UseGCloudStorage {
 		go func() {
+			logging.Info("Starting auctions-intake collector")
+
 			for {
 				hasResults := false
 				aiRequest := auctionsIntakeRequest{RegionRealmTimestamps: intakeRequestData{}}
