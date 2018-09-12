@@ -102,7 +102,7 @@ func (dBase database) getPricelistHistory(rea realm, ID blizzard.ItemID) (priceL
 			}
 
 			s := strings.Split(string(k), "/")
-			targetTimeUnix, err := strconv.Atoi(s[2])
+			targetTimeUnix, err := strconv.Atoi(s[3])
 			if err != nil {
 				return err
 			}
