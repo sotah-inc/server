@@ -1,7 +1,10 @@
 package main
 
 import (
+	"time"
+
 	"cloud.google.com/go/storage"
+	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/logging"
 	"github.com/ihsw/sotah-server/app/subjects"
 	"github.com/ihsw/sotah-server/app/util"
@@ -84,12 +87,89 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 	}
 	util.Work(4, worker, postWork)
 
+	// declaring a channel for queueing up pricelist-intake requests
+	listenerIn := make(chan auctionsIntakeRequest, 10)
+
+	// optionally spinning up a collector for producing pricelist-intake requests
+	collectorIn := make(chan auctionsIntakeRequest)
+	if sta.resolver.config.UseGCloudStorage {
+		go func() {
+			for {
+				hasResults := false
+				aiRequest := auctionsIntakeRequest{RegionRealmTimestamps: intakeRequestData{}}
+				for _, reg := range sta.regions {
+					aiRequest.RegionRealmTimestamps[reg.Name] = map[blizzard.RealmSlug]int64{}
+
+					for _, rea := range sta.statuses[reg.Name].Realms {
+						exists, err := sta.resolver.store.realmAuctionsBucketExists(rea)
+						if err != nil {
+							logging.WithFields(logrus.Fields{
+								"error":  err.Error(),
+								"region": reg.Name,
+								"realm":  rea.Slug,
+							}).Error("Failed to check if realm-auctions bucket exists")
+
+							continue
+						}
+
+						if exists == false {
+							continue
+						}
+
+						bkt := sta.resolver.store.getRealmAuctionsBucket(rea)
+						_, targetTime, err := sta.resolver.store.getLatestRealmAuctionsObjectForProcessing(bkt)
+						if err != nil {
+							logging.WithFields(logrus.Fields{
+								"error":  err.Error(),
+								"region": reg.Name,
+								"realm":  rea.Slug,
+							}).Error("Failed to fetch latest realm-auctions object for processing")
+
+							continue
+						}
+
+						if targetTime.IsZero() {
+							logging.WithFields(logrus.Fields{
+								"region": reg.Name,
+								"realm":  rea.Slug,
+							}).Debug("No results found for processing via auctions-intake collector")
+
+							continue
+						}
+
+						hasResults = true
+						aiRequest.RegionRealmTimestamps[reg.Name][rea.Slug] = targetTime.Unix()
+					}
+				}
+
+				if hasResults == false {
+					logging.Info("Breaking due to no realm-auctions results found")
+
+					break
+				}
+
+				logging.Info("Queueing auctions-intake request into collector channel")
+				collectorIn <- aiRequest
+
+				logging.Info("Sleeping for 5s before next pricelist-intake collector loop")
+				time.Sleep(5 * time.Second)
+			}
+		}()
+	}
+
 	// spinning up a worker for handling pricelists-intake requests
-	in := make(chan auctionsIntakeRequest, 10)
 	go func() {
 		for {
-			aiRequest := <-in
-			aiRequest.handle(sta, loadIn)
+			select {
+			case aiRequest := <-listenerIn:
+				logging.Info("Handling auctions-intake-request from the listener")
+
+				aiRequest.handle(sta, loadIn)
+			case aiRequest := <-collectorIn:
+				logging.Info("Handling auctions-intake-request from the collector")
+
+				aiRequest.handle(sta, loadIn)
+			}
 		}
 	}()
 
@@ -102,10 +182,10 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 			return
 		}
 
-		logging.WithFields(logrus.Fields{"intake_buffer_size": len(in)}).Info("Received auctions-intake-request")
-		sta.messenger.publishMetric(telegrafMetrics{"intake_buffer_size": int64(len(in))})
+		logging.WithFields(logrus.Fields{"pricelists_intake_buffer_size": len(listenerIn)}).Info("Received auctions-intake-request")
+		sta.messenger.publishMetric(telegrafMetrics{"pricelists_intake_buffer_size": int64(len(listenerIn))})
 
-		in <- aiRequest
+		listenerIn <- aiRequest
 	})
 	if err != nil {
 		return err

@@ -345,6 +345,60 @@ func (sto store) getLatestRealmAuctionsObject(bkt *storage.BucketHandle) (*stora
 	return obj, lastModified, nil
 }
 
+func (sto store) getLatestRealmAuctionsObjectForProcessing(bkt *storage.BucketHandle) (*storage.ObjectHandle, time.Time, error) {
+	logging.Debug("Fetching latest realm-auctions object from bucket for processing")
+
+	var obj *storage.ObjectHandle
+	var objAttrs *storage.ObjectAttrs
+	lastCreated := time.Time{}
+	it := bkt.Objects(sto.context, nil)
+	for {
+		nextObjAttrs, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return nil, time.Time{}, err
+		}
+
+		metaState := func() string {
+			if nextObjAttrs.Metadata == nil {
+				return ""
+			}
+
+			state, ok := nextObjAttrs.Metadata["state"]
+			if !ok {
+				return ""
+			}
+
+			return state
+		}()
+
+		if metaState == "processed" || metaState == "queued" {
+			continue
+		}
+
+		if obj == nil || lastCreated.IsZero() || lastCreated.Before(nextObjAttrs.Created) {
+			obj = bkt.Object(nextObjAttrs.Name)
+			objAttrs = nextObjAttrs
+			lastCreated = nextObjAttrs.Created
+		}
+	}
+
+	if obj == nil {
+		return nil, time.Time{}, nil
+	}
+
+	s := strings.Split(objAttrs.Name, ".")
+	lastModifiedUnix, err := strconv.Atoi(s[0])
+	if err != nil {
+		return nil, time.Time{}, err
+	}
+	lastModified := time.Unix(int64(lastModifiedUnix), 0)
+
+	return obj, lastModified, nil
+}
+
 func (sto store) loadRealmAuctions(rea realm, targetTime time.Time) (blizzard.Auctions, time.Time, error) {
 	hasBucket, err := sto.realmAuctionsBucketExists(rea)
 	if err != nil {
