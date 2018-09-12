@@ -14,16 +14,16 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func itemPricelistBucketPrefix(ID blizzard.ItemID) []byte {
-	return []byte(fmt.Sprintf("item-prices/%d", ID))
+func itemPricelistBucketPrefix(rea realm, ID blizzard.ItemID) []byte {
+	return []byte(fmt.Sprintf("item-prices/%s/%d", rea.Slug, ID))
 }
 
-func itemPricelistBucketName(ID blizzard.ItemID, targetDate time.Time) []byte {
-	return []byte(fmt.Sprintf("%s/%d", itemPricelistBucketPrefix(ID), targetDate.Unix()))
+func itemPricelistBucketName(rea realm, ID blizzard.ItemID, targetDate time.Time) []byte {
+	return []byte(fmt.Sprintf("%s/%d", string(itemPricelistBucketPrefix(rea, ID)), targetDate.Unix()))
 }
 
-func newDatabase(c config, rea realm) (database, error) {
-	dbFilepath, err := rea.databaseFilepath(&c)
+func newDatabase(c config, reg region) (database, error) {
+	dbFilepath, err := reg.databaseFilepath(&c)
 	if err != nil {
 		return database{}, err
 	}
@@ -36,26 +36,26 @@ func newDatabase(c config, rea realm) (database, error) {
 		return database{}, err
 	}
 
-	return database{db, rea}, nil
+	return database{db, reg}, nil
 }
 
 type priceListHistory map[int64]prices
 
 type database struct {
-	db    *badger.DB
-	realm realm
+	db     *badger.DB
+	region region
 }
 
-func (dBase database) persistPricelists(targetDate time.Time, pList priceList) error {
+func (dBase database) persistPricelists(rea realm, targetDate time.Time, pList priceList) error {
 	logging.WithFields(logrus.Fields{
-		"region":     dBase.realm.region.Name,
-		"realm":      dBase.realm.Slug,
+		"region":     dBase.region.Name,
+		"realm":      rea.Slug,
 		"pricelists": len(pList),
 	}).Debug("Writing pricelists")
 
 	return dBase.db.Update(func(txn *badger.Txn) error {
 		for ID, pricesValue := range pList {
-			key := itemPricelistBucketName(ID, targetDate)
+			key := itemPricelistBucketName(rea, ID, targetDate)
 
 			encodedPricesValue, err := json.Marshal(pricesValue)
 			if err != nil {
@@ -66,8 +66,8 @@ func (dBase database) persistPricelists(targetDate time.Time, pList priceList) e
 		}
 
 		logging.WithFields(logrus.Fields{
-			"region":     dBase.realm.region.Name,
-			"realm":      dBase.realm.Slug,
+			"region":     dBase.region.Name,
+			"realm":      rea.Slug,
 			"pricelists": len(pList),
 		}).Debug("Finished writing pricelists")
 
@@ -75,14 +75,14 @@ func (dBase database) persistPricelists(targetDate time.Time, pList priceList) e
 	})
 }
 
-func (dBase database) getPricelistHistory(ID blizzard.ItemID) (priceListHistory, error) {
+func (dBase database) getPricelistHistory(rea realm, ID blizzard.ItemID) (priceListHistory, error) {
 	plHistory := priceListHistory{}
 	err := dBase.db.View(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		it := txn.NewIterator(opts)
 		defer it.Close()
 
-		prefix := itemPricelistBucketPrefix(ID)
+		prefix := itemPricelistBucketPrefix(rea, ID)
 		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
 			itItem := it.Item()
 			k := itItem.Key()
@@ -113,31 +113,24 @@ func (dBase database) getPricelistHistory(ID blizzard.ItemID) (priceListHistory,
 	return plHistory, nil
 }
 
-func newDatabases(c config, stas statuses, itemIds []blizzard.ItemID) (databases, error) {
+func newDatabases(c config) (databases, error) {
 	dbs := databases{}
-	for rName, sta := range stas {
-		// misc
-		dbs[rName] = map[blizzard.RealmSlug]database{}
-
+	for _, reg := range c.Regions {
 		// gathering whitelist for this region
-		wList := c.getRegionWhitelist(rName)
+		wList := c.getRegionWhitelist(reg.Name)
 		if wList != nil && len(*wList) == 0 {
 			continue
 		}
 
-		filteredRealms := sta.Realms.filterWithWhitelist(wList)
-		logging.WithField("count", len(filteredRealms)).Info("Initializing databases")
-		for _, rea := range filteredRealms {
-			dBase, err := newDatabase(c, rea)
-			if err != nil {
-				return databases{}, err
-			}
-
-			dbs[rName][rea.Slug] = dBase
+		dBase, err := newDatabase(c, reg)
+		if err != nil {
+			return databases{}, err
 		}
+
+		dbs[reg.Name] = dBase
 	}
 
 	return dbs, nil
 }
 
-type databases map[regionName]map[blizzard.RealmSlug]database
+type databases map[regionName]database

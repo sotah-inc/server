@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"path/filepath"
 
 	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/codes"
@@ -65,4 +67,10 @@ func (reg region) getStatus(res resolver) (status, error) {
 	}
 
 	return status{stat, reg, newRealms(reg, stat.Realms)}, nil
+}
+
+func (reg region) databaseFilepath(c *config) (string, error) {
+	return filepath.Abs(
+		fmt.Sprintf("%s/databases/%s", c.CacheDir, reg.Name),
+	)
 }

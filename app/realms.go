@@ -217,12 +217,6 @@ func (rea realm) auctionsFilepath(c *config) (string, error) {
 	)
 }
 
-func (rea realm) databaseFilepath(c *config) (string, error) {
-	return filepath.Abs(
-		fmt.Sprintf("%s/databases/%s/%s", c.CacheDir, rea.region.Name, rea.Slug),
-	)
-}
-
 func (rea realm) getAuctions(res resolver) (blizzard.Auctions, time.Time, error) {
 	uri, err := res.appendAPIKey(res.getAuctionInfoURL(rea.region.Hostname, rea.Slug))
 	if err != nil {
