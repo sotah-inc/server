@@ -1,8 +1,6 @@
 package main
 
 import (
-	"time"
-
 	"cloud.google.com/go/storage"
 	"github.com/ihsw/sotah-server/app/logging"
 	"github.com/ihsw/sotah-server/app/subjects"
@@ -91,74 +89,7 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 	go func() {
 		for {
 			aiRequest := <-in
-
-			includedRegionRealms, excludedRegionRealms, err := aiRequest.resolve(sta)
-			if err != nil {
-				logging.WithField("error", err.Error()).Info("Failed to resolve auctions-intake-request")
-
-				continue
-			}
-
-			totalRealms := 0
-			for rName, reas := range sta.statuses {
-				totalRealms += len(reas.Realms.filterWithWhitelist(sta.resolver.config.Whitelist[rName]))
-			}
-			includedRealmCount := 0
-			for _, reas := range includedRegionRealms {
-				includedRealmCount += len(reas.values)
-			}
-			excludedRealmCount := 0
-			for _, reas := range excludedRegionRealms {
-				excludedRealmCount += len(reas.values)
-			}
-
-			logging.WithFields(logrus.Fields{
-				"included_realms": includedRealmCount,
-				"excluded_realms": excludedRealmCount,
-				"total_realms":    totalRealms,
-			}).Info("Handling auctions-intake-request")
-
-			// misc
-			startTime := time.Now()
-
-			// going over auctions
-			for rName, rMap := range includedRegionRealms {
-				logging.WithFields(logrus.Fields{
-					"region": rName,
-					"realms": len(rMap.values),
-				}).Debug("Going over realms to load auctions")
-
-				// loading auctions from file cache
-				loadedAuctions := func() chan loadAuctionsJob {
-					if sta.resolver.config.UseGCloudStorage {
-						return sta.resolver.store.loadRegionRealmMap(rMap)
-					}
-
-					return rMap.toRealms().loadAuctionsFromCacheDir(sta.resolver.config)
-				}()
-				for job := range loadedAuctions {
-					if job.err != nil {
-						logging.WithFields(logrus.Fields{
-							"error":  err.Error(),
-							"region": job.realm.region.Name,
-							"realm":  job.realm.Slug,
-						}).Error("Failed to load auctions")
-
-						continue
-					}
-
-					loadIn <- job
-				}
-				logging.WithFields(logrus.Fields{
-					"region": rName,
-					"realms": len(rMap.values),
-				}).Debug("Finished loading auctions")
-			}
-
-			logging.WithFields(logrus.Fields{"included_realms": includedRealmCount}).Info("Processed all realms")
-			sta.messenger.publishMetric(telegrafMetrics{
-				"pricelists_intake_duration": int64(time.Now().Unix() - startTime.Unix()),
-			})
+			aiRequest.handle(sta, loadIn)
 		}
 	}()
 
