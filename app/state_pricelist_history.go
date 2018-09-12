@@ -45,18 +45,30 @@ type priceListHistoryRequest struct {
 	ItemIds    []blizzard.ItemID  `json:"item_ids"`
 }
 
-func (plhRequest priceListHistoryRequest) resolve(sta state) (database, requestError) {
+func (plhRequest priceListHistoryRequest) resolve(sta state) (realm, database, requestError) {
+	regionStatuses, ok := sta.statuses[plhRequest.RegionName]
+	if !ok {
+		return realm{}, database{}, requestError{codes.NotFound, "Invalid region"}
+	}
+	rea := func() *realm {
+		for _, regionRealm := range regionStatuses.Realms {
+			if regionRealm.Slug == plhRequest.RealmSlug {
+				return &regionRealm
+			}
+		}
+
+		return nil
+	}()
+	if rea == nil {
+		return realm{}, database{}, requestError{codes.NotFound, "Invalid realm"}
+	}
+
 	regionDatabases, ok := sta.databases[plhRequest.RegionName]
 	if !ok {
-		return database{}, requestError{codes.NotFound, "Invalid region"}
+		return realm{}, database{}, requestError{codes.NotFound, "Invalid region"}
 	}
 
-	realmDatabase, ok := regionDatabases[plhRequest.RealmSlug]
-	if !ok {
-		return database{}, requestError{codes.NotFound, "Invalid realm"}
-	}
-
-	return realmDatabase, requestError{codes.Ok, ""}
+	return *rea, regionDatabases, requestError{codes.Ok, ""}
 }
 
 func (sta state) listenForPriceListHistory(stop listenStopChan) error {
@@ -74,7 +86,7 @@ func (sta state) listenForPriceListHistory(stop listenStopChan) error {
 		}
 
 		// resolving the database from the request
-		realmDatabase, reErr := plhRequest.resolve(sta)
+		rea, regionDatabase, reErr := plhRequest.resolve(sta)
 		if reErr.code != codes.Ok {
 			m.Err = reErr.message
 			m.Code = reErr.code
@@ -86,7 +98,7 @@ func (sta state) listenForPriceListHistory(stop listenStopChan) error {
 		// gathering up pricelist history
 		plhResponse := priceListHistoryResponse{History: map[blizzard.ItemID]priceListHistory{}}
 		for _, ID := range plhRequest.ItemIds {
-			plHistory, err := realmDatabase.getPricelistHistory(ID)
+			plHistory, err := regionDatabase.getPricelistHistory(rea, ID)
 			if err != nil {
 				m.Err = err.Error()
 				m.Code = codes.GenericError

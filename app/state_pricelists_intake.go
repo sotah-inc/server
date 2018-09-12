@@ -27,7 +27,8 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 			}
 
 			mAuctions := newMiniAuctionListFromBlizzardAuctions(job.auctions.Auctions)
-			err := sta.databases[job.realm.region.Name][job.realm.Slug].persistPricelists(
+			err := sta.databases[job.realm.region.Name].persistPricelists(
+				job.realm,
 				job.lastModified,
 				newPriceList(mAuctions.itemIds(), mAuctions),
 			)
