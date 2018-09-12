@@ -27,7 +27,7 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 			}
 
 			mAuctions := newMiniAuctionListFromBlizzardAuctions(job.auctions.Auctions)
-			outFinish, err := sta.databases[job.realm.region.Name].persistPricelists(
+			err := sta.databases[job.realm.region.Name].persistPricelists(
 				job.realm,
 				job.lastModified,
 				newPriceList(mAuctions.itemIds(), mAuctions),
@@ -41,9 +41,6 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 
 				continue
 			}
-
-			// waiting for pricelists to finish writing
-			<-outFinish
 
 			// optionally setting the obj state metadata to processed
 			if sta.resolver.config.UseGCloudStorage {

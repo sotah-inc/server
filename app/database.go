@@ -46,14 +46,13 @@ type database struct {
 	region region
 }
 
-func (dBase database) persistPricelists(rea realm, targetDate time.Time, pList priceList) (chan struct{}, error) {
+func (dBase database) persistPricelists(rea realm, targetDate time.Time, pList priceList) error {
 	logging.WithFields(logrus.Fields{
 		"region":     dBase.region.Name,
 		"realm":      rea.Slug,
 		"pricelists": len(pList),
 	}).Debug("Writing pricelists")
 
-	out := make(chan struct{})
 	err := dBase.db.Update(func(txn *badger.Txn) error {
 		for ID, pricesValue := range pList {
 			key := itemPricelistBucketName(rea, ID, targetDate)
@@ -72,17 +71,13 @@ func (dBase database) persistPricelists(rea realm, targetDate time.Time, pList p
 			"pricelists": len(pList),
 		}).Debug("Finished writing pricelists")
 
-		out <- struct{}{}
-
 		return nil
 	})
 	if err != nil {
-		close(out)
-
-		return nil, err
+		return err
 	}
 
-	return out, nil
+	return nil
 }
 
 func (dBase database) getPricelistHistory(rea realm, ID blizzard.ItemID) (priceListHistory, error) {
