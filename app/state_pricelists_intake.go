@@ -100,6 +100,15 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 				hasResults := false
 				aiRequest := auctionsIntakeRequest{RegionRealmTimestamps: intakeRequestData{}}
 				for _, reg := range sta.regions {
+					if err := sta.databases[reg.Name].db.RunValueLogGC(0.7); err != nil {
+						logging.WithFields(logrus.Fields{
+							"error":  err.Error(),
+							"region": reg.Name,
+						}).Error("Failed to run garbage collector")
+
+						continue
+					}
+
 					aiRequest.RegionRealmTimestamps[reg.Name] = map[blizzard.RealmSlug]int64{}
 
 					for _, rea := range sta.statuses[reg.Name].Realms {
