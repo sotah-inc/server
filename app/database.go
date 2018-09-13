@@ -1,79 +1,87 @@
 package main
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"strconv"
-	"strings"
+	"path/filepath"
 	"time"
 
-	"github.com/dgraph-io/badger"
-	badgerOptions "github.com/dgraph-io/badger/options"
+	"github.com/boltdb/bolt"
 
 	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/logging"
 	"github.com/sirupsen/logrus"
 )
 
-func itemPricelistBucketPrefix(rea realm, ID blizzard.ItemID) []byte {
-	return []byte(fmt.Sprintf("item-prices/%s/%d", rea.Slug, ID))
+func targetDateToKeyName(targetDate time.Time) []byte {
+	key := make([]byte, 8)
+	binary.LittleEndian.PutUint64(key, uint64(targetDate.Unix()))
+
+	return key
 }
 
-func itemPricelistBucketName(rea realm, ID blizzard.ItemID, targetDate time.Time) []byte {
-	return []byte(fmt.Sprintf("%s/%d", string(itemPricelistBucketPrefix(rea, ID)), targetDate.Unix()))
+func keyNameToTargetDate(key []byte) time.Time {
+	return time.Unix(int64(binary.LittleEndian.Uint64(key)), 0)
 }
 
-func newDatabase(c config, reg region) (database, error) {
-	dbFilepath, err := reg.databaseFilepath(&c)
+func itemPricelistBucketName(ID blizzard.ItemID) []byte {
+	return []byte(fmt.Sprintf("item-prices/%d", ID))
+}
+
+func databasePath(c config, reg region, rea realm, targetDate time.Time) (string, error) {
+	normalizedUnixTimestamp := int(targetDate.Unix()) - targetDate.Second() - targetDate.Minute()*60 - targetDate.Hour()*60*24
+
+	return filepath.Abs(
+		fmt.Sprintf("%s/databases/%s/%s/%d.db", c.CacheDir, reg.Name, rea.Slug, normalizedUnixTimestamp),
+	)
+}
+
+func newDatabase(c config, reg region, rea realm, targetDate time.Time) (database, error) {
+	dbFilepath, err := databasePath(c, reg, rea, targetDate)
 	if err != nil {
 		return database{}, err
 	}
 
-	opts := badger.DefaultOptions
-	opts.Dir = dbFilepath
-	opts.ValueDir = dbFilepath
-	opts.ValueLogLoadingMode = badgerOptions.FileIO
-	opts.MaxTableSize = 4 << 20 // 4MB
-	opts.NumMemtables = 1
-	opts.NumCompactors = 1
-	db, err := badger.Open(opts)
+	db, err := bolt.Open(dbFilepath, 0600, nil)
 	if err != nil {
 		return database{}, err
 	}
 
-	return database{db, reg}, nil
+	return database{db, targetDate}, nil
 }
 
 type priceListHistory map[int64]prices
 
 type database struct {
-	db     *badger.DB
-	region region
+	db         *bolt.DB
+	targetDate time.Time
 }
 
-func (dBase database) persistPricelists(rea realm, targetDate time.Time, pList priceList) error {
+func (dBase database) persistPricelists(pList priceList) error {
 	logging.WithFields(logrus.Fields{
-		"region":     dBase.region.Name,
-		"realm":      rea.Slug,
-		"pricelists": len(pList),
+		"target_date": dBase.targetDate.Unix(),
+		"pricelists":  len(pList),
 	}).Debug("Writing pricelists")
 
-	err := dBase.db.Update(func(txn *badger.Txn) error {
+	err := dBase.db.Batch(func(tx *bolt.Tx) error {
 		for ID, pricesValue := range pList {
-			key := itemPricelistBucketName(rea, ID, targetDate)
+			bkt, err := tx.CreateBucketIfNotExists(itemPricelistBucketName(ID))
+			if err != nil {
+				return err
+			}
 
 			encodedPricesValue, err := json.Marshal(pricesValue)
 			if err != nil {
 				return err
 			}
 
-			txn.Set(key, encodedPricesValue)
+			return bkt.Put(targetDateToKeyName(dBase.targetDate), encodedPricesValue)
 		}
 
 		logging.WithFields(logrus.Fields{
-			"region":     dBase.region.Name,
-			"realm":      rea.Slug,
-			"pricelists": len(pList),
+			"target_date": dBase.targetDate.Unix(),
+			"pricelists":  len(pList),
 		}).Debug("Finished writing pricelists")
 
 		return nil
@@ -87,34 +95,23 @@ func (dBase database) persistPricelists(rea realm, targetDate time.Time, pList p
 
 func (dBase database) getPricelistHistory(rea realm, ID blizzard.ItemID) (priceListHistory, error) {
 	plHistory := priceListHistory{}
-	err := dBase.db.View(func(txn *badger.Txn) error {
-		opts := badger.DefaultIteratorOptions
-		it := txn.NewIterator(opts)
-		defer it.Close()
-
-		prefix := itemPricelistBucketPrefix(rea, ID)
-		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
-			itItem := it.Item()
-			k := itItem.Key()
-			v, err := itItem.Value()
-			if err != nil {
-				return err
-			}
-
-			s := strings.Split(string(k), "/")
-			targetTimeUnix, err := strconv.Atoi(s[3])
-			if err != nil {
-				return err
-			}
-
-			p, err := newPricesFromBytes(v)
-			if err != nil {
-				return err
-			}
-			plHistory[int64(targetTimeUnix)] = p
+	err := dBase.db.View(func(tx *bolt.Tx) error {
+		bkt := tx.Bucket(itemPricelistBucketName(ID))
+		if bkt == nil {
+			return nil
 		}
 
-		return nil
+		return bkt.ForEach(func(k, v []byte) error {
+			targetDate := keyNameToTargetDate(k)
+			pricesValue, err := newPricesFromBytes(v)
+			if err != nil {
+				return err
+			}
+
+			plHistory[targetDate.Unix()] = pricesValue
+
+			return nil
+		})
 	})
 	if err != nil {
 		return priceListHistory{}, err
@@ -123,24 +120,4 @@ func (dBase database) getPricelistHistory(rea realm, ID blizzard.ItemID) (priceL
 	return plHistory, nil
 }
 
-func newDatabases(c config) (databases, error) {
-	dbs := databases{}
-	for _, reg := range c.Regions {
-		// gathering whitelist for this region
-		wList := c.getRegionWhitelist(reg.Name)
-		if wList != nil && len(*wList) == 0 {
-			continue
-		}
-
-		dBase, err := newDatabase(c, reg)
-		if err != nil {
-			return databases{}, err
-		}
-
-		dbs[reg.Name] = dBase
-	}
-
-	return dbs, nil
-}
-
-type databases map[regionName]database
+type databases map[regionName]map[blizzard.RealmSlug]map[int64]database
