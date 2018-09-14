@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
+	storage "cloud.google.com/go/storage"
 	"github.com/boltdb/bolt"
 
 	"github.com/ihsw/sotah-server/app/blizzard"
@@ -56,6 +57,59 @@ type priceListHistory map[int64]prices
 type database struct {
 	db         *bolt.DB
 	targetDate time.Time
+}
+
+func (dBase database) handleLoadAuctionsJob(job loadAuctionsJob, c config, sto store) error {
+	mAuctions := newMiniAuctionListFromBlizzardAuctions(job.auctions.Auctions)
+	err := dBase.persistPricelists(newPriceList(mAuctions.itemIds(), mAuctions))
+	if err != nil {
+		logging.WithFields(logrus.Fields{
+			"error":  err.Error(),
+			"region": job.realm.region.Name,
+			"realm":  job.realm.Slug,
+		}).Error("Failed to persist auctions to database")
+
+		return err
+	}
+
+	if c.UseGCloudStorage == false {
+		return nil
+	}
+
+	bkt := sto.getRealmAuctionsBucket(job.realm)
+	obj := bkt.Object(sto.getRealmAuctionsObjectName(job.lastModified))
+	objAttrs, err := obj.Attrs(sto.context)
+	if err != nil {
+		logging.WithFields(logrus.Fields{
+			"error":         err.Error(),
+			"region":        job.realm.region.Name,
+			"realm":         job.realm.Slug,
+			"last-modified": job.lastModified.Unix(),
+		}).Error("Failed to fetch obj attrs")
+
+		return err
+	}
+
+	objMeta := func() map[string]string {
+		if objAttrs.Metadata == nil {
+			return map[string]string{}
+		}
+
+		return objAttrs.Metadata
+	}()
+	objMeta["state"] = "processed"
+	if _, err := obj.Update(sto.context, storage.ObjectAttrsToUpdate{Metadata: objMeta}); err != nil {
+		logging.WithFields(logrus.Fields{
+			"error":         err.Error(),
+			"region":        job.realm.region.Name,
+			"realm":         job.realm.Slug,
+			"last-modified": job.lastModified.Unix(),
+		}).Error("Failed to update metadata of object")
+
+		return err
+	}
+
+	return nil
 }
 
 func (dBase database) persistPricelists(pList priceList) error {
@@ -135,6 +189,10 @@ func newDatabases(sta state) databases {
 }
 
 type databases map[regionName]map[blizzard.RealmSlug]timestampDatabaseMap
+
+func (dBases databases) getDatabaseFromLoadAuctionsJob(job loadAuctionsJob) database {
+	return dBases[job.realm.region.Name][job.realm.Slug][job.lastModified.Unix()]
+}
 
 type timestampDatabaseMap map[int64]database
 

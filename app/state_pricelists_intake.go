@@ -27,56 +27,19 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 				continue
 			}
 
-			mAuctions := newMiniAuctionListFromBlizzardAuctions(job.auctions.Auctions)
-			err := sta.databases[job.realm.region.Name][job.realm.Slug][job.lastModified.Unix()].persistPricelists(
-				newPriceList(mAuctions.itemIds(), mAuctions),
+			err := sta.databases.getDatabaseFromLoadAuctionsJob(job).handleLoadAuctionsJob(
+				job,
+				*sta.resolver.config,
+				sta.resolver.store,
 			)
 			if err != nil {
 				logging.WithFields(logrus.Fields{
 					"error":  err.Error(),
 					"region": job.realm.region.Name,
 					"realm":  job.realm.Slug,
-				}).Error("Failed to persist auctions to database")
+				}).Error("Failed to handle load-auctions-job")
 
 				continue
-			}
-
-			// optionally setting the obj state metadata to processed
-			if sta.resolver.config.UseGCloudStorage {
-				sto := sta.resolver.store
-
-				bkt := sto.getRealmAuctionsBucket(job.realm)
-				obj := bkt.Object(sto.getRealmAuctionsObjectName(job.lastModified))
-				objAttrs, err := obj.Attrs(sto.context)
-				if err != nil {
-					logging.WithFields(logrus.Fields{
-						"error":         err.Error(),
-						"region":        job.realm.region.Name,
-						"realm":         job.realm.Slug,
-						"last-modified": job.lastModified.Unix(),
-					}).Error("Failed to fetch obj attrs")
-
-					continue
-				}
-
-				objMeta := func() map[string]string {
-					if objAttrs.Metadata == nil {
-						return map[string]string{}
-					}
-
-					return objAttrs.Metadata
-				}()
-				objMeta["state"] = "processed"
-				if _, err := obj.Update(sto.context, storage.ObjectAttrsToUpdate{Metadata: objMeta}); err != nil {
-					logging.WithFields(logrus.Fields{
-						"error":         err.Error(),
-						"region":        job.realm.region.Name,
-						"realm":         job.realm.Slug,
-						"last-modified": job.lastModified.Unix(),
-					}).Error("Failed to update metadata of object")
-
-					continue
-				}
 			}
 		}
 	}
