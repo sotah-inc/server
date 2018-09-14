@@ -98,8 +98,9 @@ func (sta state) listenForPriceListHistory(stop listenStopChan) error {
 		// gathering up pricelist history
 		plhResponse := priceListHistoryResponse{History: map[blizzard.ItemID]priceListHistory{}}
 		for _, ID := range plhRequest.ItemIds {
+			itemHistory := priceListHistory{}
+
 			for _, dBase := range tdMap {
-				// gathering history from the database shard
 				receivedHistory, err := dBase.getPricelistHistory(rea, ID)
 				if err != nil {
 					m.Err = err.Error()
@@ -109,24 +110,13 @@ func (sta state) listenForPriceListHistory(stop listenStopChan) error {
 					return
 				}
 
-				// resolving the item's history in the response
-				history := func() priceListHistory {
-					history, ok := plhResponse.History[ID]
-					if !ok {
-						return priceListHistory{}
-					}
-
-					return history
-				}()
-
-				// appending the shard-specific history to the aggregated history
 				for unixTimestamp, pricesValue := range receivedHistory {
-					history[unixTimestamp] = pricesValue
+					itemHistory[unixTimestamp] = pricesValue
 				}
-
-				// writing the history out to the response
-				plhResponse.History[ID] = history
 			}
+
+			// writing the history out to the response
+			plhResponse.History[ID] = itemHistory
 		}
 
 		// encoding the message for the response
