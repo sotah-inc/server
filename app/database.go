@@ -137,3 +137,5 @@ func newDatabases(sta state) databases {
 type databases map[regionName]map[blizzard.RealmSlug]timestampDatabaseMap
 
 type timestampDatabaseMap map[int64]database
+
+// todo: create func for gathering pricelist history across all shards for a given item
