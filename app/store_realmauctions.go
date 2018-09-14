@@ -135,6 +135,106 @@ func (sto store) getTotalRealmAuctionsSize(rea realm) (int64, error) {
 	return totalSize, nil
 }
 
+func (sto store) startCollector(regs []region, stas statuses, collectOut chan auctionsIntakeRequest) {
+	logging.Info("Starting auctions-intake collector")
+
+	for {
+		hasResults := false
+		aiRequest := auctionsIntakeRequest{RegionRealmTimestamps: intakeRequestData{}}
+		for _, reg := range regs {
+			aiRequest.RegionRealmTimestamps[reg.Name] = map[blizzard.RealmSlug]int64{}
+
+			for _, rea := range stas[reg.Name].Realms {
+				// validating taht the realm-auctions bucket exists
+				exists, err := sto.realmAuctionsBucketExists(rea)
+				if err != nil {
+					logging.WithFields(logrus.Fields{
+						"error":  err.Error(),
+						"region": reg.Name,
+						"realm":  rea.Slug,
+					}).Error("Failed to check if realm-auctions bucket exists")
+
+					continue
+				}
+				if exists == false {
+					continue
+				}
+
+				logging.WithFields(logrus.Fields{
+					"region": reg.Name,
+					"realm":  rea.Slug,
+				}).Debug("Checking store for realm-auctions-object for processing")
+
+				// checking the store for the latest realm-auctions object for processing
+				bkt := sto.getRealmAuctionsBucket(rea)
+				obj, targetTime, err := sto.getLatestRealmAuctionsObjectForProcessing(bkt)
+				if err != nil {
+					logging.WithFields(logrus.Fields{
+						"error":  err.Error(),
+						"region": reg.Name,
+						"realm":  rea.Slug,
+					}).Error("Failed to fetch latest realm-auctions object for processing")
+
+					continue
+				}
+
+				// optionally halting on no results returned
+				if targetTime.IsZero() {
+					logging.WithFields(logrus.Fields{
+						"region": reg.Name,
+						"realm":  rea.Slug,
+					}).Debug("No results found for processing via auctions-intake collector")
+
+					continue
+				}
+
+				// gathering obj attrs for updating metadata
+				objAttrs, err := obj.Attrs(sto.context)
+				if err != nil {
+					logging.WithFields(logrus.Fields{
+						"error":  err.Error(),
+						"region": reg.Name,
+						"realm":  rea.Slug,
+					}).Error("Failed to gathering obj attrs")
+
+					continue
+				}
+
+				hasResults = true
+				aiRequest.RegionRealmTimestamps[reg.Name][rea.Slug] = targetTime.Unix()
+
+				objMeta := func() map[string]string {
+					if objAttrs.Metadata == nil {
+						return map[string]string{}
+					}
+
+					return objAttrs.Metadata
+				}()
+				objMeta["state"] = "queued"
+				if _, err := obj.Update(sto.context, storage.ObjectAttrsToUpdate{Metadata: objMeta}); err != nil {
+					logging.WithFields(logrus.Fields{
+						"error":         err.Error(),
+						"region":        reg.Name,
+						"realm":         rea.Slug,
+						"last-modified": targetTime.Unix(),
+					}).Error("Failed to update metadata of object")
+
+					continue
+				}
+			}
+		}
+
+		if hasResults == false {
+			logging.Info("Breaking due to no realm-auctions results found")
+
+			break
+		}
+
+		logging.Info("Queueing auctions-intake request into collect-out channel")
+		collectOut <- aiRequest
+	}
+}
+
 type getTotalRealmAuctionSizeJob struct {
 	realm     realm
 	totalSize int64
