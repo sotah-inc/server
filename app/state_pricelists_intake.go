@@ -7,46 +7,13 @@ import (
 	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/logging"
 	"github.com/ihsw/sotah-server/app/subjects"
-	"github.com/ihsw/sotah-server/app/util"
 	nats "github.com/nats-io/go-nats"
 	"github.com/sirupsen/logrus"
 )
 
 func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
-	// spinning up the workers for persisting realm prices
-	loadIn := make(chan loadAuctionsJob)
-	worker := func() {
-		for job := range loadIn {
-			if job.err != nil {
-				logging.WithFields(logrus.Fields{
-					"error":  job.err.Error(),
-					"region": job.realm.region.Name,
-					"realm":  job.realm.Slug,
-				}).Error("Erroneous job was passed into pricelist intake channel")
-
-				continue
-			}
-
-			err := sta.databases.getDatabaseFromLoadAuctionsJob(job).handleLoadAuctionsJob(
-				job,
-				*sta.resolver.config,
-				sta.resolver.store,
-			)
-			if err != nil {
-				logging.WithFields(logrus.Fields{
-					"error":  err.Error(),
-					"region": job.realm.region.Name,
-					"realm":  job.realm.Slug,
-				}).Error("Failed to handle load-auctions-job")
-
-				continue
-			}
-		}
-	}
-	postWork := func() {
-		return
-	}
-	util.Work(4, worker, postWork)
+	// spinning up a loader for persisting realm prices
+	loadIn := sta.databases.startLoader(*sta.resolver.config, sta.resolver.store)
 
 	// declaring a channel for queueing up pricelist-intake requests
 	listenerIn := make(chan auctionsIntakeRequest, 10)

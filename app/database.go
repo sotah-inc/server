@@ -11,6 +11,7 @@ import (
 
 	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/logging"
+	"github.com/ihsw/sotah-server/app/util"
 	"github.com/sirupsen/logrus"
 )
 
@@ -192,6 +193,40 @@ type databases map[regionName]map[blizzard.RealmSlug]timestampDatabaseMap
 
 func (dBases databases) getDatabaseFromLoadAuctionsJob(job loadAuctionsJob) database {
 	return dBases[job.realm.region.Name][job.realm.Slug][job.lastModified.Unix()]
+}
+
+func (dBases databases) startLoader(c config, sto store) chan loadAuctionsJob {
+	in := make(chan loadAuctionsJob)
+	worker := func() {
+		for job := range in {
+			if job.err != nil {
+				logging.WithFields(logrus.Fields{
+					"error":  job.err.Error(),
+					"region": job.realm.region.Name,
+					"realm":  job.realm.Slug,
+				}).Error("Erroneous job was passed into pricelist intake channel")
+
+				continue
+			}
+
+			err := dBases.getDatabaseFromLoadAuctionsJob(job).handleLoadAuctionsJob(job, c, sto)
+			if err != nil {
+				logging.WithFields(logrus.Fields{
+					"error":  err.Error(),
+					"region": job.realm.region.Name,
+					"realm":  job.realm.Slug,
+				}).Error("Failed to handle load-auctions-job")
+
+				continue
+			}
+		}
+	}
+	postWork := func() {
+		return
+	}
+	util.Work(4, worker, postWork)
+
+	return in
 }
 
 type timestampDatabaseMap map[int64]database
