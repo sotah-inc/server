@@ -80,6 +80,7 @@ func (aiRequest auctionsIntakeRequest) resolve(sta state) (regionRealmMap, regio
 }
 
 func (aiRequest auctionsIntakeRequest) handle(sta state, loadIn chan loadAuctionsJob) {
+	// resolving included and excluded region realms
 	includedRegionRealms, excludedRegionRealms, err := aiRequest.resolve(sta)
 	if err != nil {
 		logging.WithField("error", err.Error()).Info("Failed to resolve auctions-intake-request")
@@ -87,6 +88,7 @@ func (aiRequest auctionsIntakeRequest) handle(sta state, loadIn chan loadAuction
 		return
 	}
 
+	// misc for metrics
 	totalRealms := 0
 	for rName, reas := range sta.statuses {
 		totalRealms += len(reas.Realms.filterWithWhitelist(sta.resolver.config.Whitelist[rName]))
@@ -109,14 +111,14 @@ func (aiRequest auctionsIntakeRequest) handle(sta state, loadIn chan loadAuction
 	// misc
 	startTime := time.Now()
 
-	// going over auctions
+	// loading in auctions from region-realms
 	for rName, rMap := range includedRegionRealms {
 		logging.WithFields(logrus.Fields{
 			"region": rName,
 			"realms": len(rMap.values),
 		}).Debug("Going over realms to load auctions")
 
-		// loading auctions from file cache
+		// loading auctions from file cache or gcloud store
 		loadedAuctions := func() chan loadAuctionsJob {
 			if sta.resolver.config.UseGCloudStorage {
 				return sta.resolver.store.loadRegionRealmMap(rMap)
