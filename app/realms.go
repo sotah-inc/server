@@ -136,6 +136,10 @@ func (reas realms) getAuctions(res resolver, wList getAuctionsWhitelist) chan ge
 	return out
 }
 
+func (rea realm) databaseDir(parentDirPath string) string {
+	return fmt.Sprintf("%s/%s", parentDirPath, rea.Slug)
+}
+
 type loadAuctionsJob struct {
 	err          error
 	realm        realm

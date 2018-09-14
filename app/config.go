@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
+	"path/filepath"
 
 	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/logging"
@@ -45,4 +47,8 @@ func (c config) getRegionWhitelist(rName regionName) *getAuctionsWhitelist {
 	}
 
 	return nil
+}
+
+func (c config) databaseDir() (string, error) {
+	return filepath.Abs(fmt.Sprintf("%s/databases", c.CacheDir))
 }

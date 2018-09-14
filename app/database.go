@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/binary"
-	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"time"
@@ -30,7 +29,8 @@ func itemPricelistBucketName(ID blizzard.ItemID) []byte {
 }
 
 func databasePath(c config, reg region, rea realm, targetDate time.Time) (string, error) {
-	normalizedUnixTimestamp := int(targetDate.Unix()) - targetDate.Second() - targetDate.Minute()*60 - targetDate.Hour()*60*24
+	nearestWeekStartOffset := targetDate.Second() + targetDate.Minute()*60 + targetDate.Hour()*60*60 + int(targetDate.Weekday())*60*60*24
+	normalizedUnixTimestamp := int(targetDate.Unix()) - nearestWeekStartOffset
 
 	return filepath.Abs(
 		fmt.Sprintf("%s/databases/%s/%s/%d.db", c.CacheDir, reg.Name, rea.Slug, normalizedUnixTimestamp),
@@ -71,7 +71,7 @@ func (dBase database) persistPricelists(pList priceList) error {
 				return err
 			}
 
-			encodedPricesValue, err := json.Marshal(pricesValue)
+			encodedPricesValue, err := pricesValue.encodeForPersistence()
 			if err != nil {
 				return err
 			}
@@ -120,4 +120,20 @@ func (dBase database) getPricelistHistory(rea realm, ID blizzard.ItemID) (priceL
 	return plHistory, nil
 }
 
-type databases map[regionName]map[blizzard.RealmSlug]map[int64]database
+func newDatabases(sta state) databases {
+	dBases := map[regionName]map[blizzard.RealmSlug]timestampDatabaseMap{}
+
+	for _, reg := range sta.regions {
+		dBases[reg.Name] = map[blizzard.RealmSlug]timestampDatabaseMap{}
+
+		for _, rea := range sta.statuses[reg.Name].Realms {
+			dBases[reg.Name][rea.Slug] = timestampDatabaseMap{}
+		}
+	}
+
+	return dBases
+}
+
+type databases map[regionName]map[blizzard.RealmSlug]timestampDatabaseMap
+
+type timestampDatabaseMap map[int64]database

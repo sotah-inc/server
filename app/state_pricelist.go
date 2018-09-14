@@ -210,8 +210,13 @@ func newPriceList(itemIds []blizzard.ItemID, maList miniAuctionList) priceList {
 type priceList map[blizzard.ItemID]prices
 
 func newPricesFromBytes(data []byte) (prices, error) {
+	gzipDecoded, err := util.GzipDecode(data)
+	if err != nil {
+		return prices{}, err
+	}
+
 	pricesValue := prices{}
-	if err := json.Unmarshal(data, &pricesValue); err != nil {
+	if err := json.Unmarshal(gzipDecoded, &pricesValue); err != nil {
 		return prices{}, err
 	}
 
@@ -224,4 +229,18 @@ type prices struct {
 	AverageBuyoutPer float64 `json:"average_buyout_per"`
 	MedianBuyoutPer  float64 `json:"median_buyout_per"`
 	Volume           int64   `json:"volume"`
+}
+
+func (p prices) encodeForPersistence() ([]byte, error) {
+	jsonEncoded, err := json.Marshal(p)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	gzipEncoded, err := util.GzipEncode(jsonEncoded)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return gzipEncoded, nil
 }

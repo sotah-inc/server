@@ -6,11 +6,9 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/logging"
 	"github.com/ihsw/sotah-server/app/subjects"
 	"github.com/ihsw/sotah-server/app/util"
-	"github.com/sirupsen/logrus"
 )
 
 func pricelistHistories(c config, m messenger, s store) error {
@@ -62,41 +60,25 @@ func pricelistHistories(c config, m messenger, s store) error {
 	}
 
 	// ensuring cache-dirs exist
-	cacheDirs := []string{
-		fmt.Sprintf("%s/databases", c.CacheDir),
+	databaseDir, err := c.databaseDir()
+	if err != nil {
+		return err
 	}
+	cacheDirs := []string{databaseDir}
 	for _, reg := range sta.regions {
-		cacheDirs = append(cacheDirs, fmt.Sprintf("%s/databases/%s", c.CacheDir, reg.Name))
+		regionDatabaseDir := reg.databaseDir(databaseDir)
+		cacheDirs = append(cacheDirs, regionDatabaseDir)
+
+		for _, rea := range sta.statuses[reg.Name].Realms {
+			cacheDirs = append(cacheDirs, rea.databaseDir(regionDatabaseDir))
+		}
 	}
 	if err := util.EnsureDirsExist(cacheDirs); err != nil {
 		return err
 	}
 
-	// loading up items
-	loadedItems, err := loadItemsFromFilecache(*res.config)
-	if err != nil {
-		return err
-	}
-	itemIds := []blizzard.ItemID{}
-	for job := range loadedItems {
-		if job.err != nil {
-			logging.WithFields(logrus.Fields{
-				"error":    job.err.Error(),
-				"filepath": job.filepath,
-			}).Error("Failed to load item")
-
-			return job.err
-		}
-
-		itemIds = append(itemIds, job.item.ID)
-	}
-
 	// loading up databases
-	dbs, err := newDatabases(c)
-	if err != nil {
-		return err
-	}
-	sta.databases = dbs
+	sta.databases = newDatabases(sta)
 
 	// opening all listeners
 	sta.listeners = newListeners(subjectListeners{

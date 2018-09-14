@@ -45,10 +45,10 @@ type priceListHistoryRequest struct {
 	ItemIds    []blizzard.ItemID  `json:"item_ids"`
 }
 
-func (plhRequest priceListHistoryRequest) resolve(sta state) (realm, database, requestError) {
+func (plhRequest priceListHistoryRequest) resolve(sta state) (realm, timestampDatabaseMap, requestError) {
 	regionStatuses, ok := sta.statuses[plhRequest.RegionName]
 	if !ok {
-		return realm{}, database{}, requestError{codes.NotFound, "Invalid region"}
+		return realm{}, timestampDatabaseMap{}, requestError{codes.NotFound, "Invalid region"}
 	}
 	rea := func() *realm {
 		for _, regionRealm := range regionStatuses.Realms {
@@ -60,15 +60,15 @@ func (plhRequest priceListHistoryRequest) resolve(sta state) (realm, database, r
 		return nil
 	}()
 	if rea == nil {
-		return realm{}, database{}, requestError{codes.NotFound, "Invalid realm"}
+		return realm{}, timestampDatabaseMap{}, requestError{codes.NotFound, "Invalid realm"}
 	}
 
-	regionDatabases, ok := sta.databases[plhRequest.RegionName]
+	tdMap, ok := sta.databases[plhRequest.RegionName][plhRequest.RealmSlug]
 	if !ok {
-		return realm{}, database{}, requestError{codes.NotFound, "Invalid region"}
+		return realm{}, timestampDatabaseMap{}, requestError{codes.NotFound, "Invalid region"}
 	}
 
-	return *rea, regionDatabases, requestError{codes.Ok, ""}
+	return *rea, tdMap, requestError{codes.Ok, ""}
 }
 
 func (sta state) listenForPriceListHistory(stop listenStopChan) error {
@@ -86,7 +86,7 @@ func (sta state) listenForPriceListHistory(stop listenStopChan) error {
 		}
 
 		// resolving the database from the request
-		rea, regionDatabase, reErr := plhRequest.resolve(sta)
+		rea, tdMap, reErr := plhRequest.resolve(sta)
 		if reErr.code != codes.Ok {
 			m.Err = reErr.message
 			m.Code = reErr.code
@@ -98,16 +98,35 @@ func (sta state) listenForPriceListHistory(stop listenStopChan) error {
 		// gathering up pricelist history
 		plhResponse := priceListHistoryResponse{History: map[blizzard.ItemID]priceListHistory{}}
 		for _, ID := range plhRequest.ItemIds {
-			plHistory, err := regionDatabase.getPricelistHistory(rea, ID)
-			if err != nil {
-				m.Err = err.Error()
-				m.Code = codes.GenericError
-				sta.messenger.replyTo(natsMsg, m)
+			for _, dBase := range tdMap {
+				// gathering history from the database shard
+				receivedHistory, err := dBase.getPricelistHistory(rea, ID)
+				if err != nil {
+					m.Err = err.Error()
+					m.Code = codes.GenericError
+					sta.messenger.replyTo(natsMsg, m)
 
-				return
+					return
+				}
+
+				// resolving the item's history in the response
+				history := func() priceListHistory {
+					history, ok := plhResponse.History[ID]
+					if !ok {
+						return priceListHistory{}
+					}
+
+					return history
+				}()
+
+				// appending the shard-specific history to the aggregated history
+				for unixTimestamp, pricesValue := range receivedHistory {
+					history[unixTimestamp] = pricesValue
+				}
+
+				// writing the history out to the response
+				plhResponse.History[ID] = history
 			}
-
-			plhResponse.History[ID] = plHistory
 		}
 
 		// encoding the message for the response

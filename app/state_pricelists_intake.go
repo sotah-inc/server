@@ -28,9 +28,7 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 			}
 
 			mAuctions := newMiniAuctionListFromBlizzardAuctions(job.auctions.Auctions)
-			err := sta.databases[job.realm.region.Name].persistPricelists(
-				job.realm,
-				job.lastModified,
+			err := sta.databases[job.realm.region.Name][job.realm.Slug][job.lastModified.Unix()].persistPricelists(
 				newPriceList(mAuctions.itemIds(), mAuctions),
 			)
 			if err != nil {
@@ -202,9 +200,9 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 		for {
 			select {
 			case aiRequest := <-listenerIn:
-				logging.Info("Handling auctions-intake-request from the listener")
+				logging.Info("Queueing up auctions-intake-request from the listener")
 
-				aiRequest.handle(sta, loadIn)
+				collectorIn <- aiRequest
 			case aiRequest := <-collectorIn:
 				logging.Info("Handling auctions-intake-request from the collector")
 
