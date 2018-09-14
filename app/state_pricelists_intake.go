@@ -8,19 +8,19 @@ import (
 )
 
 func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
-	// spinning up a loader for persisting realm prices
+	// spinning up a loader for handling pricelist-intake requests
 	loadIn := sta.databases.startLoader(*sta.resolver.config, sta.resolver.store)
 
-	// declaring a channel for queueing up pricelist-intake requests
+	// declaring a channel for queueing up pricelist-intake requests from the listener
 	listenerIn := make(chan auctionsIntakeRequest, 10)
 
-	// optionally spinning up a collector for producing pricelist-intake requests
+	// optionally spinning up a collector for producing pricelist-intake requests from gcloud store
 	collectorIn := make(chan auctionsIntakeRequest)
 	if sta.resolver.config.UseGCloudStorage {
 		go sta.resolver.store.startCollector(sta.regions, sta.statuses, collectorIn)
 	}
 
-	// spinning up a worker for handling pricelists-intake requests
+	// spinning up a worker for multiplexing pricelist-intake requests (be it from listener or collector) into the loader
 	go func() {
 		for {
 			select {
