@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ihsw/sotah-server/app/objstate"
+
 	storage "cloud.google.com/go/storage"
 	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/logging"
@@ -244,7 +246,7 @@ func (sto store) startCollector(regs []region, stas statuses, collectOut chan au
 
 				return objAttrs.Metadata
 			}()
-			objMeta["state"] = "queued"
+			objMeta["state"] = string(objstate.Queued)
 			if _, err := job.obj.Update(sto.context, storage.ObjectAttrsToUpdate{Metadata: objMeta}); err != nil {
 				logging.WithFields(logrus.Fields{
 					"error":         err.Error(),
@@ -507,7 +509,7 @@ func (sto store) getLatestRealmAuctionsObjectForProcessing(bkt *storage.BucketHa
 			return state
 		}()
 
-		if metaState == "processed" || metaState == "queued" {
+		if metaState == string(objstate.Processed) || metaState == string(objstate.Queued) {
 			continue
 		}
 

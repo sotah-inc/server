@@ -11,6 +11,7 @@ import (
 
 	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/logging"
+	"github.com/ihsw/sotah-server/app/objstate"
 	"github.com/ihsw/sotah-server/app/util"
 	"github.com/sirupsen/logrus"
 )
@@ -30,12 +31,14 @@ func itemPricelistBucketName(ID blizzard.ItemID) []byte {
 	return []byte(fmt.Sprintf("item-prices/%d", ID))
 }
 
-func databasePath(c config, reg region, rea realm, targetDate time.Time) (string, error) {
+func normalizeTargetDate(targetDate time.Time) time.Time {
 	nearestWeekStartOffset := targetDate.Second() + targetDate.Minute()*60 + targetDate.Hour()*60*60 + int(targetDate.Weekday())*60*60*24
-	normalizedUnixTimestamp := int(targetDate.Unix()) - nearestWeekStartOffset
+	return time.Unix(targetDate.Unix()-int64(nearestWeekStartOffset), 0)
+}
 
+func databasePath(c config, reg region, rea realm, targetDate time.Time) (string, error) {
 	return filepath.Abs(
-		fmt.Sprintf("%s/databases/%s/%s/%d.db", c.CacheDir, reg.Name, rea.Slug, normalizedUnixTimestamp),
+		fmt.Sprintf("%s/databases/%s/%s/%d.db", c.CacheDir, reg.Name, rea.Slug, normalizeTargetDate(targetDate).Unix()),
 	)
 }
 
@@ -96,7 +99,7 @@ func (dBase database) handleLoadAuctionsJob(job loadAuctionsJob, c config, sto s
 
 		return objAttrs.Metadata
 	}()
-	objMeta["state"] = "processed"
+	objMeta["state"] = string(objstate.Processed)
 	if _, err := obj.Update(sto.context, storage.ObjectAttrsToUpdate{Metadata: objMeta}); err != nil {
 		logging.WithFields(logrus.Fields{
 			"error":         err.Error(),
@@ -192,7 +195,8 @@ func newDatabases(sta state) databases {
 type databases map[regionName]map[blizzard.RealmSlug]timestampDatabaseMap
 
 func (dBases databases) resolveDatabaseFromLoadAuctionsJob(c config, job loadAuctionsJob) (database, error) {
-	dBase, ok := dBases[job.realm.region.Name][job.realm.Slug][job.lastModified.Unix()]
+	normalizedTargetDate := normalizeTargetDate(job.lastModified)
+	dBase, ok := dBases[job.realm.region.Name][job.realm.Slug][normalizedTargetDate.Unix()]
 	if ok {
 		return dBase, nil
 	}
@@ -201,7 +205,7 @@ func (dBases databases) resolveDatabaseFromLoadAuctionsJob(c config, job loadAuc
 	if err != nil {
 		return database{}, err
 	}
-	dBases[job.realm.region.Name][job.realm.Slug][job.lastModified.Unix()] = dBase
+	dBases[job.realm.region.Name][job.realm.Slug][normalizedTargetDate.Unix()] = dBase
 
 	return dBase, nil
 }
