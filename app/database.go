@@ -53,8 +53,6 @@ func newDatabase(c config, reg region, rea realm, targetDate time.Time) (databas
 	return database{db, targetDate}, nil
 }
 
-type priceListHistory map[int64]prices
-
 type database struct {
 	db         *bolt.DB
 	targetDate time.Time
@@ -148,6 +146,8 @@ func (dBase database) persistPricelists(pList priceList) error {
 	return nil
 }
 
+type priceListHistory map[int64]prices
+
 func (dBase database) getPricelistHistory(rea realm, ID blizzard.ItemID) (priceListHistory, error) {
 	plHistory := priceListHistory{}
 	err := dBase.db.View(func(tx *bolt.Tx) error {
@@ -191,8 +191,19 @@ func newDatabases(sta state) databases {
 
 type databases map[regionName]map[blizzard.RealmSlug]timestampDatabaseMap
 
-func (dBases databases) getDatabaseFromLoadAuctionsJob(job loadAuctionsJob) database {
-	return dBases[job.realm.region.Name][job.realm.Slug][job.lastModified.Unix()]
+func (dBases databases) resolveDatabaseFromLoadAuctionsJob(c config, job loadAuctionsJob) (database, error) {
+	dBase, ok := dBases[job.realm.region.Name][job.realm.Slug][job.lastModified.Unix()]
+	if ok {
+		return dBase, nil
+	}
+
+	dBase, err := newDatabase(c, job.realm.region, job.realm, job.lastModified)
+	if err != nil {
+		return database{}, err
+	}
+	dBases[job.realm.region.Name][job.realm.Slug][job.lastModified.Unix()] = dBase
+
+	return dBase, nil
 }
 
 func (dBases databases) startLoader(c config, sto store) chan loadAuctionsJob {
@@ -209,8 +220,18 @@ func (dBases databases) startLoader(c config, sto store) chan loadAuctionsJob {
 				continue
 			}
 
-			err := dBases.getDatabaseFromLoadAuctionsJob(job).handleLoadAuctionsJob(job, c, sto)
+			dBase, err := dBases.resolveDatabaseFromLoadAuctionsJob(c, job)
 			if err != nil {
+				logging.WithFields(logrus.Fields{
+					"error":  job.err.Error(),
+					"region": job.realm.region.Name,
+					"realm":  job.realm.Slug,
+				}).Error("Could not resolve database from load-auctions-job")
+
+				continue
+			}
+
+			if err := dBase.handleLoadAuctionsJob(job, c, sto); err != nil {
 				logging.WithFields(logrus.Fields{
 					"error":  err.Error(),
 					"region": job.realm.region.Name,
