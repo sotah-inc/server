@@ -23,18 +23,20 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 	// spinning up a worker for multiplexing pricelist-intake requests (be it from listener or collector) into the loader
 	go func() {
 		for {
-			select {
-			case aiRequest := <-listenerIn:
-				logging.WithField("buffer-size", len(collectorIn)).Info("Queueing up auctions-intake-request from the listener")
+			aiRequest := <-listenerIn
+			logging.WithField("buffer-size", len(collectorIn)).Info("Queueing up auctions-intake-request from the listener")
 
-				collectorIn <- aiRequest
-			case aiRequest := <-collectorIn:
-				logging.Info("Handling auctions-intake-request from the collector")
+			collectorIn <- aiRequest
+		}
+	}()
+	go func() {
+		for {
+			aiRequest := <-collectorIn
+			logging.Info("Handling auctions-intake-request from the collector")
 
-				aiRequest.handle(sta, loadIn)
+			aiRequest.handle(sta, loadIn)
 
-				logging.Info("Finished handling auctions-intake-request from the collector")
-			}
+			logging.Info("Finished handling auctions-intake-request from the collector")
 		}
 	}()
 
