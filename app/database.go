@@ -296,4 +296,21 @@ func (dBases databases) startLoader(c config, sto store) chan loadAuctionsJob {
 
 type timestampDatabaseMap map[int64]database
 
+func (tdMap timestampDatabaseMap) getPricelistHistory(rea realm, ID blizzard.ItemID) (priceListHistory, error) {
+	plHistory := priceListHistory{}
+
+	for _, dBase := range tdMap {
+		receivedHistory, err := dBase.getPricelistHistory(rea, ID)
+		if err != nil {
+			return priceListHistory{}, err
+		}
+
+		for unixTimestamp, pricesValue := range receivedHistory {
+			plHistory[unixTimestamp] = pricesValue
+		}
+	}
+
+	return plHistory, nil
+}
+
 // todo: create func for gathering pricelist history across all shards for a given item

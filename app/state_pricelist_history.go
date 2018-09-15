@@ -101,25 +101,16 @@ func (sta state) listenForPriceListHistory(stop listenStopChan) error {
 		// gathering up pricelist history
 		plhResponse := priceListHistoryResponse{History: map[blizzard.ItemID]priceListHistory{}}
 		for _, ID := range plhRequest.ItemIds {
-			itemHistory := priceListHistory{}
+			plHistory, err := tdMap.getPricelistHistory(rea, ID)
+			if err != nil {
+				m.Err = err.Error()
+				m.Code = codes.GenericError
+				sta.messenger.replyTo(natsMsg, m)
 
-			for _, dBase := range tdMap {
-				receivedHistory, err := dBase.getPricelistHistory(rea, ID)
-				if err != nil {
-					m.Err = err.Error()
-					m.Code = codes.GenericError
-					sta.messenger.replyTo(natsMsg, m)
-
-					return
-				}
-
-				for unixTimestamp, pricesValue := range receivedHistory {
-					itemHistory[unixTimestamp] = pricesValue
-				}
+				return
 			}
 
-			// writing the history out to the response
-			plhResponse.History[ID] = itemHistory
+			plhResponse.History[ID] = plHistory
 		}
 
 		// encoding the message for the response
