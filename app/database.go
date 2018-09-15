@@ -3,7 +3,10 @@ package main
 import (
 	"encoding/binary"
 	"fmt"
+	"io/ioutil"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
 	storage "cloud.google.com/go/storage"
@@ -156,6 +159,12 @@ func (dBase database) getPricelistHistory(rea realm, ID blizzard.ItemID) (priceL
 	err := dBase.db.View(func(tx *bolt.Tx) error {
 		bkt := tx.Bucket(itemPricelistBucketName(ID))
 		if bkt == nil {
+			logging.WithFields(logrus.Fields{
+				"region":      rea.region.Name,
+				"realm":       rea.Slug,
+				"bucket-name": itemPricelistBucketName(ID),
+			}).Debug("Bucket not found")
+
 			return nil
 		}
 
@@ -178,18 +187,47 @@ func (dBase database) getPricelistHistory(rea realm, ID blizzard.ItemID) (priceL
 	return plHistory, nil
 }
 
-func newDatabases(sta state) databases {
+func newDatabases(c config, regs regionList, stas statuses) (databases, error) {
 	dBases := map[regionName]map[blizzard.RealmSlug]timestampDatabaseMap{}
 
-	for _, reg := range sta.regions {
+	databaseDir, err := c.databaseDir()
+	if err != nil {
+		return databases{}, err
+	}
+
+	for _, reg := range c.filterInRegions(regs) {
 		dBases[reg.Name] = map[blizzard.RealmSlug]timestampDatabaseMap{}
 
-		for _, rea := range sta.statuses[reg.Name].Realms {
+		regionDatabaseDir := reg.databaseDir(databaseDir)
+
+		for _, rea := range c.filterInRealms(reg, stas[reg.Name].Realms) {
 			dBases[reg.Name][rea.Slug] = timestampDatabaseMap{}
+
+			realmDatabaseDir := rea.databaseDir(regionDatabaseDir)
+			databaseFilepaths, err := ioutil.ReadDir(realmDatabaseDir)
+			if err != nil {
+				return databases{}, err
+			}
+
+			for _, fPath := range databaseFilepaths {
+				parts := strings.Split(fPath.Name(), ".")
+				targetTimeUnix, err := strconv.Atoi(parts[0])
+				if err != nil {
+					return databases{}, err
+				}
+
+				targetTime := time.Unix(int64(targetTimeUnix), 0)
+				dBase, err := newDatabase(c, reg, rea, targetTime)
+				if err != nil {
+					return databases{}, err
+				}
+
+				dBases[reg.Name][rea.Slug][targetTime.Unix()] = dBase
+			}
 		}
 	}
 
-	return dBases
+	return dBases, nil
 }
 
 type databases map[regionName]map[blizzard.RealmSlug]timestampDatabaseMap

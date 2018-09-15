@@ -59,11 +59,11 @@ func pricelistHistories(c config, m messenger, s store) error {
 		return err
 	}
 	cacheDirs := []string{databaseDir}
-	for _, reg := range sta.regions {
+	for _, reg := range c.filterInRegions(sta.regions) {
 		regionDatabaseDir := reg.databaseDir(databaseDir)
 		cacheDirs = append(cacheDirs, regionDatabaseDir)
 
-		for _, rea := range sta.statuses[reg.Name].Realms {
+		for _, rea := range c.filterInRealms(reg, sta.statuses[reg.Name].Realms) {
 			cacheDirs = append(cacheDirs, rea.databaseDir(regionDatabaseDir))
 		}
 	}
@@ -72,7 +72,11 @@ func pricelistHistories(c config, m messenger, s store) error {
 	}
 
 	// loading up databases
-	sta.databases = newDatabases(sta)
+	dBases, err := newDatabases(c, sta.regions, sta.statuses)
+	if err != nil {
+		return err
+	}
+	sta.databases = dBases
 
 	// opening all listeners
 	sta.listeners = newListeners(subjectListeners{
