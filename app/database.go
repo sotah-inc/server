@@ -135,7 +135,9 @@ func (dBase database) persistPricelists(pList priceList) error {
 				return err
 			}
 
-			return bkt.Put(targetDateToKeyName(dBase.targetDate), encodedPricesValue)
+			if err := bkt.Put(targetDateToKeyName(dBase.targetDate), encodedPricesValue); err != nil {
+				return err
+			}
 		}
 
 		logging.WithFields(logrus.Fields{
@@ -162,7 +164,7 @@ func (dBase database) getPricelistHistory(rea realm, ID blizzard.ItemID) (priceL
 			logging.WithFields(logrus.Fields{
 				"region":      rea.region.Name,
 				"realm":       rea.Slug,
-				"bucket-name": itemPricelistBucketName(ID),
+				"bucket-name": string(itemPricelistBucketName(ID)),
 			}).Debug("Bucket not found")
 
 			return nil
