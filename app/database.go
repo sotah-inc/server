@@ -312,5 +312,3 @@ func (tdMap timestampDatabaseMap) getPricelistHistory(rea realm, ID blizzard.Ite
 
 	return plHistory, nil
 }
-
-// todo: create func for gathering pricelist history across all shards for a given item
