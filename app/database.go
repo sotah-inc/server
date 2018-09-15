@@ -103,13 +103,6 @@ func (dBase database) handleLoadAuctionsJob(job loadAuctionsJob, c config, sto s
 		return objAttrs.Metadata
 	}()
 	objMeta["state"] = string(objstate.Processed)
-	logging.WithFields(logrus.Fields{
-		"region":        job.realm.region.Name,
-		"realm":         job.realm.Slug,
-		"last-modified": job.lastModified.Unix(),
-		"obj":           objAttrs.Name,
-		"state":         string(objstate.Processed),
-	}).Debug("Updating obj meta state")
 	if _, err := obj.Update(sto.context, storage.ObjectAttrsToUpdate{Metadata: objMeta}); err != nil {
 		logging.WithFields(logrus.Fields{
 			"error":         err.Error(),
@@ -120,13 +113,6 @@ func (dBase database) handleLoadAuctionsJob(job loadAuctionsJob, c config, sto s
 
 		return err
 	}
-	logging.WithFields(logrus.Fields{
-		"region":        job.realm.region.Name,
-		"realm":         job.realm.Slug,
-		"last-modified": job.lastModified.Unix(),
-		"obj":           objAttrs.Name,
-		"state":         string(objstate.Processed),
-	}).Debug("Finished updating obj meta state")
 
 	return nil
 }

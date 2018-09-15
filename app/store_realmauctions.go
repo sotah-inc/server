@@ -251,13 +251,6 @@ func (sto store) startCollector(c config, regs []region, stas statuses, collectO
 				return objAttrs.Metadata
 			}()
 			objMeta["state"] = string(objstate.Queued)
-			logging.WithFields(logrus.Fields{
-				"region":        job.realm.region.Name,
-				"realm":         job.realm.Slug,
-				"last-modified": job.targetTime.Unix(),
-				"obj":           objAttrs.Name,
-				"state":         string(objstate.Queued),
-			}).Debug("Updating obj meta state")
 			if _, err := job.obj.Update(sto.context, storage.ObjectAttrsToUpdate{Metadata: objMeta}); err != nil {
 				logging.WithFields(logrus.Fields{
 					"error":         err.Error(),
@@ -268,13 +261,6 @@ func (sto store) startCollector(c config, regs []region, stas statuses, collectO
 
 				continue
 			}
-			logging.WithFields(logrus.Fields{
-				"region":        job.realm.region.Name,
-				"realm":         job.realm.Slug,
-				"last-modified": job.targetTime.Unix(),
-				"obj":           objAttrs.Name,
-				"state":         string(objstate.Processed),
-			}).Debug("Finished updating obj meta state")
 		}
 
 		if hasResults == false {
@@ -499,8 +485,6 @@ func (sto store) getLatestRealmAuctionsObject(bkt *storage.BucketHandle) (*stora
 }
 
 func (sto store) getLatestRealmAuctionsObjectForProcessing(bkt *storage.BucketHandle) (*storage.ObjectHandle, time.Time, error) {
-	logging.Debug("Fetching latest realm-auctions object from bucket for processing")
-
 	var obj *storage.ObjectHandle
 	var objAttrs *storage.ObjectAttrs
 	lastCreated := time.Time{}
