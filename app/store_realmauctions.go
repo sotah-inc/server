@@ -251,6 +251,13 @@ func (sto store) startCollector(c config, regs []region, stas statuses, collectO
 				return objAttrs.Metadata
 			}()
 			objMeta["state"] = string(objstate.Queued)
+			logging.WithFields(logrus.Fields{
+				"region":        job.realm.region.Name,
+				"realm":         job.realm.Slug,
+				"last-modified": job.targetTime.Unix(),
+				"obj":           objAttrs.Name,
+				"state":         string(objstate.Queued),
+			}).Debug("Updating obj meta state")
 			if _, err := job.obj.Update(sto.context, storage.ObjectAttrsToUpdate{Metadata: objMeta}); err != nil {
 				logging.WithFields(logrus.Fields{
 					"error":         err.Error(),
