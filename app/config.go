@@ -53,7 +53,8 @@ func (c config) filterInRegions(regs regionList) regionList {
 	out := regionList{}
 
 	for _, reg := range regs {
-		if _, ok := c.Whitelist[reg.Name]; !ok {
+		wList, ok := c.Whitelist[reg.Name]
+		if ok && wList != nil && len(*wList) == 0 {
 			continue
 		}
 
