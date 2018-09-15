@@ -49,23 +49,22 @@ type auctionsIntakeRequest struct {
 }
 
 func (aiRequest auctionsIntakeRequest) resolve(sta state) (regionRealmMap, regionRealmMap, error) {
+	c := sta.resolver.config
+
 	includedRegionRealms := regionRealmMap{}
 	excludedRegionRealms := regionRealmMap{}
-	for _, reg := range sta.regions {
-		wList := sta.resolver.config.Whitelist[reg.Name]
+	for _, reg := range c.filterInRegions(sta.regions) {
 		includedRegionRealms[reg.Name] = realmMap{map[blizzard.RealmSlug]realmMapValue{}}
 
 		excludedRegionRealms[reg.Name] = realmMap{map[blizzard.RealmSlug]realmMapValue{}}
-		for _, rea := range sta.statuses[reg.Name].Realms.filterWithWhitelist(wList) {
+		for _, rea := range c.filterInRealms(reg, sta.statuses[reg.Name].Realms) {
 			excludedRegionRealms[reg.Name].values[rea.Slug] = realmMapValue{rea, time.Time{}}
 		}
 	}
 
 	for rName, realmSlugs := range aiRequest.RegionRealmTimestamps {
-		wList := sta.resolver.config.Whitelist[rName]
-
 		for realmSlug, unixTimestamp := range realmSlugs {
-			for _, rea := range sta.statuses[rName].Realms.filterWithWhitelist(wList) {
+			for _, rea := range sta.statuses[rName].Realms.filterWithWhitelist(c.Whitelist[rName]) {
 				if rea.Slug != realmSlug {
 					continue
 				}

@@ -30,7 +30,7 @@ func api(c config, m messenger, s store) error {
 		fmt.Sprintf("%s/items", c.CacheDir),
 		fmt.Sprintf("%s/databases", c.CacheDir),
 	}
-	for _, reg := range sta.regions {
+	for _, reg := range c.filterInRegions(sta.regions) {
 		cacheDirs = append(cacheDirs, fmt.Sprintf("%s/auctions/%s", c.CacheDir, reg.Name))
 		cacheDirs = append(cacheDirs, fmt.Sprintf("%s/databases/%s", c.CacheDir, reg.Name))
 	}
@@ -39,13 +39,7 @@ func api(c config, m messenger, s store) error {
 	}
 
 	// filling state with region statuses
-	for _, reg := range sta.regions {
-		if c.Whitelist[reg.Name] != nil && len(*c.Whitelist[reg.Name]) == 0 {
-			logging.WithField("region", reg.Name).Debug("Filtering out region from status")
-
-			continue
-		}
-
+	for _, reg := range c.filterInRegions(sta.regions) {
 		regionStatus, err := reg.getStatus(res)
 		if err != nil {
 			logging.WithFields(logrus.Fields{
@@ -56,6 +50,7 @@ func api(c config, m messenger, s store) error {
 			return err
 		}
 
+		regionStatus.Realms = c.filterInRealms(reg, regionStatus.Realms)
 		sta.statuses[reg.Name] = regionStatus
 	}
 
