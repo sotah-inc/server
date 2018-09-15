@@ -268,6 +268,13 @@ func (sto store) startCollector(c config, regs []region, stas statuses, collectO
 
 				continue
 			}
+			logging.WithFields(logrus.Fields{
+				"region":        job.realm.region.Name,
+				"realm":         job.realm.Slug,
+				"last-modified": job.targetTime.Unix(),
+				"obj":           objAttrs.Name,
+				"state":         string(objstate.Processed),
+			}).Debug("Finished updating obj meta state")
 		}
 
 		if hasResults == false {

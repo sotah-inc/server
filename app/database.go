@@ -120,6 +120,13 @@ func (dBase database) handleLoadAuctionsJob(job loadAuctionsJob, c config, sto s
 
 		return err
 	}
+	logging.WithFields(logrus.Fields{
+		"region":        job.realm.region.Name,
+		"realm":         job.realm.Slug,
+		"last-modified": job.lastModified.Unix(),
+		"obj":           objAttrs.Name,
+		"state":         string(objstate.Processed),
+	}).Debug("Finished updating obj meta state")
 
 	return nil
 }
