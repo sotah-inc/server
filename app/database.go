@@ -66,7 +66,7 @@ type database struct {
 
 func (dBase database) handleLoadAuctionsJob(job loadAuctionsJob, c config, sto store) error {
 	mAuctions := newMiniAuctionListFromBlizzardAuctions(job.auctions.Auctions)
-	err := dBase.persistPricelists(newPriceList(mAuctions.itemIds(), mAuctions))
+	err := dBase.persistPricelists(job.lastModified, newPriceList(mAuctions.itemIds(), mAuctions))
 	if err != nil {
 		logging.WithFields(logrus.Fields{
 			"error":  err.Error(),
@@ -117,9 +117,9 @@ func (dBase database) handleLoadAuctionsJob(job loadAuctionsJob, c config, sto s
 	return nil
 }
 
-func (dBase database) persistPricelists(pList priceList) error {
+func (dBase database) persistPricelists(targetDate time.Time, pList priceList) error {
 	logging.WithFields(logrus.Fields{
-		"target_date": dBase.targetDate.Unix(),
+		"target_date": targetDate.Unix(),
 		"pricelists":  len(pList),
 	}).Debug("Writing pricelists")
 
@@ -135,7 +135,7 @@ func (dBase database) persistPricelists(pList priceList) error {
 				return err
 			}
 
-			if err := bkt.Put(targetDateToKeyName(dBase.targetDate), encodedPricesValue); err != nil {
+			if err := bkt.Put(targetDateToKeyName(targetDate), encodedPricesValue); err != nil {
 				return err
 			}
 		}
