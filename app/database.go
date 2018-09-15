@@ -296,7 +296,7 @@ func (dBases databases) startLoader(c config, sto store) chan loadAuctionsJob {
 	postWork := func() {
 		return
 	}
-	util.Work(4, worker, postWork)
+	util.Work(1, worker, postWork)
 
 	return in
 }
