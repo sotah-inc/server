@@ -143,7 +143,7 @@ type storeCollectJob struct {
 	targetTime time.Time
 }
 
-func (sto store) collectRegionRealms(regs []region, stas statuses) chan storeCollectJob {
+func (sto store) collectRegionRealms(c config, regs regionList, stas statuses) chan storeCollectJob {
 	// establishing channels
 	out := make(chan storeCollectJob)
 	in := make(chan realm)
@@ -204,8 +204,8 @@ func (sto store) collectRegionRealms(regs []region, stas statuses) chan storeCol
 
 	// queueing up the realms
 	go func() {
-		for _, reg := range regs {
-			for _, rea := range stas[reg.Name].Realms {
+		for _, reg := range c.filterInRegions(regs) {
+			for _, rea := range c.filterInRealms(reg, stas[reg.Name].Realms) {
 				in <- rea
 			}
 		}
@@ -216,13 +216,13 @@ func (sto store) collectRegionRealms(regs []region, stas statuses) chan storeCol
 	return out
 }
 
-func (sto store) startCollector(regs []region, stas statuses, collectOut chan auctionsIntakeRequest) {
+func (sto store) startCollector(c config, regs []region, stas statuses, collectOut chan auctionsIntakeRequest) {
 	logging.Info("Starting auctions-intake collector")
 
 	for {
 		hasResults := false
 		aiRequest := auctionsIntakeRequest{RegionRealmTimestamps: intakeRequestData{}}
-		scJobs := sto.collectRegionRealms(regs, stas)
+		scJobs := sto.collectRegionRealms(c, regs, stas)
 		for job := range scJobs {
 			// gathering obj attrs for updating metadata
 			objAttrs, err := job.obj.Attrs(sto.context)

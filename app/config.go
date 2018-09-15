@@ -49,6 +49,40 @@ func (c config) getRegionWhitelist(rName regionName) *getAuctionsWhitelist {
 	return nil
 }
 
+func (c config) filterInRegions(regs regionList) regionList {
+	out := regionList{}
+
+	for _, reg := range regs {
+		if _, ok := c.Whitelist[reg.Name]; !ok {
+			continue
+		}
+
+		out = append(out, reg)
+	}
+
+	return out
+}
+
+func (c config) filterInRealms(reg region, reas realms) realms {
+	wList, ok := c.Whitelist[reg.Name]
+	if !ok {
+		return reas
+	}
+	wListValue := *wList
+
+	out := realms{}
+
+	for _, rea := range reas {
+		if _, ok := wListValue[rea.Slug]; !ok {
+			continue
+		}
+
+		out = append(out, rea)
+	}
+
+	return out
+}
+
 func (c config) databaseDir() (string, error) {
 	return filepath.Abs(fmt.Sprintf("%s/databases", c.CacheDir))
 }

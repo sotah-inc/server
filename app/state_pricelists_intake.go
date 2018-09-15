@@ -17,7 +17,7 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 	// optionally spinning up a collector for producing pricelist-intake requests from gcloud store
 	collectorIn := make(chan auctionsIntakeRequest, 10)
 	if sta.resolver.config.UseGCloudStorage {
-		go sta.resolver.store.startCollector(sta.regions, sta.statuses, collectorIn)
+		go sta.resolver.store.startCollector(*sta.resolver.config, sta.regions, sta.statuses, collectorIn)
 	}
 
 	// spinning up a worker for multiplexing pricelist-intake requests (be it from listener or collector) into the loader
