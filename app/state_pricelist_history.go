@@ -6,6 +6,7 @@ import (
 
 	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/codes"
+	"github.com/ihsw/sotah-server/app/logging"
 	"github.com/ihsw/sotah-server/app/subjects"
 	"github.com/ihsw/sotah-server/app/util"
 	"github.com/nats-io/go-nats"
@@ -94,6 +95,8 @@ func (sta state) listenForPriceListHistory(stop listenStopChan) error {
 
 			return
 		}
+
+		logging.WithField("database-shards", len(tdMap)).Info("Querying database shards")
 
 		// gathering up pricelist history
 		plhResponse := priceListHistoryResponse{History: map[blizzard.ItemID]priceListHistory{}}
