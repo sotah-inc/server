@@ -276,7 +276,7 @@ func (sto store) startCollector(c config, regs []region, stas statuses, collectO
 			break
 		}
 
-		logging.Info("Queueing auctions-intake request into collect-out channel")
+		logging.WithField("buffer-size", len(collectOut)).Info("Queueing auctions-intake-request from the collector")
 		collectOut <- aiRequest
 	}
 }

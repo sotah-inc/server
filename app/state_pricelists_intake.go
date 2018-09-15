@@ -25,7 +25,7 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 		for {
 			select {
 			case aiRequest := <-listenerIn:
-				logging.Info("Queueing up auctions-intake-request from the listener")
+				logging.WithField("buffer-size", len(collectorIn)).Info("Queueing up auctions-intake-request from the listener")
 
 				collectorIn <- aiRequest
 			case aiRequest := <-collectorIn:
