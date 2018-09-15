@@ -32,6 +32,8 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 				logging.Info("Handling auctions-intake-request from the collector")
 
 				aiRequest.handle(sta, loadIn)
+
+				logging.Info("Finished handling auctions-intake-request from the collector")
 			}
 		}
 	}()
