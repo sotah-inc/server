@@ -220,8 +220,12 @@ func (sto store) startCollector(c config, regs []region, stas statuses, collectO
 	logging.Info("Starting auctions-intake collector")
 
 	for {
-		hasResults := false
 		aiRequest := auctionsIntakeRequest{RegionRealmTimestamps: intakeRequestData{}}
+		for _, reg := range regs {
+			aiRequest.RegionRealmTimestamps[reg.Name] = map[blizzard.RealmSlug]int64{}
+		}
+
+		hasResults := false
 		scJobs := sto.collectRegionRealms(c, regs, stas)
 		for job := range scJobs {
 			// gathering obj attrs for updating metadata
