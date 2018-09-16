@@ -21,7 +21,6 @@ func api(c config, m messenger, s store) error {
 	sta := newState(m, res)
 
 	// creating a uuid4 api-session secret
-	uuid.Init()
 	sta.sessionSecret = uuid.NewV4()
 
 	// ensuring cache-dirs exist

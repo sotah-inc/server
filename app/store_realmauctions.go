@@ -250,7 +250,7 @@ func (sto store) startCollector(c config, regs []region, stas statuses, collectO
 
 				return objAttrs.Metadata
 			}()
-			objMeta["state"] = string(objstate.Queued)
+			objMeta["state"] = fmt.Sprintf(string(objstate.Queued), ID.String())
 			if _, err := job.obj.Update(sto.context, storage.ObjectAttrsToUpdate{Metadata: objMeta}); err != nil {
 				logging.WithFields(logrus.Fields{
 					"error":         err.Error(),
@@ -511,7 +511,7 @@ func (sto store) getLatestRealmAuctionsObjectForProcessing(bkt *storage.BucketHa
 			return state
 		}()
 
-		if metaState == string(objstate.Processed) || metaState == string(objstate.Queued) {
+		if metaState == string(objstate.Processed) || metaState == fmt.Sprintf(string(objstate.Queued), ID.String()) {
 			continue
 		}
 

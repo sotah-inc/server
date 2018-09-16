@@ -5,6 +5,8 @@ import (
 	"net"
 	"os"
 
+	"github.com/twinj/uuid"
+
 	logrusstash "github.com/bshuster-repo/logrus-logstash-hook"
 	"github.com/ihsw/sotah-server/app/commands"
 	"github.com/ihsw/sotah-server/app/logging"
@@ -14,7 +16,14 @@ import (
 
 type commandMap map[string]func() error
 
+// ID represents this run's unique id
+var ID uuid.Uuid
+
 func main() {
+	// assigning global ID
+	uuid.Init()
+	ID = uuid.NewV4()
+
 	// parsing the command flags
 	var (
 		app            = kingpin.New("sotah-server", "A command-line Blizzard AH client.")
