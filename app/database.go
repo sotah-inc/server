@@ -35,7 +35,7 @@ func itemPricelistBucketName(ID blizzard.ItemID) []byte {
 }
 
 func normalizeTargetDate(targetDate time.Time) time.Time {
-	nearestWeekStartOffset := targetDate.Second() + targetDate.Minute()*60 + targetDate.Hour()*60*60 + int(targetDate.Weekday())*60*60*24
+	nearestWeekStartOffset := targetDate.Second() + targetDate.Minute()*60 + targetDate.Hour()*60*60
 	return time.Unix(targetDate.Unix()-int64(nearestWeekStartOffset), 0)
 }
 
