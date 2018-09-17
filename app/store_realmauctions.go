@@ -489,6 +489,7 @@ func (sto store) getLatestRealmAuctionsObjectForProcessing(bkt *storage.BucketHa
 	var objAttrs *storage.ObjectAttrs
 	lastCreated := time.Time{}
 	it := bkt.Objects(sto.context, nil)
+	earliestTime := time.Now().Add(-1 * time.Hour * 24 * 14)
 	for {
 		nextObjAttrs, err := it.Next()
 		if err == iterator.Done {
@@ -496,6 +497,10 @@ func (sto store) getLatestRealmAuctionsObjectForProcessing(bkt *storage.BucketHa
 		}
 		if err != nil {
 			return nil, time.Time{}, err
+		}
+
+		if nextObjAttrs.Created.Before(earliestTime) {
+			continue
 		}
 
 		metaState := func() string {
