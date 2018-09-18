@@ -1,9 +1,14 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ihsw/sotah-server/app/logging"
@@ -69,6 +74,41 @@ func pricelistHistories(c config, m messenger, s store) error {
 	}
 	if err := util.EnsureDirsExist(cacheDirs); err != nil {
 		return err
+	}
+
+	// pruning old data
+	earliestTime := time.Now().Add(-1 * time.Hour * 24 * 15)
+	for _, reg := range c.filterInRegions(sta.regions) {
+		regionDatabaseDir := reg.databaseDir(databaseDir)
+
+		for _, rea := range c.filterInRealms(reg, sta.statuses[reg.Name].Realms) {
+			realmDatabaseDir := rea.databaseDir(regionDatabaseDir)
+			databaseFilepaths, err := ioutil.ReadDir(realmDatabaseDir)
+			if err != nil {
+				return err
+			}
+
+			for _, fPath := range databaseFilepaths {
+				parts := strings.Split(fPath.Name(), ".")
+				targetTimeUnix, err := strconv.Atoi(parts[0])
+				if err != nil {
+					return err
+				}
+
+				targetTime := time.Unix(int64(targetTimeUnix), 0)
+				if targetTime.After(earliestTime) {
+					continue
+				}
+
+				fullPath, err := filepath.Abs(fmt.Sprintf("%s/%s", realmDatabaseDir, fPath.Name()))
+				if err != nil {
+					return err
+				}
+
+				logging.WithField("fullPath", fullPath).Info("Removing file")
+				return errors.New("wew lad")
+			}
+		}
 	}
 
 	// loading up databases
