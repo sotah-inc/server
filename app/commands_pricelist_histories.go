@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -105,12 +104,9 @@ func pricelistHistories(c config, m messenger, s store) error {
 					return err
 				}
 
-				logging.WithField("fullPath", fullPath).Info("Removing file")
+				logging.WithField("fullPath", fullPath).Info("Removing expired database file")
 			}
 		}
-	}
-	if true {
-		return errors.New("wew lad")
 	}
 
 	// loading up databases
