@@ -106,9 +106,11 @@ func pricelistHistories(c config, m messenger, s store) error {
 				}
 
 				logging.WithField("fullPath", fullPath).Info("Removing file")
-				return errors.New("wew lad")
 			}
 		}
+	}
+	if true {
+		return errors.New("wew lad")
 	}
 
 	// loading up databases
