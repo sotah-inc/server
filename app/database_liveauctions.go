@@ -37,18 +37,16 @@ func newLiveAuctionsDatabase(c config, reg region, rea realm) (liveAuctionsDatab
 		return liveAuctionsDatabase{}, err
 	}
 
-	return liveAuctionsDatabase{db, rea}, nil
+	return liveAuctionsDatabase{db}, nil
 }
 
 type liveAuctionsDatabase struct {
-	db    *bolt.DB
-	realm realm
+	db *bolt.DB
 }
 
 func (ladBase liveAuctionsDatabase) persistMiniauctions(maList miniAuctionList) error {
 	logging.WithFields(logrus.Fields{
-		"region":            ladBase.realm.region.Name,
-		"realm":             ladBase.realm.Slug,
+		"db":                ladBase.db.Path(),
 		"miniauctions-list": len(maList),
 	}).Debug("Persisting miniauctions-list")
 
@@ -82,8 +80,7 @@ func (ladBase liveAuctionsDatabase) getMiniauctions() (miniAuctionList, error) {
 		bkt := tx.Bucket(liveAuctionsBucketName())
 		if bkt == nil {
 			logging.WithFields(logrus.Fields{
-				"region":      ladBase.realm.region.Name,
-				"realm":       ladBase.realm.Slug,
+				"db":          ladBase.db.Path(),
 				"bucket-name": string(liveAuctionsBucketName()),
 			}).Error("Live-auctions bucket not found")
 
