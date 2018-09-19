@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -43,6 +44,10 @@ func databasePath(c config, reg region, rea realm, targetDate time.Time) (string
 	return filepath.Abs(
 		fmt.Sprintf("%s/databases/%s/%s/%d.db", c.CacheDir, reg.Name, rea.Slug, normalizeTargetDate(targetDate).Unix()),
 	)
+}
+
+func databaseRetentionLimit() time.Time {
+	return time.Now().Add(-1 * time.Hour * 24 * 15)
 }
 
 func newDatabase(c config, reg region, rea realm, targetDate time.Time) (database, error) {
@@ -292,6 +297,53 @@ func (dBases databases) startLoader(c config, sto store) chan loadAuctionsJob {
 	util.Work(2, worker, postWork)
 
 	return in
+}
+
+func (dBases databases) pruneDatabases() error {
+	earliestUnixTimestamp := databaseRetentionLimit().Unix()
+	for rName, realmDatabases := range dBases {
+		for rSlug, timestampDatabases := range realmDatabases {
+			for unixTimestamp, dBase := range timestampDatabases {
+				if unixTimestamp > earliestUnixTimestamp {
+					continue
+				}
+
+				logging.WithFields(logrus.Fields{
+					"region":             rName,
+					"realm":              rSlug,
+					"database-timestamp": unixTimestamp,
+				}).Info("Removing database from shard map")
+				delete(dBases[rName][rSlug], unixTimestamp)
+
+				logging.WithFields(logrus.Fields{
+					"region":             rName,
+					"realm":              rSlug,
+					"database-timestamp": unixTimestamp,
+				}).Info("Closing database")
+				if err := dBase.db.Close(); err != nil {
+					logging.WithFields(logrus.Fields{
+						"region":   rName,
+						"realm":    rSlug,
+						"database": dBase.db.Path(),
+					}).Error("Failed to close database")
+
+					return err
+				}
+
+				dbPath := dBase.db.Path()
+				logging.WithFields(logrus.Fields{
+					"region":   rName,
+					"realm":    rSlug,
+					"filepath": dbPath,
+				}).Info("Deleting database file")
+				if err := os.Remove(dbPath); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
 }
 
 type timestampDatabaseMap map[int64]database

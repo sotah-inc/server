@@ -76,7 +76,7 @@ func pricelistHistories(c config, m messenger, s store) error {
 	}
 
 	// pruning old data
-	earliestTime := time.Now().Add(-1 * time.Hour * 24 * 15)
+	earliestTime := databaseRetentionLimit()
 	for _, reg := range c.filterInRegions(sta.regions) {
 		regionDatabaseDir := reg.databaseDir(databaseDir)
 
