@@ -121,6 +121,15 @@ func newMiniAuctionsList(body []byte) (miniAuctionList, error) {
 	return *maList, nil
 }
 
+func newMiniAuctionsListFromGzipped(body []byte) (miniAuctionList, error) {
+	gzipDecodedData, err := util.GzipDecode(body)
+	if err != nil {
+		return miniAuctionList{}, err
+	}
+
+	return newMiniAuctionsList(gzipDecodedData)
+}
+
 type miniAuctionList []miniAuction
 
 func (maList miniAuctionList) limit(count int, page int) (miniAuctionList, error) {
@@ -185,6 +194,20 @@ func (maList miniAuctionList) itemIds() []blizzard.ItemID {
 	}
 
 	return out
+}
+
+func (maList miniAuctionList) encodeForDatabase() ([]byte, error) {
+	jsonEncodedData, err := json.Marshal(maList)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	gzipEncodedData, err := util.GzipEncode(jsonEncodedData)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return gzipEncodedData, nil
 }
 
 type miniAuctions map[miniAuctionHash]miniAuction
