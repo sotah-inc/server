@@ -104,7 +104,9 @@ func pricelistHistories(c config, m messenger, s store) error {
 					return err
 				}
 
-				logging.WithField("fullPath", fullPath).Info("Removing expired database file")
+				if err := os.Remove(fullPath); err != nil {
+					return err
+				}
 			}
 		}
 	}
