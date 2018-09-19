@@ -329,6 +329,7 @@ func (dBases databases) startPruner(stopChan workerStopChan) workerStopChan {
 
 func (dBases databases) pruneDatabases() error {
 	earliestUnixTimestamp := databaseRetentionLimit().Unix()
+	logging.WithField("limit", earliestUnixTimestamp).Info("Checking for databases to prune")
 	for rName, realmDatabases := range dBases {
 		for rSlug, timestampDatabases := range realmDatabases {
 			for unixTimestamp, dBase := range timestampDatabases {
@@ -340,14 +341,14 @@ func (dBases databases) pruneDatabases() error {
 					"region":             rName,
 					"realm":              rSlug,
 					"database-timestamp": unixTimestamp,
-				}).Info("Removing database from shard map")
+				}).Debug("Removing database from shard map")
 				delete(dBases[rName][rSlug], unixTimestamp)
 
 				logging.WithFields(logrus.Fields{
 					"region":             rName,
 					"realm":              rSlug,
 					"database-timestamp": unixTimestamp,
-				}).Info("Closing database")
+				}).Debug("Closing database")
 				if err := dBase.db.Close(); err != nil {
 					logging.WithFields(logrus.Fields{
 						"region":   rName,
@@ -363,7 +364,7 @@ func (dBases databases) pruneDatabases() error {
 					"region":   rName,
 					"realm":    rSlug,
 					"filepath": dbPath,
-				}).Info("Deleting database file")
+				}).Debug("Deleting database file")
 				if err := os.Remove(dbPath); err != nil {
 					return err
 				}
