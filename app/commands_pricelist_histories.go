@@ -118,6 +118,10 @@ func pricelistHistories(c config, m messenger, s store) error {
 	}
 	sta.databases = dBases
 
+	// starting up a pruner
+	prunerStop := make(workerStopChan)
+	onPrunerStop := dBases.startPruner(prunerStop)
+
 	// opening all listeners
 	sta.listeners = newListeners(subjectListeners{
 		subjects.PricelistsIntake: sta.listenForPricelistsIntake,
@@ -137,6 +141,12 @@ func pricelistHistories(c config, m messenger, s store) error {
 
 	// stopping listeners
 	sta.listeners.stop()
+
+	logging.Info("Stopping pruner")
+	prunerStop <- struct{}{}
+
+	logging.Info("Waiting for pruner to stop")
+	<-onPrunerStop
 
 	logging.Info("Exiting")
 	return nil

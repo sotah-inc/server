@@ -299,6 +299,34 @@ func (dBases databases) startLoader(c config, sto store) chan loadAuctionsJob {
 	return in
 }
 
+func (dBases databases) startPruner(stopChan workerStopChan) workerStopChan {
+	onStop := make(workerStopChan)
+	go func() {
+		ticker := time.NewTicker(20 * time.Minute)
+
+		logging.Info("Starting pruner")
+	outer:
+		for {
+			select {
+			case <-ticker.C:
+				if err := dBases.pruneDatabases(); err != nil {
+					logging.WithField("error", err.Error()).Error("Failed to prune databases")
+
+					continue
+				}
+			case <-stopChan:
+				ticker.Stop()
+
+				break outer
+			}
+		}
+
+		onStop <- struct{}{}
+	}()
+
+	return onStop
+}
+
 func (dBases databases) pruneDatabases() error {
 	earliestUnixTimestamp := databaseRetentionLimit().Unix()
 	for rName, realmDatabases := range dBases {
