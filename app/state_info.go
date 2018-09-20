@@ -78,7 +78,7 @@ func (iRequest infoRequest) resolve(sta state) infoResponse {
 }
 
 func (sta state) listenForInfo(stop listenStopChan) error {
-	err := sta.messenger.subscribe(subjects.Status, stop, func(natsMsg nats.Msg) {
+	err := sta.messenger.subscribe(subjects.Info, stop, func(natsMsg nats.Msg) {
 		m := newMessage()
 
 		iRequest, err := newInfoRequest(natsMsg.Data)
