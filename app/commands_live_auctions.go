@@ -6,9 +6,9 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/logging"
 	"github.com/ihsw/sotah-server/app/subjects"
+	"github.com/ihsw/sotah-server/app/util"
 )
 
 func liveAuctions(c config, m messenger, s store) error {
@@ -42,7 +42,7 @@ func liveAuctions(c config, m messenger, s store) error {
 		sta.regions[i] = *reg
 	}
 
-	// filling state with blank list of auctions
+	// filling state with statuses
 	for _, reg := range c.filterInRegions(sta.regions) {
 		regionStatus, err := newStatusFromMessenger(reg, m)
 		if err != nil {
@@ -52,12 +52,32 @@ func liveAuctions(c config, m messenger, s store) error {
 		}
 		regionStatus.Realms = c.filterInRealms(reg, regionStatus.Realms)
 		sta.statuses[reg.Name] = regionStatus
+	}
 
-		sta.auctions[reg.Name] = map[blizzard.RealmSlug]miniAuctionList{}
-		for _, rea := range regionStatus.Realms {
-			sta.auctions[reg.Name][rea.Slug] = miniAuctionList{}
+	// ensuring cache-dirs exist
+	databaseDir, err := c.databaseDir()
+	if err != nil {
+		return err
+	}
+	cacheDirs := []string{databaseDir}
+	for _, reg := range c.filterInRegions(sta.regions) {
+		regionDatabaseDir := reg.databaseDir(databaseDir)
+		cacheDirs = append(cacheDirs, regionDatabaseDir)
+
+		for _, rea := range c.filterInRealms(reg, sta.statuses[reg.Name].Realms) {
+			cacheDirs = append(cacheDirs, rea.databaseDir(regionDatabaseDir))
 		}
 	}
+	if err := util.EnsureDirsExist(cacheDirs); err != nil {
+		return err
+	}
+
+	// loading up live-auction databases
+	ladBases, err := newLiveAuctionsDatabases(c, sta.regions, sta.statuses)
+	if err != nil {
+		return err
+	}
+	sta.liveAuctionsDatabases = ladBases
 
 	// loading up auctions
 	for _, reg := range sta.regions {
@@ -68,7 +88,7 @@ func liveAuctions(c config, m messenger, s store) error {
 			}
 
 			// pushing the auctions onto the state
-			sta.auctions[reg.Name][job.realm.Slug] = newMiniAuctionListFromBlizzardAuctions(job.auctions.Auctions)
+			sta.liveAuctionsDatabases[reg.Name][job.realm.Slug].persistMiniauctions(newMiniAuctionListFromBlizzardAuctions(job.auctions.Auctions))
 
 			// setting the realm last-modified
 			for i, statusRealm := range sta.statuses[reg.Name].Realms {

@@ -32,11 +32,12 @@ func newState(mess messenger, res resolver) state {
 }
 
 type state struct {
-	messenger     messenger
-	resolver      resolver
-	listeners     listeners
-	databases     databases
-	sessionSecret uuid.Uuid
+	messenger             messenger
+	resolver              resolver
+	listeners             listeners
+	databases             databases
+	liveAuctionsDatabases liveAuctionsDatabases
+	sessionSecret         uuid.Uuid
 
 	regions               []region
 	statuses              statuses

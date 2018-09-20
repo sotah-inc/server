@@ -198,16 +198,35 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 			logging.Info("Going over all auctions to for pre-intake metrics")
 			for _, reg := range sta.regions {
 				for _, rea := range sta.statuses[reg.Name].Realms {
-					for _, auc := range sta.auctions[reg.Name][rea.Slug] {
+					maList, err := sta.liveAuctionsDatabases[reg.Name][rea.Slug].getMiniauctions()
+					if err != nil {
+						logging.WithFields(logrus.Fields{
+							"region": reg.Name,
+							"realm":  rea.Slug,
+						}).Error("Failed to fetch auctions from live-auctions database")
+
+						continue
+					}
+
+					for _, auc := range maList {
 						totalPreviousAuctions += len(auc.AucList)
 					}
 				}
 			}
 			for rName, regionRealms := range excludedRegionRealms {
 				for rSlug := range regionRealms.values {
+					maList, err := sta.liveAuctionsDatabases[rName][rSlug].getMiniauctions()
+					if err != nil {
+						logging.WithFields(logrus.Fields{
+							"region": rName,
+							"realm":  rSlug,
+						}).Error("Failed to fetch auctions from live-auctions database")
+
+						continue
+					}
 
 					realmOwnerNames := map[ownerName]struct{}{}
-					for _, auc := range sta.auctions[rName][rSlug] {
+					for _, auc := range maList {
 						totalAuctions += len(auc.AucList)
 						realmOwnerNames[ownerName(auc.Owner)] = struct{}{}
 						currentItemIds[auc.ItemID] = struct{}{}
