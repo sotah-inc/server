@@ -196,6 +196,45 @@ func (maList miniAuctionList) itemIds() []blizzard.ItemID {
 	return out
 }
 
+func (maList miniAuctionList) ownerNames() []ownerName {
+	result := map[ownerName]struct{}{}
+	for _, ma := range maList {
+		result[ma.Owner] = struct{}{}
+	}
+
+	out := []ownerName{}
+	for v := range result {
+		out = append(out, v)
+	}
+
+	return out
+}
+
+func (maList miniAuctionList) getTotalAuctions() int {
+	out := 0
+	for _, auc := range maList {
+		out += len(auc.AucList)
+	}
+
+	return out
+}
+
+func (maList miniAuctionList) auctionIds() []int64 {
+	result := map[int64]struct{}{}
+	for _, mAuction := range maList {
+		for _, auc := range mAuction.AucList {
+			result[auc] = struct{}{}
+		}
+	}
+
+	out := []int64{}
+	for ID := range result {
+		out = append(out, ID)
+	}
+
+	return out
+}
+
 func (maList miniAuctionList) encodeForDatabase() ([]byte, error) {
 	jsonEncodedData, err := json.Marshal(maList)
 	if err != nil {

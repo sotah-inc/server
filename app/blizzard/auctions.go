@@ -164,6 +164,21 @@ type Auctions struct {
 	Auctions []Auction      `json:"auctions"`
 }
 
+// OwnerNames returns all owners in this auctions dump
+func (aucs Auctions) OwnerNames() []string {
+	result := map[string]struct{}{}
+	for _, auc := range aucs.Auctions {
+		result[auc.Owner] = struct{}{}
+	}
+
+	out := []string{}
+	for v := range result {
+		out = append(out, v)
+	}
+
+	return out
+}
+
 // AuctionRealm is the realm associated with an auctions response
 type AuctionRealm struct {
 	Name string    `json:"name"`

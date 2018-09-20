@@ -102,6 +102,29 @@ func (ladBase liveAuctionsDatabase) getMiniauctions() (miniAuctionList, error) {
 	return out, nil
 }
 
+type miniAuctionListStats struct {
+	totalAuctions int
+	ownerNames    []ownerName
+	itemIds       []blizzard.ItemID
+	auctionIds    []int64
+}
+
+func (ladBase liveAuctionsDatabase) stats() (miniAuctionListStats, error) {
+	maList, err := ladBase.getMiniauctions()
+	if err != nil {
+		return miniAuctionListStats{}, err
+	}
+
+	out := miniAuctionListStats{
+		totalAuctions: maList.getTotalAuctions(),
+		ownerNames:    maList.ownerNames(),
+		itemIds:       maList.itemIds(),
+		auctionIds:    maList.auctionIds(),
+	}
+
+	return out, nil
+}
+
 func newLiveAuctionsDatabases(c config, regs regionList, stas statuses) (liveAuctionsDatabases, error) {
 	ladBases := liveAuctionsDatabases{}
 

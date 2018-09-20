@@ -198,7 +198,7 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 			logging.Info("Going over all auctions to for pre-intake metrics")
 			for _, reg := range sta.regions {
 				for _, rea := range sta.statuses[reg.Name].Realms {
-					maList, err := sta.liveAuctionsDatabases[reg.Name][rea.Slug].getMiniauctions()
+					malStats, err := sta.liveAuctionsDatabases[reg.Name][rea.Slug].stats()
 					if err != nil {
 						logging.WithFields(logrus.Fields{
 							"region": reg.Name,
@@ -208,30 +208,27 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 						continue
 					}
 
-					for _, auc := range maList {
-						totalPreviousAuctions += len(auc.AucList)
-					}
+					totalPreviousAuctions += malStats.totalAuctions
 				}
 			}
 			for rName, regionRealms := range excludedRegionRealms {
 				for rSlug := range regionRealms.values {
-					maList, err := sta.liveAuctionsDatabases[rName][rSlug].getMiniauctions()
+					malStats, err := sta.liveAuctionsDatabases[rName][rSlug].stats()
 					if err != nil {
 						logging.WithFields(logrus.Fields{
+							"error":  err.Error(),
 							"region": rName,
 							"realm":  rSlug,
-						}).Error("Failed to fetch auctions from live-auctions database")
+						}).Error("Failed to gather live-auctions stats")
 
 						continue
 					}
 
-					realmOwnerNames := map[ownerName]struct{}{}
-					for _, auc := range maList {
-						totalAuctions += len(auc.AucList)
-						realmOwnerNames[ownerName(auc.Owner)] = struct{}{}
-						currentItemIds[auc.ItemID] = struct{}{}
+					totalAuctions += malStats.totalAuctions
+					totalOwners += len(malStats.ownerNames)
+					for _, ID := range malStats.itemIds {
+						currentItemIds[ID] = struct{}{}
 					}
-					totalOwners += len(realmOwnerNames)
 				}
 			}
 
@@ -261,17 +258,27 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 						continue
 					}
 
+					ladBase := sta.liveAuctionsDatabases[job.realm.region.Name][job.realm.Slug]
+					malStats, err := ladBase.stats()
+					if err != nil {
+						logging.WithFields(logrus.Fields{
+							"error":  err.Error(),
+							"region": job.realm.region.Name,
+							"realm":  job.realm.Slug,
+						}).Error("Failed to gather live-auctions stats")
+
+						continue
+					}
+
 					// gathering metrics of new auctions
 					totalAuctions += len(job.auctions.Auctions)
+					totalOwners += len(job.auctions.OwnerNames())
 
 					// gathering previous and new auction ids for comparison
 					removedAuctionIds := map[int64]struct{}{}
-					for _, mAuction := range sta.auctions[job.realm.region.Name][job.realm.Slug] {
-						for _, auc := range mAuction.AucList {
-							removedAuctionIds[auc] = struct{}{}
-						}
+					for _, auc := range malStats.auctionIds {
+						removedAuctionIds[auc] = struct{}{}
 					}
-					realmOwnerNames := map[ownerName]struct{}{}
 					newAuctionIds := map[int64]struct{}{}
 					for _, auc := range job.auctions.Auctions {
 						if _, ok := removedAuctionIds[auc.Auc]; ok {
@@ -279,21 +286,26 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 						}
 
 						newAuctionIds[auc.Auc] = struct{}{}
-						realmOwnerNames[ownerName(auc.Owner)] = struct{}{}
 						currentItemIds[auc.Item] = struct{}{}
 					}
-					totalOwners += len(realmOwnerNames)
-					for _, mAuction := range sta.auctions[job.realm.region.Name][job.realm.Slug] {
-						for _, auc := range mAuction.AucList {
-							if _, ok := newAuctionIds[auc]; ok {
-								delete(newAuctionIds, auc)
-							}
+					for _, auc := range malStats.auctionIds {
+						if _, ok := newAuctionIds[auc]; ok {
+							delete(newAuctionIds, auc)
 						}
 					}
 					totalRemovedAuctions += len(removedAuctionIds)
 					totalNewAuctions += len(newAuctionIds)
 
-					sta.auctions[job.realm.region.Name][job.realm.Slug] = newMiniAuctionListFromBlizzardAuctions(job.auctions.Auctions)
+					maList := newMiniAuctionListFromBlizzardAuctions(job.auctions.Auctions)
+					if err := ladBase.persistMiniauctions(maList); err != nil {
+						logging.WithFields(logrus.Fields{
+							"error":  err.Error(),
+							"region": job.realm.region.Name,
+							"realm":  job.realm.Slug,
+						}).Error("Failed to persist mini-auctions")
+
+						continue
+					}
 				}
 				logging.WithFields(logrus.Fields{
 					"region": rName,
