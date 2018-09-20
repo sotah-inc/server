@@ -344,6 +344,8 @@ func (dBases databases) pruneDatabases() error {
 				}).Debug("Removing database from shard map")
 				delete(dBases[rName][rSlug], unixTimestamp)
 
+				dbPath := dBase.db.Path()
+
 				logging.WithFields(logrus.Fields{
 					"region":             rName,
 					"realm":              rSlug,
@@ -359,7 +361,6 @@ func (dBases databases) pruneDatabases() error {
 					return err
 				}
 
-				dbPath := dBase.db.Path()
 				logging.WithFields(logrus.Fields{
 					"region":   rName,
 					"realm":    rSlug,
