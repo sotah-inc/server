@@ -39,30 +39,22 @@ func newInfoRequest(payload []byte) (infoRequest, error) {
 
 type infoRequest struct{}
 
-func (iRequest infoRequest) resolve(sta state) infoResponse {
+func (iRequest infoRequest) resolve(sta state) (infoResponse, error) {
 	regValuations := map[regionName]regionValuation{}
-	for _, reg := range sta.regions {
+	for _, reg := range sta.resolver.config.filterInRegions(sta.regions) {
 		regValuation := regionValuation{reg, map[blizzard.RealmSlug]realmValuation{}}
-		for _, rea := range sta.statuses[reg.Name].Realms {
-			aucs := sta.auctions[reg.Name][rea.Slug]
-
-			totalQuantity := int64(0)
-			totalBuyout := int64(0)
-			totalAuctions := 0
-			owners := map[ownerName]struct{}{}
-			for _, auc := range aucs {
-				totalQuantity += auc.Quantity * int64(len(auc.AucList))
-				totalBuyout += auc.Quantity * auc.Buyout
-				totalAuctions += len(auc.AucList)
-				owners[auc.Owner] = struct{}{}
+		for _, rea := range sta.resolver.config.filterInRealms(reg, sta.statuses[reg.Name].Realms) {
+			maList, err := sta.liveAuctionsDatabases[reg.Name][rea.Slug].getMiniauctions()
+			if err != nil {
+				return infoResponse{}, err
 			}
 
 			reaValuation := realmValuation{
 				Realm:         rea,
-				TotalQuantity: totalQuantity,
-				TotalBuyout:   totalBuyout,
-				TotalSellers:  len(owners),
-				TotalAuctions: totalAuctions,
+				TotalQuantity: int64(maList.totalQuantity()),
+				TotalBuyout:   maList.totalBuyout(),
+				TotalSellers:  len(maList.ownerNames()),
+				TotalAuctions: maList.totalAuctions(),
 			}
 
 			regValuation.RealmValuations[rea.Slug] = reaValuation
@@ -71,10 +63,7 @@ func (iRequest infoRequest) resolve(sta state) infoResponse {
 		regValuations[reg.Name] = regValuation
 	}
 
-	return infoResponse{
-		ItemCount:        len(sta.items),
-		RegionValuations: regValuations,
-	}
+	return infoResponse{len(sta.items), regValuations}, nil
 }
 
 func (sta state) listenForInfo(stop listenStopChan) error {
@@ -90,7 +79,14 @@ func (sta state) listenForInfo(stop listenStopChan) error {
 			return
 		}
 
-		iResponse := iRequest.resolve(sta)
+		iResponse, err := iRequest.resolve(sta)
+		if err != nil {
+			m.Err = err.Error()
+			m.Code = codes.GenericError
+			sta.messenger.replyTo(natsMsg, m)
+
+			return
+		}
 
 		encodedStatus, err := json.Marshal(iResponse)
 		if err != nil {
