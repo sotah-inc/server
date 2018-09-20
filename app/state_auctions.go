@@ -35,12 +35,12 @@ type auctionsRequest struct {
 }
 
 func (ar auctionsRequest) resolve(sta state) (miniAuctionList, requestError) {
-	regionAuctions, ok := sta.auctions[ar.RegionName]
+	regionLadBases, ok := sta.liveAuctionsDatabases[ar.RegionName]
 	if !ok {
 		return miniAuctionList{}, requestError{codes.NotFound, "Invalid region"}
 	}
 
-	realmAuctions, ok := regionAuctions[ar.RealmSlug]
+	realmLadbase, ok := regionLadBases[ar.RealmSlug]
 	if !ok {
 		return miniAuctionList{}, requestError{codes.NotFound, "Invalid realm"}
 	}
@@ -54,10 +54,12 @@ func (ar auctionsRequest) resolve(sta state) (miniAuctionList, requestError) {
 		return miniAuctionList{}, requestError{codes.UserError, "Count must be <=1000"}
 	}
 
-	result := make(miniAuctionList, len(realmAuctions))
-	copy(result, realmAuctions)
+	maList, err := realmLadbase.getMiniauctions()
+	if err != nil {
+		return miniAuctionList{}, requestError{codes.GenericError, err.Error()}
+	}
 
-	return result, requestError{codes.Ok, ""}
+	return maList, requestError{codes.Ok, ""}
 }
 
 func newAuctionsResponseFromEncoded(body []byte) (auctionsResponse, error) {
