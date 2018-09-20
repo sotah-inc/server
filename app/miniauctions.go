@@ -210,7 +210,7 @@ func (maList miniAuctionList) ownerNames() []ownerName {
 	return out
 }
 
-func (maList miniAuctionList) getTotalAuctions() int {
+func (maList miniAuctionList) totalAuctions() int {
 	out := 0
 	for _, auc := range maList {
 		out += len(auc.AucList)

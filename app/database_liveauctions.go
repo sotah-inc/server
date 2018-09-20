@@ -116,7 +116,7 @@ func (ladBase liveAuctionsDatabase) stats() (miniAuctionListStats, error) {
 	}
 
 	out := miniAuctionListStats{
-		totalAuctions: maList.getTotalAuctions(),
+		totalAuctions: maList.totalAuctions(),
 		ownerNames:    maList.ownerNames(),
 		itemIds:       maList.itemIds(),
 		auctionIds:    maList.auctionIds(),
