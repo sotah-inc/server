@@ -31,20 +31,22 @@ type priceListRequest struct {
 }
 
 func (plRequest priceListRequest) resolve(sta state) (miniAuctionList, requestError) {
-	regionAuctions, ok := sta.auctions[plRequest.RegionName]
+	regionLadBases, ok := sta.liveAuctionsDatabases[plRequest.RegionName]
 	if !ok {
 		return miniAuctionList{}, requestError{codes.NotFound, "Invalid region"}
 	}
 
-	realmAuctions, ok := regionAuctions[plRequest.RealmSlug]
+	ladBase, ok := regionLadBases[plRequest.RealmSlug]
 	if !ok {
 		return miniAuctionList{}, requestError{codes.NotFound, "Invalid realm"}
 	}
 
-	result := make(miniAuctionList, len(realmAuctions))
-	copy(result, realmAuctions)
+	maList, err := ladBase.getMiniauctions()
+	if err != nil {
+		return miniAuctionList{}, requestError{codes.GenericError, err.Error()}
+	}
 
-	return result, requestError{codes.Ok, ""}
+	return maList, requestError{codes.Ok, ""}
 }
 
 func newPriceListResponseFromMessenger(plRequest priceListRequest, mess messenger) (priceListResponse, error) {

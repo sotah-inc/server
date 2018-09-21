@@ -97,17 +97,23 @@ func (request ownersQueryRequest) resolve(sta state) (ownersQueryResult, error) 
 	}
 
 	// resolving region-realm auctions
-	regionAuctions, ok := sta.auctions[request.RegionName]
+	regionLadBases, ok := sta.liveAuctionsDatabases[request.RegionName]
 	if !ok {
 		return ownersQueryResult{}, errors.New("Invalid region name")
 	}
-	realmAuctions, ok := regionAuctions[request.RealmSlug]
+
+	ladBase, ok := regionLadBases[request.RealmSlug]
 	if !ok {
 		return ownersQueryResult{}, errors.New("Invalid realm slug")
 	}
 
+	maList, err := ladBase.getMiniauctions()
+	if err != nil {
+		return ownersQueryResult{}, err
+	}
+
 	// resolving owners from auctions
-	oResult, err := newOwnersFromAuctions(realmAuctions)
+	oResult, err := newOwnersFromAuctions(maList)
 	if err != nil {
 		return ownersQueryResult{}, err
 	}

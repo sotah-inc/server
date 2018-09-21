@@ -38,17 +38,22 @@ type ownersQueryRequestByItems struct {
 }
 
 func (request ownersQueryRequestByItems) resolve(sta state) (miniAuctionList, requestError) {
-	regionAuctions, ok := sta.auctions[request.RegionName]
+	regionLadBases, ok := sta.liveAuctionsDatabases[request.RegionName]
 	if !ok {
 		return miniAuctionList{}, requestError{codes.NotFound, "Invalid region"}
 	}
 
-	realmAuctions, ok := regionAuctions[request.RealmSlug]
+	ladBase, ok := regionLadBases[request.RealmSlug]
 	if !ok {
 		return miniAuctionList{}, requestError{codes.NotFound, "Invalid realm"}
 	}
 
-	return realmAuctions, requestError{codes.Ok, ""}
+	maList, err := ladBase.getMiniauctions()
+	if err != nil {
+		return miniAuctionList{}, requestError{codes.GenericError, err.Error()}
+	}
+
+	return maList, requestError{codes.Ok, ""}
 }
 
 func (sta state) listenForOwnersQueryByItems(stop listenStopChan) error {

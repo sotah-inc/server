@@ -28,17 +28,22 @@ type ownersRequest struct {
 }
 
 func (request ownersRequest) resolve(sta state) (miniAuctionList, error) {
-	regionAuctions, ok := sta.auctions[request.RegionName]
+	regionLadBases, ok := sta.liveAuctionsDatabases[request.RegionName]
 	if !ok {
 		return miniAuctionList{}, errors.New("Invalid region name")
 	}
 
-	realmAuctions, ok := regionAuctions[request.RealmSlug]
+	ladBase, ok := regionLadBases[request.RealmSlug]
 	if !ok {
 		return miniAuctionList{}, errors.New("Invalid realm slug")
 	}
 
-	return realmAuctions, nil
+	maList, err := ladBase.getMiniauctions()
+	if err != nil {
+		return miniAuctionList{}, err
+	}
+
+	return maList, nil
 }
 
 func (sta state) listenForOwners(stop listenStopChan) error {
