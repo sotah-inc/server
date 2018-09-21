@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/ihsw/sotah-server/app/blizzard"
+	"github.com/ihsw/sotah-server/app/util"
 
 	"github.com/boltdb/bolt"
 	"github.com/ihsw/sotah-server/app/logging"
@@ -145,3 +146,86 @@ func newLiveAuctionsDatabases(c config, regs regionList, stas statuses) (liveAuc
 }
 
 type liveAuctionsDatabases map[regionName]map[blizzard.RealmSlug]liveAuctionsDatabase
+
+type liveAuctionsDatabasesLoadResult struct {
+	stats                miniAuctionListStats
+	totalRemovedAuctions int
+	totalNewAuctions     int
+}
+
+func (ladBases liveAuctionsDatabases) load(in chan loadAuctionsJob) chan liveAuctionsDatabasesLoadResult {
+	// establishing channels
+	out := make(chan liveAuctionsDatabasesLoadResult)
+
+	// spinning up the workers for fetching auctions
+	worker := func() {
+		for job := range in {
+			// validating the job intake
+			if job.err != nil {
+				logging.WithFields(logrus.Fields{
+					"error":  job.err.Error(),
+					"region": job.realm.region.Name,
+					"realm":  job.realm.Slug,
+				}).Error("Failed to load auctions")
+
+				continue
+			}
+
+			// resolving the live-auctions database and gathering current stats
+			ladBase := ladBases[job.realm.region.Name][job.realm.Slug]
+			malStats, err := ladBase.stats()
+			if err != nil {
+				logging.WithFields(logrus.Fields{
+					"error":  err.Error(),
+					"region": job.realm.region.Name,
+					"realm":  job.realm.Slug,
+				}).Error("Failed to gather live-auctions stats")
+
+				continue
+			}
+
+			// starting a load result
+			result := liveAuctionsDatabasesLoadResult{stats: malStats}
+
+			// gathering previous and new auction ids for comparison
+			removedAuctionIds := map[int64]struct{}{}
+			for _, auc := range malStats.auctionIds {
+				removedAuctionIds[auc] = struct{}{}
+			}
+			newAuctionIds := map[int64]struct{}{}
+			for _, auc := range job.auctions.Auctions {
+				if _, ok := removedAuctionIds[auc.Auc]; ok {
+					delete(removedAuctionIds, auc.Auc)
+				}
+
+				newAuctionIds[auc.Auc] = struct{}{}
+			}
+			for _, auc := range malStats.auctionIds {
+				if _, ok := newAuctionIds[auc]; ok {
+					delete(newAuctionIds, auc)
+				}
+			}
+			result.totalNewAuctions = len(newAuctionIds)
+			result.totalRemovedAuctions = len(removedAuctionIds)
+
+			maList := newMiniAuctionListFromBlizzardAuctions(job.auctions.Auctions)
+			if err := ladBase.persistMiniauctions(maList); err != nil {
+				logging.WithFields(logrus.Fields{
+					"error":  err.Error(),
+					"region": job.realm.region.Name,
+					"realm":  job.realm.Slug,
+				}).Error("Failed to persist mini-auctions")
+
+				continue
+			}
+
+			out <- result
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(4, worker, postWork)
+
+	return out
+}

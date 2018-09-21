@@ -239,7 +239,7 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 					"realms": len(rMap.values),
 				}).Debug("Going over realms")
 
-				// loading auctions from file cache
+				// loading auctions
 				loadedAuctions := func() chan loadAuctionsJob {
 					if sta.resolver.config.UseGCloudStorage {
 						return sta.resolver.store.loadRegionRealmMap(rMap)
@@ -247,65 +247,12 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 
 					return rMap.toRealms().loadAuctionsFromCacheDir(sta.resolver.config)
 				}()
-				for job := range loadedAuctions {
-					if job.err != nil {
-						logging.WithFields(logrus.Fields{
-							"error":  err.Error(),
-							"region": job.realm.region.Name,
-							"realm":  job.realm.Slug,
-						}).Error("Failed to load auctions")
-
-						continue
-					}
-
-					ladBase := sta.liveAuctionsDatabases[job.realm.region.Name][job.realm.Slug]
-					malStats, err := ladBase.stats()
-					if err != nil {
-						logging.WithFields(logrus.Fields{
-							"error":  err.Error(),
-							"region": job.realm.region.Name,
-							"realm":  job.realm.Slug,
-						}).Error("Failed to gather live-auctions stats")
-
-						continue
-					}
-
-					// gathering metrics of new auctions
-					totalAuctions += len(job.auctions.Auctions)
-					totalOwners += len(job.auctions.OwnerNames())
-
-					// gathering previous and new auction ids for comparison
-					removedAuctionIds := map[int64]struct{}{}
-					for _, auc := range malStats.auctionIds {
-						removedAuctionIds[auc] = struct{}{}
-					}
-					newAuctionIds := map[int64]struct{}{}
-					for _, auc := range job.auctions.Auctions {
-						if _, ok := removedAuctionIds[auc.Auc]; ok {
-							delete(removedAuctionIds, auc.Auc)
-						}
-
-						newAuctionIds[auc.Auc] = struct{}{}
-						currentItemIds[auc.Item] = struct{}{}
-					}
-					for _, auc := range malStats.auctionIds {
-						if _, ok := newAuctionIds[auc]; ok {
-							delete(newAuctionIds, auc)
-						}
-					}
-					totalRemovedAuctions += len(removedAuctionIds)
-					totalNewAuctions += len(newAuctionIds)
-
-					maList := newMiniAuctionListFromBlizzardAuctions(job.auctions.Auctions)
-					if err := ladBase.persistMiniauctions(maList); err != nil {
-						logging.WithFields(logrus.Fields{
-							"error":  err.Error(),
-							"region": job.realm.region.Name,
-							"realm":  job.realm.Slug,
-						}).Error("Failed to persist mini-auctions")
-
-						continue
-					}
+				loadedAuctionsResults := sta.liveAuctionsDatabases.load(loadedAuctions)
+				for result := range loadedAuctionsResults {
+					totalAuctions += len(result.stats.auctionIds)
+					totalOwners += len(result.stats.ownerNames)
+					totalRemovedAuctions += result.totalRemovedAuctions
+					totalNewAuctions += result.totalNewAuctions
 				}
 				logging.WithFields(logrus.Fields{
 					"region": rName,
