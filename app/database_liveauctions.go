@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/util"
@@ -148,6 +149,8 @@ func newLiveAuctionsDatabases(c config, regs regionList, stas statuses) (liveAuc
 type liveAuctionsDatabases map[regionName]map[blizzard.RealmSlug]liveAuctionsDatabase
 
 type liveAuctionsDatabasesLoadResult struct {
+	realm                realm
+	lastModified         time.Time
 	stats                miniAuctionListStats
 	totalRemovedAuctions int
 	totalNewAuctions     int
@@ -185,7 +188,11 @@ func (ladBases liveAuctionsDatabases) load(in chan loadAuctionsJob) chan liveAuc
 			}
 
 			// starting a load result
-			result := liveAuctionsDatabasesLoadResult{stats: malStats}
+			result := liveAuctionsDatabasesLoadResult{
+				realm:        job.realm,
+				lastModified: job.lastModified,
+				stats:        malStats,
+			}
 
 			// gathering previous and new auction ids for comparison
 			removedAuctionIds := map[int64]struct{}{}

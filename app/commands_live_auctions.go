@@ -80,23 +80,17 @@ func liveAuctions(c config, m messenger, s store) error {
 	sta.liveAuctionsDatabases = ladBases
 
 	// loading up auctions
-	for _, reg := range sta.regions {
-		loadedAuctions := sta.statuses[reg.Name].Realms.loadAuctions(&c, s)
-		for job := range loadedAuctions {
-			if job.err != nil {
-				return job.err
-			}
-
-			// pushing the auctions onto the state
-			sta.liveAuctionsDatabases[reg.Name][job.realm.Slug].persistMiniauctions(newMiniAuctionListFromBlizzardAuctions(job.auctions.Auctions))
-
+	for _, reg := range c.filterInRegions(sta.regions) {
+		loadedAuctions := c.filterInRealms(reg, sta.statuses[reg.Name].Realms).loadAuctions(&c, s)
+		results := sta.liveAuctionsDatabases.load(loadedAuctions)
+		for result := range results {
 			// setting the realm last-modified
-			for i, statusRealm := range sta.statuses[reg.Name].Realms {
-				if statusRealm.Slug != job.realm.Slug {
+			for i, statusRealm := range c.filterInRealms(reg, sta.statuses[reg.Name].Realms) {
+				if statusRealm.Slug != result.realm.Slug {
 					continue
 				}
 
-				sta.statuses[reg.Name].Realms[i].LastModified = job.lastModified.Unix()
+				sta.statuses[reg.Name].Realms[i].LastModified = result.lastModified.Unix()
 
 				break
 			}
