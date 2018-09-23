@@ -46,6 +46,12 @@ func databasePath(c config, reg region, rea realm, targetDate time.Time) (string
 	)
 }
 
+func nextDatabasePath(c config, reg region, rea realm, targetDate time.Time) (string, error) {
+	return filepath.Abs(
+		fmt.Sprintf("%s/databases/%s/%s/next-%d.db", c.CacheDir, reg.Name, rea.Slug, normalizeTargetDate(targetDate).Unix()),
+	)
+}
+
 func databaseRetentionLimit() time.Time {
 	return time.Now().Add(-1 * time.Hour * 24 * 15)
 }

@@ -6,6 +6,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/boltdb/bolt"
+	"github.com/sirupsen/logrus"
+
 	"github.com/ihsw/sotah-server/app/blizzard"
 
 	"github.com/ihsw/sotah-server/app/logging"
@@ -67,6 +70,24 @@ func reformHistory(c config, m messenger, s store) error {
 		}
 
 		sta.statuses[reg.Name] = regionStatus
+	}
+
+	// loading up items
+	loadedItems, err := loadItemsFromFilecache(*res.config)
+	if err != nil {
+		return err
+	}
+	for job := range loadedItems {
+		if job.err != nil {
+			logging.WithFields(logrus.Fields{
+				"error":    job.err.Error(),
+				"filepath": job.filepath,
+			}).Error("Failed to load item")
+
+			return job.err
+		}
+
+		sta.items[job.item.ID] = item{job.item, job.iconURL}
 	}
 
 	// validating database-dirs exist
@@ -187,6 +208,87 @@ func reformHistory(c config, m messenger, s store) error {
 		return float64(result)
 	}()
 	logging.WithField("size", totalSize/1000/1000).Info("Total size")
+
+	for _, reg := range c.filterInRegions(sta.regions) {
+		for _, rea := range c.filterInRealms(reg, sta.statuses[reg.Name].Realms) {
+			for uTimestamp, dBase := range dBases[reg.Name][rea.Slug] {
+				// gathering the db path
+				dbPath, err := nextDatabasePath(c, reg, rea, time.Unix(uTimestamp, 0))
+				if err != nil {
+					return err
+				}
+
+				// opening a next database
+				nextDbase, err := bolt.Open(dbPath, 0600, nil)
+				if err != nil {
+					return err
+				}
+
+				// going over the items and persisting item pricelist-histories to the next database
+				for ID, itemValue := range sta.items {
+					plHistory, err := dBase.getPricelistHistory(rea, itemValue.ID)
+					if err != nil {
+						return err
+					}
+
+					err = nextDbase.Batch(func(tx *bolt.Tx) error {
+						for itemTimestamp, pricesValue := range plHistory {
+							targetDate := time.Unix(itemTimestamp, 0)
+
+							bkt, err := tx.CreateBucketIfNotExists(itemPricelistBucketName(ID))
+							if err != nil {
+								return err
+							}
+
+							encodedPricesValue, err := pricesValue.encodeForPersistence()
+							if err != nil {
+								return err
+							}
+
+							if err := bkt.Put(targetDateToKeyName(targetDate), encodedPricesValue); err != nil {
+								return err
+							}
+						}
+
+						return nil
+					})
+					if err != nil {
+						return err
+					}
+				}
+
+				// closing out the next database
+				if err := nextDbase.Close(); err != nil {
+					return err
+				}
+
+				// gathering the next database filesize
+				nextStat, err := os.Stat(nextDbase.Path())
+				if err != nil {
+					return err
+				}
+
+				size := currentSizes[reg.Name][rea.Slug][unixTimestamp(uTimestamp)]
+				size.newPath = nextDbase.Path()
+				size.newSize = nextStat.Size()
+				currentSizes[reg.Name][rea.Slug][unixTimestamp(uTimestamp)] = size
+			}
+		}
+	}
+
+	totalNewSize := func() float64 {
+		result := int64(0)
+		for _, realmSizes := range currentSizes {
+			for _, targetTimeSizes := range realmSizes {
+				for _, size := range targetTimeSizes {
+					result += size.newSize
+				}
+			}
+		}
+
+		return float64(result)
+	}()
+	logging.WithField("size", totalNewSize/1000/1000).Info("Total new size")
 
 	return nil
 }
