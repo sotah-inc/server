@@ -12,6 +12,18 @@ import (
 	"github.com/ihsw/sotah-server/app/util"
 )
 
+type unixTimestamp int64
+
+type pricelistHistoryDatabaseSizes struct {
+	region      region
+	realm       realm
+	targetDate  time.Time
+	currentSize int64
+	currentPath string
+	newSize     int64
+	newPath     string
+}
+
 func reformHistory(c config, m messenger, s store) error {
 	logging.Info("Starting reform-history")
 
@@ -98,37 +110,81 @@ func reformHistory(c config, m messenger, s store) error {
 		return err
 	}
 
-	// going over the databases and gathering their region/realm/target-date/size mapping
-	logging.Info("Gathering all database file sizes")
-	currentSizes := map[regionName]map[blizzard.RealmSlug]map[int64]int64{}
+	// initializing current-sizes
+	currentSizes := map[regionName]map[blizzard.RealmSlug]map[unixTimestamp]pricelistHistoryDatabaseSizes{}
 	for _, reg := range c.filterInRegions(sta.regions) {
-		currentSizes[reg.Name] = map[blizzard.RealmSlug]map[int64]int64{}
+		currentSizes[reg.Name] = map[blizzard.RealmSlug]map[unixTimestamp]pricelistHistoryDatabaseSizes{}
 
 		for _, rea := range c.filterInRealms(reg, sta.statuses[reg.Name].Realms) {
-			currentSizes[reg.Name][rea.Slug] = map[int64]int64{}
+			currentSizes[reg.Name][rea.Slug] = map[unixTimestamp]pricelistHistoryDatabaseSizes{}
 
-			for targetUnixTime, dBase := range dBases[reg.Name][rea.Slug] {
-				stat, err := os.Stat(dBase.db.Path())
-				if err != nil {
-					return err
+			for _, dBase := range dBases[reg.Name][rea.Slug] {
+				currentSizes[reg.Name][rea.Slug][unixTimestamp(dBase.targetDate.Unix())] = pricelistHistoryDatabaseSizes{
+					region:      reg,
+					realm:       rea,
+					targetDate:  dBase.targetDate,
+					currentPath: dBase.db.Path(),
+					currentSize: 0,
+					newPath:     "",
+					newSize:     0,
 				}
-
-				currentSizes[reg.Name][rea.Slug][targetUnixTime] = stat.Size()
 			}
 		}
 	}
 
+	// spinning up workers for gathering all database sizes
+	logging.Info("Gathering all database file sizes")
+	sizeResults := func() chan pricelistHistoryDatabaseSizes {
+		inChan := make(chan pricelistHistoryDatabaseSizes)
+		outChan := make(chan pricelistHistoryDatabaseSizes)
+		worker := func() {
+			for size := range inChan {
+				stat, err := os.Stat(size.currentPath)
+				if err != nil {
+					logging.WithField("error", err.Error()).Error("Could not stat file")
+
+					continue
+				}
+
+				size.currentSize = stat.Size()
+				outChan <- size
+			}
+		}
+		postWork := func() {
+			close(outChan)
+		}
+		util.Work(4, worker, postWork)
+
+		go func() {
+			for _, realmSizes := range currentSizes {
+				for _, targetTimeSizes := range realmSizes {
+					for _, size := range targetTimeSizes {
+						inChan <- size
+					}
+				}
+			}
+
+			close(inChan)
+		}()
+
+		return outChan
+	}()
+
+	// processing size intake
+	for size := range sizeResults {
+		currentSizes[size.region.Name][size.realm.Slug][unixTimestamp(size.targetDate.Unix())] = size
+	}
 	totalSize := func() float64 {
-		out := float64(0)
-		for _, regionSizes := range currentSizes {
-			for _, unixTimeSizes := range regionSizes {
-				for _, size := range unixTimeSizes {
-					out += float64(size)
+		result := int64(0)
+		for _, realmSizes := range currentSizes {
+			for _, targetTimeSizes := range realmSizes {
+				for _, size := range targetTimeSizes {
+					result += size.currentSize
 				}
 			}
 		}
 
-		return out
+		return float64(result)
 	}()
 	logging.WithField("size", totalSize/1000/1000).Info("Total size")
 
