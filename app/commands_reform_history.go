@@ -118,5 +118,19 @@ func reformHistory(c config, m messenger, s store) error {
 		}
 	}
 
+	totalSize := func() float64 {
+		out := float64(0)
+		for _, regionSizes := range currentSizes {
+			for _, unixTimeSizes := range regionSizes {
+				for _, size := range unixTimeSizes {
+					out += float64(size)
+				}
+			}
+		}
+
+		return out
+	}()
+	logging.WithField("size", totalSize/1000/1000).Info("Total size")
+
 	return nil
 }
