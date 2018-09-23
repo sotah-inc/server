@@ -3,7 +3,10 @@ package main
 import (
 	"errors"
 	"fmt"
+	"os"
 	"time"
+
+	"github.com/ihsw/sotah-server/app/blizzard"
 
 	"github.com/ihsw/sotah-server/app/logging"
 	"github.com/ihsw/sotah-server/app/util"
@@ -81,6 +84,31 @@ func reformHistory(c config, m messenger, s store) error {
 			}
 			if !exists {
 				return errors.New("Realm dir does not exist")
+			}
+		}
+	}
+
+	// loading up databases
+	dBases, err := newDatabases(c, sta.regions, sta.statuses)
+	if err != nil {
+		return err
+	}
+
+	// going over the databases and gathering their region/realm/target-date/size mapping
+	currentSizes := map[regionName]map[blizzard.RealmSlug]map[int64]int64{}
+	for _, reg := range c.filterInRegions(sta.regions) {
+		currentSizes[reg.Name] = map[blizzard.RealmSlug]map[int64]int64{}
+
+		for _, rea := range c.filterInRealms(reg, sta.statuses[reg.Name].Realms) {
+			currentSizes[reg.Name][rea.Slug] = map[int64]int64{}
+
+			for targetUnixTime, dBase := range dBases[reg.Name][rea.Slug] {
+				stat, err := os.Stat(dBase.db.Path())
+				if err != nil {
+					return err
+				}
+
+				currentSizes[reg.Name][rea.Slug][targetUnixTime] = stat.Size()
 			}
 		}
 	}
