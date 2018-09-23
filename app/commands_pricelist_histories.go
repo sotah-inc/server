@@ -2,12 +2,8 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/signal"
-	"path/filepath"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/ihsw/sotah-server/app/logging"
@@ -87,54 +83,25 @@ func pricelistHistories(c config, m messenger, s store) error {
 
 		for _, rea := range c.filterInRealms(reg, sta.statuses[reg.Name].Realms) {
 			realmDatabaseDir := rea.databaseDir(regionDatabaseDir)
-			databaseFilepaths, err := ioutil.ReadDir(realmDatabaseDir)
+			dbPaths, err := databasePaths(realmDatabaseDir)
 			if err != nil {
 				logging.WithFields(logrus.Fields{
 					"error": err.Error(),
 					"dir":   realmDatabaseDir,
-				}).Error("Failed to read database dir")
+				}).Error("Failed to resolve database paths")
 
 				return err
 			}
-
-			for _, fPath := range databaseFilepaths {
-				if fPath.Name() == "live-auctions.db" {
+			for _, dbPathPair := range dbPaths {
+				if dbPathPair.targetTime.After(earliestTime) {
 					continue
 				}
 
-				parts := strings.Split(fPath.Name(), ".")
-				targetTimeUnix, err := strconv.Atoi(parts[0])
-				if err != nil {
+				if err := os.Remove(dbPathPair.fullPath); err != nil {
 					logging.WithFields(logrus.Fields{
 						"error":    err.Error(),
 						"dir":      realmDatabaseDir,
-						"pathname": fPath.Name(),
-					}).Error("Failed to parse database filepath")
-
-					return err
-				}
-
-				targetTime := time.Unix(int64(targetTimeUnix), 0)
-				if targetTime.After(earliestTime) {
-					continue
-				}
-
-				fullPath, err := filepath.Abs(fmt.Sprintf("%s/%s", realmDatabaseDir, fPath.Name()))
-				if err != nil {
-					logging.WithFields(logrus.Fields{
-						"error":    err.Error(),
-						"dir":      realmDatabaseDir,
-						"pathname": fPath.Name(),
-					}).Error("Failed to resolve full path of database file")
-
-					return err
-				}
-
-				if err := os.Remove(fullPath); err != nil {
-					logging.WithFields(logrus.Fields{
-						"error":    err.Error(),
-						"dir":      realmDatabaseDir,
-						"pathname": fPath.Name(),
+						"pathname": dbPathPair.fullPath,
 					}).Error("Failed to remove database file")
 
 					return err

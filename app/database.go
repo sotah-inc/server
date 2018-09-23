@@ -50,6 +50,60 @@ func databaseRetentionLimit() time.Time {
 	return time.Now().Add(-1 * time.Hour * 24 * 15)
 }
 
+type databasePathPair struct {
+	fullPath   string
+	targetTime time.Time
+}
+
+func databasePaths(databaseDir string) ([]databasePathPair, error) {
+	out := []databasePathPair{}
+
+	databaseFilepaths, err := ioutil.ReadDir(databaseDir)
+	if err != nil {
+		logging.WithFields(logrus.Fields{
+			"error": err.Error(),
+			"dir":   databaseDir,
+		}).Error("Failed to read database dir")
+
+		return []databasePathPair{}, err
+	}
+
+	for _, fPath := range databaseFilepaths {
+		if fPath.Name() == "live-auctions.db" {
+			continue
+		}
+
+		parts := strings.Split(fPath.Name(), ".")
+		targetTimeUnix, err := strconv.Atoi(parts[0])
+		if err != nil {
+			logging.WithFields(logrus.Fields{
+				"error":    err.Error(),
+				"dir":      databaseDir,
+				"pathname": fPath.Name(),
+			}).Error("Failed to parse database filepath")
+
+			return []databasePathPair{}, err
+		}
+
+		targetTime := time.Unix(int64(targetTimeUnix), 0)
+
+		fullPath, err := filepath.Abs(fmt.Sprintf("%s/%s", databaseDir, fPath.Name()))
+		if err != nil {
+			logging.WithFields(logrus.Fields{
+				"error":    err.Error(),
+				"dir":      databaseDir,
+				"pathname": fPath.Name(),
+			}).Error("Failed to resolve full path of database file")
+
+			return []databasePathPair{}, err
+		}
+
+		out = append(out, databasePathPair{fullPath, targetTime})
+	}
+
+	return out, nil
+}
+
 func newDatabase(c config, reg region, rea realm, targetDate time.Time) (database, error) {
 	dbFilepath, err := databasePath(c, reg, rea, targetDate)
 	if err != nil {
@@ -211,29 +265,18 @@ func newDatabases(c config, regs regionList, stas statuses) (databases, error) {
 			dBases[reg.Name][rea.Slug] = timestampDatabaseMap{}
 
 			realmDatabaseDir := rea.databaseDir(regionDatabaseDir)
-			databaseFilepaths, err := ioutil.ReadDir(realmDatabaseDir)
+			dbPathPairs, err := databasePaths(realmDatabaseDir)
 			if err != nil {
 				return databases{}, err
 			}
 
-			for _, fPath := range databaseFilepaths {
-				if fPath.Name() == "live-auctions.db" {
-					continue
-				}
-
-				parts := strings.Split(fPath.Name(), ".")
-				targetTimeUnix, err := strconv.Atoi(parts[0])
+			for _, dbPathPair := range dbPathPairs {
+				dBase, err := newDatabase(c, reg, rea, dbPathPair.targetTime)
 				if err != nil {
 					return databases{}, err
 				}
 
-				targetTime := time.Unix(int64(targetTimeUnix), 0)
-				dBase, err := newDatabase(c, reg, rea, targetTime)
-				if err != nil {
-					return databases{}, err
-				}
-
-				dBases[reg.Name][rea.Slug][targetTime.Unix()] = dBase
+				dBases[reg.Name][rea.Slug][dbPathPair.targetTime.Unix()] = dBase
 			}
 		}
 	}
