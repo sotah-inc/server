@@ -147,6 +147,8 @@ func pricelistHistories(c config, m messenger, s store) error {
 	logging.Info("Loading up databases")
 	dBases, err := newDatabases(c, sta.regions, sta.statuses)
 	if err != nil {
+		logging.WithField("error", err.Error()).Error("Failed to load databases")
+
 		return err
 	}
 	sta.databases = dBases
