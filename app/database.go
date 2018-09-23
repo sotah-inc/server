@@ -217,6 +217,10 @@ func newDatabases(c config, regs regionList, stas statuses) (databases, error) {
 			}
 
 			for _, fPath := range databaseFilepaths {
+				if fPath.Name() == "live-auctions.db" {
+					continue
+				}
+
 				parts := strings.Split(fPath.Name(), ".")
 				targetTimeUnix, err := strconv.Atoi(parts[0])
 				if err != nil {
