@@ -13,6 +13,7 @@ import (
 	"github.com/ihsw/sotah-server/app/logging"
 	"github.com/ihsw/sotah-server/app/subjects"
 	"github.com/ihsw/sotah-server/app/util"
+	"github.com/sirupsen/logrus"
 )
 
 func pricelistHistories(c config, m messenger, s store) error {
@@ -23,6 +24,7 @@ func pricelistHistories(c config, m messenger, s store) error {
 	sta := newState(m, res)
 
 	// gathering region-status from the root service
+	logging.Info("Gathering regions")
 	regions := []*region{}
 	attempts := 0
 	for {
@@ -47,6 +49,7 @@ func pricelistHistories(c config, m messenger, s store) error {
 	}
 
 	// filling state with statuses
+	logging.Info("Gathering statuses")
 	for _, reg := range c.filterInRegions(sta.regions) {
 		regionStatus, err := newStatusFromMessenger(reg, m)
 		if err != nil {
@@ -58,6 +61,7 @@ func pricelistHistories(c config, m messenger, s store) error {
 	}
 
 	// ensuring cache-dirs exist
+	logging.Info("Ensuring cache-dirs exist")
 	databaseDir, err := c.databaseDir()
 	if err != nil {
 		return err
@@ -76,6 +80,7 @@ func pricelistHistories(c config, m messenger, s store) error {
 	}
 
 	// pruning old data
+	logging.Info("Pruning old data")
 	earliestTime := databaseRetentionLimit()
 	for _, reg := range c.filterInRegions(sta.regions) {
 		regionDatabaseDir := reg.databaseDir(databaseDir)
@@ -84,13 +89,28 @@ func pricelistHistories(c config, m messenger, s store) error {
 			realmDatabaseDir := rea.databaseDir(regionDatabaseDir)
 			databaseFilepaths, err := ioutil.ReadDir(realmDatabaseDir)
 			if err != nil {
+				logging.WithFields(logrus.Fields{
+					"error": err.Error(),
+					"dir":   realmDatabaseDir,
+				}).Error("Failed to read database dir")
+
 				return err
 			}
 
 			for _, fPath := range databaseFilepaths {
+				if fPath.Name() == "live-auctions.db" {
+					continue
+				}
+
 				parts := strings.Split(fPath.Name(), ".")
 				targetTimeUnix, err := strconv.Atoi(parts[0])
 				if err != nil {
+					logging.WithFields(logrus.Fields{
+						"error":    err.Error(),
+						"dir":      realmDatabaseDir,
+						"pathname": fPath.Name(),
+					}).Error("Failed to parse database filepath")
+
 					return err
 				}
 
@@ -101,10 +121,22 @@ func pricelistHistories(c config, m messenger, s store) error {
 
 				fullPath, err := filepath.Abs(fmt.Sprintf("%s/%s", realmDatabaseDir, fPath.Name()))
 				if err != nil {
+					logging.WithFields(logrus.Fields{
+						"error":    err.Error(),
+						"dir":      realmDatabaseDir,
+						"pathname": fPath.Name(),
+					}).Error("Failed to resolve full path of database file")
+
 					return err
 				}
 
 				if err := os.Remove(fullPath); err != nil {
+					logging.WithFields(logrus.Fields{
+						"error":    err.Error(),
+						"dir":      realmDatabaseDir,
+						"pathname": fPath.Name(),
+					}).Error("Failed to remove database file")
+
 					return err
 				}
 			}
@@ -112,6 +144,7 @@ func pricelistHistories(c config, m messenger, s store) error {
 	}
 
 	// loading up databases
+	logging.Info("Loading up databases")
 	dBases, err := newDatabases(c, sta.regions, sta.statuses)
 	if err != nil {
 		return err
@@ -119,10 +152,12 @@ func pricelistHistories(c config, m messenger, s store) error {
 	sta.databases = dBases
 
 	// starting up a pruner
+	logging.Info("Starting up the pricelist-histories file pruner")
 	prunerStop := make(workerStopChan)
 	onPrunerStop := dBases.startPruner(prunerStop)
 
 	// opening all listeners
+	logging.Info("Opening all listeners")
 	sta.listeners = newListeners(subjectListeners{
 		subjects.PricelistsIntake: sta.listenForPricelistsIntake,
 		subjects.PriceListHistory: sta.listenForPriceListHistory,
