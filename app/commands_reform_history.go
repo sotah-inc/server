@@ -20,6 +20,7 @@ func reformHistory(c config, m messenger, s store) error {
 	sta := newState(m, res)
 
 	// gathering region-status from the root service
+	logging.Info("Gathering regions")
 	regions := []*region{}
 	attempts := 0
 	for {
@@ -44,6 +45,7 @@ func reformHistory(c config, m messenger, s store) error {
 	}
 
 	// filling state with statuses
+	logging.Info("Gathering statuses")
 	for _, reg := range c.filterInRegions(sta.regions) {
 		regionStatus, err := newStatusFromMessenger(reg, m)
 		if err != nil {
@@ -55,7 +57,8 @@ func reformHistory(c config, m messenger, s store) error {
 		sta.statuses[reg.Name] = regionStatus
 	}
 
-	// ensuring cache-dirs exist
+	// validating database-dirs exist
+	logging.Info("Validating database-dirs exist")
 	databaseDir, err := c.databaseDir()
 	if err != nil {
 		return err
@@ -89,12 +92,14 @@ func reformHistory(c config, m messenger, s store) error {
 	}
 
 	// loading up databases
+	logging.Info("Loading databases")
 	dBases, err := newDatabases(c, sta.regions, sta.statuses)
 	if err != nil {
 		return err
 	}
 
 	// going over the databases and gathering their region/realm/target-date/size mapping
+	logging.Info("Gathering all database file sizes")
 	currentSizes := map[regionName]map[blizzard.RealmSlug]map[int64]int64{}
 	for _, reg := range c.filterInRegions(sta.regions) {
 		currentSizes[reg.Name] = map[blizzard.RealmSlug]map[int64]int64{}
