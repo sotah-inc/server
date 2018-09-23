@@ -142,3 +142,16 @@ func EnsureDirsExist(relativePaths []string) error {
 
 	return nil
 }
+
+// StatExists returns whether a name exists
+func StatExists(name string) (bool, error) {
+	if _, err := os.Stat(name); err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	return true, nil
+}
