@@ -10,4 +10,5 @@ var (
 	LiveAuctions       = "live-auctions"
 	PricelistHistories = "pricelist-histories"
 	PruneStore         = "prune-store"
+	ReformHistory      = "reform-history"
 )
