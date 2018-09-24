@@ -63,13 +63,6 @@ func batchPersistParallel(nextDbase *bolt.DB, uTimestamp int64, in chan priceLis
 					continue
 				}
 
-				logging.WithFields(logrus.Fields{
-					"item":   plhJob.ID,
-					"bucket": string(bucketName),
-					"key":    uTimestamp,
-					"prices": len(plhJob.history),
-				}).Debug("Writing histories")
-
 				if err := bkt.Put(targetDateToKeyName(time.Unix(uTimestamp, 0)), encodedPricesValue); err != nil {
 					logging.WithField("error", err.Error()).Error("Failed to write to bucket")
 
@@ -82,7 +75,7 @@ func batchPersistParallel(nextDbase *bolt.DB, uTimestamp int64, in chan priceLis
 
 			return
 		}
-		util.Work(4, worker, postWork)
+		util.Work(1, worker, postWork)
 
 		// waiting for them to finish out
 		<-done
