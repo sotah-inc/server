@@ -29,6 +29,9 @@ type pricelistHistoryDatabaseSizes struct {
 
 func batchPersistParallel(nextDbase *bolt.DB, uTimestamp int64, in chan priceListHistoryJob) error {
 	err := nextDbase.Batch(func(tx *bolt.Tx) error {
+		done := make(chan struct{})
+
+		// spinning up workers for pricelist-history job intake
 		worker := func() {
 			for plhJob := range in {
 				if plhJob.err != nil {
@@ -45,34 +48,44 @@ func batchPersistParallel(nextDbase *bolt.DB, uTimestamp int64, in chan priceLis
 				}
 
 				bucketName := itemPricelistBucketName(plhJob.ID)
-				keyName := targetDateToKeyName(time.Unix(uTimestamp, 0))
 
 				bkt, err := tx.CreateBucketIfNotExists(bucketName)
 				if err != nil {
+					logging.WithField("error", err.Error()).Error("Failed to create bucket")
+
 					continue
 				}
 
 				encodedPricesValue, err := plhJob.history.encodeForPersistence()
 				if err != nil {
+					logging.WithField("error", err.Error()).Error("Failed to encode history")
+
 					continue
 				}
 
 				logging.WithFields(logrus.Fields{
 					"item":   plhJob.ID,
 					"bucket": string(bucketName),
-					"key":    string(keyName),
+					"key":    uTimestamp,
 					"prices": len(plhJob.history),
 				}).Debug("Writing histories")
 
-				if err := bkt.Put(keyName, encodedPricesValue); err != nil {
+				if err := bkt.Put(targetDateToKeyName(time.Unix(uTimestamp, 0)), encodedPricesValue); err != nil {
+					logging.WithField("error", err.Error()).Error("Failed to write to bucket")
+
 					continue
 				}
 			}
 		}
 		postWork := func() {
+			done <- struct{}{}
+
 			return
 		}
 		util.Work(4, worker, postWork)
+
+		// waiting for them to finish out
+		<-done
 
 		return nil
 	})
