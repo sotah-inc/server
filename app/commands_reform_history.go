@@ -210,9 +210,23 @@ func reformHistory(c config, m messenger, s store) error {
 	}()
 	logging.WithField("size", totalSize/1000/1000).Info("Total size")
 
+	logging.Info("Recalculating against new format")
 	for _, reg := range c.filterInRegions(sta.regions) {
+		logging.WithField("region", reg.Name).Debug("Going over region")
+
 		for _, rea := range c.filterInRealms(reg, sta.statuses[reg.Name].Realms) {
+			logging.WithFields(logrus.Fields{
+				"region": reg.Name,
+				"realm":  rea.Slug,
+			}).Debug("Going over realm")
+
 			for uTimestamp, dBase := range dBases[reg.Name][rea.Slug] {
+				logging.WithFields(logrus.Fields{
+					"region":      reg.Name,
+					"realm":       rea.Slug,
+					"target-date": uTimestamp,
+				}).Debug("Going over database at time")
+
 				// gathering the db path
 				dbPath, err := nextDatabasePath(c, reg, rea, time.Unix(uTimestamp, 0))
 				if err != nil {
@@ -226,6 +240,12 @@ func reformHistory(c config, m messenger, s store) error {
 				}
 
 				// going over the items and persisting item pricelist-histories to the next database
+				logging.WithFields(logrus.Fields{
+					"region":      reg.Name,
+					"realm":       rea.Slug,
+					"target-date": uTimestamp,
+					"items":       len(sta.items.getItemIds()),
+				}).Debug("Gathering pricelist histories at time")
 				for plhJob := range dBase.getPricelistHistories(sta.items.getItemIds()) {
 					if plhJob.err != nil {
 						logging.WithFields(logrus.Fields{
