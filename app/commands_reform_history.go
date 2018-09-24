@@ -226,6 +226,10 @@ func reformHistory(c config, m messenger, s store) error {
 
 				// going over the items and persisting item pricelist-histories to the next database
 				for ID, itemValue := range sta.items {
+					if true {
+						break
+					}
+
 					plHistory, err := dBase.getPricelistHistory(rea, itemValue.ID)
 					if err != nil {
 						return err
