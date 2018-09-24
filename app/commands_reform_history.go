@@ -230,7 +230,7 @@ func reformHistory(c config, m messenger, s store) error {
 						break
 					}
 
-					plHistory, err := dBase.getPricelistHistory(rea, itemValue.ID)
+					plHistory, err := dBase.getPricelistHistory(itemValue.ID)
 					if err != nil {
 						return err
 					}

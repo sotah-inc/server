@@ -221,14 +221,12 @@ func (dBase database) persistPricelists(targetDate time.Time, pList priceList) e
 
 type priceListHistory map[int64]prices
 
-func (dBase database) getPricelistHistory(rea realm, ID blizzard.ItemID) (priceListHistory, error) {
+func (dBase database) getPricelistHistory(ID blizzard.ItemID) (priceListHistory, error) {
 	plHistory := priceListHistory{}
 	err := dBase.db.View(func(tx *bolt.Tx) error {
 		bkt := tx.Bucket(itemPricelistBucketName(ID))
 		if bkt == nil {
 			logging.WithFields(logrus.Fields{
-				"region":      rea.region.Name,
-				"realm":       rea.Slug,
 				"bucket-name": string(itemPricelistBucketName(ID)),
 			}).Debug("Bucket not found")
 
@@ -435,7 +433,7 @@ func (tdMap timestampDatabaseMap) getPricelistHistory(rea realm, ID blizzard.Ite
 	plHistory := priceListHistory{}
 
 	for _, dBase := range tdMap {
-		receivedHistory, err := dBase.getPricelistHistory(rea, ID)
+		receivedHistory, err := dBase.getPricelistHistory(ID)
 		if err != nil {
 			return priceListHistory{}, err
 		}
