@@ -27,56 +27,60 @@ type pricelistHistoryDatabaseSizes struct {
 	newPath     string
 }
 
-func batchPersistParallel(nextDbase *bolt.DB, in chan priceListHistoryJob) chan struct{} {
-	out := make(chan struct{})
-	worker := func() {
-		for plhJob := range in {
-			if plhJob.err != nil {
-				logging.WithFields(logrus.Fields{
-					"error": plhJob.err.Error(),
-					"id":    plhJob.ID,
-				}).Error("Failed to fetch pricelist-history")
+func batchPersistParallel(nextDbase *bolt.DB, uTimestamp int64, in chan priceListHistoryJob) error {
+	err := nextDbase.Batch(func(tx *bolt.Tx) error {
+		worker := func() {
+			for plhJob := range in {
+				if plhJob.err != nil {
+					logging.WithFields(logrus.Fields{
+						"error": plhJob.err.Error(),
+						"id":    plhJob.ID,
+					}).Error("Failed to fetch pricelist-history")
 
-				continue
-			}
+					continue
+				}
 
-			err := nextDbase.Batch(func(tx *bolt.Tx) error {
-				bkt, err := tx.CreateBucketIfNotExists(itemPricelistBucketName(plhJob.ID))
+				if len(plhJob.history) == 0 {
+					continue
+				}
+
+				bucketName := itemPricelistBucketName(plhJob.ID)
+				keyName := targetDateToKeyName(time.Unix(uTimestamp, 0))
+
+				bkt, err := tx.CreateBucketIfNotExists(bucketName)
 				if err != nil {
-					return err
+					continue
 				}
 
-				for itemTimestamp, pricesValue := range plhJob.history {
-					targetDate := time.Unix(itemTimestamp, 0)
-
-					encodedPricesValue, err := pricesValue.encodeForPersistence()
-					if err != nil {
-						return err
-					}
-
-					if err := bkt.Put(targetDateToKeyName(targetDate), encodedPricesValue); err != nil {
-						return err
-					}
+				encodedPricesValue, err := plhJob.history.encodeForPersistence()
+				if err != nil {
+					continue
 				}
 
-				return nil
-			})
-			if err != nil {
 				logging.WithFields(logrus.Fields{
-					"error": err.Error(),
-					"id":    plhJob.ID,
-				}).Error("Failed to batch persist")
+					"item":   plhJob.ID,
+					"bucket": string(bucketName),
+					"key":    string(keyName),
+					"prices": len(plhJob.history),
+				}).Debug("Writing histories")
 
-				continue
+				if err := bkt.Put(keyName, encodedPricesValue); err != nil {
+					continue
+				}
 			}
 		}
-	}
-	postWork := func() {
-		out <- struct{}{}
-	}
-	util.Work(4, worker, postWork)
+		postWork := func() {
+			return
+		}
+		util.Work(4, worker, postWork)
 
-	return out
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func reformHistory(c config, m messenger, s store) error {
@@ -298,8 +302,12 @@ func reformHistory(c config, m messenger, s store) error {
 					"target-date": uTimestamp,
 					"items":       len(sta.items.getItemIds()),
 				}).Debug("Gathering pricelist histories at time")
-				done := batchPersistParallel(nextDbase, dBase.getPricelistHistories(sta.items.getItemIds()))
-				<-done
+				err = batchPersistParallel(nextDbase, uTimestamp, dBase.getPricelistHistories(sta.items.getItemIds()))
+				if err != nil {
+					logging.WithFields(logrus.Fields{"error": err.Error()}).Error("Failed to batch persist")
+
+					return err
+				}
 
 				// closing out the next database
 				logging.WithFields(logrus.Fields{
