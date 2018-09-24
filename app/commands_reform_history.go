@@ -257,13 +257,6 @@ func reformHistory(c config, m messenger, s store) error {
 					}
 
 					if len(plhJob.history) == 0 {
-						logging.WithFields(logrus.Fields{
-							"region":      reg.Name,
-							"realm":       rea.Slug,
-							"target-date": uTimestamp,
-							"item":        plhJob.ID,
-						}).Debug("Empty history found for item")
-
 						continue
 					}
 
