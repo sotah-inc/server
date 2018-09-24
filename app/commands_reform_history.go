@@ -260,14 +260,6 @@ func reformHistory(c config, m messenger, s store) error {
 						continue
 					}
 
-					logging.WithFields(logrus.Fields{
-						"region":      reg.Name,
-						"realm":       rea.Slug,
-						"target-date": uTimestamp,
-						"item":        plhJob.ID,
-						"histories":   len(plhJob.history),
-					}).Debug("Persisting item history")
-
 					err = nextDbase.Batch(func(tx *bolt.Tx) error {
 						for itemTimestamp, pricesValue := range plhJob.history {
 							targetDate := time.Unix(itemTimestamp, 0)
