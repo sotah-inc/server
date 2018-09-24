@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -220,6 +221,20 @@ func (dBase database) persistPricelists(targetDate time.Time, pList priceList) e
 }
 
 type priceListHistory map[int64]prices
+
+func (plHistory priceListHistory) encodeForPersistence() ([]byte, error) {
+	jsonEncoded, err := json.Marshal(plHistory)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	gzipEncoded, err := util.GzipEncode(jsonEncoded)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return gzipEncoded, nil
+}
 
 type priceListHistoryJob struct {
 	err     error
