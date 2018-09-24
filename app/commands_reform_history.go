@@ -225,21 +225,21 @@ func reformHistory(c config, m messenger, s store) error {
 				}
 
 				// going over the items and persisting item pricelist-histories to the next database
-				for ID, itemValue := range sta.items {
-					if true {
-						break
-					}
+				for plhJob := range dBase.getPricelistHistories(sta.items.getItemIds()) {
+					if plhJob.err != nil {
+						logging.WithFields(logrus.Fields{
+							"error": plhJob.err.Error(),
+							"id":    plhJob.ID,
+						}).Error("Failed to fetch pricelist-history")
 
-					plHistory, err := dBase.getPricelistHistory(itemValue.ID)
-					if err != nil {
-						return err
+						continue
 					}
 
 					err = nextDbase.Batch(func(tx *bolt.Tx) error {
-						for itemTimestamp, pricesValue := range plHistory {
+						for itemTimestamp, pricesValue := range plhJob.history {
 							targetDate := time.Unix(itemTimestamp, 0)
 
-							bkt, err := tx.CreateBucketIfNotExists(itemPricelistBucketName(ID))
+							bkt, err := tx.CreateBucketIfNotExists(itemPricelistBucketName(plhJob.ID))
 							if err != nil {
 								return err
 							}
