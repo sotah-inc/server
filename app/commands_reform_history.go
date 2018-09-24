@@ -43,10 +43,6 @@ func batchPersistParallel(nextDbase *bolt.DB, uTimestamp int64, in chan priceLis
 					continue
 				}
 
-				if len(plhJob.history) == 0 {
-					continue
-				}
-
 				bucketName := itemPricelistBucketName(plhJob.ID)
 
 				bkt, err := tx.CreateBucketIfNotExists(bucketName)
