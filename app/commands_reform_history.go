@@ -27,6 +27,62 @@ type pricelistHistoryDatabaseSizes struct {
 	newPath     string
 }
 
+func batchPersistParallel(nextDbase *bolt.DB, in chan priceListHistoryJob) chan struct{} {
+	out := make(chan struct{})
+	worker := func() {
+		for plhJob := range in {
+			if plhJob.err != nil {
+				logging.WithFields(logrus.Fields{
+					"error": plhJob.err.Error(),
+					"id":    plhJob.ID,
+				}).Error("Failed to fetch pricelist-history")
+
+				continue
+			}
+
+			if len(plhJob.history) == 0 {
+				continue
+			}
+
+			err := nextDbase.Batch(func(tx *bolt.Tx) error {
+				for itemTimestamp, pricesValue := range plhJob.history {
+					targetDate := time.Unix(itemTimestamp, 0)
+
+					bkt, err := tx.CreateBucketIfNotExists(itemPricelistBucketName(plhJob.ID))
+					if err != nil {
+						return err
+					}
+
+					encodedPricesValue, err := pricesValue.encodeForPersistence()
+					if err != nil {
+						return err
+					}
+
+					if err := bkt.Put(targetDateToKeyName(targetDate), encodedPricesValue); err != nil {
+						return err
+					}
+				}
+
+				return nil
+			})
+			if err != nil {
+				logging.WithFields(logrus.Fields{
+					"error": err.Error(),
+					"id":    plhJob.ID,
+				}).Error("Failed to batch persist")
+
+				continue
+			}
+		}
+	}
+	postWork := func() {
+		out <- struct{}{}
+	}
+	util.Work(4, worker, postWork)
+
+	return out
+}
+
 func reformHistory(c config, m messenger, s store) error {
 	logging.Info("Starting reform-history")
 
@@ -246,45 +302,8 @@ func reformHistory(c config, m messenger, s store) error {
 					"target-date": uTimestamp,
 					"items":       len(sta.items.getItemIds()),
 				}).Debug("Gathering pricelist histories at time")
-				for plhJob := range dBase.getPricelistHistories(sta.items.getItemIds()) {
-					if plhJob.err != nil {
-						logging.WithFields(logrus.Fields{
-							"error": plhJob.err.Error(),
-							"id":    plhJob.ID,
-						}).Error("Failed to fetch pricelist-history")
-
-						continue
-					}
-
-					if len(plhJob.history) == 0 {
-						continue
-					}
-
-					err = nextDbase.Batch(func(tx *bolt.Tx) error {
-						for itemTimestamp, pricesValue := range plhJob.history {
-							targetDate := time.Unix(itemTimestamp, 0)
-
-							bkt, err := tx.CreateBucketIfNotExists(itemPricelistBucketName(plhJob.ID))
-							if err != nil {
-								return err
-							}
-
-							encodedPricesValue, err := pricesValue.encodeForPersistence()
-							if err != nil {
-								return err
-							}
-
-							if err := bkt.Put(targetDateToKeyName(targetDate), encodedPricesValue); err != nil {
-								return err
-							}
-						}
-
-						return nil
-					})
-					if err != nil {
-						return err
-					}
-				}
+				done := batchPersistParallel(nextDbase, dBase.getPricelistHistories(sta.items.getItemIds()))
+				<-done
 
 				// closing out the next database
 				logging.WithFields(logrus.Fields{
@@ -338,7 +357,10 @@ func reformHistory(c config, m messenger, s store) error {
 
 		return float64(result)
 	}()
-	logging.WithField("size", totalNewSize/1000/1000).Info("Total new size")
+	logging.WithFields(logrus.Fields{
+		"current-size": totalSize / 1000 / 1000,
+		"new-size":     totalNewSize / 1000 / 1000,
+	}).Info("Total sizes")
 
 	return nil
 }
