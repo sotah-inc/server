@@ -73,6 +73,7 @@ func reformHistory(c config, m messenger, s store) error {
 	}
 
 	// loading up items
+	logging.Info("Loading items")
 	loadedItems, err := loadItemsFromFilecache(*res.config)
 	if err != nil {
 		return err
