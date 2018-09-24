@@ -40,18 +40,14 @@ func batchPersistParallel(nextDbase *bolt.DB, in chan priceListHistoryJob) chan 
 				continue
 			}
 
-			if len(plhJob.history) == 0 {
-				continue
-			}
-
 			err := nextDbase.Batch(func(tx *bolt.Tx) error {
+				bkt, err := tx.CreateBucketIfNotExists(itemPricelistBucketName(plhJob.ID))
+				if err != nil {
+					return err
+				}
+
 				for itemTimestamp, pricesValue := range plhJob.history {
 					targetDate := time.Unix(itemTimestamp, 0)
-
-					bkt, err := tx.CreateBucketIfNotExists(itemPricelistBucketName(plhJob.ID))
-					if err != nil {
-						return err
-					}
 
 					encodedPricesValue, err := pricesValue.encodeForPersistence()
 					if err != nil {
