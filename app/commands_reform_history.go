@@ -228,13 +228,13 @@ func reformHistory(c config, m messenger, s store) error {
 				}).Debug("Going over database at time")
 
 				// gathering the db path
-				dbPath, err := nextDatabasePath(c, reg, rea, time.Unix(uTimestamp, 0))
+				nextDbPath, err := nextDatabasePath(c, reg, rea, time.Unix(uTimestamp, 0))
 				if err != nil {
 					return err
 				}
 
 				// opening a next database
-				nextDbase, err := bolt.Open(dbPath, 0600, nil)
+				nextDbase, err := bolt.Open(nextDbPath, 0600, nil)
 				if err != nil {
 					return err
 				}
@@ -316,8 +316,9 @@ func reformHistory(c config, m messenger, s store) error {
 					"region":      reg.Name,
 					"realm":       rea.Slug,
 					"target-date": uTimestamp,
+					"path":        nextDbPath,
 				}).Debug("Stating next dbase file")
-				nextStat, err := os.Stat(nextDbase.Path())
+				nextStat, err := os.Stat(nextDbPath)
 				if err != nil {
 					return err
 				}
@@ -328,7 +329,7 @@ func reformHistory(c config, m messenger, s store) error {
 					"realm":       rea.Slug,
 					"target-date": uTimestamp,
 				}).Debug("Removing next dbase file")
-				if err := os.Remove(nextDbase.Path()); err != nil {
+				if err := os.Remove(nextDbPath); err != nil {
 					return err
 				}
 
