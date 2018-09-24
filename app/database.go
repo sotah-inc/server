@@ -245,6 +245,8 @@ func (dBase database) getPricelistHistories(IDs []blizzard.ItemID) chan priceLis
 		for _, ID := range IDs {
 			in <- ID
 		}
+
+		close(in)
 	}()
 
 	return out
