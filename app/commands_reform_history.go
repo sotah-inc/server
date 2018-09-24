@@ -257,6 +257,13 @@ func reformHistory(c config, m messenger, s store) error {
 					}
 
 					if len(plhJob.history) == 0 {
+						logging.WithFields(logrus.Fields{
+							"region":      reg.Name,
+							"realm":       rea.Slug,
+							"target-date": uTimestamp,
+							"item":        plhJob.ID,
+						}).Debug("Empty history found for item")
+
 						continue
 					}
 
@@ -295,16 +302,32 @@ func reformHistory(c config, m messenger, s store) error {
 				}
 
 				// closing out the next database
+				logging.WithFields(logrus.Fields{
+					"region":      reg.Name,
+					"realm":       rea.Slug,
+					"target-date": uTimestamp,
+				}).Debug("Closing out next dbase file")
 				if err := nextDbase.Close(); err != nil {
 					return err
 				}
 
 				// gathering the next database filesize
+				logging.WithFields(logrus.Fields{
+					"region":      reg.Name,
+					"realm":       rea.Slug,
+					"target-date": uTimestamp,
+				}).Debug("Stating next dbase file")
 				nextStat, err := os.Stat(nextDbase.Path())
 				if err != nil {
 					return err
 				}
 
+				// removing unused file
+				logging.WithFields(logrus.Fields{
+					"region":      reg.Name,
+					"realm":       rea.Slug,
+					"target-date": uTimestamp,
+				}).Debug("Removing next dbase file")
 				if err := os.Remove(nextDbase.Path()); err != nil {
 					return err
 				}
