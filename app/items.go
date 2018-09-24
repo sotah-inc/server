@@ -202,6 +202,15 @@ func getItem(ID blizzard.ItemID, res resolver) (blizzard.Item, string, error) {
 
 type itemsMap map[blizzard.ItemID]item
 
+func (iMap itemsMap) getItemIds() []blizzard.ItemID {
+	out := []blizzard.ItemID{}
+	for ID := range iMap {
+		out = append(out, ID)
+	}
+
+	return out
+}
+
 func (iMap itemsMap) getItemIconsMap(excludeWithURL bool) itemIconItemIdsMap {
 	iconsMap := map[string]itemIds{}
 	for itemID, iValue := range iMap {

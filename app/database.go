@@ -221,15 +221,40 @@ func (dBase database) persistPricelists(targetDate time.Time, pList priceList) e
 
 type priceListHistory map[int64]prices
 
+type priceListHistoryJob struct {
+	err     error
+	ID      blizzard.ItemID
+	history priceListHistory
+}
+
+func (dBase database) getPricelistHistories(IDs []blizzard.ItemID) chan priceListHistoryJob {
+	in := make(chan blizzard.ItemID)
+	out := make(chan priceListHistoryJob)
+	worker := func() {
+		for ID := range in {
+			plHistory, err := dBase.getPricelistHistory(ID)
+			out <- priceListHistoryJob{err, ID, plHistory}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(4, worker, postWork)
+
+	go func() {
+		for _, ID := range IDs {
+			in <- ID
+		}
+	}()
+
+	return out
+}
+
 func (dBase database) getPricelistHistory(ID blizzard.ItemID) (priceListHistory, error) {
 	plHistory := priceListHistory{}
 	err := dBase.db.View(func(tx *bolt.Tx) error {
 		bkt := tx.Bucket(itemPricelistBucketName(ID))
 		if bkt == nil {
-			logging.WithFields(logrus.Fields{
-				"bucket-name": string(itemPricelistBucketName(ID)),
-			}).Debug("Bucket not found")
-
 			return nil
 		}
 
