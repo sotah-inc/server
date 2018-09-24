@@ -293,6 +293,10 @@ func reformHistory(c config, m messenger, s store) error {
 					return err
 				}
 
+				if err := os.Remove(nextDbase.Path()); err != nil {
+					return err
+				}
+
 				size := currentSizes[reg.Name][rea.Slug][unixTimestamp(uTimestamp)]
 				size.newPath = nextDbase.Path()
 				size.newSize = nextStat.Size()
