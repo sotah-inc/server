@@ -1,16 +1,18 @@
 package main
 
 import (
+	"errors"
 	"fmt"
-	"os"
 	"time"
 
+	storage "cloud.google.com/go/storage"
 	"github.com/boltdb/bolt"
+	"github.com/sirupsen/logrus"
 
 	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/logging"
+	"github.com/ihsw/sotah-server/app/objstate"
 	"github.com/ihsw/sotah-server/app/util"
-	"github.com/sirupsen/logrus"
 )
 
 func pricelistHistoryDatabaseFilePath(c config, rea realm, targetTime time.Time) (string, error) {
@@ -22,49 +24,30 @@ func pricelistHistoryDatabaseFilePath(c config, rea realm, targetTime time.Time)
 	dbFilePath := fmt.Sprintf(
 		"%s/next-%d.db",
 		rea.databaseDir(rea.region.databaseDir(dirPath)),
-		time.Unix(),
+		targetTime.Unix(),
 	)
 	return dbFilePath, nil
 }
 
-func newPricelistHistoryDatabase(c config, rea realm, targetDate time.Time) (database, error) {
-	dbFilepath, err := pricelistHistoryDatabaseFilePath(c, rea, targetDate)
-	if err != nil {
-		return database{}, err
-	}
-
-	db, err := bolt.Open(dbFilepath, 0600, nil)
-	if err != nil {
-		return database{}, err
-	}
-
-	return database{db, targetDate}, nil
-}
-
-type pricelistHistoryDatabase struct {
-	db         *bolt.DB
-	targetDate time.Time
-}
-
 type pricelistHistoryDatabases map[regionName]map[blizzard.RealmSlug]pricelistHistoryDatabaseShards
 
-func (dBases databases) resolveDatabaseFromLoadAuctionsJob(c config, job loadAuctionsJob) (database, error) {
+func (phdBases pricelistHistoryDatabases) resolveDatabaseFromLoadAuctionsJob(c config, job loadAuctionsJob) (pricelistHistoryDatabase, error) {
 	normalizedTargetDate := normalizeTargetDate(job.lastModified)
-	dBase, ok := dBases[job.realm.region.Name][job.realm.Slug][normalizedTargetDate.Unix()]
+	phdBase, ok := phdBases[job.realm.region.Name][job.realm.Slug][unixTimestamp(normalizedTargetDate.Unix())]
 	if ok {
-		return dBase, nil
+		return phdBase, nil
 	}
 
-	dBase, err := newDatabase(c, job.realm.region, job.realm, job.lastModified)
+	phdBase, err := newPricelistHistoryDatabase(c, job.realm, job.lastModified)
 	if err != nil {
-		return database{}, err
+		return pricelistHistoryDatabase{}, err
 	}
-	dBases[job.realm.region.Name][job.realm.Slug][normalizedTargetDate.Unix()] = dBase
+	phdBases[job.realm.region.Name][job.realm.Slug][unixTimestamp(normalizedTargetDate.Unix())] = phdBase
 
-	return dBase, nil
+	return phdBase, nil
 }
 
-func (dBases databases) startLoader(c config, sto store) chan loadAuctionsJob {
+func (phdBases pricelistHistoryDatabases) startLoader(c config, sto store) chan loadAuctionsJob {
 	in := make(chan loadAuctionsJob)
 	worker := func() {
 		for job := range in {
@@ -78,7 +61,7 @@ func (dBases databases) startLoader(c config, sto store) chan loadAuctionsJob {
 				continue
 			}
 
-			dBase, err := dBases.resolveDatabaseFromLoadAuctionsJob(c, job)
+			phdBase, err := phdBases.resolveDatabaseFromLoadAuctionsJob(c, job)
 			if err != nil {
 				logging.WithFields(logrus.Fields{
 					"error":  job.err.Error(),
@@ -89,7 +72,7 @@ func (dBases databases) startLoader(c config, sto store) chan loadAuctionsJob {
 				continue
 			}
 
-			if err := dBase.handleLoadAuctionsJob(job, c, sto); err != nil {
+			if err := phdBase.handleLoadAuctionsJob(job, c, sto); err != nil {
 				logging.WithFields(logrus.Fields{
 					"error":  err.Error(),
 					"region": job.realm.region.Name,
@@ -108,90 +91,13 @@ func (dBases databases) startLoader(c config, sto store) chan loadAuctionsJob {
 	return in
 }
 
-func (dBases databases) startPruner(stopChan workerStopChan) workerStopChan {
-	onStop := make(workerStopChan)
-	go func() {
-		ticker := time.NewTicker(20 * time.Minute)
-
-		logging.Info("Starting pruner")
-	outer:
-		for {
-			select {
-			case <-ticker.C:
-				if err := dBases.pruneDatabases(); err != nil {
-					logging.WithField("error", err.Error()).Error("Failed to prune databases")
-
-					continue
-				}
-			case <-stopChan:
-				ticker.Stop()
-
-				break outer
-			}
-		}
-
-		onStop <- struct{}{}
-	}()
-
-	return onStop
-}
-
-func (dBases databases) pruneDatabases() error {
-	earliestUnixTimestamp := databaseRetentionLimit().Unix()
-	logging.WithField("limit", earliestUnixTimestamp).Info("Checking for databases to prune")
-	for rName, realmDatabases := range dBases {
-		for rSlug, timestampDatabases := range realmDatabases {
-			for unixTimestamp, dBase := range timestampDatabases {
-				if unixTimestamp > earliestUnixTimestamp {
-					continue
-				}
-
-				logging.WithFields(logrus.Fields{
-					"region":             rName,
-					"realm":              rSlug,
-					"database-timestamp": unixTimestamp,
-				}).Debug("Removing database from shard map")
-				delete(dBases[rName][rSlug], unixTimestamp)
-
-				dbPath := dBase.db.Path()
-
-				logging.WithFields(logrus.Fields{
-					"region":             rName,
-					"realm":              rSlug,
-					"database-timestamp": unixTimestamp,
-				}).Debug("Closing database")
-				if err := dBase.db.Close(); err != nil {
-					logging.WithFields(logrus.Fields{
-						"region":   rName,
-						"realm":    rSlug,
-						"database": dBase.db.Path(),
-					}).Error("Failed to close database")
-
-					return err
-				}
-
-				logging.WithFields(logrus.Fields{
-					"region":   rName,
-					"realm":    rSlug,
-					"filepath": dbPath,
-				}).Debug("Deleting database file")
-				if err := os.Remove(dbPath); err != nil {
-					return err
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
 type pricelistHistoryDatabaseShards map[unixTimestamp]pricelistHistoryDatabase
 
 func (phdShards pricelistHistoryDatabaseShards) getPricelistHistory(rea realm, ID blizzard.ItemID) (priceListHistory, error) {
 	plHistory := priceListHistory{}
 
-	for _, dBase := range tdMap {
-		receivedHistory, err := dBase.getPricelistHistory(ID)
+	for _, phdBase := range phdShards {
+		receivedHistory, err := phdBase.getPricelistHistory(ID)
 		if err != nil {
 			return priceListHistory{}, err
 		}
@@ -202,4 +108,121 @@ func (phdShards pricelistHistoryDatabaseShards) getPricelistHistory(rea realm, I
 	}
 
 	return plHistory, nil
+}
+
+func newPricelistHistoryDatabase(c config, rea realm, targetDate time.Time) (pricelistHistoryDatabase, error) {
+	dbFilepath, err := pricelistHistoryDatabaseFilePath(c, rea, targetDate)
+	if err != nil {
+		return pricelistHistoryDatabase{}, err
+	}
+
+	db, err := bolt.Open(dbFilepath, 0600, nil)
+	if err != nil {
+		return pricelistHistoryDatabase{}, err
+	}
+
+	return pricelistHistoryDatabase{db, targetDate}, nil
+}
+
+type pricelistHistoryDatabase struct {
+	db         *bolt.DB
+	targetDate time.Time
+}
+
+func (phdBase pricelistHistoryDatabase) getPricelistHistory(ID blizzard.ItemID) (priceListHistory, error) {
+	return priceListHistory{}, nil
+}
+
+func (phdBase pricelistHistoryDatabase) persistPricelists(targetDate time.Time, pList priceList) error {
+	logging.WithFields(logrus.Fields{
+		"target_date": targetDate.Unix(),
+		"pricelists":  len(pList),
+	}).Debug("Writing pricelists")
+
+	err := phdBase.db.Batch(func(tx *bolt.Tx) error {
+		if true {
+			return errors.New("NYI")
+		}
+
+		for ID, pricesValue := range pList {
+			bkt, err := tx.CreateBucketIfNotExists(itemPricelistBucketName(ID))
+			if err != nil {
+				return err
+			}
+
+			encodedPricesValue, err := pricesValue.encodeForPersistence()
+			if err != nil {
+				return err
+			}
+
+			if err := bkt.Put(targetDateToKeyName(targetDate), encodedPricesValue); err != nil {
+				return err
+			}
+		}
+
+		logging.WithFields(logrus.Fields{
+			"target_date": phdBase.targetDate.Unix(),
+			"pricelists":  len(pList),
+		}).Debug("Finished writing pricelists")
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (phdBase pricelistHistoryDatabase) handleLoadAuctionsJob(job loadAuctionsJob, c config, sto store) error {
+	mAuctions := newMiniAuctionListFromBlizzardAuctions(job.auctions.Auctions)
+	err := phdBase.persistPricelists(job.lastModified, newPriceList(mAuctions.itemIds(), mAuctions))
+	if err != nil {
+		logging.WithFields(logrus.Fields{
+			"error":  err.Error(),
+			"region": job.realm.region.Name,
+			"realm":  job.realm.Slug,
+		}).Error("Failed to persist auctions to pricelist-history database")
+
+		return err
+	}
+
+	if c.UseGCloudStorage == false {
+		return nil
+	}
+
+	bkt := sto.getRealmAuctionsBucket(job.realm)
+	obj := bkt.Object(sto.getRealmAuctionsObjectName(job.lastModified))
+	objAttrs, err := obj.Attrs(sto.context)
+	if err != nil {
+		logging.WithFields(logrus.Fields{
+			"error":         err.Error(),
+			"region":        job.realm.region.Name,
+			"realm":         job.realm.Slug,
+			"last-modified": job.lastModified.Unix(),
+		}).Error("Failed to fetch obj attrs")
+
+		return err
+	}
+
+	objMeta := func() map[string]string {
+		if objAttrs.Metadata == nil {
+			return map[string]string{}
+		}
+
+		return objAttrs.Metadata
+	}()
+	objMeta["state"] = string(objstate.Processed)
+	if _, err := obj.Update(sto.context, storage.ObjectAttrsToUpdate{Metadata: objMeta}); err != nil {
+		logging.WithFields(logrus.Fields{
+			"error":         err.Error(),
+			"region":        job.realm.region.Name,
+			"realm":         job.realm.Slug,
+			"last-modified": job.lastModified.Unix(),
+		}).Error("Failed to update metadata of object")
+
+		return err
+	}
+
+	return nil
 }
