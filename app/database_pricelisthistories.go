@@ -16,6 +16,8 @@ import (
 	"github.com/ihsw/sotah-server/app/util"
 )
 
+type unixTimestamp int64
+
 func pricelistHistoryKeyName() []byte {
 	key := make([]byte, 8)
 	binary.LittleEndian.PutUint64(key, 1)
