@@ -112,18 +112,18 @@ func pricelistHistories(c config, m messenger, s store) error {
 
 	// loading up databases
 	logging.Info("Loading up databases")
-	dBases, err := newDatabases(c, sta.regions, sta.statuses)
+	phdBases, err := newPricelistHistoryDatabases(c, sta.regions, sta.statuses)
 	if err != nil {
 		logging.WithField("error", err.Error()).Error("Failed to load databases")
 
 		return err
 	}
-	sta.databases = dBases
+	sta.pricelistHistoryDatabases = phdBases
 
 	// starting up a pruner
 	logging.Info("Starting up the pricelist-histories file pruner")
 	prunerStop := make(workerStopChan)
-	onPrunerStop := dBases.startPruner(prunerStop)
+	onPrunerStop := phdBases.startPruner(prunerStop)
 
 	// opening all listeners
 	logging.Info("Opening all listeners")

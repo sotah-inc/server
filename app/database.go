@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -10,42 +9,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/logging"
 	"github.com/ihsw/sotah-server/app/util"
 	"github.com/sirupsen/logrus"
 )
 
-func targetDateToKeyName(targetDate time.Time) []byte {
-	key := make([]byte, 8)
-	binary.LittleEndian.PutUint64(key, uint64(targetDate.Unix()))
-
-	return key
-}
-
-func keyNameToTargetDate(key []byte) time.Time {
-	return time.Unix(int64(binary.LittleEndian.Uint64(key)), 0)
-}
-
-func itemPricelistBucketName(ID blizzard.ItemID) []byte {
-	return []byte(fmt.Sprintf("item-prices/%d", ID))
-}
-
 func normalizeTargetDate(targetDate time.Time) time.Time {
 	nearestWeekStartOffset := targetDate.Second() + targetDate.Minute()*60 + targetDate.Hour()*60*60
 	return time.Unix(targetDate.Unix()-int64(nearestWeekStartOffset), 0)
-}
-
-func databasePath(c config, reg region, rea realm, targetDate time.Time) (string, error) {
-	return filepath.Abs(
-		fmt.Sprintf("%s/databases/%s/%s/%d.db", c.CacheDir, reg.Name, rea.Slug, normalizeTargetDate(targetDate).Unix()),
-	)
-}
-
-func nextDatabasePath(c config, reg region, rea realm, targetDate time.Time) (string, error) {
-	return filepath.Abs(
-		fmt.Sprintf("%s/databases/%s/%s/next-%d.db", c.CacheDir, reg.Name, rea.Slug, normalizeTargetDate(targetDate).Unix()),
-	)
 }
 
 func databaseRetentionLimit() time.Time {
@@ -120,7 +91,7 @@ func newPriceListHistoryFromBytes(data []byte) (priceListHistory, error) {
 	return out, nil
 }
 
-type priceListHistory map[int64]prices
+type priceListHistory map[unixTimestamp]prices
 
 func (plHistory priceListHistory) encodeForPersistence() ([]byte, error) {
 	jsonEncoded, err := json.Marshal(plHistory)

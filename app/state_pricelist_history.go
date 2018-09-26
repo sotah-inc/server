@@ -46,10 +46,10 @@ type priceListHistoryRequest struct {
 	ItemIds    []blizzard.ItemID  `json:"item_ids"`
 }
 
-func (plhRequest priceListHistoryRequest) resolve(sta state) (realm, timestampDatabaseMap, requestError) {
+func (plhRequest priceListHistoryRequest) resolve(sta state) (realm, pricelistHistoryDatabaseShards, requestError) {
 	regionStatuses, ok := sta.statuses[plhRequest.RegionName]
 	if !ok {
-		return realm{}, timestampDatabaseMap{}, requestError{codes.NotFound, "Invalid region"}
+		return realm{}, pricelistHistoryDatabaseShards{}, requestError{codes.NotFound, "Invalid region"}
 	}
 	rea := func() *realm {
 		for _, regionRealm := range regionStatuses.Realms {
@@ -61,15 +61,15 @@ func (plhRequest priceListHistoryRequest) resolve(sta state) (realm, timestampDa
 		return nil
 	}()
 	if rea == nil {
-		return realm{}, timestampDatabaseMap{}, requestError{codes.NotFound, "Invalid realm"}
+		return realm{}, pricelistHistoryDatabaseShards{}, requestError{codes.NotFound, "Invalid realm"}
 	}
 
-	tdMap, ok := sta.databases[plhRequest.RegionName][plhRequest.RealmSlug]
+	phdShards, ok := sta.pricelistHistoryDatabases[plhRequest.RegionName][plhRequest.RealmSlug]
 	if !ok {
-		return realm{}, timestampDatabaseMap{}, requestError{codes.NotFound, "Invalid region"}
+		return realm{}, pricelistHistoryDatabaseShards{}, requestError{codes.NotFound, "Invalid region"}
 	}
 
-	return *rea, tdMap, requestError{codes.Ok, ""}
+	return *rea, phdShards, requestError{codes.Ok, ""}
 }
 
 func (sta state) listenForPriceListHistory(stop listenStopChan) error {

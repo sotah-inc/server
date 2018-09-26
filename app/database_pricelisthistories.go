@@ -66,12 +66,12 @@ func newPricelistHistoryDatabases(c config, regs regionList, stas statuses) (pri
 			}
 
 			for _, dbPathPair := range dbPathPairs {
-				phdBase, err := newPricelistHistoryDatabase(c, reg, rea, dbPathPair.targetTime)
+				phdBase, err := newPricelistHistoryDatabase(c, rea, dbPathPair.targetTime)
 				if err != nil {
 					return pricelistHistoryDatabases{}, err
 				}
 
-				phdBases[reg.Name][rea.Slug][dbPathPair.targetTime.Unix()] = phdBase
+				phdBases[reg.Name][rea.Slug][unixTimestamp(dbPathPair.targetTime.Unix())] = phdBase
 			}
 		}
 	}
@@ -350,7 +350,7 @@ func (phdBase pricelistHistoryDatabase) persistPricelists(targetTime time.Time, 
 
 				return result
 			}()
-			pHistory[targetTime.Unix()] = pricesValue
+			pHistory[unixTimestamp(targetTime.Unix())] = pricesValue
 
 			bkt, err := tx.CreateBucketIfNotExists(pricelistHistoryBucketName(ID))
 			if err != nil {
