@@ -8,5 +8,5 @@ ObjState - types of gcloud storage state
 */
 const (
 	Queued    ObjState = "queued-%s"
-	Processed ObjState = "processed-2018-09-15-2105"
+	Processed ObjState = "processed-2018-09-26-1245"
 )
