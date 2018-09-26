@@ -211,6 +211,15 @@ func newPriceList(itemIds []blizzard.ItemID, maList miniAuctionList) priceList {
 
 type priceList map[blizzard.ItemID]prices
 
+func (pList priceList) itemIds() []blizzard.ItemID {
+	out := []blizzard.ItemID{}
+	for ID := range pList {
+		out = append(out, ID)
+	}
+
+	return out
+}
+
 func newPricesFromBytes(data []byte) (prices, error) {
 	gzipDecoded, err := util.GzipDecode(data)
 	if err != nil {
