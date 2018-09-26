@@ -42,7 +42,7 @@ func databasePaths(databaseDir string) ([]databasePathPair, error) {
 	}
 
 	for _, fPath := range databaseFilepaths {
-		if fPath.Name() == "live-auctions.db" {
+		if !strings.HasPrefix(fPath.Name(), "next-") {
 			continue
 		}
 
