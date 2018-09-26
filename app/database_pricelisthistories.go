@@ -1,8 +1,9 @@
 package main
 
 import (
-	"errors"
+	"encoding/binary"
 	"fmt"
+	"os"
 	"time"
 
 	storage "cloud.google.com/go/storage"
@@ -14,6 +15,17 @@ import (
 	"github.com/ihsw/sotah-server/app/objstate"
 	"github.com/ihsw/sotah-server/app/util"
 )
+
+func pricelistHistoryKeyName() []byte {
+	key := make([]byte, 8)
+	binary.LittleEndian.PutUint64(key, 1)
+
+	return key
+}
+
+func pricelistHistoryBucketName(ID blizzard.ItemID) []byte {
+	return []byte(fmt.Sprintf("item-prices/%d", ID))
+}
 
 func pricelistHistoryDatabaseFilePath(c config, rea realm, targetTime time.Time) (string, error) {
 	dirPath, err := c.databaseDir()
@@ -27,6 +39,42 @@ func pricelistHistoryDatabaseFilePath(c config, rea realm, targetTime time.Time)
 		targetTime.Unix(),
 	)
 	return dbFilePath, nil
+}
+
+func newPricelistHistoryDatabases(c config, regs regionList, stas statuses) (pricelistHistoryDatabases, error) {
+	phdBases := pricelistHistoryDatabases{}
+
+	databaseDir, err := c.databaseDir()
+	if err != nil {
+		return pricelistHistoryDatabases{}, err
+	}
+
+	for _, reg := range c.filterInRegions(regs) {
+		phdBases[reg.Name] = map[blizzard.RealmSlug]pricelistHistoryDatabaseShards{}
+
+		regionDatabaseDir := reg.databaseDir(databaseDir)
+
+		for _, rea := range c.filterInRealms(reg, stas[reg.Name].Realms) {
+			phdBases[reg.Name][rea.Slug] = pricelistHistoryDatabaseShards{}
+
+			realmDatabaseDir := rea.databaseDir(regionDatabaseDir)
+			dbPathPairs, err := databasePaths(realmDatabaseDir)
+			if err != nil {
+				return pricelistHistoryDatabases{}, err
+			}
+
+			for _, dbPathPair := range dbPathPairs {
+				phdBase, err := newPricelistHistoryDatabase(c, reg, rea, dbPathPair.targetTime)
+				if err != nil {
+					return pricelistHistoryDatabases{}, err
+				}
+
+				phdBases[reg.Name][rea.Slug][dbPathPair.targetTime.Unix()] = phdBase
+			}
+		}
+	}
+
+	return phdBases, nil
 }
 
 type pricelistHistoryDatabases map[regionName]map[blizzard.RealmSlug]pricelistHistoryDatabaseShards
@@ -91,6 +139,83 @@ func (phdBases pricelistHistoryDatabases) startLoader(c config, sto store) chan 
 	return in
 }
 
+func (phdBases pricelistHistoryDatabases) pruneDatabases() error {
+	earliestUnixTimestamp := databaseRetentionLimit().Unix()
+	logging.WithField("limit", earliestUnixTimestamp).Info("Checking for databases to prune")
+	for rName, realmDatabases := range phdBases {
+		for rSlug, databaseShards := range realmDatabases {
+			for unixTimestamp, phdBase := range databaseShards {
+				if int64(unixTimestamp) > earliestUnixTimestamp {
+					continue
+				}
+
+				logging.WithFields(logrus.Fields{
+					"region":             rName,
+					"realm":              rSlug,
+					"database-timestamp": unixTimestamp,
+				}).Debug("Removing database from shard map")
+				delete(phdBases[rName][rSlug], unixTimestamp)
+
+				dbPath := phdBase.db.Path()
+
+				logging.WithFields(logrus.Fields{
+					"region":             rName,
+					"realm":              rSlug,
+					"database-timestamp": unixTimestamp,
+				}).Debug("Closing database")
+				if err := phdBase.db.Close(); err != nil {
+					logging.WithFields(logrus.Fields{
+						"region":   rName,
+						"realm":    rSlug,
+						"database": dbPath,
+					}).Error("Failed to close database")
+
+					return err
+				}
+
+				logging.WithFields(logrus.Fields{
+					"region":   rName,
+					"realm":    rSlug,
+					"filepath": dbPath,
+				}).Debug("Deleting database file")
+				if err := os.Remove(dbPath); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (phdBases pricelistHistoryDatabases) startPruner(stopChan workerStopChan) workerStopChan {
+	onStop := make(workerStopChan)
+	go func() {
+		ticker := time.NewTicker(20 * time.Minute)
+
+		logging.Info("Starting pruner")
+	outer:
+		for {
+			select {
+			case <-ticker.C:
+				if err := phdBases.pruneDatabases(); err != nil {
+					logging.WithField("error", err.Error()).Error("Failed to prune databases")
+
+					continue
+				}
+			case <-stopChan:
+				ticker.Stop()
+
+				break outer
+			}
+		}
+
+		onStop <- struct{}{}
+	}()
+
+	return onStop
+}
+
 type pricelistHistoryDatabaseShards map[unixTimestamp]pricelistHistoryDatabase
 
 func (phdShards pricelistHistoryDatabaseShards) getPricelistHistory(rea realm, ID blizzard.ItemID) (priceListHistory, error) {
@@ -129,33 +254,113 @@ type pricelistHistoryDatabase struct {
 	targetDate time.Time
 }
 
-func (phdBase pricelistHistoryDatabase) getPricelistHistory(ID blizzard.ItemID) (priceListHistory, error) {
-	return priceListHistory{}, nil
+type getPricelistHistoriesJob struct {
+	err     error
+	ID      blizzard.ItemID
+	history priceListHistory
 }
 
-func (phdBase pricelistHistoryDatabase) persistPricelists(targetDate time.Time, pList priceList) error {
+func (phdBase pricelistHistoryDatabase) getPricelistHistories(IDs []blizzard.ItemID) map[blizzard.ItemID]priceListHistory {
+	// spawning workers
+	in := make(chan blizzard.ItemID)
+	out := make(chan getPricelistHistoriesJob)
+	worker := func() {
+		for ID := range in {
+			history, err := phdBase.getPricelistHistory(ID)
+			out <- getPricelistHistoriesJob{err, ID, history}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(4, worker, postWork)
+
+	// spinning it up
+	go func() {
+		for _, ID := range IDs {
+			in <- ID
+		}
+
+		close(in)
+	}()
+
+	// going over results
+	results := map[blizzard.ItemID]priceListHistory{}
+	for job := range out {
+		if job.err != nil {
+			logging.WithFields(logrus.Fields{
+				"err": job.err.Error(),
+				"ID":  job.ID,
+			}).Error("Failed to get pricelist-history")
+
+			continue
+		}
+
+		results[job.ID] = job.history
+	}
+
+	return results
+}
+
+func (phdBase pricelistHistoryDatabase) getPricelistHistory(ID blizzard.ItemID) (priceListHistory, error) {
+	out := priceListHistory{}
+	err := phdBase.db.View(func(tx *bolt.Tx) error {
+		bkt := tx.Bucket(pricelistHistoryBucketName(ID))
+		if bkt == nil {
+			return nil
+		}
+
+		value := bkt.Get(pricelistHistoryKeyName())
+		if value == nil {
+			return nil
+		}
+
+		var err error
+		out, err = newPriceListHistoryFromBytes(value)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return priceListHistory{}, err
+	}
+
+	return out, nil
+}
+
+func (phdBase pricelistHistoryDatabase) persistPricelists(targetTime time.Time, pList priceList) error {
 	logging.WithFields(logrus.Fields{
-		"target_date": targetDate.Unix(),
+		"target_date": targetTime.Unix(),
 		"pricelists":  len(pList),
 	}).Debug("Writing pricelists")
 
+	pHistories := phdBase.getPricelistHistories(pList.itemIds())
+
 	err := phdBase.db.Batch(func(tx *bolt.Tx) error {
-		if true {
-			return errors.New("NYI")
-		}
-
 		for ID, pricesValue := range pList {
-			bkt, err := tx.CreateBucketIfNotExists(itemPricelistBucketName(ID))
+			pHistory := func() priceListHistory {
+				result, ok := pHistories[ID]
+				if !ok {
+					return priceListHistory{}
+				}
+
+				return result
+			}()
+			pHistory[targetTime.Unix()] = pricesValue
+
+			bkt, err := tx.CreateBucketIfNotExists(pricelistHistoryBucketName(ID))
 			if err != nil {
 				return err
 			}
 
-			encodedPricesValue, err := pricesValue.encodeForPersistence()
+			encodedValue, err := pHistory.encodeForPersistence()
 			if err != nil {
 				return err
 			}
 
-			if err := bkt.Put(targetDateToKeyName(targetDate), encodedPricesValue); err != nil {
+			if err := bkt.Put(pricelistHistoryKeyName(), encodedValue); err != nil {
 				return err
 			}
 		}
