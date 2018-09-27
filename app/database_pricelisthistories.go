@@ -136,7 +136,7 @@ func (phdBases pricelistHistoryDatabases) startLoader(c config, sto store) chan 
 	postWork := func() {
 		return
 	}
-	util.Work(1, worker, postWork)
+	util.Work(2, worker, postWork)
 
 	return in
 }
