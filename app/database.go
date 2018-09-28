@@ -20,7 +20,7 @@ func normalizeTargetDate(targetDate time.Time) time.Time {
 }
 
 func databaseRetentionLimit() time.Time {
-	return time.Now().Add(-1 * time.Hour * 24 * 15)
+	return time.Now().Add(-1 * time.Hour * 24 * 30)
 }
 
 type databasePathPair struct {
