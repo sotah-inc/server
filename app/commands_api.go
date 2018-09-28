@@ -27,11 +27,9 @@ func api(c config, m messenger, s store) error {
 	cacheDirs := []string{
 		fmt.Sprintf("%s/auctions", c.CacheDir),
 		fmt.Sprintf("%s/items", c.CacheDir),
-		fmt.Sprintf("%s/databases", c.CacheDir),
 	}
 	for _, reg := range c.filterInRegions(sta.regions) {
 		cacheDirs = append(cacheDirs, fmt.Sprintf("%s/auctions/%s", c.CacheDir, reg.Name))
-		cacheDirs = append(cacheDirs, fmt.Sprintf("%s/databases/%s", c.CacheDir, reg.Name))
 	}
 	if err := util.EnsureDirsExist(cacheDirs); err != nil {
 		return err

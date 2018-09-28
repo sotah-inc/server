@@ -4,8 +4,6 @@ env:
   global:
   - NATS_HOST=localhost
   - NATS_PORT=4222
-  - secure: O6mCFkmL726CLKxT8vIxmfQ0jzU15Snd902gtUYsiRrFpE2y5TttKB9v6Pn3i6IHlT2Q7YDRwZbLTJcCDlOI0uQ7rsGOUI5+I73Z9fBX4K2+2HnHfzGzaTGUIkBtEJRuKhyT5saxRTOM/HGMJ89v+roDAH0SCgCM9a7Dlr23QSI=
-  - secure: EStpbly4yoWUoxBtR5f6pP4P3045R2Q7nmZ3eAqqAJwaPxFq9DZo6IMiS1sPMWR3Xen4IINKtUhKuYctWrFTMuLr21pUgZ0rCkcjxFP0G9Vjs8Zl79PBIYWahtOOQFWl13emUW3jDjXIW7YiF2ABAuhJUMjhfiBmJh61yIK4o/U=
 before_install:
 - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
 - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
@@ -18,5 +16,3 @@ before_script:
 script:
 - $GOPATH/bin/goveralls -package github.com/$TRAVIS_REPO_SLUG/app/... -service=travis-ci
 - docker build -t $TRAVIS_REPO_SLUG .
-- echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin
-- docker push $TRAVIS_REPO_SLUG
