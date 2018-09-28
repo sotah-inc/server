@@ -47,7 +47,8 @@ func databasePaths(databaseDir string) ([]databasePathPair, error) {
 		}
 
 		parts := strings.Split(fPath.Name(), ".")
-		targetTimeUnix, err := strconv.Atoi(parts[0])
+		parts = strings.Split(parts[0], "-")
+		targetTimeUnix, err := strconv.Atoi(parts[1])
 		if err != nil {
 			logging.WithFields(logrus.Fields{
 				"error":    err.Error(),
