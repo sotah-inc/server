@@ -220,6 +220,10 @@ func (sto store) startCollector(c config, regs []region, stas statuses, collectO
 	logging.Info("Starting auctions-intake collector")
 
 	for {
+		if true {
+			break
+		}
+
 		aiRequest := auctionsIntakeRequest{RegionRealmTimestamps: intakeRequestData{}}
 		for _, reg := range regs {
 			aiRequest.RegionRealmTimestamps[reg.Name] = map[blizzard.RealmSlug]int64{}
