@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"path/filepath"
 	"time"
@@ -86,7 +85,7 @@ func (ladBase liveAuctionsDatabase) getMiniauctions() (miniAuctionList, error) {
 				"bucket-name": string(liveAuctionsBucketName()),
 			}).Error("Live-auctions bucket not found")
 
-			return errors.New("Bucket not found")
+			return nil
 		}
 
 		var err error
