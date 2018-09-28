@@ -118,29 +118,20 @@ func (request ownersQueryRequest) resolve(sta state) (ownersQueryResult, error) 
 		return ownersQueryResult{}, err
 	}
 
-	// resolving items
-	iqResult := itemsQueryResult{Items: itemsQueryItems{}}
-	for _, itemValue := range sta.items {
-		iqResult.Items = append(
-			iqResult.Items,
-			itemsQueryItem{Item: itemValue},
-		)
-	}
-
 	// formatting owners and items into an auctions-query result
-	aqResult := ownersQueryResult{
+	oqResult := ownersQueryResult{
 		Items: make(ownersQueryItems, len(oResult.Owners)),
 	}
 	i := 0
 	for _, ownerValue := range oResult.Owners {
-		aqResult.Items[i] = ownersQueryItem{
+		oqResult.Items[i] = ownersQueryItem{
 			Owner:  ownerValue,
 			Target: ownerValue.NormalizedName,
 		}
 		i++
 	}
 
-	return aqResult, nil
+	return oqResult, nil
 }
 
 func (sta state) listenForOwnersQuery(stop listenStopChan) error {
