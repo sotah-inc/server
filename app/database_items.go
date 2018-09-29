@@ -49,3 +49,80 @@ func newItemsDatabase(c config) (itemsDatabase, error) {
 type itemsDatabase struct {
 	db *bolt.DB
 }
+
+func (idBase itemsDatabase) filterOutExisting(in itemIdsMap) ([]blizzard.ItemID, error) {
+	out := []blizzard.ItemID{}
+
+	err := idBase.db.View(func(tx *bolt.Tx) error {
+		bkt, err := tx.CreateBucketIfNotExists(itemsBucketName())
+		if err != nil {
+			return err
+		}
+
+		for ID := range in {
+			encodedItemsMap := bkt.Get(itemsKeyName(ID))
+			if encodedItemsMap == nil {
+				continue
+			}
+
+			iMap, err := newItemsMapFromGzipped(encodedItemsMap)
+			if err != nil {
+				return err
+			}
+
+			if _, ok := iMap[ID]; ok {
+				continue
+			}
+
+			out = append(out, ID)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return []blizzard.ItemID{}, err
+	}
+
+	return out, nil
+}
+
+func (idBase itemsDatabase) filterOutWithoutItems(in itemIdsMap) ([]blizzard.ItemID, error) {
+	out := []blizzard.ItemID{}
+
+	err := idBase.db.View(func(tx *bolt.Tx) error {
+		bkt, err := tx.CreateBucketIfNotExists(itemsBucketName())
+		if err != nil {
+			return err
+		}
+
+		for ID := range in {
+			encodedItemsMap := bkt.Get(itemsKeyName(ID))
+			if encodedItemsMap == nil {
+				continue
+			}
+
+			iMap, err := newItemsMapFromGzipped(encodedItemsMap)
+			if err != nil {
+				return err
+			}
+
+			itemValue, ok := iMap[ID]
+			if !ok {
+				continue
+			}
+
+			if itemValue.IconURL != "" {
+				continue
+			}
+
+			out = append(out, ID)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return []blizzard.ItemID{}, err
+	}
+
+	return out, nil
+}
