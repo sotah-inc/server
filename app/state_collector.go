@@ -52,7 +52,7 @@ func (sta state) collectRegions(res resolver) {
 		}
 
 		// misc
-		regionItemIDsMap := map[blizzard.ItemID]struct{}{}
+		itemIdsMapValue := map[blizzard.ItemID]struct{}{}
 		irData[reg.Name] = map[blizzard.RealmSlug]int64{}
 
 		// downloading auctions in a region
@@ -70,46 +70,54 @@ func (sta state) collectRegions(res resolver) {
 					"region": reg.Name,
 					"realm":  job.realm.Slug,
 				}).Error("Failed to intake auctions")
+
+				continue
 			}
 
 			irData[reg.Name][job.realm.Slug] = job.lastModified.Unix()
 			for _, ID := range result.itemIds {
-				_, ok := sta.items[ID]
-				if ok {
-					continue
-				}
-
-				regionItemIDsMap[ID] = struct{}{}
+				itemIdsMapValue[ID] = struct{}{}
 			}
 		}
 		logging.WithField("region", reg.Name).Debug("Downloaded region")
 
-		// optionally gathering the list of item IDs for this region
-		if len(regionItemIDsMap) > 0 {
-			regionItemIDs := make([]blizzard.ItemID, len(regionItemIDsMap))
-			i := 0
-			for ID := range regionItemIDsMap {
-				regionItemIDs[i] = ID
-				i++
+		// resolving items
+		err := func() error {
+			newItemIds, err := sta.itemsDatabase.filterOutExisting(itemIdsMapValue)
+			if err != nil {
+				return err
 			}
 
-			// downloading items found in this region
-			logging.WithField("items", len(regionItemIDs)).Info("Fetching items")
-			itemsOut := getItems(regionItemIDs, sta.itemBlacklist, res)
-			for job := range itemsOut {
-				if job.err != nil {
+			iMap, err := sta.itemsDatabase.getItems()
+			if err != nil {
+				return err
+			}
+
+			itemsOut := getItems(newItemIds, sta.itemBlacklist, res)
+			for itemsOutJob := range itemsOut {
+				if itemsOutJob.err != nil {
 					logging.WithFields(logrus.Fields{
-						"error":  job.err.Error(),
-						"region": reg.Name,
-						"item":   job.ID,
+						"error": err.Error(),
+						"ID":    itemsOutJob.ID,
 					}).Error("Failed to fetch item")
 
 					continue
 				}
 
-				sta.items[job.ID] = item{job.item, job.iconURL}
+				iMap[itemsOutJob.ID] = item{itemsOutJob.item, itemsOutJob.iconURL}
 			}
-			logging.WithField("items", len(regionItemIDs)).Debug("Fetched items")
+
+			if err := sta.itemsDatabase.persistItems(iMap); err != nil {
+				return err
+			}
+
+			return nil
+		}()
+		if err != nil {
+			logging.WithFields(logrus.Fields{
+				"error":  err.Error(),
+				"region": reg.Name,
+			}).Error("Failed to process item-ids from batch")
 		}
 	}
 
