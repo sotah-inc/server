@@ -20,7 +20,7 @@ func newState(mess messenger, res resolver) state {
 	return state{
 		messenger:             mess,
 		resolver:              res,
-		regions:               res.config.Regions,
+		regions:               res.config.filterInRegions(res.config.Regions),
 		statuses:              statuses{},
 		auctionIntakeStatuses: map[regionName]map[blizzard.RealmSlug]time.Time{},
 		auctions:              map[regionName]map[blizzard.RealmSlug]miniAuctionList{},

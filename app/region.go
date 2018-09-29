@@ -65,7 +65,7 @@ func (reg region) getStatus(res resolver) (status, error) {
 		}
 	}
 
-	return status{stat, reg, newRealms(reg, stat.Realms)}, nil
+	return status{stat, reg, res.config.filterInRealms(reg, newRealms(reg, stat.Realms))}, nil
 }
 
 func (reg region) databaseDir(parentDirPath string) string {
