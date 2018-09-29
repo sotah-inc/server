@@ -111,22 +111,22 @@ func (sto store) itemIconExists(iconName string) (bool, error) {
 	return true, nil
 }
 
-type syncItemIconStoreJob struct {
+type storeSyncItemIconsJob struct {
 	err      error
 	iconName string
 	iconURL  string
 }
 
-func (sto store) syncItemIcons(iconNames []string, res resolver) (chan syncItemIconStoreJob, error) {
+func (sto store) syncItemIcons(iconNames []string, res resolver) (chan storeSyncItemIconsJob, error) {
 	// establishing channels
-	out := make(chan syncItemIconStoreJob)
+	out := make(chan storeSyncItemIconsJob)
 	in := make(chan string)
 
 	// spinning up the workers
 	worker := func() {
 		for iconName := range in {
 			iconURL, err := sto.syncItemIcon(iconName, res)
-			out <- syncItemIconStoreJob{err, iconName, iconURL}
+			out <- storeSyncItemIconsJob{err, iconName, iconURL}
 		}
 	}
 	postWork := func() {
