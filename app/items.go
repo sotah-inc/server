@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -213,6 +214,35 @@ func getItem(ID blizzard.ItemID, res resolver) (blizzard.Item, string, error) {
 	}
 
 	return item, "", nil
+}
+
+type itemIdsMap map[blizzard.ItemID]struct{}
+
+func (idsMap itemIdsMap) itemIds() []blizzard.ItemID {
+	out := []blizzard.ItemID{}
+	for ID := range idsMap {
+		out = append(out, ID)
+	}
+
+	return out
+}
+
+func newItemsMapFromGzipped(body []byte) (itemsMap, error) {
+	gzipDecodedData, err := util.GzipDecode(body)
+	if err != nil {
+		return itemsMap{}, err
+	}
+
+	return newItemsMap(gzipDecodedData)
+}
+
+func newItemsMap(body []byte) (itemsMap, error) {
+	iMap := &itemsMap{}
+	if err := json.Unmarshal(body, iMap); err != nil {
+		return nil, err
+	}
+
+	return *iMap, nil
 }
 
 type itemsMap map[blizzard.ItemID]item
