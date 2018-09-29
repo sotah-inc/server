@@ -37,6 +37,7 @@ type state struct {
 	listeners                 listeners
 	pricelistHistoryDatabases pricelistHistoryDatabases
 	liveAuctionsDatabases     liveAuctionsDatabases
+	itemsDatabase             itemsDatabase
 	sessionSecret             uuid.Uuid
 
 	regions               []region

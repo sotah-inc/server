@@ -13,6 +13,24 @@ import (
 	"github.com/twinj/uuid"
 )
 
+func apiCacheDirs(c config, regions regionList) ([]string, error) {
+	databaseDir, err := c.databaseDir()
+	if err != nil {
+		return nil, err
+	}
+
+	cacheDirs := []string{databaseDir}
+	if !c.UseGCloudStorage {
+		cacheDirs = append(cacheDirs, fmt.Sprintf("%s/auctions", c.CacheDir))
+
+		for _, reg := range regions {
+			cacheDirs = append(cacheDirs, fmt.Sprintf("%s/auctions/%s", c.CacheDir, reg.Name))
+		}
+	}
+
+	return cacheDirs, nil
+}
+
 func api(c config, m messenger, s store) error {
 	logging.Info("Starting api")
 
@@ -24,19 +42,24 @@ func api(c config, m messenger, s store) error {
 	sta.sessionSecret = uuid.NewV4()
 
 	// ensuring cache-dirs exist
-	cacheDirs := []string{
-		fmt.Sprintf("%s/auctions", c.CacheDir),
-		fmt.Sprintf("%s/items", c.CacheDir),
+	cacheDirs, err := apiCacheDirs(c, sta.regions)
+	if err != nil {
+		return err
 	}
-	for _, reg := range c.filterInRegions(sta.regions) {
-		cacheDirs = append(cacheDirs, fmt.Sprintf("%s/auctions/%s", c.CacheDir, reg.Name))
-	}
+
 	if err := util.EnsureDirsExist(cacheDirs); err != nil {
 		return err
 	}
 
+	// loading up items database
+	idBase, err := newItemsDatabase(c)
+	if err != nil {
+		return err
+	}
+	sta.itemsDatabase = idBase
+
 	// filling state with region statuses
-	for _, reg := range c.filterInRegions(sta.regions) {
+	for _, reg := range sta.regions {
 		regionStatus, err := reg.getStatus(res)
 		if err != nil {
 			logging.WithFields(logrus.Fields{
@@ -47,26 +70,8 @@ func api(c config, m messenger, s store) error {
 			return err
 		}
 
-		regionStatus.Realms = c.filterInRealms(reg, regionStatus.Realms)
+		regionStatus.Realms = regionStatus.Realms
 		sta.statuses[reg.Name] = regionStatus
-	}
-
-	// loading up items
-	loadedItems, err := loadItemsFromFilecache(*res.config)
-	if err != nil {
-		return err
-	}
-	for job := range loadedItems {
-		if job.err != nil {
-			logging.WithFields(logrus.Fields{
-				"error":    job.err.Error(),
-				"filepath": job.filepath,
-			}).Error("Failed to load item")
-
-			return job.err
-		}
-
-		sta.items[job.item.ID] = item{job.item, job.iconURL}
 	}
 
 	// gathering item-classes
@@ -74,14 +79,17 @@ func api(c config, m messenger, s store) error {
 	if err != nil {
 		return err
 	}
+
 	uri, err := res.appendAPIKey(res.getItemClassesURL(primaryRegion.Hostname))
 	if err != nil {
 		return err
 	}
+
 	iClasses, resp, err := blizzard.NewItemClassesFromHTTP(uri)
 	if err != nil {
 		return err
 	}
+
 	sta.itemClasses = iClasses
 	if err := sta.messenger.publishPlanMetaMetric(resp); err != nil {
 		return err
