@@ -279,6 +279,20 @@ func (iMap itemsMap) getItemIconsMap(excludeWithURL bool) itemIconItemIdsMap {
 	return iconsMap
 }
 
+func (iMap itemsMap) encodeForDatabase() ([]byte, error) {
+	jsonEncodedData, err := json.Marshal(iMap)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	gzipEncodedData, err := util.GzipEncode(jsonEncodedData)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return gzipEncodedData, nil
+}
+
 type item struct {
 	blizzard.Item
 
