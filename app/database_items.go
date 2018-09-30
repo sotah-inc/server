@@ -8,7 +8,7 @@ import (
 	"github.com/boltdb/bolt"
 )
 
-func itemsBucketName() []byte {
+func databaseItemsBucketName() []byte {
 	return []byte("items")
 }
 
@@ -54,7 +54,7 @@ func (idBase itemsDatabase) filterOutExisting(in itemIdsMap) ([]blizzard.ItemID,
 	out := []blizzard.ItemID{}
 
 	err := idBase.db.View(func(tx *bolt.Tx) error {
-		bkt, err := tx.CreateBucketIfNotExists(itemsBucketName())
+		bkt, err := tx.CreateBucketIfNotExists(databaseItemsBucketName())
 		if err != nil {
 			return err
 		}
@@ -90,7 +90,7 @@ func (idBase itemsDatabase) filterOutWithoutIcons(in itemIdsMap) ([]blizzard.Ite
 	out := []blizzard.ItemID{}
 
 	err := idBase.db.View(func(tx *bolt.Tx) error {
-		bkt, err := tx.CreateBucketIfNotExists(itemsBucketName())
+		bkt, err := tx.CreateBucketIfNotExists(databaseItemsBucketName())
 		if err != nil {
 			return err
 		}
@@ -131,7 +131,7 @@ func (idBase itemsDatabase) getItems() (itemsMap, error) {
 	out := itemsMap{}
 
 	err := idBase.db.View(func(tx *bolt.Tx) error {
-		bkt, err := tx.CreateBucketIfNotExists(itemsBucketName())
+		bkt, err := tx.CreateBucketIfNotExists(databaseItemsBucketName())
 		if err != nil {
 			return err
 		}
@@ -183,7 +183,7 @@ func (idBase itemsDatabase) persistItems(iMap itemsMap) error {
 	imBatch := newItemsMapBatch(iMap)
 
 	err := idBase.db.Batch(func(tx *bolt.Tx) error {
-		bkt, err := tx.CreateBucketIfNotExists(itemsBucketName())
+		bkt, err := tx.CreateBucketIfNotExists(databaseItemsBucketName())
 		if err != nil {
 			return err
 		}

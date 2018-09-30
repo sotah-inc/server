@@ -52,7 +52,7 @@ func (sta state) collectRegions(res resolver) {
 		}
 
 		// misc
-		itemIdsMapValue := map[blizzard.ItemID]struct{}{}
+		receivedItemIds := map[blizzard.ItemID]struct{}{}
 		irData[reg.Name] = map[blizzard.RealmSlug]int64{}
 
 		// downloading auctions in a region
@@ -76,22 +76,31 @@ func (sta state) collectRegions(res resolver) {
 
 			irData[reg.Name][job.realm.Slug] = job.lastModified.Unix()
 			for _, ID := range result.itemIds {
-				itemIdsMapValue[ID] = struct{}{}
+				receivedItemIds[ID] = struct{}{}
 			}
 		}
 		logging.WithField("region", reg.Name).Debug("Downloaded region")
 
 		// resolving items
 		err := func() error {
-			newItemIds, err := sta.itemsDatabase.filterOutExisting(itemIdsMapValue)
-			if err != nil {
-				return err
-			}
-
 			iMap, err := sta.itemsDatabase.getItems()
 			if err != nil {
 				return err
 			}
+
+			newItemIds := func() []blizzard.ItemID {
+				out := []blizzard.ItemID{}
+
+				for ID := range receivedItemIds {
+					if _, ok := iMap[ID]; ok {
+						continue
+					}
+
+					out = append(out, ID)
+				}
+
+				return out
+			}()
 
 			itemsOut := getItems(newItemIds, sta.itemBlacklist, res)
 			for itemsOutJob := range itemsOut {
@@ -104,7 +113,7 @@ func (sta state) collectRegions(res resolver) {
 					continue
 				}
 
-				iMap[itemsOutJob.ID] = item{itemsOutJob.item, itemsOutJob.iconURL}
+				iMap[itemsOutJob.ID] = item{itemsOutJob.item, ""}
 			}
 
 			if err := sta.itemsDatabase.persistItems(iMap); err != nil {

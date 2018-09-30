@@ -11,6 +11,7 @@ import (
 	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/logging"
 	"github.com/ihsw/sotah-server/app/util"
+	"github.com/sirupsen/logrus"
 )
 
 func getItemFilepath(c config, ID blizzard.ItemID) (string, error) {
@@ -76,10 +77,9 @@ func loadItemsFromFilecache(c config) (chan loadItemsJob, error) {
 }
 
 type getItemsJob struct {
-	err     error
-	ID      blizzard.ItemID
-	item    blizzard.Item
-	iconURL string
+	err  error
+	ID   blizzard.ItemID
+	item blizzard.Item
 }
 
 func getItems(IDs []blizzard.ItemID, ibMap itemBlacklistMap, res resolver) chan getItemsJob {
@@ -90,8 +90,8 @@ func getItems(IDs []blizzard.ItemID, ibMap itemBlacklistMap, res resolver) chan 
 	// spinning up the workers for fetching items
 	worker := func() {
 		for ID := range in {
-			itemValue, iconURL, err := getItem(ID, res)
-			out <- getItemsJob{err, ID, itemValue, iconURL}
+			itemValue, err := getItem(ID, res)
+			out <- getItemsJob{err, ID, itemValue}
 		}
 	}
 	postWork := func() {
@@ -115,18 +115,18 @@ func getItems(IDs []blizzard.ItemID, ibMap itemBlacklistMap, res resolver) chan 
 	return out
 }
 
-func getItem(ID blizzard.ItemID, res resolver) (blizzard.Item, string, error) {
+func getItem(ID blizzard.ItemID, res resolver) (blizzard.Item, error) {
 	if res.config == nil {
-		return blizzard.Item{}, "", errors.New("Config cannot be nil")
+		return blizzard.Item{}, errors.New("Config cannot be nil")
 	}
 
 	if res.config.CacheDir == "" {
-		return blizzard.Item{}, "", errors.New("Cache dir cannot be blank")
+		return blizzard.Item{}, errors.New("Cache dir cannot be blank")
 	}
 
 	itemFilepath, err := getItemFilepath(*res.config, ID)
 	if err != nil {
-		return blizzard.Item{}, "", err
+		return blizzard.Item{}, err
 	}
 
 	exists, err := func() (bool, error) {
@@ -141,36 +141,29 @@ func getItem(ID blizzard.ItemID, res resolver) (blizzard.Item, string, error) {
 		return true, nil
 	}()
 	if err != nil {
-		return blizzard.Item{}, "", err
+		return blizzard.Item{}, err
 	}
 
 	if exists {
-		itemValue, err := blizzard.NewItemFromFilepath(itemFilepath)
-		if err != nil {
-			return blizzard.Item{}, "", err
-		}
+		logging.WithFields(logrus.Fields{
+			"item":     ID,
+			"filepath": itemFilepath,
+		}).Debug("Loading item from filepath")
 
-		if res.config.UseGCloudStorage {
-			return res.store.fulfilItemIcon(itemValue, res)
-		}
-
-		return itemValue, "", nil
+		return blizzard.NewItemFromFilepath(itemFilepath)
 	}
 
 	// optionally checking gcloud store
 	if res.config.UseGCloudStorage {
 		exists, err := res.store.itemExists(ID)
 		if err != nil {
-			return blizzard.Item{}, "", err
+			return blizzard.Item{}, err
 		}
 
 		if exists {
-			itemValue, iconURL, err := res.store.loadItem(ID, res)
-			if err != nil {
-				return blizzard.Item{}, "", err
-			}
+			logging.WithField("item", ID).Debug("Loading item from gcloud storage")
 
-			return itemValue, iconURL, nil
+			return blizzard.NewItemFromGcloudObject(res.store.context, res.store.getItemObject(ID))
 		}
 	}
 
@@ -179,41 +172,41 @@ func getItem(ID blizzard.ItemID, res resolver) (blizzard.Item, string, error) {
 	// checking blizzard api
 	primaryRegion, err := res.config.Regions.getPrimaryRegion()
 	if err != nil {
-		return blizzard.Item{}, "", err
+		return blizzard.Item{}, err
 	}
 
 	uri, err := res.appendAPIKey(res.getItemURL(primaryRegion.Hostname, ID))
 	if err != nil {
-		return blizzard.Item{}, "", err
+		return blizzard.Item{}, err
 	}
 
 	item, resp, err := blizzard.NewItemFromHTTP(uri)
 	if err != nil {
-		return blizzard.Item{}, "", err
+		return blizzard.Item{}, err
 	}
 
 	if err := res.messenger.publishPlanMetaMetric(resp); err != nil {
-		return blizzard.Item{}, "", err
+		return blizzard.Item{}, err
 	}
 
 	// writing it back to disk
 	if err := util.WriteFile(itemFilepath, resp.Body); err != nil {
-		return blizzard.Item{}, "", err
+		return blizzard.Item{}, err
 	}
 
 	// optionally writing it back to gcloud store
 	if res.config.UseGCloudStorage {
 		encodedBody, err := util.GzipEncode(resp.Body)
 		if err != nil {
-			return blizzard.Item{}, "", err
+			return blizzard.Item{}, err
 		}
 
 		if err := res.store.writeItem(ID, encodedBody); err != nil {
-			return blizzard.Item{}, "", err
+			return blizzard.Item{}, err
 		}
 	}
 
-	return item, "", nil
+	return item, nil
 }
 
 type itemIdsMap map[blizzard.ItemID]struct{}

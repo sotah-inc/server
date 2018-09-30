@@ -1,12 +1,15 @@
 package blizzard
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"regexp"
 	"strings"
 
+	"cloud.google.com/go/storage"
 	"github.com/ihsw/sotah-server/app/blizzard/itembinds"
 	"github.com/ihsw/sotah-server/app/util"
 )
@@ -20,6 +23,22 @@ func DefaultGetItemURL(regionHostname string, ID ItemID) string {
 
 // GetItemURLFunc defines the expected func signature for generating an item uri
 type GetItemURLFunc func(string, ItemID) string
+
+// NewItemFromGcloudObject fetches json from a gcloud store object
+func NewItemFromGcloudObject(ctx context.Context, obj *storage.ObjectHandle) (Item, error) {
+	reader, err := obj.NewReader(ctx)
+	if err != nil {
+		return Item{}, err
+	}
+	defer reader.Close()
+
+	body, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return Item{}, err
+	}
+
+	return NewItem(body)
+}
 
 // NewItemFromHTTP loads an item from the http api
 func NewItemFromHTTP(uri string) (Item, ResponseMeta, error) {

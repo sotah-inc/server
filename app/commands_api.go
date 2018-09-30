@@ -70,7 +70,6 @@ func api(c config, m messenger, s store) error {
 			return err
 		}
 
-		regionStatus.Realms = regionStatus.Realms
 		sta.statuses[reg.Name] = regionStatus
 	}
 

@@ -94,6 +94,10 @@ func (sto store) itemExists(ID blizzard.ItemID) (bool, error) {
 	return true, nil
 }
 
+func (sto store) getItemObject(ID blizzard.ItemID) *storage.ObjectHandle {
+	return sto.itemsBucket.Object(sto.getItemObjectName(ID))
+}
+
 func (sto store) loadItem(ID blizzard.ItemID, res resolver) (blizzard.Item, string, error) {
 	reader, err := sto.itemsBucket.Object(sto.getItemObjectName(ID)).NewReader(sto.context)
 	if err != nil {
