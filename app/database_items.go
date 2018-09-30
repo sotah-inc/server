@@ -117,8 +117,6 @@ func (idBase itemsDatabase) persistItems(iMap itemsMap) error {
 		}
 
 		for keyspace, batchMap := range imBatch {
-			logging.WithField("batch", len(batchMap)).Debug("Persisting batch")
-
 			encodedItemsMap, err := batchMap.encodeForDatabase()
 			if err != nil {
 				return err
