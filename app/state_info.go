@@ -63,7 +63,12 @@ func (iRequest infoRequest) resolve(sta state) (infoResponse, error) {
 		regValuations[reg.Name] = regValuation
 	}
 
-	return infoResponse{len(sta.items), regValuations}, nil
+	items, err := sta.itemsDatabase.getItems()
+	if err != nil {
+		return infoResponse{}, err
+	}
+
+	return infoResponse{len(items), regValuations}, nil
 }
 
 func (sta state) listenForInfo(stop listenStopChan) error {
