@@ -26,11 +26,14 @@ type itemsRequest struct {
 	ItemIds []blizzard.ItemID `json:"itemIds"`
 }
 
-func (iRequest itemsRequest) resolve(sta state) itemsMap {
-	iMap := itemsMap{}
+func (iRequest itemsRequest) resolve(sta state) (itemsMap, error) {
+	iMap, err := sta.itemsDatabase.getItems()
+	if err != nil {
+		return itemsMap{}, err
+	}
 
 	for _, ID := range iRequest.ItemIds {
-		itemValue, ok := sta.items[ID]
+		itemValue, ok := iMap[ID]
 		if !ok {
 			continue
 		}
@@ -38,7 +41,7 @@ func (iRequest itemsRequest) resolve(sta state) itemsMap {
 		iMap[ID] = itemValue
 	}
 
-	return iMap
+	return iMap, nil
 }
 
 type itemsResponse struct {
@@ -73,7 +76,16 @@ func (sta state) listenForItems(stop listenStopChan) error {
 			return
 		}
 
-		iResponse := itemsResponse{iRequest.resolve(sta)}
+		iMap, err := iRequest.resolve(sta)
+		if err != nil {
+			m.Err = err.Error()
+			m.Code = codes.GenericError
+			sta.messenger.replyTo(natsMsg, m)
+
+			return
+		}
+
+		iResponse := itemsResponse{iMap}
 		data, err := iResponse.encodeForMessage()
 		if err != nil {
 			m.Err = err.Error()

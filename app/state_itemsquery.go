@@ -114,15 +114,16 @@ type itemsQueryRequest struct {
 }
 
 func (request itemsQueryRequest) resolve(sta state) (itemsQueryResult, error) {
-	if sta.items == nil {
-		return itemsQueryResult{}, errors.New("Items were nil")
+	iMap, err := sta.itemsDatabase.getItems()
+	if err != nil {
+		return itemsQueryResult{}, err
 	}
 
 	iqResult := itemsQueryResult{
-		Items: make(itemsQueryItems, len(sta.items)),
+		Items: make(itemsQueryItems, len(iMap)),
 	}
 	i := 0
-	for _, itemValue := range sta.items {
+	for _, itemValue := range iMap {
 		iqResult.Items[i] = itemsQueryItem{Item: itemValue, Target: itemValue.NormalizedName}
 		i++
 	}
