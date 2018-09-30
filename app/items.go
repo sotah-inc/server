@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -18,62 +17,6 @@ func getItemFilepath(c config, ID blizzard.ItemID) (string, error) {
 	return filepath.Abs(
 		fmt.Sprintf("%s/items/%d.json", c.CacheDir, ID),
 	)
-}
-
-type loadItemsJob struct {
-	err      error
-	filepath string
-	item     blizzard.Item
-	iconURL  string
-}
-
-func loadItemsFromFilecache(c config) (chan loadItemsJob, error) {
-	// listing out files in items dir
-	itemsDirPath, err := filepath.Abs(fmt.Sprintf("%s/items", c.CacheDir))
-	if err != nil {
-		return nil, err
-	}
-	itemsFilepaths, err := ioutil.ReadDir(itemsDirPath)
-	if err != nil {
-		return nil, err
-	}
-
-	// establishing channels
-	out := make(chan loadItemsJob)
-	in := make(chan string)
-
-	// spinning up the workers for fetching items
-	worker := func() {
-		for itemFilepath := range in {
-			itemValue, err := blizzard.NewItemFromFilepath(itemFilepath)
-			out <- loadItemsJob{err: err, item: itemValue, filepath: itemFilepath, iconURL: defaultGetItemIconURL(itemValue.Icon)}
-		}
-	}
-	postWork := func() {
-		close(out)
-	}
-	util.Work(8, worker, postWork)
-
-	// queueing up the realms
-	go func() {
-		itemsFilepathCount := len(itemsFilepaths)
-		for i, itemFilepath := range itemsFilepaths {
-			if i == 0 || i%5000 == 0 || i == itemsFilepathCount-1 {
-				logging.WithField("count", i).Debug("Loaded items")
-			}
-
-			filename := itemFilepath.Name()
-			if filename == ".gitkeep" {
-				continue
-			}
-
-			in <- fmt.Sprintf("%s/%s", itemsDirPath, filename)
-		}
-
-		close(in)
-	}()
-
-	return out, nil
 }
 
 type getItemsJob struct {

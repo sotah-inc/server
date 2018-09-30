@@ -98,26 +98,6 @@ func (sto store) getItemObject(ID blizzard.ItemID) *storage.ObjectHandle {
 	return sto.itemsBucket.Object(sto.getItemObjectName(ID))
 }
 
-func (sto store) loadItem(ID blizzard.ItemID, res resolver) (blizzard.Item, string, error) {
-	reader, err := sto.itemsBucket.Object(sto.getItemObjectName(ID)).NewReader(sto.context)
-	if err != nil {
-		return blizzard.Item{}, "", err
-	}
-	defer reader.Close()
-
-	body, err := ioutil.ReadAll(reader)
-	if err != nil {
-		return blizzard.Item{}, "", err
-	}
-
-	itemValue, err := blizzard.NewItem(body)
-	if err != nil {
-		return blizzard.Item{}, "", err
-	}
-
-	return sto.fulfilItemIcon(itemValue, res)
-}
-
 func (sto store) exportItem(ID blizzard.ItemID) ([]byte, error) {
 	reader, err := sto.itemsBucket.Object(sto.getItemObjectName(ID)).NewReader(sto.context)
 	if err != nil {
