@@ -132,12 +132,7 @@ func getItem(ID blizzard.ItemID, res resolver) (blizzard.Item, error) {
 		return blizzard.Item{}, err
 	}
 
-	// writing it back to disk
-	if err := util.WriteFile(itemFilepath, resp.Body); err != nil {
-		return blizzard.Item{}, err
-	}
-
-	// optionally writing it back to gcloud store
+	// optionally writing it back to gcloud store or disk
 	if res.config.UseGCloudStorage {
 		encodedBody, err := util.GzipEncode(resp.Body)
 		if err != nil {
@@ -145,6 +140,10 @@ func getItem(ID blizzard.ItemID, res resolver) (blizzard.Item, error) {
 		}
 
 		if err := res.store.writeItem(ID, encodedBody); err != nil {
+			return blizzard.Item{}, err
+		}
+	} else {
+		if err := util.WriteFile(itemFilepath, resp.Body); err != nil {
 			return blizzard.Item{}, err
 		}
 	}
