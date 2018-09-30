@@ -293,6 +293,7 @@ type item struct {
 }
 
 type itemIds []blizzard.ItemID
+
 type itemIconItemIdsMap map[string]itemIds
 
 func (iconsMap itemIconItemIdsMap) getItemIcons() []string {
