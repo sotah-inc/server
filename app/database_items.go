@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/ihsw/sotah-server/app/blizzard"
+	"github.com/ihsw/sotah-server/app/logging"
 
 	"github.com/boltdb/bolt"
 )
@@ -54,12 +55,12 @@ func (idBase itemsDatabase) getItems() (itemsMap, error) {
 	out := itemsMap{}
 
 	err := idBase.db.View(func(tx *bolt.Tx) error {
-		bkt, err := tx.CreateBucketIfNotExists(databaseItemsBucketName())
-		if err != nil {
-			return err
+		bkt := tx.Bucket(databaseItemsBucketName())
+		if bkt == nil {
+			return nil
 		}
 
-		err = bkt.ForEach(func(k, v []byte) error {
+		err := bkt.ForEach(func(k, v []byte) error {
 			iMap, err := newItemsMapFromGzipped(v)
 			if err != nil {
 				return err
@@ -103,7 +104,11 @@ type itemKeyspace int64
 type itemsMapBatch map[itemKeyspace]itemsMap
 
 func (idBase itemsDatabase) persistItems(iMap itemsMap) error {
+	logging.WithField("items", len(iMap)).Debug("Persisting items")
+
 	imBatch := newItemsMapBatch(iMap)
+
+	logging.WithField("batches", len(imBatch)).Debug("Persisting batches")
 
 	err := idBase.db.Batch(func(tx *bolt.Tx) error {
 		bkt, err := tx.CreateBucketIfNotExists(databaseItemsBucketName())
@@ -111,8 +116,10 @@ func (idBase itemsDatabase) persistItems(iMap itemsMap) error {
 			return err
 		}
 
-		for keyspace, iMap := range imBatch {
-			encodedItemsMap, err := iMap.encodeForDatabase()
+		for keyspace, batchMap := range imBatch {
+			logging.WithField("batch", len(batchMap)).Debug("Persisting batch")
+
+			encodedItemsMap, err := batchMap.encodeForDatabase()
 			if err != nil {
 				return err
 			}
