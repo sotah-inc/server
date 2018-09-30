@@ -27,21 +27,7 @@ type itemsRequest struct {
 }
 
 func (iRequest itemsRequest) resolve(sta state) (itemsMap, error) {
-	iMap, err := sta.itemsDatabase.getItems()
-	if err != nil {
-		return itemsMap{}, err
-	}
-
-	for _, ID := range iRequest.ItemIds {
-		itemValue, ok := iMap[ID]
-		if !ok {
-			continue
-		}
-
-		iMap[ID] = itemValue
-	}
-
-	return iMap, nil
+	return sta.itemsDatabase.findItems(iRequest.ItemIds)
 }
 
 type itemsResponse struct {

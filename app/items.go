@@ -151,6 +151,16 @@ func getItem(ID blizzard.ItemID, res resolver) (blizzard.Item, error) {
 	return item, nil
 }
 
+func newItemIdsMap(IDs []blizzard.ItemID) itemIdsMap {
+	out := itemIdsMap{}
+
+	for _, ID := range IDs {
+		out[ID] = struct{}{}
+	}
+
+	return out
+}
+
 type itemIdsMap map[blizzard.ItemID]struct{}
 
 func (idsMap itemIdsMap) itemIds() []blizzard.ItemID {

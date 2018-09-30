@@ -87,6 +87,58 @@ func (idBase itemsDatabase) getItems() (itemsMap, error) {
 	return out, nil
 }
 
+func (idBase itemsDatabase) findItems(IDs []blizzard.ItemID) (itemsMap, error) {
+	keyspaces := func() []itemKeyspace {
+		result := map[itemKeyspace]struct{}{}
+		for _, ID := range IDs {
+			result[itemIDKeyspace(ID)] = struct{}{}
+		}
+
+		out := []itemKeyspace{}
+		for keyspace := range result {
+			out = append(out, keyspace)
+		}
+
+		return out
+	}()
+
+	IDsMap := newItemIdsMap(IDs)
+	out := itemsMap{}
+	err := idBase.db.View(func(tx *bolt.Tx) error {
+		bkt := tx.Bucket(databaseItemsBucketName())
+		if bkt == nil {
+			return nil
+		}
+
+		for _, keyspace := range keyspaces {
+			value := bkt.Get(itemsKeyName(keyspace))
+			if value == nil {
+				continue
+			}
+
+			iMap, err := newItemsMapFromGzipped(value)
+			if err != nil {
+				return err
+			}
+
+			for ID, itemValue := range iMap {
+				if _, ok := IDsMap[ID]; !ok {
+					continue
+				}
+
+				out[ID] = itemValue
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return itemsMap{}, err
+	}
+
+	return out, nil
+}
+
 func newItemsMapBatch(iMap itemsMap) itemsMapBatch {
 	imBatch := itemsMapBatch{}
 	for ID, itemValue := range iMap {
