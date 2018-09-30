@@ -51,12 +51,12 @@ func newPricelistHistoryDatabases(c config, regs regionList, stas statuses) (pri
 		return pricelistHistoryDatabases{}, err
 	}
 
-	for _, reg := range c.filterInRegions(regs) {
+	for _, reg := range regs {
 		phdBases[reg.Name] = map[blizzard.RealmSlug]pricelistHistoryDatabaseShards{}
 
 		regionDatabaseDir := reg.databaseDir(databaseDir)
 
-		for _, rea := range c.filterInRealms(reg, stas[reg.Name].Realms) {
+		for _, rea := range stas[reg.Name].Realms {
 			phdBases[reg.Name][rea.Slug] = pricelistHistoryDatabaseShards{}
 
 			realmDatabaseDir := rea.databaseDir(regionDatabaseDir)

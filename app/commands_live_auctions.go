@@ -11,6 +11,25 @@ import (
 	"github.com/ihsw/sotah-server/app/util"
 )
 
+func liveAuctionsCacheDirs(c config, regions regionList, stas statuses) ([]string, error) {
+	// ensuring cache-dirs exist
+	databaseDir, err := c.databaseDir()
+	if err != nil {
+		return nil, err
+	}
+	cacheDirs := []string{databaseDir}
+	for _, reg := range regions {
+		regionDatabaseDir := reg.databaseDir(databaseDir)
+		cacheDirs = append(cacheDirs, regionDatabaseDir)
+
+		for _, rea := range stas[reg.Name].Realms {
+			cacheDirs = append(cacheDirs, rea.databaseDir(regionDatabaseDir))
+		}
+	}
+
+	return cacheDirs, nil
+}
+
 func liveAuctions(c config, m messenger, s store) error {
 	logging.Info("Starting live-auctions")
 
@@ -19,55 +38,52 @@ func liveAuctions(c config, m messenger, s store) error {
 	sta := newState(m, res)
 
 	// gathering region-status from the root service
-	regions := []*region{}
-	attempts := 0
-	for {
-		var err error
-		regions, err = newRegionsFromMessenger(m)
-		if err == nil {
-			break
-		} else {
-			logging.WithField("attempts", attempts).Info("Could not fetch regions, retrying in 250ms")
+	logging.Info("Gathering regions")
+	regions, err := func() (regionList, error) {
+		out := regionList{}
+		attempts := 0
+		for {
+			var err error
+			out, err = newRegionsFromMessenger(m)
+			if err == nil {
+				break
+			} else {
+				logging.Info("Could not fetch regions, retrying in 250ms")
 
-			attempts++
-			time.Sleep(250 * time.Millisecond)
+				attempts++
+				time.Sleep(250 * time.Millisecond)
+			}
+
+			if attempts >= 20 {
+				return regionList{}, fmt.Errorf("Failed to fetch regions after %d attempts", attempts)
+			}
 		}
 
-		if attempts >= 20 {
-			return fmt.Errorf("Failed to fetch regions after %d attempts", attempts)
-		}
+		return out, nil
+	}()
+	if err != nil {
+		logging.WithField("error", err.Error()).Error("Failed to fetch regions")
+
+		return err
 	}
 
-	for i, reg := range regions {
-		sta.regions[i] = *reg
-	}
+	sta.regions = c.filterInRegions(regions)
 
 	// filling state with statuses
-	for _, reg := range c.filterInRegions(sta.regions) {
+	for _, reg := range sta.regions {
 		regionStatus, err := newStatusFromMessenger(reg, m)
 		if err != nil {
 			logging.WithField("region", reg.Name).Info("Could not fetch status for region")
 
 			return err
 		}
+
 		regionStatus.Realms = c.filterInRealms(reg, regionStatus.Realms)
 		sta.statuses[reg.Name] = regionStatus
 	}
 
 	// ensuring cache-dirs exist
-	databaseDir, err := c.databaseDir()
-	if err != nil {
-		return err
-	}
-	cacheDirs := []string{databaseDir}
-	for _, reg := range c.filterInRegions(sta.regions) {
-		regionDatabaseDir := reg.databaseDir(databaseDir)
-		cacheDirs = append(cacheDirs, regionDatabaseDir)
-
-		for _, rea := range c.filterInRealms(reg, sta.statuses[reg.Name].Realms) {
-			cacheDirs = append(cacheDirs, rea.databaseDir(regionDatabaseDir))
-		}
-	}
+	cacheDirs, err := liveAuctionsCacheDirs(c, sta.regions, sta.statuses)
 	if err := util.EnsureDirsExist(cacheDirs); err != nil {
 		return err
 	}
@@ -78,24 +94,6 @@ func liveAuctions(c config, m messenger, s store) error {
 		return err
 	}
 	sta.liveAuctionsDatabases = ladBases
-
-	// loading up auctions
-	for _, reg := range c.filterInRegions(sta.regions) {
-		loadedAuctions := c.filterInRealms(reg, sta.statuses[reg.Name].Realms).loadAuctions(&c, s)
-		results := sta.liveAuctionsDatabases.load(loadedAuctions)
-		for result := range results {
-			// setting the realm last-modified
-			for i, statusRealm := range c.filterInRealms(reg, sta.statuses[reg.Name].Realms) {
-				if statusRealm.Slug != result.realm.Slug {
-					continue
-				}
-
-				sta.statuses[reg.Name].Realms[i].LastModified = result.lastModified.Unix()
-
-				break
-			}
-		}
-	}
 
 	// opening all listeners
 	sta.listeners = newListeners(subjectListeners{

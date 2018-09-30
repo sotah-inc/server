@@ -19,28 +19,36 @@ func pruneStore(c config, m messenger, s store) error {
 	sta := newState(m, res)
 
 	// gathering region-status from the root service
-	regions := []*region{}
-	attempts := 0
-	for {
-		var err error
-		regions, err = newRegionsFromMessenger(m)
-		if err == nil {
-			break
-		} else {
-			logging.Info("Could not fetch regions, retrying in 250ms")
+	logging.Info("Gathering regions")
+	regions, err := func() (regionList, error) {
+		out := regionList{}
+		attempts := 0
+		for {
+			var err error
+			out, err = newRegionsFromMessenger(m)
+			if err == nil {
+				break
+			} else {
+				logging.Info("Could not fetch regions, retrying in 250ms")
 
-			attempts++
-			time.Sleep(250 * time.Millisecond)
+				attempts++
+				time.Sleep(250 * time.Millisecond)
+			}
+
+			if attempts >= 20 {
+				return regionList{}, fmt.Errorf("Failed to fetch regions after %d attempts", attempts)
+			}
 		}
 
-		if attempts >= 20 {
-			return fmt.Errorf("Failed to fetch regions after %d attempts", attempts)
-		}
+		return out, nil
+	}()
+	if err != nil {
+		logging.WithField("error", err.Error()).Error("Failed to fetch regions")
+
+		return err
 	}
 
-	for i, reg := range regions {
-		sta.regions[i] = *reg
-	}
+	sta.regions = c.filterInRegions(regions)
 
 	// filling state with statuses
 	for _, reg := range regions {

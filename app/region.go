@@ -24,19 +24,19 @@ func (rl regionList) getPrimaryRegion() (region, error) {
 
 type regionName string
 
-func newRegionsFromMessenger(mess messenger) ([]*region, error) {
+func newRegionsFromMessenger(mess messenger) (regionList, error) {
 	msg, err := mess.request(subjects.Regions, []byte{})
 	if err != nil {
-		return []*region{}, err
+		return regionList{}, err
 	}
 
 	if msg.Code != codes.Ok {
 		return nil, errors.New(msg.Err)
 	}
 
-	regs := []*region{}
+	regs := regionList{}
 	if err := json.Unmarshal([]byte(msg.Data), &regs); err != nil {
-		return []*region{}, err
+		return regionList{}, err
 	}
 
 	return regs, nil
@@ -65,7 +65,7 @@ func (reg region) getStatus(res resolver) (status, error) {
 		}
 	}
 
-	return status{stat, reg, res.config.filterInRealms(reg, newRealms(reg, stat.Realms))}, nil
+	return status{stat, reg, newRealms(reg, stat.Realms)}, nil
 }
 
 func (reg region) databaseDir(parentDirPath string) string {

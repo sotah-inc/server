@@ -129,10 +129,10 @@ func (ladBase liveAuctionsDatabase) stats() (miniAuctionListStats, error) {
 func newLiveAuctionsDatabases(c config, regs regionList, stas statuses) (liveAuctionsDatabases, error) {
 	ladBases := liveAuctionsDatabases{}
 
-	for _, reg := range c.filterInRegions(regs) {
+	for _, reg := range regs {
 		ladBases[reg.Name] = map[blizzard.RealmSlug]liveAuctionsDatabase{}
 
-		for _, rea := range c.filterInRealms(reg, stas[reg.Name].Realms) {
+		for _, rea := range stas[reg.Name].Realms {
 			ladBase, err := newLiveAuctionsDatabase(c, reg, rea)
 			if err != nil {
 				return liveAuctionsDatabases{}, err

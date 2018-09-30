@@ -71,6 +71,7 @@ func api(c config, m messenger, s store) error {
 			return err
 		}
 
+		regionStatus.Realms = c.filterInRealms(reg, regionStatus.Realms)
 		sta.statuses[reg.Name] = regionStatus
 	}
 

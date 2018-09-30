@@ -12,6 +12,25 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+func pricelistHistoriesCacheDirs(c config, regions regionList, stas statuses) ([]string, error) {
+	databaseDir, err := c.databaseDir()
+	if err != nil {
+		return nil, err
+	}
+
+	cacheDirs := []string{databaseDir}
+	for _, reg := range regions {
+		regionDatabaseDir := reg.databaseDir(databaseDir)
+		cacheDirs = append(cacheDirs, regionDatabaseDir)
+
+		for _, rea := range stas[reg.Name].Realms {
+			cacheDirs = append(cacheDirs, rea.databaseDir(regionDatabaseDir))
+		}
+	}
+
+	return cacheDirs, nil
+}
+
 func pricelistHistories(c config, m messenger, s store) error {
 	logging.Info("Starting pricelist-histories")
 
@@ -21,67 +40,72 @@ func pricelistHistories(c config, m messenger, s store) error {
 
 	// gathering region-status from the root service
 	logging.Info("Gathering regions")
-	regions := []*region{}
-	attempts := 0
-	for {
-		var err error
-		regions, err = newRegionsFromMessenger(m)
-		if err == nil {
-			break
-		} else {
-			logging.Info("Could not fetch regions, retrying in 250ms")
+	regions, err := func() (regionList, error) {
+		out := regionList{}
+		attempts := 0
+		for {
+			var err error
+			out, err = newRegionsFromMessenger(m)
+			if err == nil {
+				break
+			} else {
+				logging.Info("Could not fetch regions, retrying in 250ms")
 
-			attempts++
-			time.Sleep(250 * time.Millisecond)
+				attempts++
+				time.Sleep(250 * time.Millisecond)
+			}
+
+			if attempts >= 20 {
+				return regionList{}, fmt.Errorf("Failed to fetch regions after %d attempts", attempts)
+			}
 		}
 
-		if attempts >= 20 {
-			return fmt.Errorf("Failed to fetch regions after %d attempts", attempts)
-		}
+		return out, nil
+	}()
+	if err != nil {
+		logging.WithField("error", err.Error()).Error("Failed to fetch regions")
+
+		return err
 	}
 
-	for i, reg := range regions {
-		sta.regions[i] = *reg
-	}
+	sta.regions = c.filterInRegions(regions)
 
 	// filling state with statuses
 	logging.Info("Gathering statuses")
-	for _, reg := range c.filterInRegions(sta.regions) {
+	for _, reg := range sta.regions {
 		regionStatus, err := newStatusFromMessenger(reg, m)
 		if err != nil {
 			logging.WithField("region", reg.Name).Info("Could not fetch status for region")
 
 			return err
 		}
+		regionStatus.Realms = c.filterInRealms(reg, regionStatus.Realms)
 		sta.statuses[reg.Name] = regionStatus
 	}
 
 	// ensuring cache-dirs exist
 	logging.Info("Ensuring cache-dirs exist")
-	databaseDir, err := c.databaseDir()
+	cacheDirs, err := pricelistHistoriesCacheDirs(c, sta.regions, sta.statuses)
 	if err != nil {
 		return err
 	}
-	cacheDirs := []string{databaseDir}
-	for _, reg := range c.filterInRegions(sta.regions) {
-		regionDatabaseDir := reg.databaseDir(databaseDir)
-		cacheDirs = append(cacheDirs, regionDatabaseDir)
 
-		for _, rea := range c.filterInRealms(reg, sta.statuses[reg.Name].Realms) {
-			cacheDirs = append(cacheDirs, rea.databaseDir(regionDatabaseDir))
-		}
-	}
 	if err := util.EnsureDirsExist(cacheDirs); err != nil {
 		return err
 	}
 
 	// pruning old data
 	logging.Info("Pruning old data")
+	databaseDir, err := c.databaseDir()
+	if err != nil {
+		return err
+	}
+
 	earliestTime := databaseRetentionLimit()
-	for _, reg := range c.filterInRegions(sta.regions) {
+	for _, reg := range sta.regions {
 		regionDatabaseDir := reg.databaseDir(databaseDir)
 
-		for _, rea := range c.filterInRealms(reg, sta.statuses[reg.Name].Realms) {
+		for _, rea := range sta.statuses[reg.Name].Realms {
 			realmDatabaseDir := rea.databaseDir(regionDatabaseDir)
 			dbPaths, err := databasePaths(realmDatabaseDir)
 			if err != nil {

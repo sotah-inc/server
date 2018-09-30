@@ -204,8 +204,8 @@ func (sto store) collectRegionRealms(c config, regs regionList, stas statuses) c
 
 	// queueing up the realms
 	go func() {
-		for _, reg := range c.filterInRegions(regs) {
-			for _, rea := range c.filterInRealms(reg, stas[reg.Name].Realms) {
+		for _, reg := range regs {
+			for _, rea := range stas[reg.Name].Realms {
 				in <- rea
 			}
 		}

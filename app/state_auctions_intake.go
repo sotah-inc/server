@@ -53,11 +53,11 @@ func (aiRequest auctionsIntakeRequest) resolve(sta state) (regionRealmMap, regio
 
 	includedRegionRealms := regionRealmMap{}
 	excludedRegionRealms := regionRealmMap{}
-	for _, reg := range c.filterInRegions(sta.regions) {
+	for _, reg := range sta.regions {
 		includedRegionRealms[reg.Name] = realmMap{map[blizzard.RealmSlug]realmMapValue{}}
 
 		excludedRegionRealms[reg.Name] = realmMap{map[blizzard.RealmSlug]realmMapValue{}}
-		for _, rea := range c.filterInRealms(reg, sta.statuses[reg.Name].Realms) {
+		for _, rea := range sta.statuses[reg.Name].Realms {
 			excludedRegionRealms[reg.Name].values[rea.Slug] = realmMapValue{rea, time.Time{}}
 		}
 	}
