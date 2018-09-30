@@ -103,58 +103,70 @@ func (sta state) collectRegions(res resolver) {
 				return out
 			}()
 
-			logging.WithField("items", len(newItemIds)).Debug("Resolving new items")
+			hasNewResults := false
 
-			itemsOut := getItems(newItemIds, sta.itemBlacklist, res)
-			for itemsOutJob := range itemsOut {
-				if itemsOutJob.err != nil {
-					logging.WithFields(logrus.Fields{
-						"error": itemsOutJob.err.Error(),
-						"ID":    itemsOutJob.ID,
-					}).Error("Failed to fetch item")
+			if len(newItemIds) > 0 {
+				hasNewResults = true
 
-					continue
-				}
+				logging.WithField("items", len(newItemIds)).Debug("Resolving new items")
 
-				iMap[itemsOutJob.ID] = item{itemsOutJob.item, ""}
-			}
-
-			missingItemIcons := iMap.getItemIconsMap(true)
-			logging.WithField("icons", len(missingItemIcons)).Debug("Gathering item icons")
-			if !res.config.UseGCloudStorage {
-				for iconName, IDs := range missingItemIcons {
-					for _, ID := range IDs {
-						itemValue := iMap[ID]
-						itemValue.IconURL = defaultGetItemIconURL(iconName)
-						iMap[ID] = itemValue
-					}
-				}
-			} else {
-				iconSyncJobs, err := res.store.syncItemIcons(missingItemIcons.getItemIcons(), res)
-				if err != nil {
-					return err
-				}
-
-				for iconSyncJob := range iconSyncJobs {
-					if iconSyncJob.err != nil {
+				itemsOut := getItems(newItemIds, sta.itemBlacklist, res)
+				for itemsOutJob := range itemsOut {
+					if itemsOutJob.err != nil {
 						logging.WithFields(logrus.Fields{
-							"error": err.Error(),
-							"icon":  iconSyncJob.iconName,
-						}).Error("Failed to sync item icon")
+							"error": itemsOutJob.err.Error(),
+							"ID":    itemsOutJob.ID,
+						}).Error("Failed to fetch item")
 
 						continue
 					}
 
-					for _, ID := range missingItemIcons[iconSyncJob.iconName] {
-						itemValue := iMap[ID]
-						itemValue.IconURL = iconSyncJob.iconURL
-						iMap[ID] = itemValue
+					iMap[itemsOutJob.ID] = item{itemsOutJob.item, ""}
+				}
+			}
+
+			missingItemIcons := iMap.getItemIconsMap(true)
+			if len(missingItemIcons) > 0 {
+				hasNewResults = true
+
+				logging.WithField("icons", len(missingItemIcons)).Debug("Gathering item icons")
+				if !res.config.UseGCloudStorage {
+					for iconName, IDs := range missingItemIcons {
+						for _, ID := range IDs {
+							itemValue := iMap[ID]
+							itemValue.IconURL = defaultGetItemIconURL(iconName)
+							iMap[ID] = itemValue
+						}
+					}
+				} else {
+					iconSyncJobs, err := res.store.syncItemIcons(missingItemIcons.getItemIcons(), res)
+					if err != nil {
+						return err
+					}
+
+					for iconSyncJob := range iconSyncJobs {
+						if iconSyncJob.err != nil {
+							logging.WithFields(logrus.Fields{
+								"error": err.Error(),
+								"icon":  iconSyncJob.iconName,
+							}).Error("Failed to sync item icon")
+
+							continue
+						}
+
+						for _, ID := range missingItemIcons[iconSyncJob.iconName] {
+							itemValue := iMap[ID]
+							itemValue.IconURL = iconSyncJob.iconURL
+							iMap[ID] = itemValue
+						}
 					}
 				}
 			}
 
-			if err := sta.itemsDatabase.persistItems(iMap); err != nil {
-				return err
+			if hasNewResults {
+				if err := sta.itemsDatabase.persistItems(iMap); err != nil {
+					return err
+				}
 			}
 
 			return nil
