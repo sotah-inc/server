@@ -31,13 +31,6 @@ func TestListenForPricelist(t *testing.T) {
 		return
 	}
 
-	// attaching the auctions to the state
-	sta.auctions = map[regionName]map[blizzard.RealmSlug]miniAuctionList{
-		reg.Name: map[blizzard.RealmSlug]miniAuctionList{
-			rea.Slug: maList,
-		},
-	}
-
 	// setting up a subscriber that will publish pricelists
 	stop := make(chan interface{})
 	err = sta.listenForPriceList(stop)

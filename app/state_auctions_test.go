@@ -32,13 +32,6 @@ func TestListenForAuctions(t *testing.T) {
 		return
 	}
 
-	// attaching the auctions to the state
-	sta.auctions = map[regionName]map[blizzard.RealmSlug]miniAuctionList{
-		reg.Name: map[blizzard.RealmSlug]miniAuctionList{
-			rea.Slug: newMiniAuctionListFromBlizzardAuctions(aucs.Auctions),
-		},
-	}
-
 	// setting up a subscriber that will publish auctions
 	stop := make(chan interface{})
 	err = sta.listenForAuctions(stop)
@@ -84,7 +77,7 @@ func TestListenForSortedAuctions(t *testing.T) {
 	sta.messenger = mess
 
 	// building test auctions
-	aucs, err := blizzard.NewAuctionsFromFilepath("./TestData/auctions.json")
+	_, err = blizzard.NewAuctionsFromFilepath("./TestData/auctions.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -100,13 +93,6 @@ func TestListenForSortedAuctions(t *testing.T) {
 	rea, err := blizzard.NewRealmFromFilepath("./TestData/realm.json")
 	if !assert.Nil(t, err) {
 		return
-	}
-
-	// attaching the auctions to the state
-	sta.auctions = map[regionName]map[blizzard.RealmSlug]miniAuctionList{
-		reg.Name: map[blizzard.RealmSlug]miniAuctionList{
-			rea.Slug: newMiniAuctionListFromBlizzardAuctions(aucs.Auctions),
-		},
 	}
 
 	// setting up a subscriber that will publish auctions
@@ -156,7 +142,7 @@ func TestListenForAuctionsFilteredByOwnerName(t *testing.T) {
 	sta.messenger = mess
 
 	// building test auctions
-	a, err := blizzard.NewAuctionsFromFilepath("./TestData/auctions.json")
+	_, err = blizzard.NewAuctionsFromFilepath("./TestData/auctions.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -172,13 +158,6 @@ func TestListenForAuctionsFilteredByOwnerName(t *testing.T) {
 	rea, err := blizzard.NewRealmFromFilepath("./TestData/realm.json")
 	if !assert.Nil(t, err) {
 		return
-	}
-
-	// attaching the auctions to the state
-	sta.auctions = map[regionName]map[blizzard.RealmSlug]miniAuctionList{
-		reg.Name: map[blizzard.RealmSlug]miniAuctionList{
-			rea.Slug: newMiniAuctionListFromBlizzardAuctions(a.Auctions),
-		},
 	}
 
 	// setting up a subscriber that will publish auctions

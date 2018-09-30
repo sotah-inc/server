@@ -43,13 +43,6 @@ func TestNewMiniAuctionsFromMessenger(t *testing.T) {
 		return
 	}
 
-	// attaching the auctions to the state
-	sta.auctions = map[regionName]map[blizzard.RealmSlug]miniAuctionList{
-		reg.Name: {
-			rea.Slug: newMiniAuctionListFromBlizzardAuctions(aucs.Auctions),
-		},
-	}
-
 	// setting up a subscriber that will publish auctions
 	stop := make(chan interface{})
 	err = sta.listenForAuctions(stop)

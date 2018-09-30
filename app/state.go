@@ -23,7 +23,6 @@ func newState(mess messenger, res resolver) state {
 		regions:               res.config.filterInRegions(res.config.Regions),
 		statuses:              statuses{},
 		auctionIntakeStatuses: map[regionName]map[blizzard.RealmSlug]time.Time{},
-		auctions:              map[regionName]map[blizzard.RealmSlug]miniAuctionList{},
 		expansions:            res.config.Expansions,
 		professions:           res.config.Professions,
 		itemBlacklist:         newItemBlacklistMap(res.config.ItemBlacklist),
@@ -42,7 +41,6 @@ type state struct {
 	regions               []region
 	statuses              statuses
 	auctionIntakeStatuses map[regionName]map[blizzard.RealmSlug]time.Time
-	auctions              map[regionName]map[blizzard.RealmSlug]miniAuctionList
 	itemClasses           blizzard.ItemClasses
 	expansions            []expansion
 	professions           []profession

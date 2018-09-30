@@ -5,7 +5,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/utiltest"
 	"github.com/stretchr/testify/assert"
 )
@@ -133,10 +132,8 @@ func TestListenForStatusToFetch(t *testing.T) {
 		resolver: resolver{
 			getStatusURL: func(regionHostname string) string { return ts.URL },
 		},
-		regions:  []region{reg},
-		auctions: map[regionName]map[blizzard.RealmSlug]miniAuctionList{},
+		regions: []region{reg},
 	}
-	sta.auctions[reg.Name] = map[blizzard.RealmSlug]miniAuctionList{}
 
 	// connecting
 	mess, err := newMessengerFromEnvVars("NATS_HOST", "NATS_PORT")

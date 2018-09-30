@@ -25,7 +25,7 @@ func apiTest(c config, m messenger, s store, dataDir string) error {
 	if err != nil {
 		return err
 	}
-	auc, err := blizzard.NewAuctionsFromFilepath(fmt.Sprintf("%s/auctions.json", dataDirPath))
+	_, err = blizzard.NewAuctionsFromFilepath(fmt.Sprintf("%s/auctions.json", dataDirPath))
 	if err != nil {
 		return err
 	}
@@ -37,7 +37,6 @@ func apiTest(c config, m messenger, s store, dataDir string) error {
 		resolver:  res,
 		regions:   c.Regions,
 		statuses:  map[regionName]status{},
-		auctions:  map[regionName]map[blizzard.RealmSlug]miniAuctionList{},
 	}
 
 	// loading up items database
@@ -54,14 +53,6 @@ func apiTest(c config, m messenger, s store, dataDir string) error {
 			return err
 		}
 		sta.statuses[reg.Name] = status{Status: stat, region: reg, Realms: newRealms(reg, stat.Realms)}
-
-		// loading realm auctions
-		sta.auctions[reg.Name] = map[blizzard.RealmSlug]miniAuctionList{}
-		for _, rea := range stat.Realms {
-			maList := newMiniAuctionListFromBlizzardAuctions(auc.Auctions)
-
-			sta.auctions[reg.Name][rea.Slug] = maList
-		}
 	}
 
 	// opening all listeners

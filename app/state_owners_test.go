@@ -18,7 +18,7 @@ func TestListenForOwners(t *testing.T) {
 	sta.messenger = mess
 
 	// building test auctions
-	a, err := blizzard.NewAuctionsFromFilepath("./TestData/auctions.json")
+	_, err = blizzard.NewAuctionsFromFilepath("./TestData/auctions.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -34,13 +34,6 @@ func TestListenForOwners(t *testing.T) {
 	expectedOwners, err := newOwnersFromFilepath("./TestData/owners.json")
 	if !assert.Nil(t, err) {
 		return
-	}
-
-	// attaching the auctions to the state
-	sta.auctions = map[regionName]map[blizzard.RealmSlug]miniAuctionList{
-		reg.Name: {
-			rea.Slug: newMiniAuctionListFromBlizzardAuctions(a.Auctions),
-		},
 	}
 
 	// setting up a subscriber that will publish auctions
@@ -83,7 +76,7 @@ func TestListenForOwnersFiltered(t *testing.T) {
 	sta.messenger = mess
 
 	// building test auctions
-	a, err := blizzard.NewAuctionsFromFilepath("./TestData/auctions.json")
+	_, err = blizzard.NewAuctionsFromFilepath("./TestData/auctions.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -99,13 +92,6 @@ func TestListenForOwnersFiltered(t *testing.T) {
 	expectedOwners, err := newOwnersFromFilepath("./TestData/owners-filtered.json")
 	if !assert.Nil(t, err) {
 		return
-	}
-
-	// attaching the auctions to the state
-	sta.auctions = map[regionName]map[blizzard.RealmSlug]miniAuctionList{
-		reg.Name: {
-			rea.Slug: newMiniAuctionListFromBlizzardAuctions(a.Auctions),
-		},
 	}
 
 	// setting up a subscriber that will publish auctions
