@@ -1,13 +1,7 @@
 package main
 
 import (
-	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
-
-	"github.com/ihsw/sotah-server/app/logging"
-	"github.com/ihsw/sotah-server/app/util"
 )
 
 const itemIconURLFormat = "https://render-us.worldofwarcraft.com/icons/56/%s.jpg"
@@ -17,76 +11,3 @@ func defaultGetItemIconURL(name string) string {
 }
 
 type getItemIconURLFunc func(string) string
-
-type syncItemIconsJob struct {
-	err  error
-	icon string
-}
-
-func syncItemIcons(icons []string, res resolver) chan syncItemIconsJob {
-	// establishing channels
-	out := make(chan syncItemIconsJob)
-	in := make(chan string)
-
-	// spinning up the workers for fetching items
-	worker := func() {
-		for iconName := range in {
-			err := syncItemIcon(iconName, res)
-			out <- syncItemIconsJob{err: err, icon: iconName}
-		}
-	}
-	postWork := func() {
-		close(out)
-	}
-	util.Work(8, worker, postWork)
-
-	// queueing up the realms
-	go func() {
-		for _, iconName := range icons {
-			in <- iconName
-		}
-
-		close(in)
-	}()
-
-	return out
-}
-
-func syncItemIcon(name string, res resolver) error {
-	if res.config == nil {
-		return errors.New("Config cannot be nil")
-	}
-
-	if res.config.CacheDir == "" {
-		return errors.New("Cache dir cannot be blank")
-	}
-
-	itemIconFilepath, err := filepath.Abs(
-		fmt.Sprintf("%s/item-icons/%s.jpg", res.config.CacheDir, name),
-	)
-	if err != nil {
-		return err
-	}
-
-	if _, err := os.Stat(itemIconFilepath); err != nil {
-		if !os.IsNotExist(err) {
-			return err
-		}
-
-		logging.WithField("name", name).Debug("Fetching item-icon")
-		body, err := util.Download(res.getItemIconURL(name))
-		if err != nil {
-			return err
-		}
-
-		if err := res.messenger.publishBodyIngressMetric(len(body)); err != nil {
-			return err
-		}
-
-		if err := util.WriteFile(itemIconFilepath, body); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
