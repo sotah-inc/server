@@ -12,6 +12,8 @@ import (
 )
 
 func (sta state) startCollector(stopChan workerStopChan, res resolver) workerStopChan {
+	sta.collectRegions(res)
+
 	onStop := make(workerStopChan)
 	go func() {
 		ticker := time.NewTicker(20 * time.Minute)
@@ -80,6 +82,8 @@ func (sta state) collectRegions(res resolver) {
 
 		// resolving items
 		err := func() error {
+			logging.Debug("Fetching items from database")
+
 			iMap, err := sta.itemsDatabase.getItems()
 			if err != nil {
 				return err
@@ -99,11 +103,13 @@ func (sta state) collectRegions(res resolver) {
 				return out
 			}()
 
+			logging.WithField("items", len(newItemIds)).Debug("Resolving new items")
+
 			itemsOut := getItems(newItemIds, sta.itemBlacklist, res)
 			for itemsOutJob := range itemsOut {
 				if itemsOutJob.err != nil {
 					logging.WithFields(logrus.Fields{
-						"error": err.Error(),
+						"error": itemsOutJob.err.Error(),
 						"ID":    itemsOutJob.ID,
 					}).Error("Failed to fetch item")
 
@@ -114,6 +120,7 @@ func (sta state) collectRegions(res resolver) {
 			}
 
 			missingItemIcons := iMap.getItemIconsMap(true)
+			logging.WithField("icons", len(missingItemIcons)).Debug("Gathering item icons")
 			if !res.config.UseGCloudStorage {
 				for iconName, IDs := range missingItemIcons {
 					for _, ID := range IDs {
