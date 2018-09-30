@@ -116,6 +116,39 @@ func (sta state) collectRegions(res resolver) {
 				iMap[itemsOutJob.ID] = item{itemsOutJob.item, ""}
 			}
 
+			missingItemIcons := iMap.getItemIconsMap(true)
+			if !res.config.UseGCloudStorage {
+				for iconName, IDs := range missingItemIcons {
+					for _, ID := range IDs {
+						itemValue := iMap[ID]
+						itemValue.IconURL = defaultGetItemIconURL(iconName)
+						iMap[ID] = itemValue
+					}
+				}
+			} else {
+				iconSyncJobs, err := res.store.syncItemIcons(missingItemIcons.getItemIcons(), res)
+				if err != nil {
+					return err
+				}
+
+				for iconSyncJob := range iconSyncJobs {
+					if iconSyncJob.err != nil {
+						logging.WithFields(logrus.Fields{
+							"error": err.Error(),
+							"icon":  iconSyncJob.iconName,
+						}).Error("Failed to sync item icon")
+
+						continue
+					}
+
+					for _, ID := range missingItemIcons[iconSyncJob.iconName] {
+						itemValue := iMap[ID]
+						itemValue.IconURL = iconSyncJob.iconURL
+						iMap[ID] = itemValue
+					}
+				}
+			}
+
 			if err := sta.itemsDatabase.persistItems(iMap); err != nil {
 				return err
 			}
