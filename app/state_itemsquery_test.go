@@ -3,7 +3,6 @@ package main
 import (
 	"testing"
 
-	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,19 +17,13 @@ func TestListenForItems(t *testing.T) {
 	sta.messenger = mess
 
 	// resolving items
-	result, err := newItemsQueryResultFromFilepath("./TestData/item-list-result.json")
+	_, err = newItemsQueryResultFromFilepath("./TestData/item-list-result.json")
 	if !assert.Nil(t, err) {
 		return
 	}
 	expectedResult, err := newItemsQueryResultFromFilepath("./TestData/item-list-result-sorted.json")
 	if !assert.Nil(t, err) {
 		return
-	}
-
-	// attaching the items to the state
-	sta.items = map[blizzard.ItemID]item{}
-	for _, resultItem := range result.Items {
-		sta.items[resultItem.Item.ID] = resultItem.Item
 	}
 
 	// setting up a subscriber that will publish items
@@ -72,19 +65,13 @@ func TestListenForItemsFiltered(t *testing.T) {
 	sta.messenger = mess
 
 	// resolving items
-	result, err := newItemsQueryResultFromFilepath("./TestData/item-list-result.json")
+	_, err = newItemsQueryResultFromFilepath("./TestData/item-list-result.json")
 	if !assert.Nil(t, err) {
 		return
 	}
 	expectedResult, err := newItemsQueryResultFromFilepath("./TestData/item-list-result-filtered.json")
 	if !assert.Nil(t, err) {
 		return
-	}
-
-	// attaching the items to the state
-	sta.items = map[blizzard.ItemID]item{}
-	for _, resultItem := range result.Items {
-		sta.items[resultItem.Item.ID] = resultItem.Item
 	}
 
 	// setting up a subscriber that will publish items
