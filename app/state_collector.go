@@ -177,7 +177,10 @@ func (sta state) collectRegions(res resolver) {
 		logging.WithField("error", err.Error()).Error("Failed to publish auctions-intake-request")
 	}
 
-	sta.messenger.publishMetric(telegrafMetrics{
+	err = sta.messenger.publishMetric(telegrafMetrics{
 		"collector_duration": int64(time.Now().Unix() - startTime.Unix()),
 	})
+	if err != nil {
+		logging.WithField("error", err.Error()).Error("Failed to publish collector metrics")
+	}
 }
