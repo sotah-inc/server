@@ -12,9 +12,6 @@ import (
 )
 
 func (sta state) startCollector(stopChan workerStopChan, res resolver) workerStopChan {
-	// collecting regions once
-	sta.collectRegions(res)
-
 	onStop := make(workerStopChan)
 	go func() {
 		ticker := time.NewTicker(20 * time.Minute)
