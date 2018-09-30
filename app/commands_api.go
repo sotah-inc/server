@@ -22,6 +22,7 @@ func apiCacheDirs(c config, regions regionList) ([]string, error) {
 	cacheDirs := []string{databaseDir}
 	if !c.UseGCloudStorage {
 		cacheDirs = append(cacheDirs, fmt.Sprintf("%s/auctions", c.CacheDir))
+		cacheDirs = append(cacheDirs, fmt.Sprintf("%s/items", c.CacheDir))
 
 		for _, reg := range regions {
 			cacheDirs = append(cacheDirs, fmt.Sprintf("%s/auctions/%s", c.CacheDir, reg.Name))
