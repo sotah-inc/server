@@ -165,56 +165,17 @@ func (sta state) collectRegions(res resolver) {
 
 	// publishing for intake into live auctions
 	aiRequest := auctionsIntakeRequest{irData}
-	encodedAiRequest, err := json.Marshal(aiRequest)
-	if err != nil {
-		logging.WithField("error", err.Error()).Error("Failed to marshal auctions-intake-request")
-	} else {
-		res.messenger.publish(subjects.AuctionsIntake, encodedAiRequest)
-	}
-
-	// re-syncing all item icons
-	iconsMap := sta.items.getItemIconsMap(true)
-	logging.WithField("items", len(iconsMap)).Info("Syncing item-icons")
-	if res.config.UseGCloudStorage {
-		itemIconsOut, err := res.store.syncItemIcons(iconsMap.getItemIcons(), res)
+	err := func() error {
+		encodedAiRequest, err := json.Marshal(aiRequest)
 		if err != nil {
-			logging.WithField("error", err.Error()).Error("Failed to start syncing item-icons")
-		} else {
-			for job := range itemIconsOut {
-				if job.err != nil {
-					logging.WithFields(logrus.Fields{
-						"error":    job.err.Error(),
-						"iconName": job.iconName,
-					}).Error("Failed to sync item icon")
-
-					continue
-				}
-
-				for _, itemID := range iconsMap[job.iconName] {
-					if sta.items[itemID].IconURL != "" {
-						continue
-					}
-
-					itemValue := sta.items[itemID]
-					itemValue.IconURL = job.iconURL
-					sta.items[itemID] = itemValue
-				}
-			}
+			return err
 		}
-	} else {
-		itemIconsOut := syncItemIcons(iconsMap.getItemIcons(), res)
-		for job := range itemIconsOut {
-			if job.err != nil {
-				logging.WithFields(logrus.Fields{
-					"error": job.err.Error(),
-					"item":  job.icon,
-				}).Error("Failed to sync item icon")
 
-				continue
-			}
-		}
+		return res.messenger.publish(subjects.AuctionsIntake, encodedAiRequest)
+	}()
+	if err != nil {
+		logging.WithField("error", err.Error()).Error("Failed to publish auctions-intake-request")
 	}
-	logging.WithField("items", len(iconsMap)).Info("Synced item-icons")
 
 	sta.messenger.publishMetric(telegrafMetrics{
 		"collector_duration": int64(time.Now().Unix() - startTime.Unix()),
