@@ -95,7 +95,6 @@ func pricelistHistories(c config, m messenger, s store) error {
 	}
 
 	// pruning old data
-	logging.Info("Pruning old data")
 	databaseDir, err := c.databaseDir()
 	if err != nil {
 		return err
@@ -120,6 +119,10 @@ func pricelistHistories(c config, m messenger, s store) error {
 				if dbPathPair.targetTime.After(earliestTime) {
 					continue
 				}
+
+				logging.WithFields(logrus.Fields{
+					"pathname": dbPathPair.fullPath,
+				}).Debug("Pruning old pricelist-history database file")
 
 				if err := os.Remove(dbPathPair.fullPath); err != nil {
 					logging.WithFields(logrus.Fields{
