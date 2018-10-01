@@ -142,10 +142,10 @@ func getItem(ID blizzard.ItemID, res resolver) (blizzard.Item, error) {
 		if err := res.store.writeItem(ID, encodedBody); err != nil {
 			return blizzard.Item{}, err
 		}
-	} else {
-		if err := util.WriteFile(itemFilepath, resp.Body); err != nil {
-			return blizzard.Item{}, err
-		}
+	}
+
+	if err := util.WriteFile(itemFilepath, resp.Body); err != nil {
+		return blizzard.Item{}, err
 	}
 
 	return item, nil
