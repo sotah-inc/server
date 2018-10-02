@@ -144,9 +144,13 @@ func (aiRequest auctionsIntakeRequest) handle(sta state, loadIn chan loadAuction
 		}).Debug("Finished loading auctions")
 	}
 
-	logging.WithFields(logrus.Fields{"included_realms": includedRealmCount}).Info("Processed all realms")
+	duration := time.Now().Unix() - startTime.Unix()
+	logging.WithFields(logrus.Fields{
+		"included_realms": includedRealmCount,
+		"duration":        duration,
+	}).Info("Processed all realms")
 	sta.messenger.publishMetric(telegrafMetrics{
-		"pricelists_intake_duration": int64(time.Now().Unix() - startTime.Unix()),
+		"pricelists_intake_duration": int64(duration),
 	})
 }
 
