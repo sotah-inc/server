@@ -157,6 +157,9 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 		for {
 			aiRequest := <-in
 
+			// misc
+			startTime := time.Now()
+
 			includedRegionRealms, excludedRegionRealms, err := aiRequest.resolve(sta)
 			if err != nil {
 				logging.WithField("error", err.Error()).Error("Failed to resolve auctions-intake-request")
@@ -183,9 +186,6 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 				"total_realms":    totalRealms,
 			}).Info("Handling auctions-intake-request")
 
-			// misc
-			startTime := time.Now()
-
 			// metrics
 			totalPreviousAuctions := 0
 			totalRemovedAuctions := 0
@@ -196,39 +196,34 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 
 			// gathering the total number of auctions pre-intake
 			logging.Info("Going over all auctions to for pre-intake metrics")
-			for _, reg := range sta.regions {
-				for _, rea := range sta.statuses[reg.Name].Realms {
-					malStats, err := sta.liveAuctionsDatabases[reg.Name][rea.Slug].stats()
-					if err != nil {
-						logging.WithFields(logrus.Fields{
-							"region": reg.Name,
-							"realm":  rea.Slug,
-						}).Error("Failed to fetch auctions from live-auctions database")
+			for statsJob := range sta.liveAuctionsDatabases.getStats(nil) {
+				if statsJob.err != nil {
+					logging.WithFields(logrus.Fields{
+						"error":  statsJob.err.Error(),
+						"region": statsJob.realm.region.Name,
+						"realm":  statsJob.realm.Slug,
+					}).Error("Failed to fetch stats from live-auctions database")
 
-						continue
-					}
-
-					totalPreviousAuctions += malStats.totalAuctions
+					continue
 				}
+
+				totalPreviousAuctions += statsJob.stats.totalAuctions
 			}
-			for rName, regionRealms := range excludedRegionRealms {
-				for rSlug := range regionRealms.values {
-					malStats, err := sta.liveAuctionsDatabases[rName][rSlug].stats()
-					if err != nil {
-						logging.WithFields(logrus.Fields{
-							"error":  err.Error(),
-							"region": rName,
-							"realm":  rSlug,
-						}).Error("Failed to gather live-auctions stats")
+			for statsJob := range sta.liveAuctionsDatabases.getStats(excludedRegionRealms) {
+				if statsJob.err != nil {
+					logging.WithFields(logrus.Fields{
+						"error":  statsJob.err.Error(),
+						"region": statsJob.realm.region.Name,
+						"realm":  statsJob.realm.Slug,
+					}).Error("Failed to fetch stats from live-auctions database")
 
-						continue
-					}
+					continue
+				}
 
-					totalAuctions += malStats.totalAuctions
-					totalOwners += len(malStats.ownerNames)
-					for _, ID := range malStats.itemIds {
-						currentItemIds[ID] = struct{}{}
-					}
+				totalAuctions += statsJob.stats.totalAuctions
+				totalOwners += len(statsJob.stats.ownerNames)
+				for _, ID := range statsJob.stats.itemIds {
+					currentItemIds[ID] = struct{}{}
 				}
 			}
 
@@ -260,13 +255,22 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 				}).Debug("Finished loading auctions")
 			}
 
+			duration := time.Now().Unix() - startTime.Unix()
+
 			logging.WithFields(logrus.Fields{
-				"total_realms":    totalRealms,
-				"included_realms": includedRealmCount,
-				"excluded_realms": excludedRealmCount,
+				"total_realms":             totalRealms,
+				"included_realms":          includedRealmCount,
+				"excluded_realms":          excludedRealmCount,
+				"auctions_intake_duration": duration,
+				"total_auctions":           totalAuctions,
+				"total_previous_auctions":  totalPreviousAuctions,
+				"total_new_auctions":       totalNewAuctions,
+				"total_removed_auctions":   totalRemovedAuctions,
+				"current_owner_count":      totalOwners,
+				"current_item_count":       len(currentItemIds),
 			}).Info("Processed all realms")
 			sta.messenger.publishMetric(telegrafMetrics{
-				"auctions_intake_duration": int64(time.Now().Unix() - startTime.Unix()),
+				"auctions_intake_duration": int64(duration),
 				"intake_count":             int64(includedRealmCount),
 				"total_auctions":           int64(totalAuctions),
 				"total_previous_auctions":  int64(totalPreviousAuctions),

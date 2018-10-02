@@ -38,11 +38,12 @@ func newLiveAuctionsDatabase(c config, reg region, rea realm) (liveAuctionsDatab
 		return liveAuctionsDatabase{}, err
 	}
 
-	return liveAuctionsDatabase{db}, nil
+	return liveAuctionsDatabase{db, rea}, nil
 }
 
 type liveAuctionsDatabase struct {
-	db *bolt.DB
+	db    *bolt.DB
+	realm realm
 }
 
 func (ladBase liveAuctionsDatabase) persistMiniauctions(maList miniAuctionList) error {
@@ -232,6 +233,62 @@ func (ladBases liveAuctionsDatabases) load(in chan loadAuctionsJob) chan liveAuc
 		close(out)
 	}
 	util.Work(4, worker, postWork)
+
+	return out
+}
+
+type getAllStatsJob struct {
+	err   error
+	realm realm
+	stats miniAuctionListStats
+}
+
+func (ladBases liveAuctionsDatabases) getStats(wList regionRealmMap) chan getAllStatsJob {
+	in := make(chan liveAuctionsDatabase)
+	out := make(chan getAllStatsJob)
+
+	worker := func() {
+		for ladBase := range in {
+			stats, err := ladBase.stats()
+			out <- getAllStatsJob{err, ladBase.realm, stats}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(4, worker, postWork)
+
+	go func() {
+		for rName, realmLiveAuctionDatabases := range ladBases {
+			realmWhitelist, ok := func() (realmMap, bool) {
+				if wList == nil {
+					return realmMap{}, true
+				}
+
+				out, ok := wList[rName]
+				if !ok {
+					return realmMap{}, false
+				}
+
+				return out, true
+			}()
+			if !ok {
+				continue
+			}
+
+			for rSlug, ladBase := range realmLiveAuctionDatabases {
+				if wList != nil {
+					if _, ok := realmWhitelist.values[rSlug]; !ok {
+						continue
+					}
+				}
+
+				in <- ladBase
+			}
+		}
+
+		close(in)
+	}()
 
 	return out
 }

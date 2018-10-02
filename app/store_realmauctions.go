@@ -349,7 +349,7 @@ func (sto store) loadRegionRealmMap(rMap realmMap) chan loadAuctionsJob {
 	postWork := func() {
 		close(out)
 	}
-	util.Work(1, worker, postWork)
+	util.Work(4, worker, postWork)
 
 	// queueing up the realms
 	go func() {
