@@ -14,29 +14,15 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 	// declaring a channel for queueing up pricelist-intake requests from the listener
 	listenerIn := make(chan auctionsIntakeRequest, 10)
 
-	// optionally spinning up a collector for producing pricelist-intake requests from gcloud store
-	collectorIn := make(chan auctionsIntakeRequest, 10)
-	if sta.resolver.config.UseGCloudStorage {
-		go sta.resolver.store.startCollector(*sta.resolver.config, sta.regions, sta.statuses, collectorIn)
-	}
-
-	// spinning up a worker for multiplexing pricelist-intake requests (be it from listener or collector) into the loader
+	// spinning up a worker for pricelist-intake requests
 	go func() {
 		for {
 			aiRequest := <-listenerIn
-			logging.WithField("buffer-size", len(collectorIn)).Info("Queueing up auctions-intake-request from the listener")
-
-			collectorIn <- aiRequest
-		}
-	}()
-	go func() {
-		for {
-			aiRequest := <-collectorIn
-			logging.Info("Handling auctions-intake-request from the collector")
+			logging.Info("Handling auctions-intake-request from the listener")
 
 			aiRequest.handle(sta, loadIn)
 
-			logging.Info("Finished handling auctions-intake-request from the collector")
+			logging.Info("Finished handling auctions-intake-request from the listener")
 		}
 	}()
 
