@@ -232,7 +232,7 @@ func (ladBases liveAuctionsDatabases) load(in chan loadAuctionsJob) chan liveAuc
 	postWork := func() {
 		close(out)
 	}
-	util.Work(4, worker, postWork)
+	util.Work(2, worker, postWork)
 
 	return out
 }
@@ -256,7 +256,7 @@ func (ladBases liveAuctionsDatabases) getStats(wList regionRealmMap) chan getAll
 	postWork := func() {
 		close(out)
 	}
-	util.Work(4, worker, postWork)
+	util.Work(2, worker, postWork)
 
 	go func() {
 		for rName, realmLiveAuctionDatabases := range ladBases {
