@@ -8,9 +8,6 @@ import (
 )
 
 func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
-	// spinning up a loader for handling pricelist-intake requests
-	loadIn := sta.pricelistHistoryDatabases.startLoader(*sta.resolver.config, sta.resolver.store)
-
 	// declaring a channel for queueing up pricelist-intake requests from the listener
 	listenerIn := make(chan auctionsIntakeRequest, 10)
 
@@ -20,7 +17,7 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 			aiRequest := <-listenerIn
 			logging.Info("Handling auctions-intake-request from the listener")
 
-			aiRequest.handle(sta, loadIn)
+			aiRequest.handle(sta)
 
 			logging.Info("Finished handling auctions-intake-request from the listener")
 		}

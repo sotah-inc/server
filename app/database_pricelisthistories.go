@@ -97,8 +97,7 @@ func (phdBases pricelistHistoryDatabases) resolveDatabaseFromLoadAuctionsJob(c c
 	return phdBase, nil
 }
 
-func (phdBases pricelistHistoryDatabases) startLoader(c config, sto store) chan loadAuctionsJob {
-	in := make(chan loadAuctionsJob)
+func (phdBases pricelistHistoryDatabases) load(in chan loadAuctionsJob, c config, sto store) {
 	worker := func() {
 		for job := range in {
 			if job.err != nil {
@@ -137,8 +136,6 @@ func (phdBases pricelistHistoryDatabases) startLoader(c config, sto store) chan 
 		return
 	}
 	util.Work(2, worker, postWork)
-
-	return in
 }
 
 func (phdBases pricelistHistoryDatabases) pruneDatabases() error {

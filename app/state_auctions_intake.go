@@ -78,7 +78,7 @@ func (aiRequest auctionsIntakeRequest) resolve(sta state) (regionRealmMap, regio
 	return includedRegionRealms, excludedRegionRealms, nil
 }
 
-func (aiRequest auctionsIntakeRequest) handle(sta state, loadIn chan loadAuctionsJob) {
+func (aiRequest auctionsIntakeRequest) handle(sta state) {
 	// resolving included and excluded region realms
 	includedRegionRealms, excludedRegionRealms, err := aiRequest.resolve(sta)
 	if err != nil {
@@ -125,19 +125,7 @@ func (aiRequest auctionsIntakeRequest) handle(sta state, loadIn chan loadAuction
 
 			return rMap.toRealms().loadAuctionsFromCacheDir(sta.resolver.config)
 		}()
-		for job := range loadedAuctions {
-			if job.err != nil {
-				logging.WithFields(logrus.Fields{
-					"error":  err.Error(),
-					"region": job.realm.region.Name,
-					"realm":  job.realm.Slug,
-				}).Error("Failed to load auctions")
-
-				continue
-			}
-
-			loadIn <- job
-		}
+		sta.pricelistHistoryDatabases.load(loadedAuctions, *sta.resolver.config, sta.resolver.store)
 		logging.WithFields(logrus.Fields{
 			"region": rName,
 			"realms": len(rMap.values),
