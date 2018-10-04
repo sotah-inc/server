@@ -41,15 +41,17 @@ func newPriceListHistoryRequest(payload []byte) (priceListHistoryRequest, error)
 }
 
 type priceListHistoryRequest struct {
-	RegionName regionName         `json:"region_name"`
-	RealmSlug  blizzard.RealmSlug `json:"realm_slug"`
-	ItemIds    []blizzard.ItemID  `json:"item_ids"`
+	RegionName  regionName         `json:"region_name"`
+	RealmSlug   blizzard.RealmSlug `json:"realm_slug"`
+	ItemIds     []blizzard.ItemID  `json:"item_ids"`
+	LowerBounds int64              `json:"lower_bounds"`
+	UpperBounds int64              `json:"upper_bounds"`
 }
 
 func (plhRequest priceListHistoryRequest) resolve(sta state) (realm, pricelistHistoryDatabaseShards, requestError) {
 	regionStatuses, ok := sta.statuses[plhRequest.RegionName]
 	if !ok {
-		return realm{}, pricelistHistoryDatabaseShards{}, requestError{codes.NotFound, "Invalid region"}
+		return realm{}, pricelistHistoryDatabaseShards{}, requestError{codes.NotFound, "Invalid region (statuses)"}
 	}
 	rea := func() *realm {
 		for _, regionRealm := range regionStatuses.Realms {
@@ -61,15 +63,40 @@ func (plhRequest priceListHistoryRequest) resolve(sta state) (realm, pricelistHi
 		return nil
 	}()
 	if rea == nil {
-		return realm{}, pricelistHistoryDatabaseShards{}, requestError{codes.NotFound, "Invalid realm"}
+		return realm{}, pricelistHistoryDatabaseShards{}, requestError{codes.NotFound, "Invalid realm (statuses)"}
 	}
 
-	phdShards, ok := sta.pricelistHistoryDatabases[plhRequest.RegionName][plhRequest.RealmSlug]
-	if !ok {
-		return realm{}, pricelistHistoryDatabaseShards{}, requestError{codes.NotFound, "Invalid region"}
-	}
+	phdShards, reErr := func() (pricelistHistoryDatabaseShards, requestError) {
+		regionShards, ok := sta.pricelistHistoryDatabases[plhRequest.RegionName]
+		if !ok {
+			return pricelistHistoryDatabaseShards{}, requestError{codes.NotFound, "Invalid region (pricelist-history databases)"}
+		}
 
-	return *rea, phdShards, requestError{codes.Ok, ""}
+		realmShards, ok := regionShards[plhRequest.RealmSlug]
+		if !ok {
+			return pricelistHistoryDatabaseShards{}, requestError{codes.NotFound, "Invalid realm (pricelist-histories)"}
+		}
+
+		out := pricelistHistoryDatabaseShards{}
+		for phdTimestamp, phdBase := range realmShards {
+			if int64(phdTimestamp) < plhRequest.LowerBounds {
+				continue
+			}
+			if int64(phdTimestamp) > plhRequest.UpperBounds {
+				continue
+			}
+
+			out[phdTimestamp] = phdBase
+		}
+
+		if len(out) == 0 {
+			return pricelistHistoryDatabaseShards{}, requestError{codes.UserError, "Out of bounds"}
+		}
+
+		return out, requestError{codes.Ok, ""}
+	}()
+
+	return *rea, phdShards, reErr
 }
 
 func (sta state) listenForPriceListHistory(stop listenStopChan) error {
