@@ -97,7 +97,9 @@ func (phdBases pricelistHistoryDatabases) resolveDatabaseFromLoadAuctionsJob(c c
 	return phdBase, nil
 }
 
-func (phdBases pricelistHistoryDatabases) load(in chan loadAuctionsJob, c config, sto store) {
+func (phdBases pricelistHistoryDatabases) load(in chan loadAuctionsJob, c config, sto store) chan struct{} {
+	done := make(chan struct{})
+
 	worker := func() {
 		for job := range in {
 			if job.err != nil {
@@ -133,9 +135,13 @@ func (phdBases pricelistHistoryDatabases) load(in chan loadAuctionsJob, c config
 		}
 	}
 	postWork := func() {
+		done <- struct{}{}
+
 		return
 	}
 	util.Work(2, worker, postWork)
+
+	return done
 }
 
 func (phdBases pricelistHistoryDatabases) pruneDatabases() error {

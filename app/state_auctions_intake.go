@@ -125,7 +125,9 @@ func (aiRequest auctionsIntakeRequest) handle(sta state) {
 
 			return rMap.toRealms().loadAuctionsFromCacheDir(sta.resolver.config)
 		}()
-		sta.pricelistHistoryDatabases.load(loadedAuctions, *sta.resolver.config, sta.resolver.store)
+		done := sta.pricelistHistoryDatabases.load(loadedAuctions, *sta.resolver.config, sta.resolver.store)
+		<-done
+
 		logging.WithFields(logrus.Fields{
 			"region": rName,
 			"realms": len(rMap.values),
