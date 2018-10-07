@@ -223,7 +223,11 @@ func (phdBases pricelistHistoryDatabases) startPruner(stopChan workerStopChan) w
 
 type pricelistHistoryDatabaseShards map[unixTimestamp]pricelistHistoryDatabase
 
-func (phdShards pricelistHistoryDatabaseShards) getPricelistHistory(rea realm, ID blizzard.ItemID) (priceListHistory, error) {
+func (phdShards pricelistHistoryDatabaseShards) getPricelistHistory(
+	rea realm, ID blizzard.ItemID,
+	lowerBounds time.Time,
+	upperBounds time.Time,
+) (priceListHistory, error) {
 	plHistory := priceListHistory{}
 
 	for _, phdBase := range phdShards {
@@ -232,8 +236,15 @@ func (phdShards pricelistHistoryDatabaseShards) getPricelistHistory(rea realm, I
 			return priceListHistory{}, err
 		}
 
-		for unixTimestamp, pricesValue := range receivedHistory {
-			plHistory[unixTimestamp] = pricesValue
+		for uTimestamp, pricesValue := range receivedHistory {
+			if int64(uTimestamp) < lowerBounds.Unix() {
+				continue
+			}
+			if int64(uTimestamp) > upperBounds.Unix() {
+				continue
+			}
+
+			plHistory[uTimestamp] = pricesValue
 		}
 	}
 

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/base64"
 	"encoding/json"
+	"time"
 
 	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/ihsw/sotah-server/app/codes"
@@ -77,23 +78,7 @@ func (plhRequest priceListHistoryRequest) resolve(sta state) (realm, pricelistHi
 			return pricelistHistoryDatabaseShards{}, requestError{codes.NotFound, "Invalid realm (pricelist-histories)"}
 		}
 
-		out := pricelistHistoryDatabaseShards{}
-		for phdTimestamp, phdBase := range realmShards {
-			if int64(phdTimestamp) < plhRequest.LowerBounds {
-				continue
-			}
-			if int64(phdTimestamp) > plhRequest.UpperBounds {
-				continue
-			}
-
-			out[phdTimestamp] = phdBase
-		}
-
-		if len(out) == 0 {
-			return pricelistHistoryDatabaseShards{}, requestError{codes.UserError, "Out of bounds"}
-		}
-
-		return out, requestError{codes.Ok, ""}
+		return realmShards, requestError{codes.Ok, ""}
 	}()
 
 	return *rea, phdShards, reErr
@@ -128,7 +113,12 @@ func (sta state) listenForPriceListHistory(stop listenStopChan) error {
 		// gathering up pricelist history
 		plhResponse := priceListHistoryResponse{History: map[blizzard.ItemID]priceListHistory{}}
 		for _, ID := range plhRequest.ItemIds {
-			plHistory, err := tdMap.getPricelistHistory(rea, ID)
+			plHistory, err := tdMap.getPricelistHistory(
+				rea,
+				ID,
+				time.Unix(plhRequest.LowerBounds, 0),
+				time.Unix(plhRequest.UpperBounds, 0),
+			)
 			if err != nil {
 				m.Err = err.Error()
 				m.Code = codes.GenericError
