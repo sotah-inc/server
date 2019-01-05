@@ -15,7 +15,8 @@ type Client struct {
 	accessToken string
 }
 
-const tokenEndpoint = "https://us.battle.net/oauth/token?grant_type=client_credentials"
+// TokenEndpoint - http endpoint for gathering new oauth access tokens
+const TokenEndpoint = "https://us.battle.net/oauth/token?grant_type=client_credentials"
 
 // NewClient - generates a client used for querying blizz api
 func NewClient(id string, secret string) Client {
@@ -28,10 +29,10 @@ type refreshResponse struct {
 	ExpiresIn   int    `json:"expires_in"`
 }
 
-// Refresh - gathers an access token from the oauth token endpoint
-func (c Client) Refresh() error {
+// RefreshFromHTTP - gathers an access token from the oauth token endpoint
+func (c Client) RefreshFromHTTP(uri string) error {
 	// forming a request
-	req, err := http.NewRequest("GET", tokenEndpoint, nil)
+	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
 		return err
 	}
