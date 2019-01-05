@@ -16,8 +16,8 @@ type Client struct {
 	accessToken string
 }
 
-// TokenEndpoint - http endpoint for gathering new oauth access tokens
-const TokenEndpoint = "https://us.battle.net/oauth/token?grant_type=client_credentials"
+// OAuthTokenEndpoint - http endpoint for gathering new oauth access tokens
+const OAuthTokenEndpoint = "https://us.battle.net/oauth/token?grant_type=client_credentials"
 
 // NewClient - generates a client used for querying blizz api
 func NewClient(id string, secret string) Client {
