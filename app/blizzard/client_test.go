@@ -1,7 +1,6 @@
 package blizzard
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/ihsw/sotah-server/app/utiltest"
@@ -23,6 +22,4 @@ func TestClientRefresh(t *testing.T) {
 	if !assert.Empty(t, client.accessToken) {
 		return
 	}
-
-	fmt.Println(client.accessToken)
 }
