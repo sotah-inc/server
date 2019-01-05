@@ -30,7 +30,8 @@ func main() {
 		natsHost       = app.Flag("nats-host", "NATS hostname").Default("localhost").OverrideDefaultFromEnvar("NATS_HOST").Short('h').String()
 		natsPort       = app.Flag("nats-port", "NATS port").Default("4222").OverrideDefaultFromEnvar("NATS_PORT").Short('p').Int()
 		configFilepath = app.Flag("config", "Relative path to config json").Required().Short('c').String()
-		apiKey         = app.Flag("api-key", "Blizzard Mashery API key").OverrideDefaultFromEnvar("API_KEY").String()
+		clientID       = app.Flag("client-id", "Blizzard API Client ID").OverrideDefaultFromEnvar("CLIENT_ID").String()
+		clientSecret   = app.Flag("client-secret", "Blizzard API Client Secret").OverrideDefaultFromEnvar("CLIENT_SECRET").String()
 		verbosity      = app.Flag("verbosity", "Log verbosity").Default("info").Short('v').String()
 		cacheDir       = app.Flag("cache-dir", "Directory to cache data files to").Required().String()
 		projectID      = app.Flag("project-id", "GCloud Storage Project ID").Default("").OverrideDefaultFromEnvar("PROJECT_ID").String()
@@ -86,11 +87,16 @@ func main() {
 		return
 	}
 
-	// optionally overriding api key in config
-	if len(*apiKey) > 0 {
-		logging.WithField("api-key", *apiKey).Info("Overriding api key found in config")
+	// optionally overriding client id and client secret in config
+	if len(*clientID) > 0 {
+		logging.WithField("client-id", *clientID).Info("Overriding client-id found in config")
 
-		c.ClientID = *apiKey
+		c.ClientID = *clientID
+	}
+	if len(*clientSecret) > 0 {
+		logging.WithField("client-id", *clientSecret).Info("Overriding client-secret found in config")
+
+		c.ClientSecret = *clientSecret
 	}
 
 	// optionally overriding cache-dir in config
