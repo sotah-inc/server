@@ -8,12 +8,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ihsw/sotah-server/app/blizzard"
-	"github.com/ihsw/sotah-server/app/codes"
-	"github.com/ihsw/sotah-server/app/logging"
-	"github.com/ihsw/sotah-server/app/subjects"
-	"github.com/nats-io/go-nats"
+	nats "github.com/nats-io/go-nats"
 	"github.com/sirupsen/logrus"
+	"github.com/sotah-inc/server/app/blizzard"
+	"github.com/sotah-inc/server/app/codes"
+	"github.com/sotah-inc/server/app/logging"
+	"github.com/sotah-inc/server/app/subjects"
 )
 
 type messenger struct {

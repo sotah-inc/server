@@ -5,10 +5,10 @@ import (
 
 	"github.com/twinj/uuid"
 
-	"github.com/ihsw/sotah-server/app/blizzard"
-	"github.com/ihsw/sotah-server/app/codes"
-	"github.com/ihsw/sotah-server/app/logging"
-	"github.com/ihsw/sotah-server/app/subjects"
+	"github.com/sotah-inc/server/app/blizzard"
+	"github.com/sotah-inc/server/app/codes"
+	"github.com/sotah-inc/server/app/logging"
+	"github.com/sotah-inc/server/app/subjects"
 )
 
 type requestError struct {

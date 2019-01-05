@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/ihsw/sotah-server/app/blizzard"
-	"github.com/ihsw/sotah-server/app/codes"
-	"github.com/ihsw/sotah-server/app/subjects"
 	nats "github.com/nats-io/go-nats"
+	"github.com/sotah-inc/server/app/blizzard"
+	"github.com/sotah-inc/server/app/codes"
+	"github.com/sotah-inc/server/app/subjects"
 )
 
 func newItemClassesFromMessenger(mess messenger) (blizzard.ItemClasses, error) {

@@ -3,8 +3,8 @@ package main
 import (
 	"testing"
 
-	"github.com/ihsw/sotah-server/app/sortdirections"
-	"github.com/ihsw/sotah-server/app/sortkinds"
+	"github.com/sotah-inc/server/app/sortdirections"
+	"github.com/sotah-inc/server/app/sortkinds"
 
 	"github.com/stretchr/testify/assert"
 )

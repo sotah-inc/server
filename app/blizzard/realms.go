@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ihsw/sotah-server/app/blizzard/realmpopulations"
-	"github.com/ihsw/sotah-server/app/blizzard/realmtypes"
-	"github.com/ihsw/sotah-server/app/util"
+	"github.com/sotah-inc/server/app/blizzard/realmpopulations"
+	"github.com/sotah-inc/server/app/blizzard/realmtypes"
+	"github.com/sotah-inc/server/app/util"
 )
 
 // NewRealmFromFilepath loads a realm from a json file

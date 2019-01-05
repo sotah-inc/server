@@ -3,7 +3,7 @@ package main
 import (
 	"net/url"
 
-	"github.com/ihsw/sotah-server/app/blizzard"
+	"github.com/sotah-inc/server/app/blizzard"
 )
 
 func newResolver(c config, mess messenger, stor store) resolver {

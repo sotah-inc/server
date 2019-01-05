@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/ihsw/sotah-server/app/blizzard"
-	"github.com/ihsw/sotah-server/app/logging"
+	"github.com/sotah-inc/server/app/blizzard"
+	"github.com/sotah-inc/server/app/logging"
 
 	"github.com/boltdb/bolt"
 )

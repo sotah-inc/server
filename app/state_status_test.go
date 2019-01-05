@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/ihsw/sotah-server/app/utiltest"
+	"github.com/sotah-inc/server/app/utiltest"
 	"github.com/stretchr/testify/assert"
 )
 

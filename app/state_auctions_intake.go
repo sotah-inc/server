@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/ihsw/sotah-server/app/blizzard"
-	"github.com/ihsw/sotah-server/app/logging"
+	"github.com/sotah-inc/server/app/blizzard"
+	"github.com/sotah-inc/server/app/logging"
 
-	"github.com/ihsw/sotah-server/app/subjects"
 	nats "github.com/nats-io/go-nats"
 	"github.com/sirupsen/logrus"
+	"github.com/sotah-inc/server/app/subjects"
 )
 
 func newAuctionsIntakeRequest(payload []byte) (auctionsIntakeRequest, error) {

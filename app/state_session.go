@@ -3,9 +3,9 @@ package main
 import (
 	"encoding/json"
 
-	"github.com/ihsw/sotah-server/app/codes"
-	"github.com/ihsw/sotah-server/app/subjects"
 	nats "github.com/nats-io/go-nats"
+	"github.com/sotah-inc/server/app/codes"
+	"github.com/sotah-inc/server/app/subjects"
 )
 
 type sessionSecretData struct {

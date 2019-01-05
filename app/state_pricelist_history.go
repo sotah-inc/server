@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/ihsw/sotah-server/app/blizzard"
-	"github.com/ihsw/sotah-server/app/codes"
-	"github.com/ihsw/sotah-server/app/logging"
-	"github.com/ihsw/sotah-server/app/subjects"
-	"github.com/ihsw/sotah-server/app/util"
-	"github.com/nats-io/go-nats"
+	nats "github.com/nats-io/go-nats"
+	"github.com/sotah-inc/server/app/blizzard"
+	"github.com/sotah-inc/server/app/codes"
+	"github.com/sotah-inc/server/app/logging"
+	"github.com/sotah-inc/server/app/subjects"
+	"github.com/sotah-inc/server/app/util"
 )
 
 type priceListHistoryResponse struct {

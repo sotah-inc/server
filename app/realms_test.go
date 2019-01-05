@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ihsw/sotah-server/app/blizzard"
-	"github.com/ihsw/sotah-server/app/utiltest"
+	"github.com/sotah-inc/server/app/blizzard"
+	"github.com/sotah-inc/server/app/utiltest"
 	"github.com/stretchr/testify/assert"
 )
 

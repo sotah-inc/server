@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ihsw/sotah-server/app/util"
+	"github.com/sotah-inc/server/app/util"
 )
 
 const itemClassesURLFormat = "https://%s/wow/data/item/classes"

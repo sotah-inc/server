@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/ihsw/sotah-server/app/logging"
-	"github.com/ihsw/sotah-server/app/subjects"
 	nats "github.com/nats-io/go-nats"
 	"github.com/sirupsen/logrus"
+	"github.com/sotah-inc/server/app/logging"
+	"github.com/sotah-inc/server/app/subjects"
 )
 
 func (sta state) listenForPricelistsIntake(stop listenStopChan) error {

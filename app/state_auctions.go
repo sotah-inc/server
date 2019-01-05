@@ -4,13 +4,13 @@ import (
 	"encoding/base64"
 	"encoding/json"
 
-	"github.com/ihsw/sotah-server/app/blizzard"
-	"github.com/ihsw/sotah-server/app/codes"
-	"github.com/ihsw/sotah-server/app/sortdirections"
-	"github.com/ihsw/sotah-server/app/sortkinds"
-	"github.com/ihsw/sotah-server/app/subjects"
-	"github.com/ihsw/sotah-server/app/util"
 	nats "github.com/nats-io/go-nats"
+	"github.com/sotah-inc/server/app/blizzard"
+	"github.com/sotah-inc/server/app/codes"
+	"github.com/sotah-inc/server/app/sortdirections"
+	"github.com/sotah-inc/server/app/sortkinds"
+	"github.com/sotah-inc/server/app/subjects"
+	"github.com/sotah-inc/server/app/util"
 )
 
 func newAuctionsRequest(payload []byte) (auctionsRequest, error) {

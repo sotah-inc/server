@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/ihsw/sotah-server/app/logging"
-	"github.com/ihsw/sotah-server/app/subjects"
+	"github.com/sotah-inc/server/app/logging"
+	"github.com/sotah-inc/server/app/subjects"
 
-	"github.com/ihsw/sotah-server/app/blizzard"
 	"github.com/sirupsen/logrus"
+	"github.com/sotah-inc/server/app/blizzard"
 )
 
 func (sta state) startCollector(stopChan workerStopChan, res resolver) workerStopChan {

@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	"cloud.google.com/go/storage"
-	"github.com/ihsw/sotah-server/app/blizzard/itembinds"
-	"github.com/ihsw/sotah-server/app/util"
+	"github.com/sotah-inc/server/app/blizzard/itembinds"
+	"github.com/sotah-inc/server/app/util"
 )
 
 const itemURLFormat = "https://%s/wow/item/%d"

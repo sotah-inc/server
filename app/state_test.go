@@ -3,9 +3,9 @@ package main
 import (
 	"testing"
 
-	"github.com/ihsw/sotah-server/app/codes"
+	"github.com/sotah-inc/server/app/codes"
 
-	"github.com/ihsw/sotah-server/app/subjects"
+	"github.com/sotah-inc/server/app/subjects"
 
 	"github.com/stretchr/testify/assert"
 )

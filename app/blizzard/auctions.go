@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
-	"github.com/ihsw/sotah-server/app/util"
+	"github.com/sotah-inc/server/app/util"
 )
 
 const auctionInfoURLFormat = "https://%s/wow/auction/data/%s"

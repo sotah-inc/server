@@ -8,10 +8,10 @@ import (
 	"github.com/twinj/uuid"
 
 	logrusstash "github.com/bshuster-repo/logrus-logstash-hook"
-	"github.com/ihsw/sotah-server/app/commands"
-	"github.com/ihsw/sotah-server/app/logging"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/alecthomas/kingpin.v2"
+	"github.com/sotah-inc/server/app/commands"
+	"github.com/sotah-inc/server/app/logging"
+	kingpin "gopkg.in/alecthomas/kingpin.v2"
 )
 
 type commandMap map[string]func() error

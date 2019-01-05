@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/ihsw/sotah-server/app/logging"
-	"github.com/ihsw/sotah-server/app/util"
+	"github.com/sotah-inc/server/app/logging"
+	"github.com/sotah-inc/server/app/util"
 )
 
 func syncItems(c config, s store) error {

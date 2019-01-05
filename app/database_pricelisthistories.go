@@ -10,10 +10,10 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/sirupsen/logrus"
 
-	"github.com/ihsw/sotah-server/app/blizzard"
-	"github.com/ihsw/sotah-server/app/logging"
-	"github.com/ihsw/sotah-server/app/objstate"
-	"github.com/ihsw/sotah-server/app/util"
+	"github.com/sotah-inc/server/app/blizzard"
+	"github.com/sotah-inc/server/app/logging"
+	"github.com/sotah-inc/server/app/objstate"
+	"github.com/sotah-inc/server/app/util"
 )
 
 type unixTimestamp int64

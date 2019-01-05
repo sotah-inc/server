@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 )
 
 // Client - used for querying blizz api
@@ -82,4 +83,22 @@ func (c Client) RefreshFromHTTP(uri string) error {
 	c.accessToken = r.AccessToken
 
 	return nil
+}
+
+// AppendAccessToken - appends access token used for making authenticated requests
+func (c Client) AppendAccessToken(destination string) (string, error) {
+	if c.accessToken == "" {
+		return destination, nil
+	}
+
+	u, err := url.Parse(destination)
+	if err != nil {
+		return "", err
+	}
+
+	q := u.Query()
+	q.Set("access_token", c.accessToken)
+	u.RawQuery = q.Encode()
+
+	return u.String(), nil
 }

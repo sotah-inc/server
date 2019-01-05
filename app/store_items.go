@@ -7,10 +7,10 @@ import (
 	"strings"
 
 	storage "cloud.google.com/go/storage"
-	"github.com/ihsw/sotah-server/app/blizzard"
-	"github.com/ihsw/sotah-server/app/logging"
-	"github.com/ihsw/sotah-server/app/util"
 	"github.com/sirupsen/logrus"
+	"github.com/sotah-inc/server/app/blizzard"
+	"github.com/sotah-inc/server/app/logging"
+	"github.com/sotah-inc/server/app/util"
 	"google.golang.org/api/iterator"
 )
 

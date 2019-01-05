@@ -6,10 +6,10 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/ihsw/sotah-server/app/logging"
-	"github.com/ihsw/sotah-server/app/subjects"
-	"github.com/ihsw/sotah-server/app/util"
 	"github.com/sirupsen/logrus"
+	"github.com/sotah-inc/server/app/logging"
+	"github.com/sotah-inc/server/app/subjects"
+	"github.com/sotah-inc/server/app/util"
 )
 
 func pricelistHistoriesCacheDirs(c config, regions regionList, stas statuses) ([]string, error) {

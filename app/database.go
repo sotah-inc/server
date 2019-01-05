@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ihsw/sotah-server/app/logging"
-	"github.com/ihsw/sotah-server/app/util"
 	"github.com/sirupsen/logrus"
+	"github.com/sotah-inc/server/app/logging"
+	"github.com/sotah-inc/server/app/util"
 )
 
 func normalizeTargetDate(targetDate time.Time) time.Time {
