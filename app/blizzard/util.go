@@ -2,7 +2,6 @@ package blizzard
 
 import (
 	"compress/gzip"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -65,8 +64,6 @@ func Download(url string) (ResponseMeta, error) {
 	if resp.StatusCode != 200 {
 		return ResponseMeta{Body: body, Status: resp.StatusCode}, nil
 	}
-
-	fmt.Println(fmt.Sprintf("%v", resp.Header.Get("X-Plan-Qps-Allotted")))
 
 	// gathering api quota params
 	planQPSAllotted, err := strconv.Atoi(resp.Header.Get("X-Plan-Qps-Allotted"))
