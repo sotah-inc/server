@@ -26,6 +26,10 @@ func ServeFile(relativePath string) (*httptest.Server, error) {
 	}
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("X-Plan-Qps-Allotted", "0")
+		w.Header().Add("X-Plan-Qps-Current", "0")
+		w.Header().Add("X-Plan-Quota-Allotted", "0")
+		w.Header().Add("X-Plan-Quota-Current", "0")
 		fmt.Fprintln(w, string(body))
 	}))
 
