@@ -49,7 +49,7 @@ type region struct {
 }
 
 func (reg region) getStatus(res resolver) (status, error) {
-	uri, err := res.appendAPIKey(res.getStatusURL(reg.Hostname))
+	uri, err := res.appendAccessToken(res.getStatusURL(reg.Hostname))
 	if err != nil {
 		return status{}, err
 	}

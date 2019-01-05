@@ -222,7 +222,7 @@ func (rea realm) auctionsFilepath(c *config) (string, error) {
 }
 
 func (rea realm) getAuctions(res resolver) (blizzard.Auctions, time.Time, error) {
-	uri, err := res.appendAPIKey(res.getAuctionInfoURL(rea.region.Hostname, rea.Slug))
+	uri, err := res.appendAccessToken(res.getAuctionInfoURL(rea.region.Hostname, rea.Slug))
 	if err != nil {
 		return blizzard.Auctions{}, time.Time{}, err
 	}

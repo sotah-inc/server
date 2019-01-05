@@ -79,7 +79,7 @@ func api(c config, m messenger, s store) error {
 		return err
 	}
 
-	uri, err := res.appendAPIKey(res.getItemClassesURL(primaryRegion.Hostname))
+	uri, err := res.appendAccessToken(res.getItemClassesURL(primaryRegion.Hostname))
 	if err != nil {
 		return err
 	}

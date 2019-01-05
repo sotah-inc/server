@@ -34,7 +34,7 @@ type resolver struct {
 	getItemClassesURL blizzard.GetItemClassesURLFunc
 }
 
-func (r resolver) appendAPIKey(destination string) (string, error) {
+func (r resolver) appendAccessToken(destination string) (string, error) {
 	if r.config == nil {
 		return destination, nil
 	}

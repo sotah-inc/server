@@ -118,7 +118,7 @@ func getItem(ID blizzard.ItemID, res resolver) (blizzard.Item, error) {
 		return blizzard.Item{}, err
 	}
 
-	uri, err := res.appendAPIKey(res.getItemURL(primaryRegion.Hostname, ID))
+	uri, err := res.appendAccessToken(res.getItemURL(primaryRegion.Hostname, ID))
 	if err != nil {
 		return blizzard.Item{}, err
 	}
