@@ -31,8 +31,8 @@ func newConfig(body []byte) (config, error) {
 }
 
 type config struct {
-	APIKey           string                               `json:"api_key"`
-	APISecret        string                               `json:"api_secret"`
+	ClientID         string                               `json:"client_id"`
+	ClientSecret     string                               `json:"client_secret"`
 	Regions          regionList                           `json:"regions"`
 	Whitelist        map[regionName]*getAuctionsWhitelist `json:"whitelist"`
 	CacheDir         string                               `json:"cache_dir"`

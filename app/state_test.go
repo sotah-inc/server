@@ -33,7 +33,7 @@ func TestListenForRegions(t *testing.T) {
 
 	// building test config
 	c, err := newConfigFromFilepath("./TestData/config.json")
-	if !assert.Nil(t, err) || !assert.NotEmpty(t, c.APIKey) {
+	if !assert.Nil(t, err) || !assert.NotEmpty(t, c.ClientID) {
 		return
 	}
 	sta.regions = c.Regions

@@ -90,7 +90,7 @@ func main() {
 	if len(*apiKey) > 0 {
 		logging.WithField("api-key", *apiKey).Info("Overriding api key found in config")
 
-		c.APIKey = *apiKey
+		c.ClientID = *apiKey
 	}
 
 	// optionally overriding cache-dir in config

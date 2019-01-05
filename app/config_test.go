@@ -9,7 +9,7 @@ import (
 
 func TestNewConfigFromFilepath(t *testing.T) {
 	c, err := newConfigFromFilepath("./TestData/config.json")
-	if !assert.Nil(t, err) || !assert.NotEmpty(t, c.APIKey) {
+	if !assert.Nil(t, err) || !assert.NotEmpty(t, c.ClientID) {
 		return
 	}
 }
@@ -20,7 +20,7 @@ func TestNewConfig(t *testing.T) {
 	}
 
 	c, err := newConfig(body)
-	if !assert.Nil(t, err) || !assert.NotEmpty(t, c.APIKey) {
+	if !assert.Nil(t, err) || !assert.NotEmpty(t, c.ClientID) {
 		return
 	}
 }
