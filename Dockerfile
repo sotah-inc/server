@@ -32,6 +32,6 @@ RUN mkdir /srv/app
 WORKDIR /srv/app
 
 # copying in built app
-COPY --from=build-env /go/bin/app .
+COPY --from=build-env /go/bin/app /go/bin/app
 
 ENTRYPOINT ["/go/bin/app"]
