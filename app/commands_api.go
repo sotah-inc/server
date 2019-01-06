@@ -65,6 +65,7 @@ func api(c config, m messenger, s store) error {
 		return err
 	}
 	res.blizzardClient = nextClient
+	sta.resolver = res
 
 	// filling state with region statuses
 	for _, reg := range sta.regions {

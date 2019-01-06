@@ -29,6 +29,7 @@ func (sta state) startCollector(stopChan workerStopChan, res resolver) workerSto
 					continue
 				}
 				res.blizzardClient = nextClient
+				sta.resolver = res
 
 				sta.collectRegions(res)
 			case <-stopChan:
