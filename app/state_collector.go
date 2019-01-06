@@ -21,6 +21,15 @@ func (sta state) startCollector(stopChan workerStopChan, res resolver) workerSto
 		for {
 			select {
 			case <-ticker.C:
+				// refreshing the access-token for the resolver blizz client
+				nextClient, err := res.blizzardClient.RefreshFromHTTP(blizzard.OAuthTokenEndpoint)
+				if err != nil {
+					logrus.WithField("error", err.Error()).Error("Failed to refresh blizzard client")
+
+					continue
+				}
+				res.blizzardClient = nextClient
+
 				sta.collectRegions(res)
 			case <-stopChan:
 				ticker.Stop()
