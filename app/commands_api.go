@@ -58,9 +58,11 @@ func api(c config, m messenger, s store) error {
 	sta.itemsDatabase = idBase
 
 	// refreshing the access-token for the resolver blizz client
-	if err := res.blizzardClient.RefreshFromHTTP(blizzard.OAuthTokenEndpoint); err != nil {
+	nextClient, err := res.blizzardClient.RefreshFromHTTP(blizzard.OAuthTokenEndpoint)
+	if err != nil {
 		return err
 	}
+	res.blizzardClient = nextClient
 
 	// filling state with region statuses
 	for _, reg := range sta.regions {
