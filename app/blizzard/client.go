@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+
+	"github.com/sirupsen/logrus"
 )
 
 // OAuthTokenEndpoint - http endpoint for gathering new oauth access tokens
@@ -50,6 +52,12 @@ func (c Client) RefreshFromHTTP(uri string) (Client, error) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
+		logrus.WithFields(logrus.Fields{
+			"uri":    uri,
+			"id":     c.id,
+			"secret": c.secret,
+		}).Info("Received failed oauth token response from Blizzard API")
+
 		return Client{}, errors.New("OAuth token response was not 200")
 	}
 
