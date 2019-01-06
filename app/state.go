@@ -36,7 +36,7 @@ type state struct {
 	pricelistHistoryDatabases pricelistHistoryDatabases
 	liveAuctionsDatabases     liveAuctionsDatabases
 	itemsDatabase             itemsDatabase
-	sessionSecret             uuid.Uuid
+	sessionSecret             uuid.UUID
 
 	regions               []region
 	statuses              statuses

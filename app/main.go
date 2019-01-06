@@ -17,11 +17,10 @@ import (
 type commandMap map[string]func() error
 
 // ID represents this run's unique id
-var ID uuid.Uuid
+var ID uuid.UUID
 
 func main() {
 	// assigning global ID
-	uuid.Init()
 	ID = uuid.NewV4()
 
 	// parsing the command flags
