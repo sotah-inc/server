@@ -8,4 +8,4 @@ steps:
             '--cache-from', 'gcr.io/$PROJECT_ID/server:latest',
             '.'
         ]
-images: ['gcr.io/$PROJECT_ID/server']
+images: ['gcr.io/$PROJECT_ID/server', 'gcr.io/$PROJECT_ID/server:latest']
