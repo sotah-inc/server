@@ -5,7 +5,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"strconv"
 )
 
 // ResponseMeta is a blizzard api response meta data
@@ -65,30 +64,12 @@ func Download(url string) (ResponseMeta, error) {
 		return ResponseMeta{Body: body, Status: resp.StatusCode}, nil
 	}
 
-	// gathering api quota params
-	planQPSAllotted, err := strconv.Atoi(resp.Header.Get("X-Plan-Qps-Allotted"))
-	if err != nil {
-		return ResponseMeta{}, err
-	}
-	planQPSCurrent, err := strconv.Atoi(resp.Header.Get("X-Plan-Qps-Current"))
-	if err != nil {
-		return ResponseMeta{}, err
-	}
-	planQuotaAllotted, err := strconv.Atoi(resp.Header.Get("X-Plan-Quota-Allotted"))
-	if err != nil {
-		return ResponseMeta{}, err
-	}
-	planQuotaCurrent, err := strconv.Atoi(resp.Header.Get("X-Plan-Quota-Current"))
-	if err != nil {
-		return ResponseMeta{}, err
-	}
-
 	return ResponseMeta{
 		Body:              body,
 		Status:            resp.StatusCode,
-		PlanQPSAllotted:   planQPSAllotted,
-		PlanQPSCurrent:    planQPSCurrent,
-		PlanQuotaAllotted: planQuotaAllotted,
-		PlanQuotaCurrent:  planQuotaCurrent,
+		PlanQPSAllotted:   0,
+		PlanQPSCurrent:    0,
+		PlanQuotaAllotted: 0,
+		PlanQuotaCurrent:  0,
 	}, nil
 }
