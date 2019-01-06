@@ -9,19 +9,19 @@ import (
 	"net/url"
 )
 
-// Client - used for querying blizz api
-type Client struct {
-	id          string
-	secret      string
-	accessToken string
-}
-
 // OAuthTokenEndpoint - http endpoint for gathering new oauth access tokens
 const OAuthTokenEndpoint = "https://us.battle.net/oauth/token?grant_type=client_credentials"
 
 // NewClient - generates a client used for querying blizz api
 func NewClient(id string, secret string) Client {
 	return Client{id, secret, ""}
+}
+
+// Client - used for querying blizz api
+type Client struct {
+	id          string
+	secret      string
+	accessToken string
 }
 
 type refreshResponse struct {
