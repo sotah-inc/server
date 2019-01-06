@@ -31,11 +31,11 @@ type refreshResponse struct {
 }
 
 // RefreshFromHTTP - gathers an access token from the oauth token endpoint
-func (c Client) RefreshFromHTTP(uri string) error {
+func (c Client) RefreshFromHTTP(uri string) (Client, error) {
 	// forming a request
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
-		return err
+		return Client{}, err
 	}
 
 	// appending auth headers
@@ -46,11 +46,11 @@ func (c Client) RefreshFromHTTP(uri string) error {
 	httpClient := &http.Client{}
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return err
+		return Client{}, err
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return errors.New("OAuth token response was not 200")
+		return Client{}, errors.New("OAuth token response was not 200")
 	}
 
 	// parsing the body
@@ -71,24 +71,24 @@ func (c Client) RefreshFromHTTP(uri string) error {
 		}
 	}()
 	if err != nil {
-		return err
+		return Client{}, err
 	}
 
 	// decoding the body
 	r := &refreshResponse{}
 	if err := json.Unmarshal(body, &r); err != nil {
-		return err
+		return Client{}, err
 	}
 
 	c.accessToken = r.AccessToken
 
-	return nil
+	return c, nil
 }
 
 // AppendAccessToken - appends access token used for making authenticated requests
 func (c Client) AppendAccessToken(destination string) (string, error) {
 	if c.accessToken == "" {
-		return destination, nil
+		return "", errors.New("Could not append access token, access token is blank")
 	}
 
 	u, err := url.Parse(destination)
