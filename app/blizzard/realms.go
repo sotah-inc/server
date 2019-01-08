@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/sotah-inc/server/app/metric"
+
 	"github.com/sotah-inc/server/app/blizzard/realmpopulations"
 	"github.com/sotah-inc/server/app/blizzard/realmtypes"
 	"github.com/sotah-inc/server/app/util"
@@ -71,6 +73,8 @@ func NewStatusFromHTTP(uri string) (Status, ResponseMeta, error) {
 	if err != nil {
 		return Status{}, ResponseMeta{}, err
 	}
+
+	metric.ReportBlizzardAPIIngress("blizzard.NewStatusFromHTTP()", resp.ContentLength)
 
 	return status, resp, nil
 }
