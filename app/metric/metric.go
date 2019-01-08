@@ -4,23 +4,19 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Name - typehint for these enums
-type Name string
+type name string
 
-/*
-Names - names of metrics
-*/
 const (
-	BlizzardAPIIngress Name = "blizzard_api_ingress"
+	blizzardAPIIngress name = "blizzard_api_ingress"
 )
 
-func report(name Name, fields logrus.Fields, message string) {
-	fields["metric"] = name
+func report(n name, fields logrus.Fields, message string) {
+	fields["metric"] = n
 
 	logrus.WithFields(fields).Info(message)
 }
 
-// ReportBlizzardAPIIngress - metric report func for logging uncompressed byte ingress (for the big numbers)
+// ReportBlizzardAPIIngress - for knowing how much network ingress is happening
 func ReportBlizzardAPIIngress(message string, byteCount int) {
-	report(BlizzardAPIIngress, logrus.Fields{"byte_count": byteCount}, message)
+	report(blizzardAPIIngress, logrus.Fields{"byte_count": byteCount}, message)
 }
