@@ -94,15 +94,11 @@ func api(c config, m messenger, s store) error {
 		return err
 	}
 
-	iClasses, resp, err := blizzard.NewItemClassesFromHTTP(uri)
+	iClasses, _, err := blizzard.NewItemClassesFromHTTP(uri)
 	if err != nil {
 		return err
 	}
-
 	sta.itemClasses = iClasses
-	if err := sta.messenger.publishPlanMetaMetric(resp); err != nil {
-		return err
-	}
 
 	// gathering profession icons into storage
 	if c.UseGCloudStorage {

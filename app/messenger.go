@@ -10,7 +10,6 @@ import (
 
 	nats "github.com/nats-io/go-nats"
 	"github.com/sirupsen/logrus"
-	"github.com/sotah-inc/server/app/blizzard"
 	"github.com/sotah-inc/server/app/codes"
 	"github.com/sotah-inc/server/app/logging"
 	"github.com/sotah-inc/server/app/subjects"
@@ -162,16 +161,6 @@ func (mess messenger) publishMetric(metrics telegrafMetrics) error {
 	}
 
 	return mess.publish(subjects.AppMetrics, result)
-}
-
-func (mess messenger) publishPlanMetaMetric(resp blizzard.ResponseMeta) error {
-	return mess.publishMetric(telegrafMetrics{
-		"qps_allotted":        int64(resp.PlanQPSAllotted),
-		"qps_current":         int64(resp.PlanQPSCurrent),
-		"quota_allotted":      int64(resp.PlanQuotaAllotted),
-		"quota_current":       int64(resp.PlanQuotaCurrent),
-		"ingress_body_length": int64(len(resp.Body)),
-	})
 }
 
 func (mess messenger) publishBodyIngressMetric(bodyLength int) error {

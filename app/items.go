@@ -128,10 +128,6 @@ func getItem(ID blizzard.ItemID, res resolver) (blizzard.Item, error) {
 		return blizzard.Item{}, err
 	}
 
-	if err := res.messenger.publishPlanMetaMetric(resp); err != nil {
-		return blizzard.Item{}, err
-	}
-
 	// optionally writing it back to gcloud store or disk
 	if res.config.UseGCloudStorage {
 		encodedBody, err := util.GzipEncode(resp.Body)

@@ -54,15 +54,9 @@ func (reg region) getStatus(res resolver) (status, error) {
 		return status{}, err
 	}
 
-	stat, resp, err := blizzard.NewStatusFromHTTP(uri)
+	stat, _, err := blizzard.NewStatusFromHTTP(uri)
 	if err != nil {
 		return status{}, err
-	}
-
-	if res.messenger.conn != nil {
-		if err := res.messenger.publishPlanMetaMetric(resp); err != nil {
-			return status{}, err
-		}
 	}
 
 	return status{stat, reg, newRealms(reg, stat.Realms)}, nil
