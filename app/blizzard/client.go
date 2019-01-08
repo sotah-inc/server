@@ -7,8 +7,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strconv"
 
 	"github.com/sirupsen/logrus"
+	"github.com/sotah-inc/server/app/metric"
 )
 
 // OAuthTokenEndpoint - http endpoint for gathering new oauth access tokens
@@ -60,6 +62,13 @@ func (c Client) RefreshFromHTTP(uri string) (Client, error) {
 
 		return Client{}, errors.New("OAuth token response was not 200")
 	}
+
+	contentLength, err := strconv.Atoi(resp.Header.Get("Content-Length"))
+	if err != nil {
+		return Client{}, err
+	}
+
+	metric.ReportBlizzardAPIIngress("blizzard.RefreshFromHTTP()", contentLength)
 
 	// parsing the body
 	body, err := func() ([]byte, error) {

@@ -69,12 +69,12 @@ func NewStatusFromHTTP(uri string) (Status, ResponseMeta, error) {
 		return Status{}, ResponseMeta{}, errors.New("Status was not 200")
 	}
 
+	metric.ReportBlizzardAPIIngress("blizzard.NewStatusFromHTTP()", resp.ContentLength)
+
 	status, err := NewStatus(resp.Body)
 	if err != nil {
 		return Status{}, ResponseMeta{}, err
 	}
-
-	metric.ReportBlizzardAPIIngress("blizzard.NewStatusFromHTTP()", resp.ContentLength)
 
 	return status, resp, nil
 }

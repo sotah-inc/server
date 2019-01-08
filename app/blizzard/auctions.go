@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
+	"github.com/sotah-inc/server/app/metric"
 	"github.com/sotah-inc/server/app/util"
 )
 
@@ -32,6 +33,8 @@ func NewAuctionInfoFromHTTP(uri string) (AuctionInfo, ResponseMeta, error) {
 	if resp.Status != 200 {
 		return AuctionInfo{}, ResponseMeta{}, errors.New("Status was not 200")
 	}
+
+	metric.ReportBlizzardAPIIngress("blizzard.NewAuctionInfoFromHTTP()", resp.ContentLength)
 
 	aInfo, err := NewAuctionInfo(resp.Body)
 	if err != nil {
@@ -115,12 +118,14 @@ func NewAuctionsFromGcloudObject(ctx context.Context, obj *storage.ObjectHandle)
 
 // NewAuctionsFromHTTP fetches json from the http api for auctions
 func NewAuctionsFromHTTP(url string) (Auctions, error) {
-	body, err := util.Download(url)
+	resp, err := Download(url)
 	if err != nil {
 		return Auctions{}, err
 	}
 
-	return NewAuctions(body)
+	metric.ReportBlizzardAPIIngress("blizzard.NewAuctionsFromHTTP()", resp.ContentLength)
+
+	return NewAuctions(resp.Body)
 }
 
 // NewAuctionsFromFilepath parses a json file for auctions

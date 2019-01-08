@@ -11,6 +11,7 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/blizzard/itembinds"
+	"github.com/sotah-inc/server/app/metric"
 	"github.com/sotah-inc/server/app/util"
 )
 
@@ -50,6 +51,8 @@ func NewItemFromHTTP(uri string) (Item, ResponseMeta, error) {
 	if resp.Status != 200 {
 		return Item{}, ResponseMeta{}, errors.New("Status was not 200")
 	}
+
+	metric.ReportBlizzardAPIIngress("blizzard.NewItemFromHTTP()", resp.ContentLength)
 
 	item, err := NewItem(resp.Body)
 	if err != nil {

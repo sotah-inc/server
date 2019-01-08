@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/sotah-inc/server/app/metric"
 	"github.com/sotah-inc/server/app/util"
 )
 
@@ -28,6 +29,8 @@ func NewItemClassesFromHTTP(uri string) (ItemClasses, ResponseMeta, error) {
 	if resp.Status != 200 {
 		return ItemClasses{}, ResponseMeta{}, errors.New("Status was not 200")
 	}
+
+	metric.ReportBlizzardAPIIngress("blizzard.NewItemClassesFromHTTP()", resp.ContentLength)
 
 	iClasses, err := NewItemClasses(resp.Body)
 	if err != nil {
