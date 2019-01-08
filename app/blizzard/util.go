@@ -5,16 +5,14 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 )
 
 // ResponseMeta is a blizzard api response meta data
 type ResponseMeta struct {
-	Body              []byte
-	Status            int
-	PlanQPSAllotted   int
-	PlanQPSCurrent    int
-	PlanQuotaAllotted int
-	PlanQuotaCurrent  int
+	ContentLength int
+	Body          []byte
+	Status        int
 }
 
 // Download - performs HTTP GET request against url, including adding gzip header and ungzipping
@@ -64,12 +62,14 @@ func Download(url string) (ResponseMeta, error) {
 		return ResponseMeta{Body: body, Status: resp.StatusCode}, nil
 	}
 
+	contentLength, err := strconv.Atoi(resp.Header.Get("Content-Length"))
+	if err != nil {
+		return ResponseMeta{}, err
+	}
+
 	return ResponseMeta{
-		Body:              body,
-		Status:            resp.StatusCode,
-		PlanQPSAllotted:   0,
-		PlanQPSCurrent:    0,
-		PlanQuotaAllotted: 0,
-		PlanQuotaCurrent:  0,
+		ContentLength: contentLength,
+		Body:          body,
+		Status:        resp.StatusCode,
 	}, nil
 }
