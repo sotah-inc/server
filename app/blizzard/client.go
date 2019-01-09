@@ -68,7 +68,7 @@ func (c Client) RefreshFromHTTP(uri string) (Client, error) {
 		return Client{}, err
 	}
 
-	metric.ReportBlizzardAPIIngress("blizzard.RefreshFromHTTP()", contentLength)
+	metric.ReportBlizzardAPIIngress(uri, contentLength)
 
 	// parsing the body
 	body, err := func() ([]byte, error) {

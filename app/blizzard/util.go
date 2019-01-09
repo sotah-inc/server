@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+
+	"github.com/sotah-inc/server/app/metric"
 )
 
 // ResponseMeta is a blizzard api response meta data
@@ -66,6 +68,8 @@ func Download(url string) (ResponseMeta, error) {
 	if err != nil {
 		return ResponseMeta{}, err
 	}
+
+	metric.ReportBlizzardAPIIngress(url, contentLength)
 
 	return ResponseMeta{
 		ContentLength: contentLength,

@@ -264,16 +264,13 @@ func (rea realm) downloadAndCache(aFile blizzard.AuctionFile, res resolver) (bli
 	}
 
 	// downloading the auction data
-	body, err := util.Download(aFile.URL)
+	resp, err := blizzard.Download(aFile.URL)
 	if err != nil {
-		return blizzard.Auctions{}, err
-	}
-	if err := res.messenger.publishBodyIngressMetric(len(body)); err != nil {
 		return blizzard.Auctions{}, err
 	}
 
 	// gathering the encoded body
-	encodedBody, err := util.GzipEncode(body)
+	encodedBody, err := util.GzipEncode(resp.Body)
 
 	if res.config.UseGCloudStorage {
 		logging.WithFields(logrus.Fields{
@@ -295,7 +292,7 @@ func (rea realm) downloadAndCache(aFile blizzard.AuctionFile, res resolver) (bli
 			return blizzard.Auctions{}, err
 		}
 
-		return blizzard.NewAuctions(body)
+		return blizzard.NewAuctions(resp.Body)
 	}
 
 	// validating config
@@ -323,7 +320,7 @@ func (rea realm) downloadAndCache(aFile blizzard.AuctionFile, res resolver) (bli
 		return blizzard.Auctions{}, err
 	}
 
-	return blizzard.NewAuctions(body)
+	return blizzard.NewAuctions(resp.Body)
 }
 
 func (rea realm) loadAuctionsFromFilecache(c *config) (blizzard.Auctions, time.Time, error) {

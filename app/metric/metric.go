@@ -16,7 +16,7 @@ func report(n name, fields logrus.Fields, message string) {
 	logrus.WithFields(fields).Info(message)
 }
 
-// ReportBlizzardAPIIngress - for knowing how much network ingress is happening
-func ReportBlizzardAPIIngress(message string, byteCount int) {
-	report(blizzardAPIIngress, logrus.Fields{"byte_count": byteCount}, message)
+// ReportBlizzardAPIIngress - for knowing how much network ingress is happening via blizzard api
+func ReportBlizzardAPIIngress(uri string, byteCount int) {
+	report(blizzardAPIIngress, logrus.Fields{"byte_count": byteCount, "uri": uri}, "welp")
 }

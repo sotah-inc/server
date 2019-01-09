@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
-	"github.com/sotah-inc/server/app/metric"
 	"github.com/sotah-inc/server/app/util"
 )
 
@@ -33,8 +32,6 @@ func NewAuctionInfoFromHTTP(uri string) (AuctionInfo, ResponseMeta, error) {
 	if resp.Status != 200 {
 		return AuctionInfo{}, ResponseMeta{}, errors.New("Status was not 200")
 	}
-
-	metric.ReportBlizzardAPIIngress("blizzard.NewAuctionInfoFromHTTP()", resp.ContentLength)
 
 	aInfo, err := NewAuctionInfo(resp.Body)
 	if err != nil {
@@ -122,8 +119,6 @@ func NewAuctionsFromHTTP(url string) (Auctions, error) {
 	if err != nil {
 		return Auctions{}, err
 	}
-
-	metric.ReportBlizzardAPIIngress("blizzard.NewAuctionsFromHTTP()", resp.ContentLength)
 
 	return NewAuctions(resp.Body)
 }
