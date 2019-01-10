@@ -162,7 +162,3 @@ func (mess messenger) publishMetric(metrics telegrafMetrics) error {
 
 	return mess.publish(subjects.AppMetrics, result)
 }
-
-func (mess messenger) publishBodyIngressMetric(bodyLength int) error {
-	return mess.publishMetric(telegrafMetrics{"ingress_body_length": int64(bodyLength)})
-}
