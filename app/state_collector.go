@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/sotah-inc/server/app/metric"
+
 	"github.com/sotah-inc/server/app/logging"
 	"github.com/sotah-inc/server/app/subjects"
 
@@ -203,10 +205,5 @@ func (sta state) collectRegions(res resolver) {
 
 	logging.WithField("collector_duration", int64(time.Now().Unix()-startTime.Unix())).Info("Finished collector")
 
-	err = sta.messenger.publishMetric(telegrafMetrics{
-		"collector_duration": int64(time.Now().Unix() - startTime.Unix()),
-	})
-	if err != nil {
-		logging.WithField("error", err.Error()).Error("Failed to publish collector metrics")
-	}
+	metric.ReportDuration(metric.CollectorDuration, time.Now().Unix()-startTime.Unix())
 }
