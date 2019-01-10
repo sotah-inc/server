@@ -203,7 +203,7 @@ func (sta state) collectRegions(res resolver) {
 		logging.WithField("error", err.Error()).Error("Failed to publish auctions-intake-request")
 	}
 
-	logging.WithField("collector_duration", int64(time.Now().Unix()-startTime.Unix())).Info("Finished collector")
-
-	metric.ReportDuration(metric.CollectorDuration, time.Now().Unix()-startTime.Unix())
+	collectorDuration := time.Now().Unix() - startTime.Unix()
+	logging.WithField("collector_duration", collectorDuration).Info("Finished collector")
+	metric.ReportDuration(metric.CollectorDuration, collectorDuration, logrus.Fields{})
 }

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/sotah-inc/server/app/metric"
+
 	"github.com/sotah-inc/server/app/blizzard"
 	"github.com/sotah-inc/server/app/logging"
 
@@ -251,28 +253,18 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 
 			duration := time.Now().Unix() - startTime.Unix()
 
-			logging.WithFields(logrus.Fields{
-				"total_realms":             totalRealms,
-				"included_realms":          includedRealmCount,
-				"excluded_realms":          excludedRealmCount,
-				"auctions_intake_duration": duration,
-				"total_auctions":           totalAuctions,
-				"total_previous_auctions":  totalPreviousAuctions,
-				"total_new_auctions":       totalNewAuctions,
-				"total_removed_auctions":   totalRemovedAuctions,
-				"current_owner_count":      totalOwners,
-				"current_item_count":       len(currentItemIds),
-			}).Info("Processed all realms")
-			sta.messenger.publishMetric(telegrafMetrics{
-				"auctions_intake_duration": int64(duration),
-				"intake_count":             int64(includedRealmCount),
-				"total_auctions":           int64(totalAuctions),
-				"total_previous_auctions":  int64(totalPreviousAuctions),
-				"total_new_auctions":       int64(totalNewAuctions),
-				"total_removed_auctions":   int64(totalRemovedAuctions),
-				"current_owner_count":      int64(totalOwners),
-				"current_item_count":       int64(len(currentItemIds)),
+			metric.ReportDuration(metric.AuctionsIntakeDuration, duration, logrus.Fields{
+				"total_realms":            totalRealms,
+				"included_realms":         includedRealmCount,
+				"excluded_realms":         excludedRealmCount,
+				"total_auctions":          totalAuctions,
+				"total_previous_auctions": totalPreviousAuctions,
+				"total_new_auctions":      totalNewAuctions,
+				"total_removed_auctions":  totalRemovedAuctions,
+				"current_owner_count":     totalOwners,
+				"current_item_count":      len(currentItemIds),
 			})
+			logging.Info("Processed all realms")
 
 			encodedAiRequest, err := json.Marshal(aiRequest)
 			if err != nil {

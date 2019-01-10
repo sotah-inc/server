@@ -36,6 +36,9 @@ const (
 )
 
 // ReportDuration - for knowing how long things take
-func ReportDuration(kind durationKind, length int64) {
-	report(operationalDuration, logrus.Fields{"duration_kind": kind, "duration_length": length})
+func ReportDuration(kind durationKind, length int64, fields logrus.Fields) {
+	fields["duration_kind"] = kind
+	fields["duration_length"] = length
+
+	report(operationalDuration, fields)
 }
