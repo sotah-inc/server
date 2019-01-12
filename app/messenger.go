@@ -151,14 +151,3 @@ func (mess messenger) request(subject subjects.Subject, data []byte) (message, e
 func (mess messenger) publish(subject subjects.Subject, data []byte) error {
 	return mess.conn.Publish(string(subject), data)
 }
-
-type telegrafMetrics map[string]int64
-
-func (mess messenger) publishMetric(metrics telegrafMetrics) error {
-	result, err := json.Marshal(metrics)
-	if err != nil {
-		return err
-	}
-
-	return mess.publish(subjects.AppMetrics, result)
-}

@@ -22,7 +22,6 @@ const (
 	PriceListHistory   Subject = "priceListHistory"
 	Items              Subject = "items"
 	Info               Subject = "info"
-	AppMetrics         Subject = "appMetrics"
 	Boot               Subject = "boot"
 	SessionSecret      Subject = "sessionSecret"
 )
