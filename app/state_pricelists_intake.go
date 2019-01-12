@@ -2,8 +2,8 @@ package main
 
 import (
 	nats "github.com/nats-io/go-nats"
-	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/logging"
+	"github.com/sotah-inc/server/app/metric"
 	"github.com/sotah-inc/server/app/subjects"
 )
 
@@ -32,8 +32,8 @@ func (sta state) listenForPricelistsIntake(stop listenStopChan) error {
 			return
 		}
 
-		logging.WithFields(logrus.Fields{"pricelists_intake_buffer_size": len(listenerIn)}).Info("Received auctions-intake-request")
-		sta.messenger.publishMetric(telegrafMetrics{"pricelists_intake_buffer_size": int64(len(listenerIn))})
+		metric.ReportIntakeBufferSize(metric.PricelistsIntake, len(listenerIn))
+		logging.Info("Received auctions-intake-request")
 
 		listenerIn <- aiRequest
 	})

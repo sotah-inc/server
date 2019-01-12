@@ -136,14 +136,11 @@ func (aiRequest auctionsIntakeRequest) handle(sta state) {
 		}).Debug("Finished loading auctions")
 	}
 
-	duration := time.Now().Unix() - startTime.Unix()
-	logging.WithFields(logrus.Fields{
-		"included_realms": includedRealmCount,
-		"duration":        duration,
-	}).Info("Processed all realms")
-	sta.messenger.publishMetric(telegrafMetrics{
-		"pricelists_intake_duration": int64(duration),
-	})
+	metric.ReportDuration(
+		metric.PricelistsIntakeDuration,
+		time.Now().Unix()-startTime.Unix(),
+		logrus.Fields{"included_realms": includedRealmCount},
+	)
 }
 
 func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
@@ -285,8 +282,8 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 			return
 		}
 
-		logging.WithFields(logrus.Fields{"intake_buffer_size": len(in)}).Info("Received auctions-intake-request")
-		sta.messenger.publishMetric(telegrafMetrics{"intake_buffer_size": int64(len(in))})
+		metric.ReportIntakeBufferSize(metric.LiveAuctionsIntake, len(in))
+		logging.Info("Received auctions-intake-request")
 
 		in <- aiRequest
 	})
