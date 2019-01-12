@@ -204,6 +204,6 @@ func (sta state) collectRegions(res resolver) {
 	}
 
 	collectorDuration := time.Now().Unix() - startTime.Unix()
-	logging.WithField("collector_duration", collectorDuration).Info("Finished collector")
 	metric.ReportDuration(metric.CollectorDuration, collectorDuration, logrus.Fields{})
+	logging.Info("Finished collector")
 }
