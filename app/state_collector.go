@@ -26,7 +26,7 @@ func (sta state) startCollector(stopChan workerStopChan, res resolver) workerSto
 				// refreshing the access-token for the resolver blizz client
 				nextClient, err := res.blizzardClient.RefreshFromHTTP(blizzard.OAuthTokenEndpoint)
 				if err != nil {
-					logrus.WithField("error", err.Error()).Error("Failed to refresh blizzard client")
+					logging.WithField("error", err.Error()).Error("Failed to refresh blizzard client")
 
 					continue
 				}

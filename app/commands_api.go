@@ -60,7 +60,7 @@ func api(c config, m messenger, s store) error {
 	// refreshing the access-token for the resolver blizz client
 	nextClient, err := res.blizzardClient.RefreshFromHTTP(blizzard.OAuthTokenEndpoint)
 	if err != nil {
-		logrus.WithField("error", err.Error()).Error("Failed to refresh blizzard client")
+		logging.WithField("error", err.Error()).Error("Failed to refresh blizzard client")
 
 		return err
 	}

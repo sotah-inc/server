@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"github.com/sotah-inc/server/app/logging"
 )
 
 const defaultMessage = "welp"
@@ -20,7 +21,7 @@ const (
 func report(n name, fields logrus.Fields) {
 	fields["metric"] = n
 
-	logrus.WithFields(fields).Info(defaultMessage)
+	logging.WithFields(fields).Info(defaultMessage)
 }
 
 // BlizzardAPIIngressMetrics - encapsulation of blizzard api metrics

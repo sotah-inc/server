@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"github.com/sotah-inc/server/app/logging"
 	"github.com/sotah-inc/server/app/metric"
 	"github.com/sotah-inc/server/app/util"
 )
@@ -57,7 +58,7 @@ func (c Client) RefreshFromHTTP(uri string) (Client, error) {
 	requestDuration := finishTime.Sub(startTime)
 
 	if resp.StatusCode != http.StatusOK {
-		logrus.WithFields(logrus.Fields{
+		logging.WithFields(logrus.Fields{
 			"uri":    uri,
 			"id":     c.id,
 			"secret": c.secret,
