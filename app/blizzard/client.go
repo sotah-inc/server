@@ -54,7 +54,7 @@ func (c Client) RefreshFromHTTP(uri string) (Client, error) {
 		return Client{}, err
 	}
 	finishTime := time.Now()
-	requestDurationInMs := int64(startTime.Sub(finishTime)) * 1000
+	requestDurationInMs := int64(startTime.Sub(finishTime)) / 1000
 
 	if resp.StatusCode != http.StatusOK {
 		logrus.WithFields(logrus.Fields{

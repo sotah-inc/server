@@ -33,7 +33,7 @@ func Download(url string) (ResponseMeta, error) {
 		return ResponseMeta{}, err
 	}
 	finishTime := time.Now()
-	requestDurationInMs := int64(startTime.Sub(finishTime)) * 1000
+	requestDurationInMs := int64(startTime.Sub(finishTime)) / 1000
 
 	// parsing the body
 	body, isGzipped, err := func() ([]byte, bool, error) {
