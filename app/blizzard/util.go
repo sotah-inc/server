@@ -33,7 +33,7 @@ func Download(url string) (ResponseMeta, error) {
 		return ResponseMeta{}, err
 	}
 	finishTime := time.Now()
-	requestDurationInMs := int64(startTime.Sub(finishTime)) / 1000
+	requestDuration := finishTime.Sub(startTime)
 
 	// parsing the body
 	body, isGzipped, err := func() ([]byte, bool, error) {
@@ -55,7 +55,7 @@ func Download(url string) (ResponseMeta, error) {
 	contentLength := len(body)
 	err = metric.ReportBlizzardAPIIngress(url, metric.BlizzardAPIIngressMetrics{
 		ByteCount: contentLength,
-		Duration:  requestDurationInMs,
+		Duration:  requestDuration,
 	})
 	if err != nil {
 		return ResponseMeta{}, err

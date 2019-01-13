@@ -54,7 +54,7 @@ func (c Client) RefreshFromHTTP(uri string) (Client, error) {
 		return Client{}, err
 	}
 	finishTime := time.Now()
-	requestDurationInMs := int64(startTime.Sub(finishTime)) / 1000
+	requestDuration := finishTime.Sub(startTime)
 
 	if resp.StatusCode != http.StatusOK {
 		logrus.WithFields(logrus.Fields{
@@ -85,7 +85,7 @@ func (c Client) RefreshFromHTTP(uri string) (Client, error) {
 	// logging network ingress
 	err = metric.ReportBlizzardAPIIngress(uri, metric.BlizzardAPIIngressMetrics{
 		ByteCount: len(body),
-		Duration:  requestDurationInMs,
+		Duration:  requestDuration,
 	})
 	if err != nil {
 		return Client{}, err

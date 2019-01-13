@@ -2,6 +2,7 @@ package metric
 
 import (
 	"net/url"
+	"time"
 
 	"github.com/sirupsen/logrus"
 )
@@ -25,11 +26,12 @@ func report(n name, fields logrus.Fields) {
 // BlizzardAPIIngressMetrics - encapsulation of blizzard api metrics
 type BlizzardAPIIngressMetrics struct {
 	ByteCount int
-	Duration  int64
+	Duration  time.Duration
 }
 
 func (b BlizzardAPIIngressMetrics) toFields() logrus.Fields {
-	return logrus.Fields{"byte_count": b.ByteCount, "duration": b.Duration}
+	durationInMicroseconds := int64(b.Duration) / 1000
+	return logrus.Fields{"byte_count": b.ByteCount, "duration": durationInMicroseconds}
 }
 
 // ReportBlizzardAPIIngress - for knowing how much network ingress is happening via blizzard api
