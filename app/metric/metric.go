@@ -31,8 +31,8 @@ type BlizzardAPIIngressMetrics struct {
 }
 
 func (b BlizzardAPIIngressMetrics) toFields() logrus.Fields {
-	durationInMilliseconds := int64(b.Duration) / 1000 / 1000
-	return logrus.Fields{"byte_count": b.ByteCount, "duration": durationInMilliseconds}
+	durationInMicroseconds := int64(b.Duration) / 1000
+	return logrus.Fields{"byte_count": b.ByteCount, "duration": durationInMicroseconds}
 }
 
 // ReportBlizzardAPIIngress - for knowing how much network ingress is happening via blizzard api
