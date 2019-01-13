@@ -1,13 +1,11 @@
 package blizzard
 
 import (
-	"compress/gzip"
-	"io"
 	"io/ioutil"
 	"net/http"
-	"strconv"
 
 	"github.com/sotah-inc/server/app/metric"
+	"github.com/sotah-inc/server/app/util"
 )
 
 // ResponseMeta is a blizzard api response meta data
@@ -19,11 +17,6 @@ type ResponseMeta struct {
 
 // Download - performs HTTP GET request against url, including adding gzip header and ungzipping
 func Download(url string) (ResponseMeta, error) {
-	var (
-		req    *http.Request
-		reader io.ReadCloser
-	)
-
 	// forming a request
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -37,43 +30,46 @@ func Download(url string) (ResponseMeta, error) {
 	if err != nil {
 		return ResponseMeta{}, err
 	}
-	defer resp.Body.Close()
 
-	// optionally parsing the body
-	body := []byte{}
-	if resp.StatusCode == http.StatusOK {
-		// optionally decompressing it
-		switch resp.Header.Get("Content-Encoding") {
-		case "gzip":
-			reader, err = gzip.NewReader(resp.Body)
-			if err != nil {
-				return ResponseMeta{}, err
-			}
-			defer reader.Close()
-		default:
-			reader = resp.Body
-		}
+	// parsing the body
+	body, isGzipped, err := func() ([]byte, bool, error) {
+		defer resp.Body.Close()
 
-		body, err = ioutil.ReadAll(reader)
+		isGzipped := resp.Header.Get("Content-Encoding") == "gzip"
+		out, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return ResponseMeta{}, err
+			return []byte{}, false, err
 		}
+
+		return out, isGzipped, nil
+	}()
+	if err != nil {
+		return ResponseMeta{}, err
+	}
+
+	// logging network ingress
+	contentLength := len(body)
+	metric.ReportBlizzardAPIIngress(url, contentLength)
+
+	// optionally decoding the response body
+	decodedBody, err := func() ([]byte, error) {
+		if !isGzipped {
+			return body, nil
+		}
+
+		return util.GzipDecode(body)
+	}()
+	if err != nil {
+		return ResponseMeta{}, err
 	}
 
 	if resp.StatusCode != 200 {
 		return ResponseMeta{Body: body, Status: resp.StatusCode}, nil
 	}
 
-	contentLength, err := strconv.Atoi(resp.Header.Get("Content-Length"))
-	if err != nil {
-		return ResponseMeta{}, err
-	}
-
-	metric.ReportBlizzardAPIIngress(url, contentLength)
-
 	return ResponseMeta{
 		ContentLength: contentLength,
-		Body:          body,
+		Body:          decodedBody,
 		Status:        resp.StatusCode,
 	}, nil
 }

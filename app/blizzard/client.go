@@ -1,16 +1,15 @@
 package blizzard
 
 import (
-	"compress/gzip"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strconv"
 
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/metric"
+	"github.com/sotah-inc/server/app/util"
 )
 
 // OAuthTokenEndpoint - http endpoint for gathering new oauth access tokens
@@ -63,37 +62,40 @@ func (c Client) RefreshFromHTTP(uri string) (Client, error) {
 		return Client{}, errors.New("OAuth token response was not 200")
 	}
 
-	contentLength, err := strconv.Atoi(resp.Header.Get("Content-Length"))
-	if err != nil {
-		return Client{}, err
-	}
-
-	metric.ReportBlizzardAPIIngress(uri, contentLength)
-
 	// parsing the body
-	body, err := func() ([]byte, error) {
+	body, isGzipped, err := func() ([]byte, bool, error) {
 		defer resp.Body.Close()
 
-		switch resp.Header.Get("Content-Encoding") {
-		case "gzip":
-			reader, err := gzip.NewReader(resp.Body)
-			if err != nil {
-				return nil, err
-			}
-			defer reader.Close()
-
-			return ioutil.ReadAll(reader)
-		default:
-			return ioutil.ReadAll(resp.Body)
+		isGzipped := resp.Header.Get("Content-Encoding") == "gzip"
+		out, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return []byte{}, false, err
 		}
+
+		return out, isGzipped, nil
 	}()
 	if err != nil {
 		return Client{}, err
 	}
 
-	// decoding the body
+	// logging network ingress
+	metric.ReportBlizzardAPIIngress(uri, len(body))
+
+	// optionally decoding the response body
+	decodedBody, err := func() ([]byte, error) {
+		if !isGzipped {
+			return body, nil
+		}
+
+		return util.GzipDecode(body)
+	}()
+	if err != nil {
+		return Client{}, err
+	}
+
+	// unmarshalling the body
 	r := &refreshResponse{}
-	if err := json.Unmarshal(body, &r); err != nil {
+	if err := json.Unmarshal(decodedBody, &r); err != nil {
 		return Client{}, err
 	}
 
