@@ -79,7 +79,9 @@ func (c Client) RefreshFromHTTP(uri string) (Client, error) {
 	}
 
 	// logging network ingress
-	metric.ReportBlizzardAPIIngress(uri, len(body))
+	if err := metric.ReportBlizzardAPIIngress(uri, len(body)); err != nil {
+		return Client{}, err
+	}
 
 	// optionally decoding the response body
 	decodedBody, err := func() ([]byte, error) {

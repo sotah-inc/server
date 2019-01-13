@@ -49,7 +49,9 @@ func Download(url string) (ResponseMeta, error) {
 
 	// logging network ingress
 	contentLength := len(body)
-	metric.ReportBlizzardAPIIngress(url, contentLength)
+	if err := metric.ReportBlizzardAPIIngress(url, contentLength); err != nil {
+		return ResponseMeta{}, err
+	}
 
 	// optionally decoding the response body
 	decodedBody, err := func() ([]byte, error) {

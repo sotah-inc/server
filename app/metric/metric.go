@@ -1,6 +1,8 @@
 package metric
 
 import (
+	"net/url"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,8 +23,27 @@ func report(n name, fields logrus.Fields) {
 }
 
 // ReportBlizzardAPIIngress - for knowing how much network ingress is happening via blizzard api
-func ReportBlizzardAPIIngress(uri string, byteCount int) {
+func ReportBlizzardAPIIngress(uri string, byteCount int) error {
+	// obfuscating the access token from the uri before logging
+	uri, err := func() (string, error) {
+		u, err := url.Parse(uri)
+		if err != nil {
+			return "", err
+		}
+
+		q := u.Query()
+		q.Set("access_token", "xxx")
+		u.RawQuery = q.Encode()
+
+		return u.String(), nil
+	}()
+	if err != nil {
+		return err
+	}
+
 	report(blizzardAPIIngress, logrus.Fields{"byte_count": byteCount, "uri": uri})
+
+	return nil
 }
 
 type durationKind string
