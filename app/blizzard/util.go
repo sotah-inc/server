@@ -3,6 +3,7 @@ package blizzard
 import (
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/sotah-inc/server/app/metric"
 	"github.com/sotah-inc/server/app/util"
@@ -25,11 +26,14 @@ func Download(url string) (ResponseMeta, error) {
 	req.Header.Add("Accept-Encoding", "gzip")
 
 	// running it into a client
+	startTime := time.Now()
 	httpClient := &http.Client{}
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return ResponseMeta{}, err
 	}
+	finishTime := time.Now()
+	requestDurationInMs := int64(startTime.Sub(finishTime)) * 1000
 
 	// parsing the body
 	body, isGzipped, err := func() ([]byte, bool, error) {
@@ -49,7 +53,11 @@ func Download(url string) (ResponseMeta, error) {
 
 	// logging network ingress
 	contentLength := len(body)
-	if err := metric.ReportBlizzardAPIIngress(url, contentLength); err != nil {
+	err = metric.ReportBlizzardAPIIngress(url, metric.BlizzardAPIIngressMetrics{
+		ByteCount: contentLength,
+		Duration:  requestDurationInMs,
+	})
+	if err != nil {
 		return ResponseMeta{}, err
 	}
 

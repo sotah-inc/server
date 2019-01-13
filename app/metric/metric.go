@@ -22,8 +22,18 @@ func report(n name, fields logrus.Fields) {
 	logrus.WithFields(fields).Info(defaultMessage)
 }
 
+// BlizzardAPIIngressMetrics - encapsulation of blizzard api metrics
+type BlizzardAPIIngressMetrics struct {
+	ByteCount int
+	Duration  int64
+}
+
+func (b BlizzardAPIIngressMetrics) toFields() logrus.Fields {
+	return logrus.Fields{"byte_count": b.ByteCount, "duration": b.Duration}
+}
+
 // ReportBlizzardAPIIngress - for knowing how much network ingress is happening via blizzard api
-func ReportBlizzardAPIIngress(uri string, byteCount int) error {
+func ReportBlizzardAPIIngress(uri string, m BlizzardAPIIngressMetrics) error {
 	// obfuscating the access token from the uri before logging
 	uri, err := func() (string, error) {
 		u, err := url.Parse(uri)
@@ -41,7 +51,12 @@ func ReportBlizzardAPIIngress(uri string, byteCount int) error {
 		return err
 	}
 
-	report(blizzardAPIIngress, logrus.Fields{"byte_count": byteCount, "uri": uri})
+	// converting to logrus fields
+	fields := m.toFields()
+	fields["uri"] = uri
+
+	// reporting
+	report(blizzardAPIIngress, fields)
 
 	return nil
 }
