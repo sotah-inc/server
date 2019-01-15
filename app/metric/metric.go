@@ -1,6 +1,7 @@
 package metric
 
 import (
+	"fmt"
 	"net/url"
 	"time"
 
@@ -79,6 +80,7 @@ const (
 func ReportDuration(kind durationKind, length int64, fields logrus.Fields) {
 	fields["duration_kind"] = kind
 	fields["duration_length"] = length
+	fields[fmt.Sprintf("%s_duration_length", kind)] = length
 
 	report(operationalDuration, fields)
 }
