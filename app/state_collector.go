@@ -53,12 +53,16 @@ func (sta state) collectRegions(res resolver) {
 	// going over the list of regions
 	startTime := time.Now()
 	irData := intakeRequestData{}
+	totalRealms := 0
+	includedRealmCount := 0
 	for _, reg := range sta.regions {
 		// gathering whitelist for this region
 		wList := res.config.getRegionWhitelist(reg.Name)
 		if wList != nil && len(*wList) == 0 {
 			continue
 		}
+
+		totalRealms += len(*wList)
 
 		// misc
 		receivedItemIds := map[blizzard.ItemID]struct{}{}
@@ -82,6 +86,8 @@ func (sta state) collectRegions(res resolver) {
 
 				continue
 			}
+
+			includedRealmCount++
 
 			irData[reg.Name][job.realm.Slug] = job.lastModified.Unix()
 			for _, ID := range result.itemIds {
@@ -203,7 +209,15 @@ func (sta state) collectRegions(res resolver) {
 		logging.WithField("error", err.Error()).Error("Failed to publish auctions-intake-request")
 	}
 
-	collectorDuration := time.Now().Unix() - startTime.Unix()
-	metric.ReportDuration(metric.CollectorDuration, collectorDuration, logrus.Fields{})
+	metric.ReportDuration(
+		metric.CollectorDuration,
+		metric.DurationMetrics{
+			Duration:       time.Now().Sub(startTime),
+			TotalRealms:    totalRealms,
+			IncludedRealms: includedRealmCount,
+			ExcludedRealms: totalRealms - includedRealmCount,
+		},
+		logrus.Fields{},
+	)
 	logging.Info("Finished collector")
 }

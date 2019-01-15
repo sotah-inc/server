@@ -76,13 +76,31 @@ const (
 	PricelistsIntakeDuration durationKind = "pricelists_intake_duration"
 )
 
-// ReportDuration - for knowing how long things take
-func ReportDuration(kind durationKind, length int64, fields logrus.Fields) {
-	fields["duration_kind"] = kind
-	fields["duration_length"] = length
-	fields[fmt.Sprintf("%s_duration_length", kind)] = length
+// DurationMetrics - required metrics for every duration entry
+type DurationMetrics struct {
+	Duration       time.Duration
+	TotalRealms    int
+	IncludedRealms int
+	ExcludedRealms int
+}
 
-	report(operationalDuration, fields)
+func (d DurationMetrics) toFields(kind durationKind) logrus.Fields {
+	durationInSeconds := int64(d.Duration) / 1000 / 1000
+	return logrus.Fields{
+		"duration_kind":                         kind,
+		"duration_length":                       durationInSeconds,
+		fmt.Sprintf("%s_duration_length", kind): durationInSeconds,
+	}
+}
+
+// ReportDuration - for knowing how long things take
+func ReportDuration(kind durationKind, metrics DurationMetrics, fields logrus.Fields) {
+	out := metrics.toFields(kind)
+	for k, v := range fields {
+		out[k] = v
+	}
+
+	report(operationalDuration, out)
 }
 
 type intakeKind string

@@ -138,8 +138,13 @@ func (aiRequest auctionsIntakeRequest) handle(sta state) {
 
 	metric.ReportDuration(
 		metric.PricelistsIntakeDuration,
-		time.Now().Unix()-startTime.Unix(),
-		logrus.Fields{"included_realms": includedRealmCount},
+		metric.DurationMetrics{
+			Duration:       time.Now().Sub(startTime),
+			TotalRealms:    totalRealms,
+			IncludedRealms: includedRealmCount,
+			ExcludedRealms: excludedRealmCount,
+		},
+		logrus.Fields{},
 	)
 }
 
@@ -248,19 +253,25 @@ func (sta state) listenForAuctionsIntake(stop listenStopChan) error {
 				}).Debug("Finished loading auctions")
 			}
 
-			duration := time.Now().Unix() - startTime.Unix()
+			duration := time.Now().Sub(startTime)
 
-			metric.ReportDuration(metric.AuctionsIntakeDuration, duration, logrus.Fields{
-				"total_realms":            totalRealms,
-				"included_realms":         includedRealmCount,
-				"excluded_realms":         excludedRealmCount,
-				"total_auctions":          totalAuctions,
-				"total_previous_auctions": totalPreviousAuctions,
-				"total_new_auctions":      totalNewAuctions,
-				"total_removed_auctions":  totalRemovedAuctions,
-				"current_owner_count":     totalOwners,
-				"current_item_count":      len(currentItemIds),
-			})
+			metric.ReportDuration(
+				metric.AuctionsIntakeDuration,
+				metric.DurationMetrics{
+					Duration:       duration,
+					TotalRealms:    totalRealms,
+					IncludedRealms: includedRealmCount,
+					ExcludedRealms: excludedRealmCount,
+				},
+				logrus.Fields{
+					"total_auctions":          totalAuctions,
+					"total_previous_auctions": totalPreviousAuctions,
+					"total_new_auctions":      totalNewAuctions,
+					"total_removed_auctions":  totalRemovedAuctions,
+					"current_owner_count":     totalOwners,
+					"current_item_count":      len(currentItemIds),
+				},
+			)
 			logging.Info("Processed all realms")
 
 			encodedAiRequest, err := json.Marshal(aiRequest)
