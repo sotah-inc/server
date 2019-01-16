@@ -62,7 +62,7 @@ func (sta state) collectRegions(res resolver) {
 			continue
 		}
 
-		totalRealms += len(*wList)
+		totalRealms += len(sta.statuses[reg.Name].Realms.filterWithWhitelist(wList))
 
 		// misc
 		receivedItemIds := map[blizzard.ItemID]struct{}{}
