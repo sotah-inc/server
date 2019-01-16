@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/logging"
@@ -48,14 +47,12 @@ func (c Client) RefreshFromHTTP(uri string) (Client, error) {
 	req.Header.Add("Accept-Encoding", "gzip")
 
 	// producing an http client and running the request
-	startTime := time.Now()
-	httpClient := &http.Client{}
+	tp := newTimedTransport()
+	httpClient := &http.Client{Transport: tp}
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return Client{}, err
 	}
-	finishTime := time.Now()
-	requestDuration := finishTime.Sub(startTime)
 
 	if resp.StatusCode != http.StatusOK {
 		logging.WithFields(logrus.Fields{
@@ -85,8 +82,9 @@ func (c Client) RefreshFromHTTP(uri string) (Client, error) {
 
 	// logging network ingress
 	err = metric.ReportBlizzardAPIIngress(uri, metric.BlizzardAPIIngressMetrics{
-		ByteCount: len(body),
-		Duration:  requestDuration,
+		ByteCount:          len(body),
+		ConnectionDuration: tp.ConnDuration(),
+		RequestDuration:    tp.ReqDuration(),
 	})
 	if err != nil {
 		return Client{}, err

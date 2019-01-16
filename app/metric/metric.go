@@ -27,13 +27,20 @@ func report(n name, fields logrus.Fields) {
 
 // BlizzardAPIIngressMetrics - encapsulation of blizzard api metrics
 type BlizzardAPIIngressMetrics struct {
-	ByteCount int
-	Duration  time.Duration
+	ByteCount          int
+	ConnectionDuration time.Duration
+	RequestDuration    time.Duration
 }
 
 func (b BlizzardAPIIngressMetrics) toFields() logrus.Fields {
-	durationInMicroseconds := int64(b.Duration) / 1000
-	return logrus.Fields{"byte_count": b.ByteCount, "duration": durationInMicroseconds}
+	connDurationInMicroseconds := int64(b.ConnectionDuration) / 1000
+	reqDurationInMicroseconds := int64(b.RequestDuration) / 1000
+
+	return logrus.Fields{
+		"byte_count":    b.ByteCount,
+		"conn_duration": connDurationInMicroseconds,
+		"req_duration":  reqDurationInMicroseconds,
+	}
 }
 
 // ReportBlizzardAPIIngress - for knowing how much network ingress is happening via blizzard api
