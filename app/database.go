@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -11,8 +10,9 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/logging"
-	"github.com/sotah-inc/server/app/util"
 )
+
+type unixTimestamp int64
 
 func normalizeTargetDate(targetDate time.Time) time.Time {
 	nearestWeekStartOffset := targetDate.Second() + targetDate.Minute()*60 + targetDate.Hour()*60*60
@@ -76,34 +76,4 @@ func databasePaths(databaseDir string) ([]databasePathPair, error) {
 	}
 
 	return out, nil
-}
-
-func newPriceListHistoryFromBytes(data []byte) (priceListHistory, error) {
-	gzipDecoded, err := util.GzipDecode(data)
-	if err != nil {
-		return priceListHistory{}, err
-	}
-
-	out := priceListHistory{}
-	if err := json.Unmarshal(gzipDecoded, &out); err != nil {
-		return priceListHistory{}, err
-	}
-
-	return out, nil
-}
-
-type priceListHistory map[unixTimestamp]prices
-
-func (plHistory priceListHistory) encodeForPersistence() ([]byte, error) {
-	jsonEncoded, err := json.Marshal(plHistory)
-	if err != nil {
-		return []byte{}, err
-	}
-
-	gzipEncoded, err := util.GzipEncode(jsonEncoded)
-	if err != nil {
-		return []byte{}, err
-	}
-
-	return gzipEncoded, nil
 }

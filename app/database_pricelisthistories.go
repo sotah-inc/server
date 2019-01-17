@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"os"
 	"time"
@@ -16,7 +17,35 @@ import (
 	"github.com/sotah-inc/server/app/util"
 )
 
-type unixTimestamp int64
+func newPriceListHistoryFromBytes(data []byte) (priceListHistory, error) {
+	gzipDecoded, err := util.GzipDecode(data)
+	if err != nil {
+		return priceListHistory{}, err
+	}
+
+	out := priceListHistory{}
+	if err := json.Unmarshal(gzipDecoded, &out); err != nil {
+		return priceListHistory{}, err
+	}
+
+	return out, nil
+}
+
+type priceListHistory map[unixTimestamp]prices
+
+func (plHistory priceListHistory) encodeForPersistence() ([]byte, error) {
+	jsonEncoded, err := json.Marshal(plHistory)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	gzipEncoded, err := util.GzipEncode(jsonEncoded)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return gzipEncoded, nil
+}
 
 func pricelistHistoryKeyName() []byte {
 	key := make([]byte, 8)
