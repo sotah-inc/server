@@ -7,6 +7,14 @@ import (
 	"github.com/sotah-inc/server/app/logging"
 )
 
+func databaseStoreKeyName(rea realm) []byte {
+	return []byte(rea.Slug)
+}
+
+func databaseStoreBucketName(reg region) []byte {
+	return []byte(reg.Name)
+}
+
 func storeDatabasePath(c config) (string, error) {
 	dbDir, err := c.databaseDir()
 	if err != nil {
