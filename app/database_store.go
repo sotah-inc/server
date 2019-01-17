@@ -7,14 +7,6 @@ import (
 	"github.com/sotah-inc/server/app/logging"
 )
 
-func databaseStoreKeyName(rea realm) []byte {
-	return []byte(rea.Slug)
-}
-
-func databaseStoreBucketName(reg region) []byte {
-	return []byte(reg.Name)
-}
-
 func storeDatabasePath(c config) (string, error) {
 	dbDir, err := c.databaseDir()
 	if err != nil {
@@ -42,4 +34,16 @@ func newStoreDatabase(c config) (storeDatabase, error) {
 
 type storeDatabase struct {
 	db *bolt.DB
+}
+
+func (sd storeDatabase) bucketName(reg region) []byte {
+	return []byte(reg.Name)
+}
+
+func (sd storeDatabase) keyName(rea realm) []byte {
+	return []byte(rea.Slug)
+}
+
+type storeDatabaseData struct {
+	data []unixTimestamp
 }
