@@ -44,6 +44,13 @@ func (sd storeDatabase) keyName(rea realm) []byte {
 	return []byte(rea.Slug)
 }
 
+type storeDatabaseDataItem struct {
+	date          unixTimestamp
+	totalSize     int
+	totalAuctions int
+	totalOwners   int
+}
+
 type storeDatabaseData struct {
-	data []unixTimestamp
+	data []storeDatabaseDataItem
 }
