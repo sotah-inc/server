@@ -7,7 +7,6 @@ import (
 
 	"github.com/twinj/uuid"
 
-	logrusstash "github.com/bshuster-repo/logrus-logstash-hook"
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/commands"
 	"github.com/sotah-inc/server/app/logging"
@@ -159,11 +158,16 @@ func main() {
 		return
 	}
 
-	if hasLogstashParams {
-		logging.ResetLogger(
-			logVerbosity,
-			logrusstash.New(logstashConn, logrusstash.DefaultFormatter(logrus.Fields{"command": cmd})),
-		)
+	if c.UseGCloud {
+		stackdriverHook, err := stackdriver.NewHook(*projectID)
+		if err != nil {
+			logging.WithFields(logrus.Fields{
+				"error":     err.Error(),
+				"projectID": projectID,
+			}).Fatal("Could not create new stackdriver logrus hook")
+		}
+
+		logging.ResetLogger(logVerbosity, stackdriverHook)
 	}
 
 	if err := cmdFunc(); err != nil {
