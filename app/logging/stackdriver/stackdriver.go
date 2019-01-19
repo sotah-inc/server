@@ -62,11 +62,15 @@ func (h Hook) Levels() []logrus.Level {
 }
 
 func newStackdriverEntryFromLogrusEntry(e *logrus.Entry, severity stackdriverlogging.Severity) stackdriverlogging.Entry {
-	e.Data["_message"] = e.Message
+	payload := map[string]interface{}{}
+	for k, v := range e.Data {
+		payload[k] = v
+	}
+	payload["msg"] = e.Message
 
 	return stackdriverlogging.Entry{
 		Timestamp: e.Time,
-		Payload:   e.Data,
+		Payload:   payload,
 		Severity:  severity,
 	}
 }
