@@ -31,15 +31,15 @@ func newConfig(body []byte) (config, error) {
 }
 
 type config struct {
-	ClientID         string                               `json:"client_id"`
-	ClientSecret     string                               `json:"client_secret"`
-	Regions          regionList                           `json:"regions"`
-	Whitelist        map[regionName]*getAuctionsWhitelist `json:"whitelist"`
-	CacheDir         string                               `json:"cache_dir"`
-	UseGCloudStorage bool                                 `json:"use_gcloud_storage"`
-	Expansions       []expansion                          `json:"expansions"`
-	Professions      []profession                         `json:"professions"`
-	ItemBlacklist    []blizzard.ItemID                    `json:"item_blacklist"`
+	ClientID      string                               `json:"client_id"`
+	ClientSecret  string                               `json:"client_secret"`
+	Regions       regionList                           `json:"regions"`
+	Whitelist     map[regionName]*getAuctionsWhitelist `json:"whitelist"`
+	CacheDir      string                               `json:"cache_dir"`
+	UseGCloud     bool                                 `json:"use_gcloud"`
+	Expansions    []expansion                          `json:"expansions"`
+	Professions   []profession                         `json:"professions"`
+	ItemBlacklist []blizzard.ItemID                    `json:"item_blacklist"`
 }
 
 func (c config) getRegionWhitelist(rName regionName) *getAuctionsWhitelist {

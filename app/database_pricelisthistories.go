@@ -437,7 +437,7 @@ func (phdBase pricelistHistoryDatabase) handleLoadAuctionsJob(job loadAuctionsJo
 		return err
 	}
 
-	if c.UseGCloudStorage == false {
+	if c.UseGCloud == false {
 		return nil
 	}
 

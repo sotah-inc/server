@@ -20,7 +20,7 @@ func apiCacheDirs(c config, regions regionList) ([]string, error) {
 	}
 
 	cacheDirs := []string{databaseDir, fmt.Sprintf("%s/items", c.CacheDir)}
-	if !c.UseGCloudStorage {
+	if !c.UseGCloud {
 		cacheDirs = append(cacheDirs, fmt.Sprintf("%s/auctions", c.CacheDir))
 		for _, reg := range regions {
 			cacheDirs = append(cacheDirs, fmt.Sprintf("%s/auctions/%s", c.CacheDir, reg.Name))
@@ -101,7 +101,7 @@ func api(c config, m messenger, s store) error {
 	sta.itemClasses = iClasses
 
 	// gathering profession icons into storage
-	if c.UseGCloudStorage {
+	if c.UseGCloud {
 		iconNames := make([]string, len(c.Professions))
 		for i, prof := range c.Professions {
 			iconNames[i] = prof.Icon

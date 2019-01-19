@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/sotah-inc/server/app/logging/stackdriver"
 	"net"
 	"os"
 
@@ -34,8 +35,6 @@ func main() {
 		verbosity      = app.Flag("verbosity", "Log verbosity").Default("info").Short('v').String()
 		cacheDir       = app.Flag("cache-dir", "Directory to cache data files to").Required().String()
 		projectID      = app.Flag("project-id", "GCloud Storage Project ID").Default("").OverrideDefaultFromEnvar("PROJECT_ID").String()
-		logstashHost   = app.Flag("logstash-host", "Logstash host").OverrideDefaultFromEnvar("LOGSTASH_HOST").String()
-		logstashPort   = app.Flag("logstash-port", "Logstash port").OverrideDefaultFromEnvar("LOGSTASH_PORT").Int()
 
 		apiTestCommand            = app.Command(commands.APITest, "For running sotah-api tests.")
 		apiTestDataDir            = apiTestCommand.Flag("data-dir", "Directory to load test fixtures from").Required().Short('d').String()
@@ -55,26 +54,6 @@ func main() {
 	}
 	logging.SetLevel(logVerbosity)
 
-	// optionally adding logstash hook
-	var logstashConn net.Conn
-	hasLogstashParams := logstashHost != nil && logstashPort != nil && *logstashHost != "" && *logstashPort != 0
-	if hasLogstashParams {
-		logging.Info("Connecting to logstash")
-
-		if logstashConn, err = net.Dial("tcp", fmt.Sprintf("%s:%d", *logstashHost, *logstashPort)); err != nil {
-			logging.WithFields(logrus.Fields{
-				"error": err.Error(),
-				"host":  *logstashHost,
-				"port":  *logstashPort,
-			}).Fatal("Could not dial logstash host")
-
-			return
-		}
-
-		logging.AddHook(logrusstash.New(logstashConn, logrusstash.DefaultFormatter(logrus.Fields{})))
-	}
-	logging.Info("Starting")
-
 	// loading the config file
 	c, err := newConfigFromFilepath(*configFilepath)
 	if err != nil {
@@ -85,6 +64,20 @@ func main() {
 
 		return
 	}
+
+	// optionally adding stackdriver hook
+	if c.UseGCloud {
+		stackdriverHook, err := stackdriver.NewHook(*projectID)
+		if err != nil {
+			logging.WithFields(logrus.Fields{
+				"error":     err.Error(),
+				"projectID": projectID,
+			}).Fatal("Could not create new stackdriver logrus hook")
+		}
+
+		logging.AddHook(stackdriverHook)
+	}
+	logging.Info("Starting")
 
 	// optionally overriding client id and client secret in config
 	if len(*clientID) > 0 {
@@ -126,7 +119,7 @@ func main() {
 
 	// connecting storage
 	stor := store{}
-	if c.UseGCloudStorage {
+	if c.UseGCloud {
 		stor, err = newStore(*projectID)
 		if err != nil {
 			logging.WithFields(logrus.Fields{

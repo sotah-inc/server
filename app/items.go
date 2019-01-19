@@ -97,7 +97,7 @@ func getItem(ID blizzard.ItemID, res resolver) (blizzard.Item, error) {
 	}
 
 	// optionally checking gcloud store
-	if res.config.UseGCloudStorage {
+	if res.config.UseGCloud {
 		exists, err := res.store.itemExists(ID)
 		if err != nil {
 			return blizzard.Item{}, err
@@ -129,7 +129,7 @@ func getItem(ID blizzard.ItemID, res resolver) (blizzard.Item, error) {
 	}
 
 	// optionally writing it back to gcloud store or disk
-	if res.config.UseGCloudStorage {
+	if res.config.UseGCloud {
 		encodedBody, err := util.GzipEncode(resp.Body)
 		if err != nil {
 			return blizzard.Item{}, err

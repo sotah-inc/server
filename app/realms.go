@@ -148,7 +148,7 @@ type loadAuctionsJob struct {
 }
 
 func (reas realms) loadAuctions(c *config, sto store) chan loadAuctionsJob {
-	if c.UseGCloudStorage {
+	if c.UseGCloud {
 		return sto.loadRealmsAuctions(c, reas)
 	}
 
@@ -272,7 +272,7 @@ func (rea realm) downloadAndCache(aFile blizzard.AuctionFile, res resolver) (bli
 	// gathering the encoded body
 	encodedBody, err := util.GzipEncode(resp.Body)
 
-	if res.config.UseGCloudStorage {
+	if res.config.UseGCloud {
 		logging.WithFields(logrus.Fields{
 			"region":       rea.region.Name,
 			"realm":        rea.Slug,

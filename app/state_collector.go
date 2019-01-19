@@ -146,7 +146,7 @@ func (sta state) collectRegions(res resolver) {
 				hasNewResults = true
 
 				logging.WithField("icons", len(missingItemIcons)).Debug("Gathering item icons")
-				if !res.config.UseGCloudStorage {
+				if !res.config.UseGCloud {
 					for iconName, IDs := range missingItemIcons {
 						for _, ID := range IDs {
 							itemValue := iMap[ID]
