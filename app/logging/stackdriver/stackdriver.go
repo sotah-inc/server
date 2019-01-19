@@ -1,9 +1,10 @@
 package stackdriver
 
 import (
-	stackdriverlogging "cloud.google.com/go/logging"
 	"context"
 	"fmt"
+
+	stackdriverlogging "cloud.google.com/go/logging"
 	"github.com/sirupsen/logrus"
 )
 
@@ -61,6 +62,8 @@ func (h Hook) Levels() []logrus.Level {
 }
 
 func newStackdriverEntryFromLogrusEntry(e *logrus.Entry, severity stackdriverlogging.Severity) stackdriverlogging.Entry {
+	e.Data["_message"] = e.Message
+
 	return stackdriverlogging.Entry{
 		Timestamp: e.Time,
 		Payload:   e.Data,
