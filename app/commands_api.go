@@ -37,7 +37,8 @@ func api(c config, m messenger, s store) error {
 	res := newResolver(c, m, s)
 	sta := newState(m, res)
 
-	// creating a uuid4 api-session secret
+	// creating a uuid4 api-session secret and run-id of state
+	sta.runID = uuid.NewV4()
 	sta.sessionSecret = uuid.NewV4()
 
 	// ensuring cache-dirs exist

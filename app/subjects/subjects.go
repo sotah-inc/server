@@ -24,4 +24,5 @@ const (
 	Info               Subject = "info"
 	Boot               Subject = "boot"
 	SessionSecret      Subject = "sessionSecret"
+	RuntimeInfo        Subject = "runtimeInfo"
 )
