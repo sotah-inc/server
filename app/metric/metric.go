@@ -33,13 +33,13 @@ type BlizzardAPIIngressMetrics struct {
 }
 
 func (b BlizzardAPIIngressMetrics) toFields() logrus.Fields {
-	connDurationInMicroseconds := int64(b.ConnectionDuration) / 1000
-	reqDurationInMicroseconds := int64(b.RequestDuration) / 1000
+	connDurationInMilliseconds := int64(b.ConnectionDuration) / 1000 / 1000
+	reqDurationInMilliseconds := int64(b.RequestDuration) / 1000 / 1000
 
 	return logrus.Fields{
 		"byte_count":    b.ByteCount,
-		"conn_duration": connDurationInMicroseconds,
-		"req_duration":  reqDurationInMicroseconds,
+		"conn_duration": connDurationInMilliseconds,
+		"req_duration":  reqDurationInMilliseconds,
 	}
 }
 
@@ -92,7 +92,7 @@ type DurationMetrics struct {
 }
 
 func (d DurationMetrics) toFields(kind durationKind) logrus.Fields {
-	durationInSeconds := int64(d.Duration) / 1000 / 1000
+	durationInSeconds := int64(d.Duration) / 1000 / 1000 / 1000
 	return logrus.Fields{
 		"duration_kind":                         kind,
 		"duration_length":                       durationInSeconds,
