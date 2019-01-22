@@ -2,41 +2,72 @@ package stackdriver
 
 import (
 	"context"
+	"errors"
 	"fmt"
+
+	"cloud.google.com/go/errorreporting"
 
 	stackdriverlogging "cloud.google.com/go/logging"
 	"github.com/sirupsen/logrus"
 )
 
-func NewHook(projectID string) (Hook, error) {
+func NewHook(projectID string, serviceName string) (Hook, error) {
 	ctx := context.Background()
-	client, err := stackdriverlogging.NewClient(ctx, fmt.Sprintf("projects/%s", projectID))
+
+	lc, err := stackdriverlogging.NewClient(ctx, fmt.Sprintf("projects/%s", projectID))
 	if err != nil {
 		return Hook{}, err
 	}
 
-	return Hook{client, client.Logger("sotah-server"), ctx}, nil
+	ec, err := errorreporting.NewClient(ctx, projectID, errorreporting.Config{
+		ServiceName:    serviceName,
+		ServiceVersion: "v1.0",
+	})
+	if err != nil {
+		return Hook{}, err
+	}
+
+	return Hook{lc, ec, lc.Logger("sotah-server"), ctx}, nil
 }
 
 type Hook struct {
-	client *stackdriverlogging.Client
-	logger *stackdriverlogging.Logger
-	ctx    context.Context
+	loggingClient        *stackdriverlogging.Client
+	errorReportingClient *errorreporting.Client
+	logger               *stackdriverlogging.Logger
+	ctx                  context.Context
 }
 
 func (h Hook) Fire(entry *logrus.Entry) error {
 	switch entry.Level {
 	case logrus.PanicLevel:
+		err := h.errorReportingClient.ReportSync(
+			h.ctx,
+			errorreporting.Entry{Error: errors.New(entry.Message)},
+		)
+		if err != nil {
+			return err
+		}
+
 		return h.logger.LogSync(
 			h.ctx,
 			newStackdriverEntryFromLogrusEntry(entry, stackdriverlogging.Emergency),
 		)
 	case logrus.FatalLevel:
+		err := h.errorReportingClient.ReportSync(
+			h.ctx,
+			errorreporting.Entry{Error: errors.New(entry.Message)},
+		)
+		if err != nil {
+			return err
+		}
+
 		return h.logger.LogSync(
 			h.ctx,
 			newStackdriverEntryFromLogrusEntry(entry, stackdriverlogging.Critical),
 		)
 	case logrus.ErrorLevel:
+		h.errorReportingClient.Report(errorreporting.Entry{Error: errors.New(entry.Message)})
+
 		h.logger.Log(newStackdriverEntryFromLogrusEntry(entry, stackdriverlogging.Error))
 
 		return nil

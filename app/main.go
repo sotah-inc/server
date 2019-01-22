@@ -65,7 +65,7 @@ func main() {
 
 	// optionally adding stackdriver hook
 	if c.UseGCloud {
-		stackdriverHook, err := stackdriver.NewHook(*projectID)
+		stackdriverHook, err := stackdriver.NewHook(*projectID, cmd)
 		if err != nil {
 			logging.WithFields(logrus.Fields{
 				"error":     err.Error(),
@@ -159,7 +159,7 @@ func main() {
 	}
 
 	if c.UseGCloud {
-		stackdriverHook, err := stackdriver.NewHook(*projectID)
+		stackdriverHook, err := stackdriver.NewHook(*projectID, cmd)
 		if err != nil {
 			logging.WithFields(logrus.Fields{
 				"error":     err.Error(),
