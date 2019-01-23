@@ -7,8 +7,8 @@ import (
 
 	"github.com/sotah-inc/server/app/pkg/messenger"
 
+	"github.com/lithammer/fuzzysearch/fuzzy"
 	nats "github.com/nats-io/go-nats"
-	"github.com/renstrom/fuzzysearch/fuzzy"
 	"github.com/sotah-inc/server/app/internal"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"

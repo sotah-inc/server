@@ -120,4 +120,4 @@ func (by OwnersByName) Len() int           { return len(by) }
 func (by OwnersByName) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
 func (by OwnersByName) Less(i, j int) bool { return by[i].Name < by[j].Name }
 
-// use this: https://godoc.org/github.com/renstrom/fuzzysearch/fuzzy
+// use this: https://godoc.org/github.com/lithammer/fuzzysearch/fuzzy
