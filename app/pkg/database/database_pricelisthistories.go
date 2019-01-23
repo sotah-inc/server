@@ -13,10 +13,10 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/internal"
-	"github.com/sotah-inc/server/app/objstate"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/state"
+	"github.com/sotah-inc/server/app/pkg/store/objstate"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
