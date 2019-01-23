@@ -1,16 +1,17 @@
 package store
 
 import (
-	"cloud.google.com/go/storage"
 	"fmt"
+	"io/ioutil"
+	"strconv"
+	"strings"
+
+	"cloud.google.com/go/storage"
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/util"
 	"google.golang.org/api/iterator"
-	"io/ioutil"
-	"strconv"
-	"strings"
 )
 
 const itemsBucketName = "sotah-items"
@@ -110,12 +111,12 @@ func (sto Store) exportItem(ID blizzard.ItemID) ([]byte, error) {
 }
 
 type exportItemsJob struct {
-	err  error
+	Err  error
 	ID   blizzard.ItemID
-	data []byte
+	Data []byte
 }
 
-func (sto Store) exportItems() chan exportItemsJob {
+func (sto Store) ExportItems() chan exportItemsJob {
 	// establishing channels
 	out := make(chan exportItemsJob)
 	in := make(chan blizzard.ItemID)

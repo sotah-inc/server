@@ -19,16 +19,16 @@ func normalizeTargetDate(targetDate time.Time) time.Time {
 	return time.Unix(targetDate.Unix()-int64(nearestWeekStartOffset), 0)
 }
 
-func databaseRetentionLimit() time.Time {
+func DatabaseRetentionLimit() time.Time {
 	return time.Now().Add(-1 * time.Hour * 24 * 30)
 }
 
 type databasePathPair struct {
-	fullPath   string
-	targetTime time.Time
+	FullPath   string
+	TargetTime time.Time
 }
 
-func databasePaths(databaseDir string) ([]databasePathPair, error) {
+func DatabasePaths(databaseDir string) ([]databasePathPair, error) {
 	out := []databasePathPair{}
 
 	databaseFilepaths, err := ioutil.ReadDir(databaseDir)

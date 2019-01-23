@@ -25,7 +25,7 @@ func (rl RegionList) GetPrimaryRegion() (Region, error) {
 
 type RegionName string
 
-func newRegionsFromMessenger(mess messenger.Messenger) (RegionList, error) {
+func NewRegionsFromMessenger(mess messenger.Messenger) (RegionList, error) {
 	msg, err := mess.Request(subjects.Regions, []byte{})
 	if err != nil {
 		return RegionList{}, err
@@ -49,18 +49,18 @@ type Region struct {
 	Primary  bool       `json:"primary"`
 }
 
-func (reg Region) GetStatus(res Resolver) (status, error) {
+func (reg Region) GetStatus(res Resolver) (Status, error) {
 	uri, err := res.AppendAccessToken(res.GetStatusURL(reg.Hostname))
 	if err != nil {
-		return status{}, err
+		return Status{}, err
 	}
 
 	stat, _, err := blizzard.NewStatusFromHTTP(uri)
 	if err != nil {
-		return status{}, err
+		return Status{}, err
 	}
 
-	return status{stat, reg, newRealms(reg, stat.Realms)}, nil
+	return Status{stat, reg, NewRealms(reg, stat.Realms)}, nil
 }
 
 func (reg Region) DatabaseDir(parentDirPath string) string {

@@ -15,12 +15,12 @@ import (
 
 type OwnerName string
 
-type owner struct {
+type Owner struct {
 	Name           OwnerName `json:"name"`
 	NormalizedName string    `json:"normalized_name"`
 }
 
-func newOwnersFromAuctions(aucs MiniAuctionList) (owners, error) {
+func NewOwnersFromAuctions(aucs MiniAuctionList) (owners, error) {
 	ownerNamesMap := map[OwnerName]struct{}{}
 	for _, ma := range aucs {
 		ownerNamesMap[ma.Owner] = struct{}{}
@@ -31,10 +31,10 @@ func newOwnersFromAuctions(aucs MiniAuctionList) (owners, error) {
 		return owners{}, err
 	}
 
-	ownerList := make([]owner, len(ownerNamesMap))
+	ownerList := make([]Owner, len(ownerNamesMap))
 	i := 0
 	for ownerNameValue := range ownerNamesMap {
-		ownerList[i] = owner{
+		ownerList[i] = Owner{
 			Name:           ownerNameValue,
 			NormalizedName: reg.ReplaceAllString(strings.ToLower(string(ownerNameValue)), ""),
 		}
@@ -84,9 +84,9 @@ type owners struct {
 	Owners ownersList `json:"owners"`
 }
 
-type ownersList []owner
+type ownersList []Owner
 
-func (ol ownersList) limit() ownersList {
+func (ol ownersList) Limit() ownersList {
 	listLength := len(ol)
 	if listLength > 10 {
 		listLength = 10
@@ -100,7 +100,7 @@ func (ol ownersList) limit() ownersList {
 	return out
 }
 
-func (ol ownersList) filter(query string) ownersList {
+func (ol ownersList) Filter(query string) ownersList {
 	lowerQuery := strings.ToLower(query)
 	matches := ownersList{}
 	for _, o := range ol {
@@ -114,10 +114,10 @@ func (ol ownersList) filter(query string) ownersList {
 	return matches
 }
 
-type ownersByName ownersList
+type OwnersByName ownersList
 
-func (by ownersByName) Len() int           { return len(by) }
-func (by ownersByName) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
-func (by ownersByName) Less(i, j int) bool { return by[i].Name < by[j].Name }
+func (by OwnersByName) Len() int           { return len(by) }
+func (by OwnersByName) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
+func (by OwnersByName) Less(i, j int) bool { return by[i].Name < by[j].Name }
 
 // use this: https://godoc.org/github.com/renstrom/fuzzysearch/fuzzy

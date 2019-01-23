@@ -5,6 +5,7 @@ import (
 
 	nats "github.com/nats-io/go-nats"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 )
@@ -72,14 +73,14 @@ func (iRequest infoRequest) resolve(sta State) (infoResponse, error) {
 }
 
 func (sta State) listenForInfo(stop ListenStopChan) error {
-	err := sta.Messenger.subscribe(subjects.Info, stop, func(natsMsg nats.Msg) {
-		m := newMessage()
+	err := sta.Messenger.Subscribe(subjects.Info, stop, func(natsMsg nats.Msg) {
+		m := messenger.NewMessage()
 
 		iRequest, err := newInfoRequest(natsMsg.Data)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.Messenger.replyTo(natsMsg, m)
+			sta.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -88,7 +89,7 @@ func (sta State) listenForInfo(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.Messenger.replyTo(natsMsg, m)
+			sta.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -97,13 +98,13 @@ func (sta State) listenForInfo(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.Messenger.replyTo(natsMsg, m)
+			sta.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		m.Data = string(encodedStatus)
-		sta.Messenger.replyTo(natsMsg, m)
+		sta.Messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err

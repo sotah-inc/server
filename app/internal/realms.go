@@ -21,7 +21,7 @@ import (
 
 type getAuctionsWhitelist map[blizzard.RealmSlug]interface{}
 
-func newRealms(reg Region, blizzRealms []blizzard.Realm) Realms {
+func NewRealms(reg Region, blizzRealms []blizzard.Realm) Realms {
 	reas := make([]Realm, len(blizzRealms))
 	for i, rea := range blizzRealms {
 		reas[i] = Realm{rea, reg, 0}
@@ -362,47 +362,47 @@ func (rea Realm) loadAuctionsFromFilecache(c *Config) (blizzard.Auctions, time.T
 	return aucs, cachedAuctionsStat.ModTime(), nil
 }
 
-func newStatusFromMessenger(reg Region, mess messenger.Messenger) (status, error) {
+func NewStatusFromMessenger(reg Region, mess messenger.Messenger) (Status, error) {
 	lm := state.StatusRequest{RegionName: reg.Name}
 	encodedMessage, err := json.Marshal(lm)
 	if err != nil {
-		return status{}, err
+		return Status{}, err
 	}
 
 	msg, err := mess.Request(subjects.Status, encodedMessage)
 	if err != nil {
-		return status{}, err
+		return Status{}, err
 	}
 
 	if msg.Code != codes.Ok {
-		return status{}, errors.New(msg.Err)
+		return Status{}, errors.New(msg.Err)
 	}
 
 	stat, err := blizzard.NewStatus([]byte(msg.Data))
 	if err != nil {
-		return status{}, err
+		return Status{}, err
 	}
 
 	return newStatus(reg, stat), nil
 }
 
-func newStatusFromFilepath(reg Region, relativeFilepath string) (status, error) {
+func newStatusFromFilepath(reg Region, relativeFilepath string) (Status, error) {
 	stat, err := blizzard.NewStatusFromFilepath(relativeFilepath)
 	if err != nil {
-		return status{}, err
+		return Status{}, err
 	}
 
 	return newStatus(reg, stat), nil
 }
 
-func newStatus(reg Region, stat blizzard.Status) status {
-	return status{stat, reg, newRealms(reg, stat.Realms)}
+func newStatus(reg Region, stat blizzard.Status) Status {
+	return Status{stat, reg, NewRealms(reg, stat.Realms)}
 }
 
-type status struct {
+type Status struct {
 	blizzard.Status
-	region Region
+	Region Region
 	Realms Realms `json:"Realms"`
 }
 
-type Statuses map[RegionName]status
+type Statuses map[RegionName]Status

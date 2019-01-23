@@ -4,28 +4,33 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/sotah-inc/server/app/pkg/state"
+
 	storage "cloud.google.com/go/storage"
 	"github.com/sirupsen/logrus"
+	"github.com/sotah-inc/server/app/internal"
 	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/messenger"
+	"github.com/sotah-inc/server/app/pkg/store"
 	"github.com/sotah-inc/server/app/pkg/util"
 	"google.golang.org/api/iterator"
 )
 
-func pruneStore(c config, m messenger, s store) error {
+func pruneStore(c internal.Config, m messenger.Messenger, s store.Store) error {
 	logging.Info("Starting prune-store")
 
 	// establishing a state
-	res := newResolver(c, m, s)
-	sta := newState(m, res)
+	res := internal.NewResolver(c, m, s)
+	sta := state.NewState(m, res)
 
 	// gathering region-status from the root service
 	logging.Info("Gathering regions")
-	regions, err := func() (regionList, error) {
-		out := regionList{}
+	regions, err := func() (internal.RegionList, error) {
+		out := internal.RegionList{}
 		attempts := 0
 		for {
 			var err error
-			out, err = newRegionsFromMessenger(m)
+			out, err = internal.NewRegionsFromMessenger(m)
 			if err == nil {
 				break
 			} else {
@@ -36,7 +41,7 @@ func pruneStore(c config, m messenger, s store) error {
 			}
 
 			if attempts >= 20 {
-				return regionList{}, fmt.Errorf("Failed to fetch regions after %d attempts", attempts)
+				return internal.RegionList{}, fmt.Errorf("Failed to fetch regions after %d attempts", attempts)
 			}
 		}
 
@@ -48,17 +53,17 @@ func pruneStore(c config, m messenger, s store) error {
 		return err
 	}
 
-	sta.regions = c.filterInRegions(regions)
+	sta.Regions = c.FilterInRegions(regions)
 
 	// filling state with statuses
 	for _, reg := range regions {
-		regionStatus, err := reg.getStatus(res)
+		regionStatus, err := reg.GetStatus(res)
 		if err != nil {
 			logging.WithField("region", reg.Name).Info("Could not fetch status for region")
 
 			return err
 		}
-		sta.statuses[reg.Name] = regionStatus
+		sta.Statuses[reg.Name] = regionStatus
 	}
 
 	// establishing channels
@@ -69,7 +74,7 @@ func pruneStore(c config, m messenger, s store) error {
 	worker := func() {
 		for bkt := range in {
 			i := 0
-			it := bkt.Objects(s.context, nil)
+			it := bkt.Objects(s.Context, nil)
 			for {
 				if i == 0 || i%5 == 0 {
 					logging.WithField("count", i).Debug("Deleted object from bucket")
@@ -87,14 +92,14 @@ func pruneStore(c config, m messenger, s store) error {
 				}
 
 				obj := bkt.Object(objAttrs.Name)
-				if err := obj.Delete(s.context); err != nil {
+				if err := obj.Delete(s.Context); err != nil {
 					out <- err
 				}
 
 				i++
 			}
 
-			if err := bkt.Delete(s.context); err != nil {
+			if err := bkt.Delete(s.Context); err != nil {
 				out <- err
 			}
 		}
@@ -107,13 +112,13 @@ func pruneStore(c config, m messenger, s store) error {
 	// queueing up
 	go func() {
 		// going over statuses to prune buckets
-		for _, reg := range sta.regions {
+		for _, reg := range sta.Regions {
 			if reg.Primary {
 				continue
 			}
 
-			for _, rea := range sta.statuses[reg.Name].Realms {
-				exists, err := s.realmAuctionsBucketExists(rea)
+			for _, rea := range sta.Statuses[reg.Name].Realms {
+				exists, err := s.RealmAuctionsBucketExists(rea)
 				if err != nil {
 					out <- err
 				}
@@ -124,7 +129,7 @@ func pruneStore(c config, m messenger, s store) error {
 
 				logging.WithFields(logrus.Fields{"region": reg.Name, "realm": rea.Slug}).Debug("Removing realm-auctions from store")
 
-				bkt := s.getRealmAuctionsBucket(rea)
+				bkt := s.GetRealmAuctionsBucket(rea)
 				in <- bkt
 			}
 		}

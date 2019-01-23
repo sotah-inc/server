@@ -40,7 +40,7 @@ func (sto Store) createRealmAuctionsBucket(rea internal.Realm) (*storage.BucketH
 	return bkt, nil
 }
 
-func (sto Store) realmAuctionsBucketExists(rea internal.Realm) (bool, error) {
+func (sto Store) RealmAuctionsBucketExists(rea internal.Realm) (bool, error) {
 	_, err := sto.GetRealmAuctionsBucket(rea).Attrs(sto.Context)
 	if err != nil {
 		if err != storage.ErrBucketNotExist {
@@ -54,7 +54,7 @@ func (sto Store) realmAuctionsBucketExists(rea internal.Realm) (bool, error) {
 }
 
 func (sto Store) resolveRealmAuctionsBucket(rea internal.Realm) (*storage.BucketHandle, error) {
-	exists, err := sto.realmAuctionsBucketExists(rea)
+	exists, err := sto.RealmAuctionsBucketExists(rea)
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +116,7 @@ func (sto Store) getTotalRealmAuctionsSize(rea internal.Realm) (int64, error) {
 		"realm":  rea.Slug,
 	}).Debug("Gathering total bucket size")
 
-	exists, err := sto.realmAuctionsBucketExists(rea)
+	exists, err := sto.RealmAuctionsBucketExists(rea)
 	if err != nil {
 		return 0, err
 	}
@@ -158,7 +158,7 @@ func (sto Store) collectRegionRealms(c internal.Config, regs internal.RegionList
 	worker := func() {
 		for rea := range in {
 			// validating taht the realm-auctions bucket exists
-			exists, err := sto.realmAuctionsBucketExists(rea)
+			exists, err := sto.RealmAuctionsBucketExists(rea)
 			if err != nil {
 				logging.WithFields(logrus.Fields{
 					"error":  err.Error(),
@@ -572,7 +572,7 @@ func (sto Store) getLatestRealmAuctionsObjectForProcessing(bkt *storage.BucketHa
 }
 
 func (sto Store) loadRealmAuctions(rea internal.Realm, targetTime time.Time) (blizzard.Auctions, time.Time, error) {
-	hasBucket, err := sto.realmAuctionsBucketExists(rea)
+	hasBucket, err := sto.RealmAuctionsBucketExists(rea)
 	if err != nil {
 		return blizzard.Auctions{}, time.Time{}, err
 	}

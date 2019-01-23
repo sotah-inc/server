@@ -32,7 +32,7 @@ func TestGetStatus(t *testing.T) {
 
 	reg := c.Regions[0]
 
-	realmStatusTs, err := utiltest.ServeFile("./TestData/Realm-status.json")
+	realmStatusTs, err := utiltest.ServeFile("./TestData/Realm-Status.json")
 	if !assert.Nil(t, err) {
 		return
 	}

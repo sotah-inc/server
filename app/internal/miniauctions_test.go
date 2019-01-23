@@ -74,6 +74,6 @@ func TestNewMiniAuctionsFromMessenger(t *testing.T) {
 		return
 	}
 
-	// flagging the status listener to exit
+	// flagging the Status listener to exit
 	stop <- struct{}{}
 }

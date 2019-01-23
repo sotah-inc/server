@@ -7,11 +7,10 @@ import (
 	"math"
 	"sort"
 
-	"github.com/sotah-inc/server/app/pkg/messenger"
-
 	nats "github.com/nats-io/go-nats"
 	"github.com/sotah-inc/server/app/internal"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/pkg/util"
@@ -97,7 +96,7 @@ func (plResponse priceListResponse) encodeForMessage() (string, error) {
 	return base64.StdEncoding.EncodeToString(gzipEncodedMessage), nil
 }
 
-func (sta State) listenForPriceList(stop ListenStopChan) error {
+func (sta State) ListenForPriceList(stop ListenStopChan) error {
 	err := sta.Messenger.Subscribe(subjects.PriceList, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 

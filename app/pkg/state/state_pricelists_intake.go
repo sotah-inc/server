@@ -7,7 +7,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/metric"
 )
 
-func (sta State) listenForPricelistsIntake(stop ListenStopChan) error {
+func (sta State) ListenForPricelistsIntake(stop ListenStopChan) error {
 	// declaring a channel for queueing up pricelist-intake requests from the listener
 	listenerIn := make(chan AuctionsIntakeRequest, 10)
 
@@ -23,7 +23,7 @@ func (sta State) listenForPricelistsIntake(stop ListenStopChan) error {
 		}
 	}()
 
-	err := sta.Messenger.subscribe(subjects.PricelistsIntake, stop, func(natsMsg nats.Msg) {
+	err := sta.Messenger.Subscribe(subjects.PricelistsIntake, stop, func(natsMsg nats.Msg) {
 		// resolving the request
 		aiRequest, err := newAuctionsIntakeRequest(natsMsg.Data)
 		if err != nil {

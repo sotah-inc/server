@@ -8,6 +8,7 @@ import (
 	nats "github.com/nats-io/go-nats"
 	"github.com/sotah-inc/server/app/internal"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 )
@@ -28,35 +29,35 @@ type OwnersRequest struct {
 	Query      string              `json:"query"`
 }
 
-func (request OwnersRequest) resolve(sta State) (miniAuctionList, error) {
+func (request OwnersRequest) resolve(sta State) (internal.MiniAuctionList, error) {
 	regionLadBases, ok := sta.LiveAuctionsDatabases[request.RegionName]
 	if !ok {
-		return miniAuctionList{}, errors.New("Invalid region name")
+		return internal.MiniAuctionList{}, errors.New("Invalid region name")
 	}
 
 	ladBase, ok := regionLadBases[request.RealmSlug]
 	if !ok {
-		return miniAuctionList{}, errors.New("Invalid Realm slug")
+		return internal.MiniAuctionList{}, errors.New("Invalid Realm slug")
 	}
 
-	maList, err := ladBase.getMiniauctions()
+	maList, err := ladBase.GetMiniauctions()
 	if err != nil {
-		return miniAuctionList{}, err
+		return internal.MiniAuctionList{}, err
 	}
 
 	return maList, nil
 }
 
-func (sta State) listenForOwners(stop ListenStopChan) error {
-	err := sta.Messenger.subscribe(subjects.Owners, stop, func(natsMsg nats.Msg) {
-		m := newMessage()
+func (sta State) ListenForOwners(stop ListenStopChan) error {
+	err := sta.Messenger.Subscribe(subjects.Owners, stop, func(natsMsg nats.Msg) {
+		m := messenger.NewMessage()
 
 		// resolving the request
 		request, err := newOwnersRequest(natsMsg.Data)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.Messenger.replyTo(natsMsg, m)
+			sta.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -66,42 +67,42 @@ func (sta State) listenForOwners(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.NotFound
-			sta.Messenger.replyTo(natsMsg, m)
+			sta.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
-		o, err := newOwnersFromAuctions(mal)
+		o, err := internal.NewOwnersFromAuctions(mal)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.Messenger.replyTo(natsMsg, m)
+			sta.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		// optionally filtering in matches
 		if request.Query != "" {
-			o.Owners = o.Owners.filter(request.Query)
+			o.Owners = o.Owners.Filter(request.Query)
 		}
 
 		// sorting and truncating
-		sort.Sort(ownersByName(o.Owners))
-		o.Owners = o.Owners.limit()
+		sort.Sort(internal.OwnersByName(o.Owners))
+		o.Owners = o.Owners.Limit()
 
 		// marshalling for Messenger
 		encodedMessage, err := json.Marshal(o)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.Messenger.replyTo(natsMsg, m)
+			sta.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		// dumping it out
 		m.Data = string(encodedMessage)
-		sta.Messenger.replyTo(natsMsg, m)
+		sta.Messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err

@@ -6,6 +6,7 @@ import (
 
 	nats "github.com/nats-io/go-nats"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/pkg/state/sortdirections"
@@ -106,15 +107,15 @@ func (ar auctionsResponse) encodeForMessage() (string, error) {
 }
 
 func (sta State) ListenForAuctions(stop ListenStopChan) error {
-	err := sta.Messenger.subscribe(subjects.Auctions, stop, func(natsMsg nats.Msg) {
-		m := newMessage()
+	err := sta.Messenger.Subscribe(subjects.Auctions, stop, func(natsMsg nats.Msg) {
+		m := messenger.NewMessage()
 
 		// resolving the request
 		aRequest, err := newAuctionsRequest(natsMsg.Data)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.Messenger.replyTo(natsMsg, m)
+			sta.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -124,7 +125,7 @@ func (sta State) ListenForAuctions(stop ListenStopChan) error {
 		if reErr.code != codes.Ok {
 			m.Err = reErr.message
 			m.Code = reErr.code
-			sta.Messenger.replyTo(natsMsg, m)
+			sta.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -156,7 +157,7 @@ func (sta State) ListenForAuctions(stop ListenStopChan) error {
 			if err != nil {
 				m.Err = err.Error()
 				m.Code = codes.UserError
-				sta.Messenger.replyTo(natsMsg, m)
+				sta.Messenger.ReplyTo(natsMsg, m)
 
 				return
 			}
@@ -167,7 +168,7 @@ func (sta State) ListenForAuctions(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.UserError
-			sta.Messenger.replyTo(natsMsg, m)
+			sta.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -177,13 +178,13 @@ func (sta State) ListenForAuctions(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.Messenger.replyTo(natsMsg, m)
+			sta.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		m.Data = data
-		sta.Messenger.replyTo(natsMsg, m)
+		sta.Messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err

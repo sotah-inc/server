@@ -25,8 +25,8 @@ func newMiniAuctionSorter() miniAuctionSorter {
 		"buyout_per-r": func(mAuctionList MiniAuctionList) { sort.Sort(byBuyoutPerReversed(mAuctionList)) },
 		"Auctions":     func(mAuctionList MiniAuctionList) { sort.Sort(byAuctions(mAuctionList)) },
 		"Auctions-r":   func(mAuctionList MiniAuctionList) { sort.Sort(byAuctionsReversed(mAuctionList)) },
-		"owner":        func(mAuctionList MiniAuctionList) { sort.Sort(byOwner(mAuctionList)) },
-		"owner-r":      func(mAuctionList MiniAuctionList) { sort.Sort(byOwnerReversed(mAuctionList)) },
+		"Owner":        func(mAuctionList MiniAuctionList) { sort.Sort(byOwner(mAuctionList)) },
+		"Owner-r":      func(mAuctionList MiniAuctionList) { sort.Sort(byOwnerReversed(mAuctionList)) },
 	}
 }
 
@@ -41,7 +41,7 @@ func (mas miniAuctionSorter) sort(kind sortkinds.SortKind, direction sortdirecti
 		sortkinds.Buyout:    "buyout",
 		sortkinds.BuyoutPer: "buyout_per",
 		sortkinds.Auctions:  "Auctions",
-		sortkinds.Owner:     "owner",
+		sortkinds.Owner:     "Owner",
 	}
 	resolvedKind, ok := kindMap[kind]
 	if !ok {

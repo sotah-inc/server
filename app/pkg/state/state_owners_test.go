@@ -38,7 +38,7 @@ func TestListenForOwners(t *testing.T) {
 
 	// setting up a subscriber that will publish auctions
 	stop := make(chan interface{})
-	err = sta.listenForOwners(stop)
+	err = sta.ListenForOwners(stop)
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -96,7 +96,7 @@ func TestListenForOwnersFiltered(t *testing.T) {
 
 	// setting up a subscriber that will publish auctions
 	stop := make(chan interface{})
-	err = sta.listenForOwners(stop)
+	err = sta.ListenForOwners(stop)
 	if !assert.Nil(t, err) {
 		return
 	}

@@ -5,6 +5,10 @@ import (
 	"errors"
 	"sort"
 
+	"github.com/sotah-inc/server/app/pkg/messenger"
+
+	"github.com/sotah-inc/server/app/internal"
+
 	nats "github.com/nats-io/go-nats"
 	"github.com/renstrom/fuzzysearch/fuzzy"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
@@ -13,9 +17,9 @@ import (
 )
 
 type ownersQueryItem struct {
-	Target string `json:"target"`
-	Owner  owner  `json:"owner"`
-	Rank   int    `json:"rank"`
+	Target string         `json:"target"`
+	Owner  internal.Owner `json:"owner"`
+	Rank   int            `json:"rank"`
 }
 
 type ownersQueryItems []ownersQueryItem
@@ -83,9 +87,9 @@ func newOwnersQueryRequest(payload []byte) (ownersQueryRequest, error) {
 }
 
 type ownersQueryRequest struct {
-	RegionName regionName         `json:"region_name"`
-	RealmSlug  blizzard.RealmSlug `json:"realm_slug"`
-	Query      string             `json:"query"`
+	RegionName internal.RegionName `json:"region_name"`
+	RealmSlug  blizzard.RealmSlug  `json:"realm_slug"`
+	Query      string              `json:"query"`
 }
 
 func (request ownersQueryRequest) resolve(sta State) (ownersQueryResult, error) {
@@ -107,13 +111,13 @@ func (request ownersQueryRequest) resolve(sta State) (ownersQueryResult, error) 
 		return ownersQueryResult{}, errors.New("Invalid Realm slug")
 	}
 
-	maList, err := ladBase.getMiniauctions()
+	maList, err := ladBase.GetMiniauctions()
 	if err != nil {
 		return ownersQueryResult{}, err
 	}
 
 	// resolving owners from auctions
-	oResult, err := newOwnersFromAuctions(maList)
+	oResult, err := internal.NewOwnersFromAuctions(maList)
 	if err != nil {
 		return ownersQueryResult{}, err
 	}
@@ -134,16 +138,16 @@ func (request ownersQueryRequest) resolve(sta State) (ownersQueryResult, error) 
 	return oqResult, nil
 }
 
-func (sta State) listenForOwnersQuery(stop ListenStopChan) error {
-	err := sta.Messenger.subscribe(subjects.OwnersQuery, stop, func(natsMsg nats.Msg) {
-		m := newMessage()
+func (sta State) ListenForOwnersQuery(stop ListenStopChan) error {
+	err := sta.Messenger.Subscribe(subjects.OwnersQuery, stop, func(natsMsg nats.Msg) {
+		m := messenger.NewMessage()
 
 		// resolving the request
 		request, err := newOwnersQueryRequest(natsMsg.Data)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.Messenger.replyTo(natsMsg, m)
+			sta.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -153,7 +157,7 @@ func (sta State) listenForOwnersQuery(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.NotFound
-			sta.Messenger.replyTo(natsMsg, m)
+			sta.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -178,14 +182,14 @@ func (sta State) listenForOwnersQuery(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.Messenger.replyTo(natsMsg, m)
+			sta.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		// dumping it out
 		m.Data = string(encodedMessage)
-		sta.Messenger.replyTo(natsMsg, m)
+		sta.Messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err

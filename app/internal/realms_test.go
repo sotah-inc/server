@@ -34,7 +34,7 @@ func TestRealmGetAuctions(t *testing.T) {
 		return auctionsTs.URL
 	}
 
-	s, err := newStatusFromFilepath(Region{}, "./TestData/Realm-status.json")
+	s, err := newStatusFromFilepath(Region{}, "./TestData/Realm-Status.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -57,8 +57,8 @@ func TestRealmsGetAuctions(t *testing.T) {
 	// initial Resolver
 	res := Resolver{Config: &Config{}}
 
-	// setting up a test status
-	s, err := newStatusFromFilepath(Region{}, "./TestData/Realm-status.json")
+	// setting up a test Status
+	s, err := newStatusFromFilepath(Region{}, "./TestData/Realm-Status.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -117,8 +117,8 @@ func TestRealmsGetAllAuctions(t *testing.T) {
 	// initial Resolver
 	res := Resolver{Config: &Config{}}
 
-	// setting up a test status
-	s, err := newStatusFromFilepath(Region{}, "./TestData/Realm-status.json")
+	// setting up a test Status
+	s, err := newStatusFromFilepath(Region{}, "./TestData/Realm-Status.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -165,7 +165,7 @@ func TestRealmsGetAllAuctions(t *testing.T) {
 	}
 }
 
-func validateStatus(t *testing.T, reg Region, s status) bool {
+func validateStatus(t *testing.T, reg Region, s Status) bool {
 	if !assert.NotEmpty(t, s.Realms) {
 		return false
 	}
@@ -181,7 +181,7 @@ func validateStatus(t *testing.T, reg Region, s status) bool {
 
 func TestNewStatusFromFilepath(t *testing.T) {
 	reg := Region{Hostname: "us.battle.net"}
-	s, err := newStatusFromFilepath(reg, "./TestData/Realm-status.json")
+	s, err := newStatusFromFilepath(reg, "./TestData/Realm-Status.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -200,19 +200,19 @@ func TestNewStatusFromMessenger(t *testing.T) {
 	}
 	sta.Messenger = mess
 
-	// building test status
+	// building test Status
 	reg := Region{Name: "us", Hostname: "us.battle.net"}
-	s, err := newStatusFromFilepath(reg, "./TestData/Realm-status.json")
+	s, err := newStatusFromFilepath(reg, "./TestData/Realm-Status.json")
 	if !assert.Nil(t, err) {
 		return
 	}
 	if !validateStatus(t, reg, s) {
 		return
 	}
-	sta.Statuses = map[RegionName]status{reg.Name: s}
+	sta.Statuses = map[RegionName]Status{reg.Name: s}
 	sta.Regions = []Region{reg}
 
-	// setting up a subscriber that will publish status retrieval requests
+	// setting up a subscriber that will publish Status retrieval requests
 	stop := make(chan interface{})
 	err = sta.listenForStatus(stop)
 	if !assert.Nil(t, err) {
@@ -220,17 +220,17 @@ func TestNewStatusFromMessenger(t *testing.T) {
 	}
 
 	// subscribing to receive Statuses
-	receivedStatus, err := newStatusFromMessenger(reg, mess)
-	if !assert.Nil(t, err) || !assert.Equal(t, s.region.Hostname, receivedStatus.region.Hostname) {
+	receivedStatus, err := NewStatusFromMessenger(reg, mess)
+	if !assert.Nil(t, err) || !assert.Equal(t, s.Region.Hostname, receivedStatus.Region.Hostname) {
 		stop <- struct{}{}
 		return
 	}
 
-	// flagging the status listener to exit
+	// flagging the Status listener to exit
 	stop <- struct{}{}
 }
 func TestNewStatus(t *testing.T) {
-	blizzStatus, err := blizzard.NewStatusFromFilepath("./TestData/Realm-status.json")
+	blizzStatus, err := blizzard.NewStatusFromFilepath("./TestData/Realm-Status.json")
 	if !assert.Nil(t, err) {
 		return
 	}

@@ -14,7 +14,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
-func getItemFilepath(c Config, ID blizzard.ItemID) (string, error) {
+func GetItemFilepath(c Config, ID blizzard.ItemID) (string, error) {
 	return filepath.Abs(
 		fmt.Sprintf("%s/items/%d.json", c.CacheDir, ID),
 	)
@@ -68,7 +68,7 @@ func getItem(ID blizzard.ItemID, res Resolver) (blizzard.Item, error) {
 		return blizzard.Item{}, errors.New("Cache dir cannot be blank")
 	}
 
-	itemFilepath, err := getItemFilepath(*res.Config, ID)
+	itemFilepath, err := GetItemFilepath(*res.Config, ID)
 	if err != nil {
 		return blizzard.Item{}, err
 	}

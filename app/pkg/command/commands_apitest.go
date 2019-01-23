@@ -6,13 +6,20 @@ import (
 	"os/signal"
 	"path/filepath"
 
-	"github.com/sotah-inc/server/app/logging"
+	"github.com/sotah-inc/server/app/pkg/database"
+
+	"github.com/sotah-inc/server/app/pkg/state"
+
+	"github.com/sotah-inc/server/app/internal"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
+	"github.com/sotah-inc/server/app/pkg/store"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
-func apiTest(c config, m messenger, s store, dataDir string) error {
+func apiTest(c internal.Config, m messenger.Messenger, s store.Store, dataDir string) error {
 	logging.Info("Starting api-test")
 
 	dataDirPath, err := filepath.Abs(dataDir)
@@ -31,20 +38,20 @@ func apiTest(c config, m messenger, s store, dataDir string) error {
 	}
 
 	// establishing a state and filling it with statuses
-	res := newResolver(c, m, s)
-	sta := state{
-		messenger: m,
-		resolver:  res,
-		regions:   c.Regions,
-		statuses:  map[regionName]status{},
+	res := internal.NewResolver(c, m, s)
+	sta := state.State{
+		Messenger: m,
+		Resolver:  res,
+		Regions:   c.Regions,
+		Statuses:  internal.Statuses{},
 	}
 
 	// loading up items database
-	idBase, err := newItemsDatabase(c)
+	idBase, err := database.NewItemsDatabase(c)
 	if err != nil {
 		return err
 	}
-	sta.itemsDatabase = idBase
+	sta.ItemsDatabase = idBase
 
 	for _, reg := range c.Regions {
 		// loading realm statuses
@@ -52,22 +59,22 @@ func apiTest(c config, m messenger, s store, dataDir string) error {
 		if err != nil {
 			return err
 		}
-		sta.statuses[reg.Name] = status{Status: stat, region: reg, Realms: newRealms(reg, stat.Realms)}
+		sta.Statuses[reg.Name] = internal.Status{Status: stat, Region: reg, Realms: internal.NewRealms(reg, stat.Realms)}
 	}
 
 	// opening all listeners
-	sta.listeners = newListeners(subjectListeners{
-		subjects.GenericTestErrors: sta.listenForGenericTestErrors,
-		subjects.Status:            sta.listenForStatus,
-		subjects.Regions:           sta.listenForRegions,
-		subjects.Auctions:          sta.listenForAuctions,
-		subjects.Owners:            sta.listenForOwners,
-		subjects.ItemsQuery:        sta.listenForItemsQuery,
-		subjects.ItemClasses:       sta.listenForItemClasses,
-		subjects.PriceList:         sta.listenForPriceList,
-		subjects.Items:             sta.listenForItems,
+	sta.Listeners = state.NewListeners(state.SubjectListeners{
+		subjects.GenericTestErrors: sta.ListenForGenericTestErrors,
+		subjects.Status:            sta.ListenForStatus,
+		subjects.Regions:           sta.ListenForRegions,
+		subjects.Auctions:          sta.ListenForAuctions,
+		subjects.Owners:            sta.ListenForOwners,
+		subjects.ItemsQuery:        sta.ListenForItemsQuery,
+		subjects.ItemClasses:       sta.ListenForItemClasses,
+		subjects.PriceList:         sta.ListenForPriceList,
+		subjects.Items:             sta.ListenForItems,
 	})
-	if err := sta.listeners.listen(); err != nil {
+	if err := sta.Listeners.Listen(); err != nil {
 		return err
 	}
 
@@ -80,7 +87,7 @@ func apiTest(c config, m messenger, s store, dataDir string) error {
 	logging.Info("Caught SIGINT, exiting")
 
 	// stopping listeners
-	sta.listeners.stop()
+	sta.Listeners.Stop()
 
 	return nil
 }

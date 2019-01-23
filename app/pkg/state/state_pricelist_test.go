@@ -33,7 +33,7 @@ func TestListenForPricelist(t *testing.T) {
 
 	// setting up a subscriber that will publish pricelists
 	stop := make(chan interface{})
-	err = sta.listenForPriceList(stop)
+	err = sta.ListenForPriceList(stop)
 	if !assert.Nil(t, err) {
 		return
 	}

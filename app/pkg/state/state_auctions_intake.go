@@ -147,7 +147,7 @@ func (aiRequest AuctionsIntakeRequest) handle(sta State) {
 	)
 }
 
-func (sta State) listenForAuctionsIntake(stop ListenStopChan) error {
+func (sta State) ListenForAuctionsIntake(stop ListenStopChan) error {
 	// spinning up a worker for handling auctions-intake requests
 	in := make(chan AuctionsIntakeRequest, 10)
 	go func() {

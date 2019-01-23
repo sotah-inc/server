@@ -6,15 +6,18 @@ import (
 	"time"
 
 	nats "github.com/nats-io/go-nats"
-	"github.com/sotah-inc/server/app/logging"
+	"github.com/sotah-inc/server/app/internal"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/database"
+	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
 type priceListHistoryResponse struct {
-	History map[blizzard.ItemID]priceListHistory `json:"history"`
+	History map[blizzard.ItemID]database.PriceListHistory `json:"history"`
 }
 
 func (plhResponse priceListHistoryResponse) encodeForMessage() (string, error) {
@@ -42,19 +45,21 @@ func newPriceListHistoryRequest(payload []byte) (priceListHistoryRequest, error)
 }
 
 type priceListHistoryRequest struct {
-	RegionName  regionName         `json:"region_name"`
-	RealmSlug   blizzard.RealmSlug `json:"realm_slug"`
-	ItemIds     []blizzard.ItemID  `json:"item_ids"`
-	LowerBounds int64              `json:"lower_bounds"`
-	UpperBounds int64              `json:"upper_bounds"`
+	RegionName  internal.RegionName `json:"region_name"`
+	RealmSlug   blizzard.RealmSlug  `json:"realm_slug"`
+	ItemIds     []blizzard.ItemID   `json:"item_ids"`
+	LowerBounds int64               `json:"lower_bounds"`
+	UpperBounds int64               `json:"upper_bounds"`
 }
 
-func (plhRequest priceListHistoryRequest) resolve(sta State) (realm, pricelistHistoryDatabaseShards, requestError) {
+func (plhRequest priceListHistoryRequest) resolve(sta State) (internal.Realm, database.PricelistHistoryDatabaseShards, requestError) {
 	regionStatuses, ok := sta.Statuses[plhRequest.RegionName]
 	if !ok {
-		return realm{}, pricelistHistoryDatabaseShards{}, requestError{codes.NotFound, "Invalid region (Statuses)"}
+		return internal.Realm{},
+			database.PricelistHistoryDatabaseShards{},
+			requestError{codes.NotFound, "Invalid region (Statuses)"}
 	}
-	rea := func() *realm {
+	rea := func() *internal.Realm {
 		for _, regionRealm := range regionStatuses.Realms {
 			if regionRealm.Slug == plhRequest.RealmSlug {
 				return &regionRealm
@@ -64,18 +69,20 @@ func (plhRequest priceListHistoryRequest) resolve(sta State) (realm, pricelistHi
 		return nil
 	}()
 	if rea == nil {
-		return realm{}, pricelistHistoryDatabaseShards{}, requestError{codes.NotFound, "Invalid Realm (Statuses)"}
+		return internal.Realm{},
+			database.PricelistHistoryDatabaseShards{},
+			requestError{codes.NotFound, "Invalid Realm (Statuses)"}
 	}
 
-	phdShards, reErr := func() (pricelistHistoryDatabaseShards, requestError) {
+	phdShards, reErr := func() (database.PricelistHistoryDatabaseShards, requestError) {
 		regionShards, ok := sta.PricelistHistoryDatabases[plhRequest.RegionName]
 		if !ok {
-			return pricelistHistoryDatabaseShards{}, requestError{codes.NotFound, "Invalid region (pricelist-history databases)"}
+			return database.PricelistHistoryDatabaseShards{}, requestError{codes.NotFound, "Invalid region (pricelist-history databases)"}
 		}
 
 		realmShards, ok := regionShards[plhRequest.RealmSlug]
 		if !ok {
-			return pricelistHistoryDatabaseShards{}, requestError{codes.NotFound, "Invalid Realm (pricelist-histories)"}
+			return database.PricelistHistoryDatabaseShards{}, requestError{codes.NotFound, "Invalid Realm (pricelist-histories)"}
 		}
 
 		return realmShards, requestError{codes.Ok, ""}
@@ -84,16 +91,16 @@ func (plhRequest priceListHistoryRequest) resolve(sta State) (realm, pricelistHi
 	return *rea, phdShards, reErr
 }
 
-func (sta State) listenForPriceListHistory(stop ListenStopChan) error {
-	err := sta.Messenger.subscribe(subjects.PriceListHistory, stop, func(natsMsg nats.Msg) {
-		m := newMessage()
+func (sta State) ListenForPriceListHistory(stop ListenStopChan) error {
+	err := sta.Messenger.Subscribe(subjects.PriceListHistory, stop, func(natsMsg nats.Msg) {
+		m := messenger.NewMessage()
 
 		// resolving the request
 		plhRequest, err := newPriceListHistoryRequest(natsMsg.Data)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.Messenger.replyTo(natsMsg, m)
+			sta.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -103,7 +110,7 @@ func (sta State) listenForPriceListHistory(stop ListenStopChan) error {
 		if reErr.code != codes.Ok {
 			m.Err = reErr.message
 			m.Code = reErr.code
-			sta.Messenger.replyTo(natsMsg, m)
+			sta.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -111,9 +118,9 @@ func (sta State) listenForPriceListHistory(stop ListenStopChan) error {
 		logging.WithField("database-shards", len(tdMap)).Info("Querying database shards")
 
 		// gathering up pricelist history
-		plhResponse := priceListHistoryResponse{History: map[blizzard.ItemID]priceListHistory{}}
+		plhResponse := priceListHistoryResponse{History: map[blizzard.ItemID]database.PriceListHistory{}}
 		for _, ID := range plhRequest.ItemIds {
-			plHistory, err := tdMap.getPricelistHistory(
+			plHistory, err := tdMap.GetPricelistHistory(
 				rea,
 				ID,
 				time.Unix(plhRequest.LowerBounds, 0),
@@ -122,7 +129,7 @@ func (sta State) listenForPriceListHistory(stop ListenStopChan) error {
 			if err != nil {
 				m.Err = err.Error()
 				m.Code = codes.GenericError
-				sta.Messenger.replyTo(natsMsg, m)
+				sta.Messenger.ReplyTo(natsMsg, m)
 
 				return
 			}
@@ -135,13 +142,13 @@ func (sta State) listenForPriceListHistory(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.Messenger.replyTo(natsMsg, m)
+			sta.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		m.Data = data
-		sta.Messenger.replyTo(natsMsg, m)
+		sta.Messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err

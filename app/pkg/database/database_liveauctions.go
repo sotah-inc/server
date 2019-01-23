@@ -130,7 +130,7 @@ func (ladBase liveAuctionsDatabase) stats() (miniAuctionListStats, error) {
 	return out, nil
 }
 
-func newLiveAuctionsDatabases(c internal.Config, regs internal.RegionList, stas internal.Statuses) (LiveAuctionsDatabases, error) {
+func NewLiveAuctionsDatabases(c internal.Config, regs internal.RegionList, stas internal.Statuses) (LiveAuctionsDatabases, error) {
 	ladBases := LiveAuctionsDatabases{}
 
 	for _, reg := range regs {
