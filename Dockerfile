@@ -8,12 +8,12 @@ ENV APP_PROJECT github.com/ihsw/sotah-server/app
 WORKDIR /srv/app
 
 # gathering deps
-COPY ./app/go.mod .
-COPY ./app/go.sum .
+COPY ./app/cmd/app/go.mod .
+COPY ./app/cmd/app/go.sum .
 RUN go mod download
 
 # copying in source
-COPY ./app .
+COPY ./app/cmd/app .
 
 # building the project
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
