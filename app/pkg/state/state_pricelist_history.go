@@ -50,9 +50,9 @@ type priceListHistoryRequest struct {
 }
 
 func (plhRequest priceListHistoryRequest) resolve(sta State) (realm, pricelistHistoryDatabaseShards, requestError) {
-	regionStatuses, ok := sta.statuses[plhRequest.RegionName]
+	regionStatuses, ok := sta.Statuses[plhRequest.RegionName]
 	if !ok {
-		return realm{}, pricelistHistoryDatabaseShards{}, requestError{codes.NotFound, "Invalid region (statuses)"}
+		return realm{}, pricelistHistoryDatabaseShards{}, requestError{codes.NotFound, "Invalid region (Statuses)"}
 	}
 	rea := func() *realm {
 		for _, regionRealm := range regionStatuses.Realms {
@@ -64,7 +64,7 @@ func (plhRequest priceListHistoryRequest) resolve(sta State) (realm, pricelistHi
 		return nil
 	}()
 	if rea == nil {
-		return realm{}, pricelistHistoryDatabaseShards{}, requestError{codes.NotFound, "Invalid realm (statuses)"}
+		return realm{}, pricelistHistoryDatabaseShards{}, requestError{codes.NotFound, "Invalid realm (Statuses)"}
 	}
 
 	phdShards, reErr := func() (pricelistHistoryDatabaseShards, requestError) {

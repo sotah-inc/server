@@ -48,21 +48,21 @@ func (sta State) startCollector(stopChan workerStopChan, res resolver) workerSto
 }
 
 func (sta State) collectRegions(res resolver) {
-	logging.Info("Collecting regions")
+	logging.Info("Collecting Regions")
 
-	// going over the list of regions
+	// going over the list of Regions
 	startTime := time.Now()
 	irData := intakeRequestData{}
 	totalRealms := 0
 	includedRealmCount := 0
-	for _, reg := range sta.regions {
+	for _, reg := range sta.Regions {
 		// gathering whitelist for this region
 		wList := res.config.getRegionWhitelist(reg.Name)
 		if wList != nil && len(*wList) == 0 {
 			continue
 		}
 
-		totalRealms += len(sta.statuses[reg.Name].Realms.filterWithWhitelist(wList))
+		totalRealms += len(sta.Statuses[reg.Name].Realms.filterWithWhitelist(wList))
 
 		// misc
 		receivedItemIds := map[blizzard.ItemID]struct{}{}
@@ -71,10 +71,10 @@ func (sta State) collectRegions(res resolver) {
 		// downloading auctions in a region
 		logging.WithFields(logrus.Fields{
 			"region":    reg.Name,
-			"realms":    len(sta.statuses[reg.Name].Realms),
+			"realms":    len(sta.Statuses[reg.Name].Realms),
 			"whitelist": wList,
 		}).Debug("Downloading region")
-		auctionsOut := sta.statuses[reg.Name].Realms.getAuctionsOrAll(sta.resolver, wList)
+		auctionsOut := sta.Statuses[reg.Name].Realms.getAuctionsOrAll(sta.resolver, wList)
 		for job := range auctionsOut {
 			result, err := sta.auctionsIntake(job)
 			if err != nil {

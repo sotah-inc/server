@@ -3,35 +3,36 @@ package internal
 import (
 	"errors"
 	"fmt"
+	"sort"
+
 	"github.com/sotah-inc/server/app/pkg/state/sortdirections"
 	"github.com/sotah-inc/server/app/pkg/state/sortkinds"
-	"sort"
 )
 
-type miniAuctionSortFn func(miniAuctionList)
+type miniAuctionSortFn func(MiniAuctionList)
 
 func newMiniAuctionSorter() miniAuctionSorter {
 	return miniAuctionSorter{
-		"item":         func(mAuctionList miniAuctionList) { sort.Sort(byItem(mAuctionList)) },
-		"item-r":       func(mAuctionList miniAuctionList) { sort.Sort(byItemReversed(mAuctionList)) },
-		"quantity":     func(mAuctionList miniAuctionList) { sort.Sort(byQuantity(mAuctionList)) },
-		"quantity-r":   func(mAuctionList miniAuctionList) { sort.Sort(byQuantityReversed(mAuctionList)) },
-		"bid":          func(mAuctionList miniAuctionList) { sort.Sort(byBid(mAuctionList)) },
-		"bid-r":        func(mAuctionList miniAuctionList) { sort.Sort(byBidReversed(mAuctionList)) },
-		"buyout":       func(mAuctionList miniAuctionList) { sort.Sort(byBuyout(mAuctionList)) },
-		"buyout-r":     func(mAuctionList miniAuctionList) { sort.Sort(byBuyoutReversed(mAuctionList)) },
-		"buyout_per":   func(mAuctionList miniAuctionList) { sort.Sort(byBuyoutPer(mAuctionList)) },
-		"buyout_per-r": func(mAuctionList miniAuctionList) { sort.Sort(byBuyoutPerReversed(mAuctionList)) },
-		"auctions":     func(mAuctionList miniAuctionList) { sort.Sort(byAuctions(mAuctionList)) },
-		"auctions-r":   func(mAuctionList miniAuctionList) { sort.Sort(byAuctionsReversed(mAuctionList)) },
-		"owner":        func(mAuctionList miniAuctionList) { sort.Sort(byOwner(mAuctionList)) },
-		"owner-r":      func(mAuctionList miniAuctionList) { sort.Sort(byOwnerReversed(mAuctionList)) },
+		"item":         func(mAuctionList MiniAuctionList) { sort.Sort(byItem(mAuctionList)) },
+		"item-r":       func(mAuctionList MiniAuctionList) { sort.Sort(byItemReversed(mAuctionList)) },
+		"quantity":     func(mAuctionList MiniAuctionList) { sort.Sort(byQuantity(mAuctionList)) },
+		"quantity-r":   func(mAuctionList MiniAuctionList) { sort.Sort(byQuantityReversed(mAuctionList)) },
+		"bid":          func(mAuctionList MiniAuctionList) { sort.Sort(byBid(mAuctionList)) },
+		"bid-r":        func(mAuctionList MiniAuctionList) { sort.Sort(byBidReversed(mAuctionList)) },
+		"buyout":       func(mAuctionList MiniAuctionList) { sort.Sort(byBuyout(mAuctionList)) },
+		"buyout-r":     func(mAuctionList MiniAuctionList) { sort.Sort(byBuyoutReversed(mAuctionList)) },
+		"buyout_per":   func(mAuctionList MiniAuctionList) { sort.Sort(byBuyoutPer(mAuctionList)) },
+		"buyout_per-r": func(mAuctionList MiniAuctionList) { sort.Sort(byBuyoutPerReversed(mAuctionList)) },
+		"auctions":     func(mAuctionList MiniAuctionList) { sort.Sort(byAuctions(mAuctionList)) },
+		"auctions-r":   func(mAuctionList MiniAuctionList) { sort.Sort(byAuctionsReversed(mAuctionList)) },
+		"owner":        func(mAuctionList MiniAuctionList) { sort.Sort(byOwner(mAuctionList)) },
+		"owner-r":      func(mAuctionList MiniAuctionList) { sort.Sort(byOwnerReversed(mAuctionList)) },
 	}
 }
 
 type miniAuctionSorter map[string]miniAuctionSortFn
 
-func (mas miniAuctionSorter) sort(kind sortkinds.SortKind, direction sortdirections.SortDirection, data miniAuctionList) error {
+func (mas miniAuctionSorter) sort(kind sortkinds.SortKind, direction sortdirections.SortDirection, data MiniAuctionList) error {
 	// resolving the sort kind as a string
 	kindMap := map[sortkinds.SortKind]string{
 		sortkinds.Item:      "item",
@@ -62,85 +63,85 @@ func (mas miniAuctionSorter) sort(kind sortkinds.SortKind, direction sortdirecti
 	return nil
 }
 
-type byItem miniAuctionList
+type byItem MiniAuctionList
 
 func (by byItem) Len() int           { return len(by) }
 func (by byItem) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
 func (by byItem) Less(i, j int) bool { return by[i].ItemID < by[j].ItemID }
 
-type byItemReversed miniAuctionList
+type byItemReversed MiniAuctionList
 
 func (by byItemReversed) Len() int           { return len(by) }
 func (by byItemReversed) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
 func (by byItemReversed) Less(i, j int) bool { return by[i].ItemID > by[j].ItemID }
 
-type byQuantity miniAuctionList
+type byQuantity MiniAuctionList
 
 func (by byQuantity) Len() int           { return len(by) }
 func (by byQuantity) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
 func (by byQuantity) Less(i, j int) bool { return by[i].Quantity < by[j].Quantity }
 
-type byQuantityReversed miniAuctionList
+type byQuantityReversed MiniAuctionList
 
 func (by byQuantityReversed) Len() int           { return len(by) }
 func (by byQuantityReversed) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
 func (by byQuantityReversed) Less(i, j int) bool { return by[i].Quantity > by[j].Quantity }
 
-type byBid miniAuctionList
+type byBid MiniAuctionList
 
 func (by byBid) Len() int           { return len(by) }
 func (by byBid) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
 func (by byBid) Less(i, j int) bool { return by[i].Bid < by[j].Bid }
 
-type byBidReversed miniAuctionList
+type byBidReversed MiniAuctionList
 
 func (by byBidReversed) Len() int           { return len(by) }
 func (by byBidReversed) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
 func (by byBidReversed) Less(i, j int) bool { return by[i].Bid > by[j].Bid }
 
-type byBuyout miniAuctionList
+type byBuyout MiniAuctionList
 
 func (by byBuyout) Len() int           { return len(by) }
 func (by byBuyout) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
 func (by byBuyout) Less(i, j int) bool { return by[i].Buyout < by[j].Buyout }
 
-type byBuyoutReversed miniAuctionList
+type byBuyoutReversed MiniAuctionList
 
 func (by byBuyoutReversed) Len() int           { return len(by) }
 func (by byBuyoutReversed) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
 func (by byBuyoutReversed) Less(i, j int) bool { return by[i].Buyout > by[j].Buyout }
 
-type byBuyoutPer miniAuctionList
+type byBuyoutPer MiniAuctionList
 
 func (by byBuyoutPer) Len() int           { return len(by) }
 func (by byBuyoutPer) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
 func (by byBuyoutPer) Less(i, j int) bool { return by[i].BuyoutPer < by[j].BuyoutPer }
 
-type byBuyoutPerReversed miniAuctionList
+type byBuyoutPerReversed MiniAuctionList
 
 func (by byBuyoutPerReversed) Len() int           { return len(by) }
 func (by byBuyoutPerReversed) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
 func (by byBuyoutPerReversed) Less(i, j int) bool { return by[i].BuyoutPer > by[j].BuyoutPer }
 
-type byAuctions miniAuctionList
+type byAuctions MiniAuctionList
 
 func (by byAuctions) Len() int           { return len(by) }
 func (by byAuctions) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
 func (by byAuctions) Less(i, j int) bool { return len(by[i].AucList) < len(by[j].AucList) }
 
-type byAuctionsReversed miniAuctionList
+type byAuctionsReversed MiniAuctionList
 
 func (by byAuctionsReversed) Len() int           { return len(by) }
 func (by byAuctionsReversed) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
 func (by byAuctionsReversed) Less(i, j int) bool { return len(by[i].AucList) > len(by[j].AucList) }
 
-type byOwner miniAuctionList
+type byOwner MiniAuctionList
 
 func (by byOwner) Len() int           { return len(by) }
 func (by byOwner) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
 func (by byOwner) Less(i, j int) bool { return by[i].Owner < by[j].Owner }
 
-type byOwnerReversed miniAuctionList
+type byOwnerReversed MiniAuctionList
 
 func (by byOwnerReversed) Len() int           { return len(by) }
 func (by byOwnerReversed) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }

@@ -1,6 +1,10 @@
 package state
 
 import (
+	"time"
+
+	"github.com/sotah-inc/server/app/pkg/database"
+
 	"github.com/sotah-inc/server/app/internal"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/logging"
@@ -8,7 +12,6 @@ import (
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/twinj/uuid"
-	"time"
 )
 
 type requestError struct {
@@ -20,8 +23,8 @@ func newState(mess messenger.Messenger, res internal.Resolver) State {
 	return State{
 		Messenger:             mess,
 		resolver:              res,
-		regions:               res.Config.FilterInRegions(res.Config.Regions),
-		statuses:              internal.Statuses{},
+		Regions:               res.Config.FilterInRegions(res.Config.Regions),
+		Statuses:              internal.Statuses{},
 		auctionIntakeStatuses: map[internal.RegionName]map[blizzard.RealmSlug]time.Time{},
 		expansions:            res.Config.Expansions,
 		professions:           res.Config.Professions,
@@ -33,18 +36,18 @@ type State struct {
 	Messenger                 messenger.Messenger
 	resolver                  internal.Resolver
 	listeners                 listeners
-	pricelistHistoryDatabases pricelistHistoryDatabases
-	liveAuctionsDatabases     liveAuctionsDatabases
-	itemsDatabase             itemsDatabase
+	pricelistHistoryDatabases database.PricelistHistoryDatabases
+	liveAuctionsDatabases     database.LiveAuctionsDatabases
+	itemsDatabase             database.ItemsDatabase
 	sessionSecret             uuid.UUID
 	runID                     uuid.UUID
 
-	regions               []region
-	statuses              internal.Statuses
+	Regions               []internal.Region
+	Statuses              internal.Statuses
 	auctionIntakeStatuses map[internal.RegionName]map[blizzard.RealmSlug]time.Time
 	itemClasses           blizzard.ItemClasses
-	expansions            []expansion
-	professions           []profession
+	expansions            []internal.Expansion
+	professions           []internal.Profession
 	itemBlacklist         itemBlacklistMap
 }
 

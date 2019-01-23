@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
@@ -33,21 +34,21 @@ func newMiniAuctionsData(body []byte) (miniAuctionsData, error) {
 }
 
 type miniAuctionsData struct {
-	Auctions miniAuctionList `json:"auctions"`
+	Auctions MiniAuctionList `json:"auctions"`
 }
 
 type newMiniAuctionsListFromMessengerConfig struct {
-	realm         realm
+	realm         Realm
 	messenger     messenger.Messenger
 	count         int
 	page          int
 	sortDirection sortdirections.SortDirection
 	sortKind      sortkinds.SortKind
-	ownerFilter   ownerName
+	ownerFilter   OwnerName
 }
 
 func (config newMiniAuctionsListFromMessengerConfig) toAuctionsRequest() state.AuctionsRequest {
-	oFilters := []ownerName{}
+	oFilters := []OwnerName{}
 	if config.ownerFilter != "" {
 		oFilters = append(oFilters, config.ownerFilter)
 	}
@@ -63,7 +64,7 @@ func (config newMiniAuctionsListFromMessengerConfig) toAuctionsRequest() state.A
 	}
 }
 
-func newMiniAuctionListFromBlizzardAuctions(aucs []blizzard.Auction) miniAuctionList {
+func newMiniAuctionListFromBlizzardAuctions(aucs []blizzard.Auction) MiniAuctionList {
 	// gathering a map of all mini-auctions
 	mAuctions := miniAuctions{}
 	for _, auc := range aucs {
@@ -80,7 +81,7 @@ func newMiniAuctionListFromBlizzardAuctions(aucs []blizzard.Auction) miniAuction
 		mAuctions[maHash] = mAuction
 	}
 
-	maList := miniAuctionList{}
+	maList := MiniAuctionList{}
 	for _, mAuction := range mAuctions {
 		maList = append(maList, mAuction)
 	}
@@ -88,32 +89,32 @@ func newMiniAuctionListFromBlizzardAuctions(aucs []blizzard.Auction) miniAuction
 	return maList
 }
 
-func newMiniAuctionsListFromMessenger(config newMiniAuctionsListFromMessengerConfig) (miniAuctionList, error) {
+func newMiniAuctionsListFromMessenger(config newMiniAuctionsListFromMessengerConfig) (MiniAuctionList, error) {
 	am := config.toAuctionsRequest()
 	encodedMessage, err := json.Marshal(am)
 	if err != nil {
-		return miniAuctionList{}, err
+		return MiniAuctionList{}, err
 	}
 
 	msg, err := config.messenger.Request(subjects.Auctions, encodedMessage)
 	if err != nil {
-		return miniAuctionList{}, err
+		return MiniAuctionList{}, err
 	}
 
 	if msg.Code != codes.Ok {
-		return miniAuctionList{}, errors.New(msg.Err)
+		return MiniAuctionList{}, errors.New(msg.Err)
 	}
 
 	ar, err := state.NewAuctionsResponseFromEncoded([]byte(msg.Data))
 	if err != nil {
-		return miniAuctionList{}, err
+		return MiniAuctionList{}, err
 	}
 
 	return ar.AuctionList, nil
 }
 
-func newMiniAuctionsList(body []byte) (miniAuctionList, error) {
-	maList := &miniAuctionList{}
+func newMiniAuctionsList(body []byte) (MiniAuctionList, error) {
+	maList := &MiniAuctionList{}
 	if err := json.Unmarshal(body, maList); err != nil {
 		return nil, err
 	}
@@ -121,18 +122,18 @@ func newMiniAuctionsList(body []byte) (miniAuctionList, error) {
 	return *maList, nil
 }
 
-func newMiniAuctionsListFromGzipped(body []byte) (miniAuctionList, error) {
+func NewMiniAuctionsListFromGzipped(body []byte) (MiniAuctionList, error) {
 	gzipDecodedData, err := util.GzipDecode(body)
 	if err != nil {
-		return miniAuctionList{}, err
+		return MiniAuctionList{}, err
 	}
 
 	return newMiniAuctionsList(gzipDecodedData)
 }
 
-type miniAuctionList []miniAuction
+type MiniAuctionList []miniAuction
 
-func (maList miniAuctionList) limit(count int, page int) (miniAuctionList, error) {
+func (maList MiniAuctionList) limit(count int, page int) (MiniAuctionList, error) {
 	alLength := len(maList)
 	if alLength == 0 {
 		return maList, nil
@@ -140,7 +141,7 @@ func (maList miniAuctionList) limit(count int, page int) (miniAuctionList, error
 
 	start := page * count
 	if start > alLength {
-		return miniAuctionList{}, fmt.Errorf("Start out of range: %d", start)
+		return MiniAuctionList{}, fmt.Errorf("Start out of range: %d", start)
 	}
 
 	end := start + count
@@ -151,13 +152,13 @@ func (maList miniAuctionList) limit(count int, page int) (miniAuctionList, error
 	return maList[start:end], nil
 }
 
-func (maList miniAuctionList) sort(kind sortkinds.SortKind, direction sortdirections.SortDirection) error {
+func (maList MiniAuctionList) sort(kind sortkinds.SortKind, direction sortdirections.SortDirection) error {
 	mas := newMiniAuctionSorter()
 	return mas.sort(kind, direction, maList)
 }
 
-func (maList miniAuctionList) filterByOwnerNames(ownerNameFilters []ownerName) miniAuctionList {
-	out := miniAuctionList{}
+func (maList MiniAuctionList) filterByOwnerNames(ownerNameFilters []OwnerName) MiniAuctionList {
+	out := MiniAuctionList{}
 	for _, ma := range maList {
 		for _, ownerNameFilter := range ownerNameFilters {
 			if ma.Owner == ownerNameFilter {
@@ -169,8 +170,8 @@ func (maList miniAuctionList) filterByOwnerNames(ownerNameFilters []ownerName) m
 	return out
 }
 
-func (maList miniAuctionList) filterByItemIDs(itemIDFilters []blizzard.ItemID) miniAuctionList {
-	out := miniAuctionList{}
+func (maList MiniAuctionList) filterByItemIDs(itemIDFilters []blizzard.ItemID) MiniAuctionList {
+	out := MiniAuctionList{}
 	for _, ma := range maList {
 		for _, itemIDFilter := range itemIDFilters {
 			if ma.ItemID == itemIDFilter {
@@ -182,7 +183,7 @@ func (maList miniAuctionList) filterByItemIDs(itemIDFilters []blizzard.ItemID) m
 	return out
 }
 
-func (maList miniAuctionList) itemIds() []blizzard.ItemID {
+func (maList MiniAuctionList) ItemIds() []blizzard.ItemID {
 	result := map[blizzard.ItemID]struct{}{}
 	for _, ma := range maList {
 		result[ma.ItemID] = struct{}{}
@@ -196,13 +197,13 @@ func (maList miniAuctionList) itemIds() []blizzard.ItemID {
 	return out
 }
 
-func (maList miniAuctionList) ownerNames() []ownerName {
-	result := map[ownerName]struct{}{}
+func (maList MiniAuctionList) OwnerNames() []OwnerName {
+	result := map[OwnerName]struct{}{}
 	for _, ma := range maList {
 		result[ma.Owner] = struct{}{}
 	}
 
-	out := []ownerName{}
+	out := []OwnerName{}
 	for v := range result {
 		out = append(out, v)
 	}
@@ -210,7 +211,7 @@ func (maList miniAuctionList) ownerNames() []ownerName {
 	return out
 }
 
-func (maList miniAuctionList) totalAuctions() int {
+func (maList MiniAuctionList) TotalAuctions() int {
 	out := 0
 	for _, auc := range maList {
 		out += len(auc.AucList)
@@ -219,7 +220,7 @@ func (maList miniAuctionList) totalAuctions() int {
 	return out
 }
 
-func (maList miniAuctionList) totalQuantity() int {
+func (maList MiniAuctionList) totalQuantity() int {
 	out := 0
 	for _, auc := range maList {
 		out += int(auc.Quantity) * len(auc.AucList)
@@ -228,7 +229,7 @@ func (maList miniAuctionList) totalQuantity() int {
 	return out
 }
 
-func (maList miniAuctionList) totalBuyout() int64 {
+func (maList MiniAuctionList) totalBuyout() int64 {
 	out := int64(0)
 	for _, auc := range maList {
 		out += auc.Buyout * auc.Quantity * int64(len(auc.AucList))
@@ -237,7 +238,7 @@ func (maList miniAuctionList) totalBuyout() int64 {
 	return out
 }
 
-func (maList miniAuctionList) auctionIds() []int64 {
+func (maList MiniAuctionList) AuctionIds() []int64 {
 	result := map[int64]struct{}{}
 	for _, mAuction := range maList {
 		for _, auc := range mAuction.AucList {
@@ -253,7 +254,7 @@ func (maList miniAuctionList) auctionIds() []int64 {
 	return out
 }
 
-func (maList miniAuctionList) encodeForDatabase() ([]byte, error) {
+func (maList MiniAuctionList) EncodeForDatabase() ([]byte, error) {
 	jsonEncodedData, err := json.Marshal(maList)
 	if err != nil {
 		return []byte{}, err
@@ -292,7 +293,7 @@ func newMiniAuction(auc blizzard.Auction) miniAuction {
 
 	return miniAuction{
 		auc.Item,
-		ownerName(auc.Owner),
+		OwnerName(auc.Owner),
 		auc.OwnerRealm,
 		auc.Bid,
 		auc.Buyout,
@@ -305,7 +306,7 @@ func newMiniAuction(auc blizzard.Auction) miniAuction {
 
 type miniAuction struct {
 	ItemID     blizzard.ItemID `json:"itemId"`
-	Owner      ownerName       `json:"owner"`
+	Owner      OwnerName       `json:"owner"`
 	OwnerRealm string          `json:"ownerRealm"`
 	Bid        int64           `json:"bid"`
 	Buyout     int64           `json:"buyout"`

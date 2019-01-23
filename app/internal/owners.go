@@ -6,20 +6,22 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/sotah-inc/server/app/codes"
-	"github.com/sotah-inc/server/app/subjects"
-	"github.com/sotah-inc/server/app/util"
+	"github.com/sotah-inc/server/app/pkg/messenger"
+	"github.com/sotah-inc/server/app/pkg/messenger/codes"
+	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
+	"github.com/sotah-inc/server/app/pkg/state"
+	"github.com/sotah-inc/server/app/pkg/util"
 )
 
-type ownerName string
+type OwnerName string
 
 type owner struct {
-	Name           ownerName `json:"name"`
+	Name           OwnerName `json:"name"`
 	NormalizedName string    `json:"normalized_name"`
 }
 
-func newOwnersFromAuctions(aucs miniAuctionList) (owners, error) {
-	ownerNamesMap := map[ownerName]struct{}{}
+func newOwnersFromAuctions(aucs MiniAuctionList) (owners, error) {
+	ownerNamesMap := map[OwnerName]struct{}{}
 	for _, ma := range aucs {
 		ownerNamesMap[ma.Owner] = struct{}{}
 	}
@@ -42,13 +44,13 @@ func newOwnersFromAuctions(aucs miniAuctionList) (owners, error) {
 	return owners{Owners: ownerList}, nil
 }
 
-func newOwnersFromMessenger(mess messenger, request ownersRequest) (owners, error) {
+func newOwnersFromMessenger(mess messenger.Messenger, request state.OwnersRequest) (owners, error) {
 	encodedMessage, err := json.Marshal(request)
 	if err != nil {
 		return owners{}, err
 	}
 
-	msg, err := mess.request(subjects.Owners, encodedMessage)
+	msg, err := mess.Request(subjects.Owners, encodedMessage)
 	if err != nil {
 		return owners{}, err
 	}

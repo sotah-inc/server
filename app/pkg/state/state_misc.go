@@ -13,7 +13,7 @@ func (sta State) listenForRegions(stop listenStopChan) error {
 	err := sta.Messenger.subscribe(subjects.Regions, stop, func(natsMsg nats.Msg) {
 		m := newMessage()
 
-		encodedRegions, err := json.Marshal(sta.regions)
+		encodedRegions, err := json.Marshal(sta.Regions)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
@@ -33,7 +33,7 @@ func (sta State) listenForRegions(stop listenStopChan) error {
 }
 
 type bootResponse struct {
-	Regions     regionList           `json:"regions"`
+	Regions     regionList           `json:"Regions"`
 	ItemClasses blizzard.ItemClasses `json:"item_classes"`
 	Expansions  []expansion          `json:"expansions"`
 	Professions []profession         `json:"professions"`
@@ -44,7 +44,7 @@ func (sta State) listenForBoot(stop listenStopChan) error {
 		m := newMessage()
 
 		encodedResponse, err := json.Marshal(bootResponse{
-			Regions:     sta.regions,
+			Regions:     sta.Regions,
 			ItemClasses: sta.itemClasses,
 			Expansions:  sta.expansions,
 			Professions: sta.professions,
@@ -91,12 +91,12 @@ func (sta State) auctionsIntake(job getAuctionsJob) (auctionsIntakeResult, error
 	reg := rea.region
 
 	// setting the realm last-modified
-	for i, statusRealm := range sta.statuses[reg.Name].Realms {
+	for i, statusRealm := range sta.Statuses[reg.Name].Realms {
 		if statusRealm.Slug != rea.Slug {
 			continue
 		}
 
-		sta.statuses[reg.Name].Realms[i].LastModified = job.lastModified.Unix()
+		sta.Statuses[reg.Name].Realms[i].LastModified = job.lastModified.Unix()
 
 		break
 	}

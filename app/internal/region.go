@@ -4,22 +4,23 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 )
 
-type RegionList []region
+type RegionList []Region
 
-func (rl RegionList) getPrimaryRegion() (region, error) {
+func (rl RegionList) getPrimaryRegion() (Region, error) {
 	for _, reg := range rl {
 		if reg.Primary {
 			return reg, nil
 		}
 	}
 
-	return region{}, errors.New("Could not find primary region")
+	return Region{}, errors.New("Could not find primary Region")
 }
 
 type RegionName string
@@ -42,13 +43,13 @@ func newRegionsFromMessenger(mess messenger.Messenger) (RegionList, error) {
 	return regs, nil
 }
 
-type region struct {
+type Region struct {
 	Name     RegionName `json:"name"`
 	Hostname string     `json:"hostname"`
 	Primary  bool       `json:"primary"`
 }
 
-func (reg region) getStatus(res Resolver) (status, error) {
+func (reg Region) getStatus(res Resolver) (status, error) {
 	uri, err := res.appendAccessToken(res.getStatusURL(reg.Hostname))
 	if err != nil {
 		return status{}, err
@@ -62,6 +63,6 @@ func (reg region) getStatus(res Resolver) (status, error) {
 	return status{stat, reg, newRealms(reg, stat.Realms)}, nil
 }
 
-func (reg region) databaseDir(parentDirPath string) string {
+func (reg Region) databaseDir(parentDirPath string) string {
 	return fmt.Sprintf("%s/%s", parentDirPath, reg.Name)
 }

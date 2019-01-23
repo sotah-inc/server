@@ -29,14 +29,14 @@ func TestListenForRegions(t *testing.T) {
 	if !validateStatus(t, reg, s) {
 		return
 	}
-	sta.statuses = map[regionName]status{reg.Name: s}
+	sta.Statuses = map[regionName]status{reg.Name: s}
 
 	// building test config
 	c, err := newConfigFromFilepath("./TestData/config.json")
 	if !assert.Nil(t, err) || !assert.NotEmpty(t, c.ClientID) {
 		return
 	}
-	sta.regions = c.Regions
+	sta.Regions = c.Regions
 
 	// setting up a listener for responding to status requests
 	stop := make(chan interface{})
@@ -45,7 +45,7 @@ func TestListenForRegions(t *testing.T) {
 		return
 	}
 
-	// subscribing to receive regions
+	// subscribing to receive Regions
 	regs, err := newRegionsFromMessenger(mess)
 	if !assert.Nil(t, err) || !assert.NotZero(t, len(regs)) {
 		stop <- struct{}{}

@@ -1,11 +1,12 @@
 package internal
 
 import (
+	"testing"
+
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/state"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestNewMiniAuctionsDataFromFilepath(t *testing.T) {
@@ -37,9 +38,9 @@ func TestNewMiniAuctionsFromMessenger(t *testing.T) {
 		return
 	}
 
-	// building a test realm
-	reg := region{Name: "us"}
-	rea, err := blizzard.NewRealmFromFilepath("./TestData/realm.json")
+	// building a test Realm
+	reg := Region{Name: "us"}
+	rea, err := blizzard.NewRealmFromFilepath("./TestData/Realm.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -53,7 +54,7 @@ func TestNewMiniAuctionsFromMessenger(t *testing.T) {
 
 	// subscribing to receive auctions
 	receivedMiniAuctions, err := newMiniAuctionsListFromMessenger(newMiniAuctionsListFromMessengerConfig{
-		realm:     realm{Realm: rea, region: reg},
+		realm:     Realm{Realm: rea, region: reg},
 		messenger: mess,
 		count:     10,
 	})

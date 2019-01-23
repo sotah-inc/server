@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/commands"
 	"github.com/sotah-inc/server/app/internal"
@@ -9,8 +11,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/store"
 	"github.com/twinj/uuid"
-	"gopkg.in/alecthomas/kingpin.v2"
-	"os"
+	kingpin "gopkg.in/alecthomas/kingpin.v2"
 )
 
 type commandMap map[string]func() error

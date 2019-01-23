@@ -5,6 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/sotah-inc/server/app/pkg/messenger"
+
+	"github.com/sotah-inc/server/app/pkg/state"
+
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/utiltest"
 	"github.com/stretchr/testify/assert"
@@ -12,7 +16,7 @@ import (
 
 func TestRealmGetAuctions(t *testing.T) {
 	// initial Resolver
-	res := Resolver{Config: &config{}}
+	res := Resolver{Config: &Config{}}
 
 	// setting up the Resolver urls
 	auctionInfoTs, err := utiltest.ServeFile("./TestData/auctioninfo.json")
@@ -30,7 +34,7 @@ func TestRealmGetAuctions(t *testing.T) {
 		return auctionsTs.URL
 	}
 
-	s, err := newStatusFromFilepath(region{}, "./TestData/realm-status.json")
+	s, err := newStatusFromFilepath(Region{}, "./TestData/Realm-status.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -51,10 +55,10 @@ func TestRealmGetAuctions(t *testing.T) {
 
 func TestRealmsGetAuctions(t *testing.T) {
 	// initial Resolver
-	res := Resolver{Config: &config{}}
+	res := Resolver{Config: &Config{}}
 
 	// setting up a test status
-	s, err := newStatusFromFilepath(region{}, "./TestData/realm-status.json")
+	s, err := newStatusFromFilepath(Region{}, "./TestData/Realm-status.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -78,7 +82,7 @@ func TestRealmsGetAuctions(t *testing.T) {
 		return auctionsTs.URL
 	}
 
-	// creating a realm whitelist
+	// creating a Realm whitelist
 	whitelist := map[blizzard.RealmSlug]interface{}{"earthen-ring": struct{}{}}
 
 	timer := time.After(5 * time.Second)
@@ -98,7 +102,7 @@ func TestRealmsGetAuctions(t *testing.T) {
 			}
 
 			_, whitelistOk := whitelist[job.realm.Slug]
-			if !assert.True(t, whitelistOk, fmt.Sprintf("Job for invalid realm found: %s", job.realm.Slug)) {
+			if !assert.True(t, whitelistOk, fmt.Sprintf("Job for invalid Realm found: %s", job.realm.Slug)) {
 				return
 			}
 		}
@@ -111,10 +115,10 @@ func TestRealmsGetAuctions(t *testing.T) {
 
 func TestRealmsGetAllAuctions(t *testing.T) {
 	// initial Resolver
-	res := Resolver{Config: &config{}}
+	res := Resolver{Config: &Config{}}
 
 	// setting up a test status
-	s, err := newStatusFromFilepath(region{}, "./TestData/realm-status.json")
+	s, err := newStatusFromFilepath(Region{}, "./TestData/Realm-status.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -161,7 +165,7 @@ func TestRealmsGetAllAuctions(t *testing.T) {
 	}
 }
 
-func validateStatus(t *testing.T, reg region, s status) bool {
+func validateStatus(t *testing.T, reg Region, s status) bool {
 	if !assert.NotEmpty(t, s.Realms) {
 		return false
 	}
@@ -176,8 +180,8 @@ func validateStatus(t *testing.T, reg region, s status) bool {
 }
 
 func TestNewStatusFromFilepath(t *testing.T) {
-	reg := region{Hostname: "us.battle.net"}
-	s, err := newStatusFromFilepath(reg, "./TestData/realm-status.json")
+	reg := Region{Hostname: "us.battle.net"}
+	s, err := newStatusFromFilepath(reg, "./TestData/Realm-status.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -187,26 +191,26 @@ func TestNewStatusFromFilepath(t *testing.T) {
 }
 
 func TestNewStatusFromMessenger(t *testing.T) {
-	sta := state{}
+	sta := state.State{}
 
 	// connecting
-	mess, err := newMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
+	mess, err := messenger.NewMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
 	if !assert.Nil(t, err) {
 		return
 	}
-	sta.messenger = mess
+	sta.Messenger = mess
 
 	// building test status
-	reg := region{Name: "us", Hostname: "us.battle.net"}
-	s, err := newStatusFromFilepath(reg, "./TestData/realm-status.json")
+	reg := Region{Name: "us", Hostname: "us.battle.net"}
+	s, err := newStatusFromFilepath(reg, "./TestData/Realm-status.json")
 	if !assert.Nil(t, err) {
 		return
 	}
 	if !validateStatus(t, reg, s) {
 		return
 	}
-	sta.statuses = map[RegionName]status{reg.Name: s}
-	sta.regions = []region{reg}
+	sta.Statuses = map[RegionName]status{reg.Name: s}
+	sta.Regions = []Region{reg}
 
 	// setting up a subscriber that will publish status retrieval requests
 	stop := make(chan interface{})
@@ -226,12 +230,12 @@ func TestNewStatusFromMessenger(t *testing.T) {
 	stop <- struct{}{}
 }
 func TestNewStatus(t *testing.T) {
-	blizzStatus, err := blizzard.NewStatusFromFilepath("./TestData/realm-status.json")
+	blizzStatus, err := blizzard.NewStatusFromFilepath("./TestData/Realm-status.json")
 	if !assert.Nil(t, err) {
 		return
 	}
 
-	reg := region{Hostname: "us.battle.net"}
+	reg := Region{Hostname: "us.battle.net"}
 	s := newStatus(reg, blizzStatus)
 	if !validateStatus(t, reg, s) {
 		return

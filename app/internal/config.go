@@ -37,8 +37,8 @@ type Config struct {
 	Whitelist     map[RegionName]*getAuctionsWhitelist `json:"whitelist"`
 	CacheDir      string                               `json:"cache_dir"`
 	UseGCloud     bool                                 `json:"use_gcloud"`
-	Expansions    []expansion                          `json:"expansions"`
-	Professions   []profession                         `json:"professions"`
+	Expansions    []Expansion                          `json:"expansions"`
+	Professions   []Profession                         `json:"professions"`
 	ItemBlacklist []blizzard.ItemID                    `json:"item_blacklist"`
 }
 
@@ -65,7 +65,7 @@ func (c Config) FilterInRegions(regs RegionList) RegionList {
 	return out
 }
 
-func (c Config) filterInRealms(reg region, reas realms) realms {
+func (c Config) filterInRealms(reg Region, reas realms) realms {
 	wList, ok := c.Whitelist[reg.Name]
 	if !ok {
 		return reas

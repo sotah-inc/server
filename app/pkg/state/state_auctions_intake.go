@@ -55,18 +55,18 @@ func (aiRequest auctionsIntakeRequest) resolve(sta State) (regionRealmMap, regio
 
 	includedRegionRealms := regionRealmMap{}
 	excludedRegionRealms := regionRealmMap{}
-	for _, reg := range sta.regions {
+	for _, reg := range sta.Regions {
 		includedRegionRealms[reg.Name] = realmMap{map[blizzard.RealmSlug]realmMapValue{}}
 
 		excludedRegionRealms[reg.Name] = realmMap{map[blizzard.RealmSlug]realmMapValue{}}
-		for _, rea := range sta.statuses[reg.Name].Realms {
+		for _, rea := range sta.Statuses[reg.Name].Realms {
 			excludedRegionRealms[reg.Name].values[rea.Slug] = realmMapValue{rea, time.Time{}}
 		}
 	}
 
 	for rName, realmSlugs := range aiRequest.RegionRealmTimestamps {
 		for realmSlug, unixTimestamp := range realmSlugs {
-			for _, rea := range sta.statuses[rName].Realms.filterWithWhitelist(c.Whitelist[rName]) {
+			for _, rea := range sta.Statuses[rName].Realms.filterWithWhitelist(c.Whitelist[rName]) {
 				if rea.Slug != realmSlug {
 					continue
 				}
@@ -91,7 +91,7 @@ func (aiRequest auctionsIntakeRequest) handle(sta State) {
 
 	// misc for metrics
 	totalRealms := 0
-	for rName, reas := range sta.statuses {
+	for rName, reas := range sta.Statuses {
 		totalRealms += len(reas.Realms.filterWithWhitelist(sta.resolver.config.Whitelist[rName]))
 	}
 	includedRealmCount := 0
@@ -166,7 +166,7 @@ func (sta State) listenForAuctionsIntake(stop listenStopChan) error {
 			}
 
 			totalRealms := 0
-			for rName, reas := range sta.statuses {
+			for rName, reas := range sta.Statuses {
 				totalRealms += len(reas.Realms.filterWithWhitelist(sta.resolver.config.Whitelist[rName]))
 			}
 			includedRealmCount := 0

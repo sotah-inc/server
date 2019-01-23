@@ -6,28 +6,29 @@ import (
 	"sort"
 
 	nats "github.com/nats-io/go-nats"
-	"github.com/sotah-inc/server/app/blizzard"
-	"github.com/sotah-inc/server/app/codes"
-	"github.com/sotah-inc/server/app/subjects"
+	"github.com/sotah-inc/server/app/internal"
+	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/messenger/codes"
+	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 )
 
-func newOwnersRequest(payload []byte) (ownersRequest, error) {
-	request := &ownersRequest{}
+func newOwnersRequest(payload []byte) (OwnersRequest, error) {
+	request := &OwnersRequest{}
 	err := json.Unmarshal(payload, &request)
 	if err != nil {
-		return ownersRequest{}, err
+		return OwnersRequest{}, err
 	}
 
 	return *request, nil
 }
 
-type ownersRequest struct {
-	RegionName regionName         `json:"region_name"`
-	RealmSlug  blizzard.RealmSlug `json:"realm_slug"`
-	Query      string             `json:"query"`
+type OwnersRequest struct {
+	RegionName internal.RegionName `json:"region_name"`
+	RealmSlug  blizzard.RealmSlug  `json:"realm_slug"`
+	Query      string              `json:"query"`
 }
 
-func (request ownersRequest) resolve(sta State) (miniAuctionList, error) {
+func (request OwnersRequest) resolve(sta State) (miniAuctionList, error) {
 	regionLadBases, ok := sta.liveAuctionsDatabases[request.RegionName]
 	if !ok {
 		return miniAuctionList{}, errors.New("Invalid region name")

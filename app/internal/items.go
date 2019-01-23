@@ -149,7 +149,7 @@ func getItem(ID blizzard.ItemID, res Resolver) (blizzard.Item, error) {
 	return item, nil
 }
 
-func newItemIdsMap(IDs []blizzard.ItemID) itemIdsMap {
+func NewItemIdsMap(IDs []blizzard.ItemID) itemIdsMap {
 	out := itemIdsMap{}
 
 	for _, ID := range IDs {
@@ -170,17 +170,17 @@ func (idsMap itemIdsMap) itemIds() []blizzard.ItemID {
 	return out
 }
 
-func newItemsMapFromGzipped(body []byte) (itemsMap, error) {
+func NewItemsMapFromGzipped(body []byte) (ItemsMap, error) {
 	gzipDecodedData, err := util.GzipDecode(body)
 	if err != nil {
-		return itemsMap{}, err
+		return ItemsMap{}, err
 	}
 
 	return newItemsMap(gzipDecodedData)
 }
 
-func newItemsMap(body []byte) (itemsMap, error) {
-	iMap := &itemsMap{}
+func newItemsMap(body []byte) (ItemsMap, error) {
+	iMap := &ItemsMap{}
 	if err := json.Unmarshal(body, iMap); err != nil {
 		return nil, err
 	}
@@ -188,9 +188,9 @@ func newItemsMap(body []byte) (itemsMap, error) {
 	return *iMap, nil
 }
 
-type itemsMap map[blizzard.ItemID]item
+type ItemsMap map[blizzard.ItemID]item
 
-func (iMap itemsMap) getItemIds() []blizzard.ItemID {
+func (iMap ItemsMap) getItemIds() []blizzard.ItemID {
 	out := []blizzard.ItemID{}
 	for ID := range iMap {
 		out = append(out, ID)
@@ -199,7 +199,7 @@ func (iMap itemsMap) getItemIds() []blizzard.ItemID {
 	return out
 }
 
-func (iMap itemsMap) getItemIconsMap(excludeWithURL bool) itemIconItemIdsMap {
+func (iMap ItemsMap) getItemIconsMap(excludeWithURL bool) itemIconItemIdsMap {
 	iconsMap := map[string]itemIds{}
 	for itemID, iValue := range iMap {
 		if excludeWithURL && iValue.IconURL != "" {
@@ -222,7 +222,7 @@ func (iMap itemsMap) getItemIconsMap(excludeWithURL bool) itemIconItemIdsMap {
 	return iconsMap
 }
 
-func (iMap itemsMap) encodeForDatabase() ([]byte, error) {
+func (iMap ItemsMap) EncodeForDatabase() ([]byte, error) {
 	jsonEncodedData, err := json.Marshal(iMap)
 	if err != nil {
 		return []byte{}, err

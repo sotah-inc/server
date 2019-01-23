@@ -10,11 +10,10 @@ import (
 	storage "cloud.google.com/go/storage"
 	"github.com/boltdb/bolt"
 	"github.com/sirupsen/logrus"
-
-	"github.com/sotah-inc/server/app/blizzard"
-	"github.com/sotah-inc/server/app/logging"
 	"github.com/sotah-inc/server/app/objstate"
-	"github.com/sotah-inc/server/app/util"
+	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/util"
 )
 
 func newPriceListHistoryFromBytes(data []byte) (priceListHistory, error) {
@@ -72,12 +71,12 @@ func pricelistHistoryDatabaseFilePath(c config, rea realm, targetTime time.Time)
 	return dbFilePath, nil
 }
 
-func newPricelistHistoryDatabases(c config, regs regionList, stas statuses) (pricelistHistoryDatabases, error) {
-	phdBases := pricelistHistoryDatabases{}
+func newPricelistHistoryDatabases(c config, regs regionList, stas statuses) (PricelistHistoryDatabases, error) {
+	phdBases := PricelistHistoryDatabases{}
 
 	databaseDir, err := c.databaseDir()
 	if err != nil {
-		return pricelistHistoryDatabases{}, err
+		return PricelistHistoryDatabases{}, err
 	}
 
 	for _, reg := range regs {
@@ -91,13 +90,13 @@ func newPricelistHistoryDatabases(c config, regs regionList, stas statuses) (pri
 			realmDatabaseDir := rea.databaseDir(regionDatabaseDir)
 			dbPathPairs, err := databasePaths(realmDatabaseDir)
 			if err != nil {
-				return pricelistHistoryDatabases{}, err
+				return PricelistHistoryDatabases{}, err
 			}
 
 			for _, dbPathPair := range dbPathPairs {
 				phdBase, err := newPricelistHistoryDatabase(c, rea, dbPathPair.targetTime)
 				if err != nil {
-					return pricelistHistoryDatabases{}, err
+					return PricelistHistoryDatabases{}, err
 				}
 
 				phdBases[reg.Name][rea.Slug][unixTimestamp(dbPathPair.targetTime.Unix())] = phdBase
@@ -108,9 +107,9 @@ func newPricelistHistoryDatabases(c config, regs regionList, stas statuses) (pri
 	return phdBases, nil
 }
 
-type pricelistHistoryDatabases map[regionName]map[blizzard.RealmSlug]pricelistHistoryDatabaseShards
+type PricelistHistoryDatabases map[regionName]map[blizzard.RealmSlug]pricelistHistoryDatabaseShards
 
-func (phdBases pricelistHistoryDatabases) resolveDatabaseFromLoadAuctionsJob(c config, job loadAuctionsJob) (pricelistHistoryDatabase, error) {
+func (phdBases PricelistHistoryDatabases) resolveDatabaseFromLoadAuctionsJob(c config, job loadAuctionsJob) (pricelistHistoryDatabase, error) {
 	normalizedTargetDate := normalizeTargetDate(job.lastModified)
 	phdBase, ok := phdBases[job.realm.region.Name][job.realm.Slug][unixTimestamp(normalizedTargetDate.Unix())]
 	if ok {
@@ -126,7 +125,7 @@ func (phdBases pricelistHistoryDatabases) resolveDatabaseFromLoadAuctionsJob(c c
 	return phdBase, nil
 }
 
-func (phdBases pricelistHistoryDatabases) load(in chan loadAuctionsJob, c config, sto store) chan struct{} {
+func (phdBases PricelistHistoryDatabases) load(in chan loadAuctionsJob, c config, sto store) chan struct{} {
 	done := make(chan struct{})
 
 	worker := func() {
@@ -173,7 +172,7 @@ func (phdBases pricelistHistoryDatabases) load(in chan loadAuctionsJob, c config
 	return done
 }
 
-func (phdBases pricelistHistoryDatabases) pruneDatabases() error {
+func (phdBases PricelistHistoryDatabases) pruneDatabases() error {
 	earliestUnixTimestamp := databaseRetentionLimit().Unix()
 	logging.WithField("limit", earliestUnixTimestamp).Info("Checking for databases to prune")
 	for rName, realmDatabases := range phdBases {
@@ -222,7 +221,7 @@ func (phdBases pricelistHistoryDatabases) pruneDatabases() error {
 	return nil
 }
 
-func (phdBases pricelistHistoryDatabases) startPruner(stopChan workerStopChan) workerStopChan {
+func (phdBases PricelistHistoryDatabases) startPruner(stopChan workerStopChan) workerStopChan {
 	onStop := make(workerStopChan)
 	go func() {
 		ticker := time.NewTicker(20 * time.Minute)

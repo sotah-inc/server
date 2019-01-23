@@ -8,7 +8,7 @@ import (
 )
 
 func TestNewConfigFromFilepath(t *testing.T) {
-	c, err := newConfigFromFilepath("./TestData/Config.json")
+	c, err := NewConfigFromFilepath("./TestData/Config.json")
 	if !assert.Nil(t, err) || !assert.NotEmpty(t, c.ClientID) {
 		return
 	}
@@ -25,14 +25,14 @@ func TestNewConfig(t *testing.T) {
 	}
 }
 func TestGetStatus(t *testing.T) {
-	c, err := newConfigFromFilepath("./TestData/Config.json")
+	c, err := NewConfigFromFilepath("./TestData/Config.json")
 	if !assert.Nil(t, err) || !assert.NotEmpty(t, c.Regions) {
 		return
 	}
 
 	reg := c.Regions[0]
 
-	realmStatusTs, err := utiltest.ServeFile("./TestData/realm-status.json")
+	realmStatusTs, err := utiltest.ServeFile("./TestData/Realm-status.json")
 	if !assert.Nil(t, err) {
 		return
 	}

@@ -25,7 +25,7 @@ type StatusRequest struct {
 
 func (sr StatusRequest) resolve(sta State) (region, error) {
 	var reg region
-	for _, r := range sta.regions {
+	for _, r := range sta.Regions {
 		if r.Name != sr.RegionName {
 			continue
 		}
@@ -63,9 +63,9 @@ func (sta State) listenForStatus(stop listenStopChan) error {
 			return
 		}
 
-		regionStatus, ok := sta.statuses[reg.Name]
+		regionStatus, ok := sta.Statuses[reg.Name]
 		if !ok {
-			m.Err = "Region found but not in statuses"
+			m.Err = "Region found but not in Statuses"
 			m.Code = codes.NotFound
 			sta.Messenger.replyTo(natsMsg, m)
 

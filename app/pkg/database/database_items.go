@@ -2,6 +2,7 @@ package database
 
 import (
 	"fmt"
+
 	"github.com/boltdb/bolt"
 	"github.com/sotah-inc/server/app/internal"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
@@ -32,28 +33,28 @@ func itemsDatabasePath(c internal.Config) (string, error) {
 	return fmt.Sprintf("%s/items.db", dbDir), nil
 }
 
-func newItemsDatabase(c internal.Config) (itemsDatabase, error) {
+func newItemsDatabase(c internal.Config) (ItemsDatabase, error) {
 	dbFilepath, err := itemsDatabasePath(c)
 	if err != nil {
-		return itemsDatabase{}, err
+		return ItemsDatabase{}, err
 	}
 
 	logging.WithField("filepath", dbFilepath).Info("Initializing items database")
 
 	db, err := bolt.Open(dbFilepath, 0600, nil)
 	if err != nil {
-		return itemsDatabase{}, err
+		return ItemsDatabase{}, err
 	}
 
-	return itemsDatabase{db}, nil
+	return ItemsDatabase{db}, nil
 }
 
-type itemsDatabase struct {
+type ItemsDatabase struct {
 	db *bolt.DB
 }
 
-func (idBase itemsDatabase) getItems() (itemsMap, error) {
-	out := itemsMap{}
+func (idBase ItemsDatabase) getItems() (internal.ItemsMap, error) {
+	out := internal.ItemsMap{}
 
 	err := idBase.db.View(func(tx *bolt.Tx) error {
 		bkt := tx.Bucket(databaseItemsBucketName())
@@ -62,7 +63,7 @@ func (idBase itemsDatabase) getItems() (itemsMap, error) {
 		}
 
 		err := bkt.ForEach(func(k, v []byte) error {
-			iMap, err := newItemsMapFromGzipped(v)
+			iMap, err := internal.NewItemsMapFromGzipped(v)
 			if err != nil {
 				return err
 			}
@@ -80,13 +81,13 @@ func (idBase itemsDatabase) getItems() (itemsMap, error) {
 		return nil
 	})
 	if err != nil {
-		return itemsMap{}, err
+		return internal.ItemsMap{}, err
 	}
 
 	return out, nil
 }
 
-func (idBase itemsDatabase) findItems(IDs []blizzard.ItemID) (itemsMap, error) {
+func (idBase ItemsDatabase) findItems(IDs []blizzard.ItemID) (internal.ItemsMap, error) {
 	keyspaces := func() []itemKeyspace {
 		result := map[itemKeyspace]struct{}{}
 		for _, ID := range IDs {
@@ -101,8 +102,8 @@ func (idBase itemsDatabase) findItems(IDs []blizzard.ItemID) (itemsMap, error) {
 		return out
 	}()
 
-	IDsMap := newItemIdsMap(IDs)
-	out := itemsMap{}
+	IDsMap := internal.NewItemIdsMap(IDs)
+	out := internal.ItemsMap{}
 	err := idBase.db.View(func(tx *bolt.Tx) error {
 		bkt := tx.Bucket(databaseItemsBucketName())
 		if bkt == nil {
@@ -115,7 +116,7 @@ func (idBase itemsDatabase) findItems(IDs []blizzard.ItemID) (itemsMap, error) {
 				continue
 			}
 
-			iMap, err := newItemsMapFromGzipped(value)
+			iMap, err := internal.NewItemsMapFromGzipped(value)
 			if err != nil {
 				return err
 			}
@@ -132,18 +133,18 @@ func (idBase itemsDatabase) findItems(IDs []blizzard.ItemID) (itemsMap, error) {
 		return nil
 	})
 	if err != nil {
-		return itemsMap{}, err
+		return internal.ItemsMap{}, err
 	}
 
 	return out, nil
 }
 
-func newItemsMapBatch(iMap itemsMap) itemsMapBatch {
+func newItemsMapBatch(iMap internal.ItemsMap) itemsMapBatch {
 	imBatch := itemsMapBatch{}
 	for ID, itemValue := range iMap {
 		keyspace := itemIDKeyspace(ID)
 		if _, ok := imBatch[keyspace]; !ok {
-			imBatch[keyspace] = itemsMap{ID: itemValue}
+			imBatch[keyspace] = internal.ItemsMap{ID: itemValue}
 		} else {
 			imBatch[keyspace][ID] = itemValue
 		}
@@ -154,9 +155,9 @@ func newItemsMapBatch(iMap itemsMap) itemsMapBatch {
 
 type itemKeyspace int64
 
-type itemsMapBatch map[itemKeyspace]itemsMap
+type itemsMapBatch map[itemKeyspace]internal.ItemsMap
 
-func (idBase itemsDatabase) persistItems(iMap itemsMap) error {
+func (idBase ItemsDatabase) persistItems(iMap internal.ItemsMap) error {
 	logging.WithField("items", len(iMap)).Debug("Persisting items")
 
 	imBatch := newItemsMapBatch(iMap)
@@ -170,7 +171,7 @@ func (idBase itemsDatabase) persistItems(iMap itemsMap) error {
 		}
 
 		for keyspace, batchMap := range imBatch {
-			encodedItemsMap, err := batchMap.encodeForDatabase()
+			encodedItemsMap, err := batchMap.EncodeForDatabase()
 			if err != nil {
 				return err
 			}

@@ -41,9 +41,9 @@ type infoRequest struct{}
 
 func (iRequest infoRequest) resolve(sta State) (infoResponse, error) {
 	regValuations := map[regionName]regionValuation{}
-	for _, reg := range sta.regions {
+	for _, reg := range sta.Regions {
 		regValuation := regionValuation{reg, map[blizzard.RealmSlug]realmValuation{}}
-		for _, rea := range sta.statuses[reg.Name].Realms {
+		for _, rea := range sta.Statuses[reg.Name].Realms {
 			maList, err := sta.liveAuctionsDatabases[reg.Name][rea.Slug].getMiniauctions()
 			if err != nil {
 				return infoResponse{}, err

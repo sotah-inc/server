@@ -28,8 +28,8 @@ func TestListenForStatus(t *testing.T) {
 	if !validateStatus(t, reg, s) {
 		return
 	}
-	sta.regions = []region{reg}
-	sta.statuses = map[regionName]status{reg.Name: s}
+	sta.Regions = []region{reg}
+	sta.Statuses = map[regionName]status{reg.Name: s}
 
 	// setting up a listener for responding to status requests
 	stop := make(chan interface{})
@@ -38,7 +38,7 @@ func TestListenForStatus(t *testing.T) {
 		return
 	}
 
-	// subscribing to receive statuses
+	// subscribing to receive Statuses
 	receivedStatus, err := newStatusFromMessenger(reg, mess)
 	if !assert.Nil(t, err) || !assert.Equal(t, s.region.Hostname, receivedStatus.region.Hostname) {
 		stop <- struct{}{}
@@ -59,7 +59,7 @@ func TestListenForNonexistentStatusNoResolver(t *testing.T) {
 		return
 	}
 	sta.Messenger = mess
-	sta.statuses = map[regionName]status{}
+	sta.Statuses = map[regionName]status{}
 
 	// setting up a listener for responding to status requests
 	stop := make(chan interface{})
@@ -68,7 +68,7 @@ func TestListenForNonexistentStatusNoResolver(t *testing.T) {
 		return
 	}
 
-	// subscribing to receive statuses
+	// subscribing to receive Statuses
 	_, err = newStatusFromMessenger(region{Name: "test", Hostname: "test"}, mess)
 	if !assert.NotNil(t, err) && assert.Equal(t, "Invalid region", err.Error()) {
 		stop <- struct{}{}
@@ -98,7 +98,7 @@ func TestListenForNonexistentStatus(t *testing.T) {
 		return
 	}
 	sta.Messenger = mess
-	sta.statuses = map[regionName]status{}
+	sta.Statuses = map[regionName]status{}
 
 	// setting up a listener for responding to status requests
 	stop := make(chan interface{})
@@ -107,7 +107,7 @@ func TestListenForNonexistentStatus(t *testing.T) {
 		return
 	}
 
-	// subscribing to receive statuses
+	// subscribing to receive Statuses
 	_, err = newStatusFromMessenger(region{Name: "test", Hostname: "test"}, mess)
 	if !assert.NotNil(t, err) && assert.Equal(t, "Invalid region", err.Error()) {
 		stop <- struct{}{}
@@ -132,7 +132,7 @@ func TestListenForStatusToFetch(t *testing.T) {
 		resolver: resolver{
 			getStatusURL: func(regionHostname string) string { return ts.URL },
 		},
-		regions: []region{reg},
+		Regions: []region{reg},
 	}
 
 	// connecting
@@ -141,7 +141,7 @@ func TestListenForStatusToFetch(t *testing.T) {
 		return
 	}
 	sta.Messenger = mess
-	sta.statuses = map[regionName]status{}
+	sta.Statuses = map[regionName]status{}
 
 	// setting up a listener for responding to status requests
 	stop := make(chan interface{})
@@ -150,7 +150,7 @@ func TestListenForStatusToFetch(t *testing.T) {
 		return
 	}
 
-	// subscribing to receive statuses
+	// subscribing to receive Statuses
 	stat, err := newStatusFromMessenger(reg, mess)
 	if !assert.Nil(t, err) {
 		stop <- struct{}{}

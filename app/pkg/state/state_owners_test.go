@@ -44,7 +44,7 @@ func TestListenForOwners(t *testing.T) {
 	}
 
 	// subscribing to receive auctions
-	receivedOwners, err := newOwnersFromMessenger(mess, ownersRequest{reg.Name, rea.Slug, ""})
+	receivedOwners, err := newOwnersFromMessenger(mess, OwnersRequest{reg.Name, rea.Slug, ""})
 	if !assert.Nil(t, err) {
 		stop <- struct{}{}
 
@@ -102,7 +102,7 @@ func TestListenForOwnersFiltered(t *testing.T) {
 	}
 
 	// subscribing to receive auctions
-	receivedOwners, err := newOwnersFromMessenger(mess, ownersRequest{reg.Name, rea.Slug, "lunar"})
+	receivedOwners, err := newOwnersFromMessenger(mess, OwnersRequest{reg.Name, rea.Slug, "lunar"})
 	if !assert.Nil(t, err) {
 		stop <- struct{}{}
 
