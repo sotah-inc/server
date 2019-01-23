@@ -3,18 +3,18 @@ package internal
 import (
 	"testing"
 
-	"github.com/sotah-inc/server/app/utiltest"
+	"github.com/sotah-inc/server/app/pkg/utiltest"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewConfigFromFilepath(t *testing.T) {
-	c, err := newConfigFromFilepath("./TestData/config.json")
+	c, err := newConfigFromFilepath("./TestData/Config.json")
 	if !assert.Nil(t, err) || !assert.NotEmpty(t, c.ClientID) {
 		return
 	}
 }
 func TestNewConfig(t *testing.T) {
-	body, err := utiltest.ReadFile("./TestData/config.json")
+	body, err := utiltest.ReadFile("./TestData/Config.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -25,7 +25,7 @@ func TestNewConfig(t *testing.T) {
 	}
 }
 func TestGetStatus(t *testing.T) {
-	c, err := newConfigFromFilepath("./TestData/config.json")
+	c, err := newConfigFromFilepath("./TestData/Config.json")
 	if !assert.Nil(t, err) || !assert.NotEmpty(t, c.Regions) {
 		return
 	}
@@ -38,7 +38,7 @@ func TestGetStatus(t *testing.T) {
 	}
 
 	s, err := reg.getStatus(
-		resolver{getStatusURL: func(regionHostname string) string { return realmStatusTs.URL }},
+		Resolver{getStatusURL: func(regionHostname string) string { return realmStatusTs.URL }},
 	)
 	if !assert.Nil(t, err) || !assert.NotEmpty(t, s.Realms) {
 		return

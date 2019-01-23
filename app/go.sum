@@ -54,6 +54,7 @@ github.com/renstrom/fuzzysearch v1.0.1 h1:hnh2Fhqqa5I41Xgmm7UMAYgEIRn/iZwWItfwUH
 github.com/renstrom/fuzzysearch v1.0.1/go.mod h1:SAEjPB4voP88qmWJXI7mA5m15uNlEnuHLx4Eu2mPGpQ=
 github.com/sirupsen/logrus v1.3.0 h1:hI/7Q+DtNZ2kINb6qt/lS+IyXnHQe9e90POfeewL/ME=
 github.com/sirupsen/logrus v1.3.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
+github.com/sotah-inc/server v0.0.0-20190122011905-d5627c0b1cd9 h1:KFaOz8TBaZdK6nGfv7ScO8DJiMuJqjSd8w6iKvlz1+8=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.1.1/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=

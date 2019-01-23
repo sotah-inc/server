@@ -1,0 +1,176 @@
+package command
+
+import (
+	"fmt"
+	"github.com/sotah-inc/server/app/pkg/messenger"
+	"github.com/sotah-inc/server/app/pkg/store"
+	"os"
+	"os/signal"
+
+	"github.com/sirupsen/logrus"
+	"github.com/sotah-inc/server/app/internal"
+	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
+	"github.com/sotah-inc/server/app/pkg/util"
+	"github.com/twinj/uuid"
+)
+
+func apiCacheDirs(c internal.Config, regions internal.RegionList) ([]string, error) {
+	databaseDir, err := c.DatabaseDir()
+	if err != nil {
+		return nil, err
+	}
+
+	cacheDirs := []string{databaseDir, fmt.Sprintf("%s/items", c.CacheDir)}
+	if !c.UseGCloud {
+		cacheDirs = append(cacheDirs, fmt.Sprintf("%s/auctions", c.CacheDir))
+		for _, reg := range regions {
+			cacheDirs = append(cacheDirs, fmt.Sprintf("%s/auctions/%s", c.CacheDir, reg.Name))
+		}
+	}
+
+	return cacheDirs, nil
+}
+
+func api(c internal.Config, m messenger.Messenger, s store.Store) error {
+	logging.Info("Starting api")
+
+	// establishing a state
+	res := internal.NewResolver(c, m, s)
+	sta := newState(m, res)
+
+	// creating a uuid4 api-session secret and run-id of state
+	sta.runID = uuid.NewV4()
+	sta.sessionSecret = uuid.NewV4()
+
+	// ensuring cache-dirs exist
+	cacheDirs, err := apiCacheDirs(c, sta.regions)
+	if err != nil {
+		return err
+	}
+
+	if err := util.EnsureDirsExist(cacheDirs); err != nil {
+		return err
+	}
+
+	// loading up items database
+	idBase, err := newItemsDatabase(c)
+	if err != nil {
+		return err
+	}
+	sta.itemsDatabase = idBase
+
+	// refreshing the access-token for the resolver blizz client
+	nextClient, err := res.blizzardClient.RefreshFromHTTP(blizzard.OAuthTokenEndpoint)
+	if err != nil {
+		logging.WithField("error", err.Error()).Error("Failed to refresh blizzard client")
+
+		return err
+	}
+	res.blizzardClient = nextClient
+	sta.resolver = res
+
+	// filling state with region statuses
+	for _, reg := range sta.regions {
+		regionStatus, err := reg.getStatus(res)
+		if err != nil {
+			logging.WithFields(logrus.Fields{
+				"error":  err.Error(),
+				"region": reg.Name,
+			}).Error("Failed to fetch status")
+
+			return err
+		}
+
+		regionStatus.Realms = c.filterInRealms(reg, regionStatus.Realms)
+		sta.statuses[reg.Name] = regionStatus
+	}
+
+	// gathering item-classes
+	primaryRegion, err := c.Regions.getPrimaryRegion()
+	if err != nil {
+		return err
+	}
+
+	uri, err := res.appendAccessToken(res.getItemClassesURL(primaryRegion.Hostname))
+	if err != nil {
+		return err
+	}
+
+	iClasses, _, err := blizzard.NewItemClassesFromHTTP(uri)
+	if err != nil {
+		return err
+	}
+	sta.itemClasses = iClasses
+
+	// gathering profession icons into storage
+	if c.UseGCloud {
+		iconNames := make([]string, len(c.Professions))
+		for i, prof := range c.Professions {
+			iconNames[i] = prof.Icon
+		}
+
+		syncedIcons, err := s.syncItemIcons(iconNames, res)
+		if err != nil {
+			return err
+		}
+		for job := range syncedIcons {
+			if job.err != nil {
+				return job.err
+			}
+
+			for i, prof := range c.Professions {
+				if prof.Icon != job.iconName {
+					continue
+				}
+
+				c.Professions[i].IconURL = job.iconURL
+			}
+		}
+	} else {
+		for i, prof := range c.Professions {
+			c.Professions[i].IconURL = defaultGetItemIconURL(prof.Icon)
+		}
+	}
+
+	// opening all listeners
+	sta.listeners = newListeners(subjectListeners{
+		subjects.GenericTestErrors: sta.listenForGenericTestErrors,
+		subjects.Status:            sta.listenForStatus,
+		subjects.Regions:           sta.listenForRegions,
+		subjects.ItemsQuery:        sta.listenForItemsQuery,
+		subjects.ItemClasses:       sta.listenForItemClasses,
+		subjects.Items:             sta.listenForItems,
+		subjects.Boot:              sta.listenForBoot,
+		subjects.SessionSecret:     sta.listenForSessionSecret,
+		subjects.RuntimeInfo:       sta.listenForRuntimeInfo,
+	})
+	if err := sta.listeners.listen(); err != nil {
+		return err
+	}
+
+	// starting up a collector
+	collectorStop := make(workerStopChan)
+	onCollectorStop := sta.startCollector(collectorStop, res)
+
+	// catching SIGINT
+	logging.Info("Waiting for SIGINT")
+	sigIn := make(chan os.Signal, 1)
+	signal.Notify(sigIn, os.Interrupt)
+	<-sigIn
+
+	logging.Info("Caught SIGINT, exiting")
+
+	// stopping listeners
+	sta.listeners.stop()
+
+	logging.Info("Stopping collector")
+	collectorStop <- struct{}{}
+
+	logging.Info("Waiting for collector to stop")
+	<-onCollectorStop
+
+	logging.Info("Exiting")
+	return nil
+}

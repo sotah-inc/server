@@ -5,36 +5,36 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/sotah-inc/server/app/blizzard"
-	"github.com/sotah-inc/server/app/logging"
-	"github.com/sotah-inc/server/app/util"
+	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/util"
 )
 
-func newConfigFromFilepath(relativePath string) (config, error) {
-	logging.WithField("path", relativePath).Info("Reading config")
+func NewConfigFromFilepath(relativePath string) (Config, error) {
+	logging.WithField("path", relativePath).Info("Reading Config")
 
 	body, err := util.ReadFile(relativePath)
 	if err != nil {
-		return config{}, err
+		return Config{}, err
 	}
 
 	return newConfig(body)
 }
 
-func newConfig(body []byte) (config, error) {
-	c := &config{}
+func newConfig(body []byte) (Config, error) {
+	c := &Config{}
 	if err := json.Unmarshal(body, &c); err != nil {
-		return config{}, err
+		return Config{}, err
 	}
 
 	return *c, nil
 }
 
-type config struct {
+type Config struct {
 	ClientID      string                               `json:"client_id"`
 	ClientSecret  string                               `json:"client_secret"`
-	Regions       regionList                           `json:"regions"`
-	Whitelist     map[regionName]*getAuctionsWhitelist `json:"whitelist"`
+	Regions       RegionList                           `json:"regions"`
+	Whitelist     map[RegionName]*getAuctionsWhitelist `json:"whitelist"`
 	CacheDir      string                               `json:"cache_dir"`
 	UseGCloud     bool                                 `json:"use_gcloud"`
 	Expansions    []expansion                          `json:"expansions"`
@@ -42,7 +42,7 @@ type config struct {
 	ItemBlacklist []blizzard.ItemID                    `json:"item_blacklist"`
 }
 
-func (c config) getRegionWhitelist(rName regionName) *getAuctionsWhitelist {
+func (c Config) getRegionWhitelist(rName RegionName) *getAuctionsWhitelist {
 	if _, ok := c.Whitelist[rName]; ok {
 		return c.Whitelist[rName]
 	}
@@ -50,8 +50,8 @@ func (c config) getRegionWhitelist(rName regionName) *getAuctionsWhitelist {
 	return nil
 }
 
-func (c config) filterInRegions(regs regionList) regionList {
-	out := regionList{}
+func (c Config) FilterInRegions(regs RegionList) RegionList {
+	out := RegionList{}
 
 	for _, reg := range regs {
 		wList, ok := c.Whitelist[reg.Name]
@@ -65,7 +65,7 @@ func (c config) filterInRegions(regs regionList) regionList {
 	return out
 }
 
-func (c config) filterInRealms(reg region, reas realms) realms {
+func (c Config) filterInRealms(reg region, reas realms) realms {
 	wList, ok := c.Whitelist[reg.Name]
 	if !ok {
 		return reas
@@ -85,6 +85,6 @@ func (c config) filterInRealms(reg region, reas realms) realms {
 	return out
 }
 
-func (c config) databaseDir() (string, error) {
+func (c Config) DatabaseDir() (string, error) {
 	return filepath.Abs(fmt.Sprintf("%s/databases", c.CacheDir))
 }
