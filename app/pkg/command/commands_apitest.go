@@ -9,7 +9,7 @@ import (
 	"github.com/sotah-inc/server/app/logging"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
-	"github.com/sotah-inc/server/app/util"
+	"github.com/sotah-inc/server/app/pkg/util"
 )
 
 func apiTest(c config, m messenger, s store, dataDir string) error {

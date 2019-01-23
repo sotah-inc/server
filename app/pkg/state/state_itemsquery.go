@@ -5,17 +5,20 @@ import (
 	"errors"
 	"sort"
 
+	"github.com/sotah-inc/server/app/pkg/messenger"
+
 	nats "github.com/nats-io/go-nats"
 	"github.com/renstrom/fuzzysearch/fuzzy"
+	"github.com/sotah-inc/server/app/internal"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
-	"github.com/sotah-inc/server/app/util"
+	"github.com/sotah-inc/server/app/pkg/util"
 )
 
 type itemsQueryItem struct {
-	Target string `json:"target"`
-	Item   item   `json:"item"`
-	Rank   int    `json:"rank"`
+	Target string        `json:"target"`
+	Item   internal.Item `json:"item"`
+	Rank   int           `json:"rank"`
 }
 
 type itemsQueryItems []itemsQueryItem
@@ -58,13 +61,13 @@ func (by itemsQueryItemsByRank) Len() int           { return len(by) }
 func (by itemsQueryItemsByRank) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
 func (by itemsQueryItemsByRank) Less(i, j int) bool { return by[i].Rank < by[j].Rank }
 
-func newItemsQueryResultFromMessenger(mess messenger, request itemsQueryRequest) (itemsQueryResult, error) {
+func newItemsQueryResultFromMessenger(mess messenger.Messenger, request itemsQueryRequest) (itemsQueryResult, error) {
 	encodedMessage, err := json.Marshal(request)
 	if err != nil {
 		return itemsQueryResult{}, err
 	}
 
-	msg, err := mess.request(subjects.ItemsQuery, encodedMessage)
+	msg, err := mess.Request(subjects.ItemsQuery, encodedMessage)
 	if err != nil {
 		return itemsQueryResult{}, err
 	}
@@ -114,7 +117,7 @@ type itemsQueryRequest struct {
 }
 
 func (request itemsQueryRequest) resolve(sta State) (itemsQueryResult, error) {
-	iMap, err := sta.ItemsDatabase.getItems()
+	iMap, err := sta.ItemsDatabase.GetItems()
 	if err != nil {
 		return itemsQueryResult{}, err
 	}
@@ -131,16 +134,16 @@ func (request itemsQueryRequest) resolve(sta State) (itemsQueryResult, error) {
 	return iqResult, nil
 }
 
-func (sta State) listenForItemsQuery(stop ListenStopChan) error {
-	err := sta.Messenger.subscribe(subjects.ItemsQuery, stop, func(natsMsg nats.Msg) {
-		m := newMessage()
+func (sta State) ListenForItemsQuery(stop ListenStopChan) error {
+	err := sta.Messenger.Subscribe(subjects.ItemsQuery, stop, func(natsMsg nats.Msg) {
+		m := messenger.NewMessage()
 
 		// resolving the request
 		request, err := newItemsQueryRequest(natsMsg.Data)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.Messenger.replyTo(natsMsg, m)
+			sta.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -150,7 +153,7 @@ func (sta State) listenForItemsQuery(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.Messenger.replyTo(natsMsg, m)
+			sta.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -175,14 +178,14 @@ func (sta State) listenForItemsQuery(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.Messenger.replyTo(natsMsg, m)
+			sta.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		// dumping it out
 		m.Data = string(encodedMessage)
-		sta.Messenger.replyTo(natsMsg, m)
+		sta.Messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err

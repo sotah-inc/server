@@ -142,13 +142,13 @@ func api(c internal.Config, m messenger.Messenger, s store.Store) error {
 	sta.Listeners = state.NewListeners(state.SubjectListeners{
 		subjects.GenericTestErrors: sta.ListenForGenericTestErrors,
 		subjects.Status:            sta.ListenForStatus,
-		subjects.Regions:           sta.listenForRegions,
-		subjects.ItemsQuery:        sta.listenForItemsQuery,
-		subjects.ItemClasses:       sta.listenForItemClasses,
-		subjects.Items:             sta.listenForItems,
-		subjects.Boot:              sta.listenForBoot,
-		subjects.SessionSecret:     sta.listenForSessionSecret,
-		subjects.RuntimeInfo:       sta.listenForRuntimeInfo,
+		subjects.Regions:           sta.ListenForRegions,
+		subjects.ItemsQuery:        sta.ListenForItemsQuery,
+		subjects.ItemClasses:       sta.ListenForItemClasses,
+		subjects.Items:             sta.ListenForItems,
+		subjects.Boot:              sta.ListenForBoot,
+		subjects.SessionSecret:     sta.ListenForSessionSecret,
+		subjects.RuntimeInfo:       sta.ListenForRuntimeInfo,
 	})
 	if err := sta.Listeners.Listen(); err != nil {
 		return err

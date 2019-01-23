@@ -28,7 +28,7 @@ func TestListenForItemClasses(t *testing.T) {
 
 	// setting up a subscriber that will publish items
 	stop := make(chan interface{})
-	err = sta.listenForItemClasses(stop)
+	err = sta.ListenForItemClasses(stop)
 	if !assert.Nil(t, err) {
 		return
 	}

@@ -8,7 +8,7 @@ import (
 
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
-	"github.com/sotah-inc/server/app/util"
+	"github.com/sotah-inc/server/app/pkg/util"
 )
 
 func liveAuctionsCacheDirs(c config, regions regionList, stas statuses) ([]string, error) {

@@ -28,7 +28,7 @@ func TestListenForItems(t *testing.T) {
 
 	// setting up a subscriber that will publish items
 	stop := make(chan interface{})
-	err = sta.listenForItemsQuery(stop)
+	err = sta.ListenForItemsQuery(stop)
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -76,7 +76,7 @@ func TestListenForItemsFiltered(t *testing.T) {
 
 	// setting up a subscriber that will publish items
 	stop := make(chan interface{})
-	err = sta.listenForItemsQuery(stop)
+	err = sta.ListenForItemsQuery(stop)
 	if !assert.Nil(t, err) {
 		return
 	}

@@ -6,12 +6,13 @@ import (
 
 	nats "github.com/nats-io/go-nats"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 )
 
-func newItemClassesFromMessenger(mess messenger) (blizzard.ItemClasses, error) {
-	msg, err := mess.request(subjects.ItemClasses, []byte{})
+func newItemClassesFromMessenger(mess messenger.Messenger) (blizzard.ItemClasses, error) {
+	msg, err := mess.Request(subjects.ItemClasses, []byte{})
 	if err != nil {
 		return blizzard.ItemClasses{}, err
 	}
@@ -23,21 +24,21 @@ func newItemClassesFromMessenger(mess messenger) (blizzard.ItemClasses, error) {
 	return blizzard.NewItemClasses([]byte(msg.Data))
 }
 
-func (sta State) listenForItemClasses(stop ListenStopChan) error {
-	err := sta.Messenger.subscribe(subjects.ItemClasses, stop, func(natsMsg nats.Msg) {
-		m := newMessage()
+func (sta State) ListenForItemClasses(stop ListenStopChan) error {
+	err := sta.Messenger.Subscribe(subjects.ItemClasses, stop, func(natsMsg nats.Msg) {
+		m := messenger.NewMessage()
 
 		encodedItemClasses, err := json.Marshal(sta.ItemClasses)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.Messenger.replyTo(natsMsg, m)
+			sta.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		m.Data = string(encodedItemClasses)
-		sta.Messenger.replyTo(natsMsg, m)
+		sta.Messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err

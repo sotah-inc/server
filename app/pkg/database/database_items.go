@@ -87,7 +87,7 @@ func (idBase ItemsDatabase) GetItems() (internal.ItemsMap, error) {
 	return out, nil
 }
 
-func (idBase ItemsDatabase) findItems(IDs []blizzard.ItemID) (internal.ItemsMap, error) {
+func (idBase ItemsDatabase) FindItems(IDs []blizzard.ItemID) (internal.ItemsMap, error) {
 	keyspaces := func() []itemKeyspace {
 		result := map[itemKeyspace]struct{}{}
 		for _, ID := range IDs {

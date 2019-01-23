@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/sotah-inc/server/app/pkg/logging"
-	"github.com/sotah-inc/server/app/util"
+	"github.com/sotah-inc/server/app/pkg/util"
 )
 
 func syncItems(c config, s store) error {

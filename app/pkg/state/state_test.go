@@ -40,7 +40,7 @@ func TestListenForRegions(t *testing.T) {
 
 	// setting up a listener for responding to status requests
 	stop := make(chan interface{})
-	err = sta.listenForRegions(stop)
+	err = sta.ListenForRegions(stop)
 	if !assert.Nil(t, err) {
 		return
 	}

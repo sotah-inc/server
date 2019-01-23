@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/sotah-inc/server/app/util"
+	"github.com/sotah-inc/server/app/pkg/util"
 
 	"github.com/boltdb/bolt"
 	"github.com/sotah-inc/server/app/pkg/logging"

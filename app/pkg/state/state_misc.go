@@ -11,7 +11,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 )
 
-func (sta State) listenForRegions(stop ListenStopChan) error {
+func (sta State) ListenForRegions(stop ListenStopChan) error {
 	err := sta.Messenger.Subscribe(subjects.Regions, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
@@ -41,7 +41,7 @@ type bootResponse struct {
 	Professions []internal.Profession `json:"professions"`
 }
 
-func (sta State) listenForBoot(stop ListenStopChan) error {
+func (sta State) ListenForBoot(stop ListenStopChan) error {
 	err := sta.Messenger.Subscribe(subjects.Boot, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
