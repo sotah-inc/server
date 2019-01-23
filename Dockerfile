@@ -8,8 +8,8 @@ ENV APP_PROJECT github.com/ihsw/sotah-server/app
 WORKDIR /srv/app
 
 # gathering deps
-COPY ./app/cmd/app/go.mod .
-COPY ./app/cmd/app/go.sum .
+COPY ./app/go.mod .
+COPY ./app/go.sum .
 RUN go mod download
 
 # copying in source
