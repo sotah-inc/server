@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/errorreporting"
-
 	stackdriverlogging "cloud.google.com/go/logging"
 	"github.com/sirupsen/logrus"
 )

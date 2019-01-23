@@ -4,14 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/sotah-inc/server/app/pkg/util"
-
 	"github.com/boltdb/bolt"
+	"github.com/sotah-inc/server/app/internal"
 	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/util"
 )
 
-func storeDatabasePath(c config) (string, error) {
-	dbDir, err := c.databaseDir()
+func storeDatabasePath(c internal.Config) (string, error) {
+	dbDir, err := c.DatabaseDir()
 	if err != nil {
 		return "", err
 	}
@@ -19,7 +19,7 @@ func storeDatabasePath(c config) (string, error) {
 	return fmt.Sprintf("%s/store.db", dbDir), nil
 }
 
-func newStoreDatabase(c config) (storeDatabase, error) {
+func newStoreDatabase(c internal.Config) (storeDatabase, error) {
 	dbFilepath, err := storeDatabasePath(c)
 	if err != nil {
 		return storeDatabase{}, err
@@ -39,11 +39,11 @@ type storeDatabase struct {
 	db *bolt.DB
 }
 
-func (sdBase storeDatabase) bucketName(reg region) []byte {
+func (sdBase storeDatabase) bucketName(reg internal.Region) []byte {
 	return []byte(reg.Name)
 }
 
-func (sdBase storeDatabase) keyName(rea realm) []byte {
+func (sdBase storeDatabase) keyName(rea internal.Realm) []byte {
 	return []byte(rea.Slug)
 }
 
@@ -85,7 +85,7 @@ type storeDatabaseDataItem struct {
 	totalOwners   int
 }
 
-func (sdBase storeDatabase) getItems(reg region, rea realm) (storeDatabaseData, error) {
+func (sdBase storeDatabase) getItems(reg internal.Region, rea internal.Realm) (storeDatabaseData, error) {
 	out := storeDatabaseData{}
 	err := sdBase.db.View(func(tx *bolt.Tx) error {
 		bkt := tx.Bucket(sdBase.bucketName(reg))
@@ -113,7 +113,7 @@ func (sdBase storeDatabase) getItems(reg region, rea realm) (storeDatabaseData, 
 	return out, nil
 }
 
-func (sdBase storeDatabase) persistItem(reg region, rea realm, dateOccurred unixTimestamp, sdItem storeDatabaseDataItem) error {
+func (sdBase storeDatabase) persistItem(reg internal.Region, rea internal.Realm, dateOccurred unixTimestamp, sdItem storeDatabaseDataItem) error {
 	// resolving the store-database items
 	sdItems, err := sdBase.getItems(reg, rea)
 	if err != nil {
