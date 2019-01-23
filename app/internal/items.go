@@ -10,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/state"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
@@ -20,14 +21,12 @@ func getItemFilepath(c Config, ID blizzard.ItemID) (string, error) {
 }
 
 type getItemsJob struct {
-	err  error
+	Err  error
 	ID   blizzard.ItemID
-	item blizzard.Item
+	Item blizzard.Item
 }
 
-type itemBlacklistMap map[blizzard.ItemID]struct{}
-
-func getItems(IDs []blizzard.ItemID, ibMap itemBlacklistMap, res Resolver) chan getItemsJob {
+func GetItems(IDs []blizzard.ItemID, ibMap state.ItemBlacklistMap, res Resolver) chan getItemsJob {
 	// establishing channels
 	out := make(chan getItemsJob)
 	in := make(chan blizzard.ItemID)
@@ -91,9 +90,9 @@ func getItem(ID blizzard.ItemID, res Resolver) (blizzard.Item, error) {
 
 	if exists {
 		logging.WithFields(logrus.Fields{
-			"item":     ID,
+			"Item":     ID,
 			"filepath": itemFilepath,
-		}).Debug("Loading item from filepath")
+		}).Debug("Loading Item from filepath")
 
 		return blizzard.NewItemFromFilepath(itemFilepath)
 	}
@@ -106,21 +105,21 @@ func getItem(ID blizzard.ItemID, res Resolver) (blizzard.Item, error) {
 		}
 
 		if exists {
-			logging.WithField("item", ID).Debug("Loading item from gcloud storage")
+			logging.WithField("Item", ID).Debug("Loading Item from gcloud storage")
 
 			return blizzard.NewItemFromGcloudObject(res.Store.Context, res.Store.GetItemObject(ID))
 		}
 	}
 
-	logging.WithField("item", ID).Debug("Fetching item")
+	logging.WithField("Item", ID).Debug("Fetching Item")
 
 	// checking blizzard api
-	primaryRegion, err := res.Config.Regions.getPrimaryRegion()
+	primaryRegion, err := res.Config.Regions.GetPrimaryRegion()
 	if err != nil {
 		return blizzard.Item{}, err
 	}
 
-	uri, err := res.appendAccessToken(res.getItemURL(primaryRegion.Hostname, ID))
+	uri, err := res.AppendAccessToken(res.GetItemURL(primaryRegion.Hostname, ID))
 	if err != nil {
 		return blizzard.Item{}, err
 	}
@@ -188,7 +187,7 @@ func newItemsMap(body []byte) (ItemsMap, error) {
 	return *iMap, nil
 }
 
-type ItemsMap map[blizzard.ItemID]item
+type ItemsMap map[blizzard.ItemID]Item
 
 func (iMap ItemsMap) getItemIds() []blizzard.ItemID {
 	out := []blizzard.ItemID{}
@@ -199,7 +198,7 @@ func (iMap ItemsMap) getItemIds() []blizzard.ItemID {
 	return out
 }
 
-func (iMap ItemsMap) getItemIconsMap(excludeWithURL bool) itemIconItemIdsMap {
+func (iMap ItemsMap) GetItemIconsMap(excludeWithURL bool) itemIconItemIdsMap {
 	iconsMap := map[string]itemIds{}
 	for itemID, iValue := range iMap {
 		if excludeWithURL && iValue.IconURL != "" {
@@ -236,7 +235,7 @@ func (iMap ItemsMap) EncodeForDatabase() ([]byte, error) {
 	return gzipEncodedData, nil
 }
 
-type item struct {
+type Item struct {
 	blizzard.Item
 
 	IconURL string `json:"icon_url"`
@@ -246,7 +245,7 @@ type itemIds []blizzard.ItemID
 
 type itemIconItemIdsMap map[string]itemIds
 
-func (iconsMap itemIconItemIdsMap) getItemIcons() []string {
+func (iconsMap itemIconItemIdsMap) GetItemIcons() []string {
 	iconNames := make([]string, len(iconsMap))
 	i := 0
 	for iconName := range iconsMap {

@@ -7,9 +7,9 @@ import (
 
 	nats "github.com/nats-io/go-nats"
 	"github.com/renstrom/fuzzysearch/fuzzy"
-	"github.com/sotah-inc/server/app/blizzard"
-	"github.com/sotah-inc/server/app/codes"
-	"github.com/sotah-inc/server/app/subjects"
+	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/messenger/codes"
+	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 )
 
 type ownersQueryItem struct {
@@ -97,7 +97,7 @@ func (request ownersQueryRequest) resolve(sta State) (ownersQueryResult, error) 
 	}
 
 	// resolving region-Realm auctions
-	regionLadBases, ok := sta.liveAuctionsDatabases[request.RegionName]
+	regionLadBases, ok := sta.LiveAuctionsDatabases[request.RegionName]
 	if !ok {
 		return ownersQueryResult{}, errors.New("Invalid region name")
 	}

@@ -6,9 +6,9 @@ import (
 	"os/signal"
 	"path/filepath"
 
-	"github.com/sotah-inc/server/app/blizzard"
 	"github.com/sotah-inc/server/app/logging"
-	"github.com/sotah-inc/server/app/subjects"
+	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/util"
 )
 

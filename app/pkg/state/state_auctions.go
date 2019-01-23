@@ -35,7 +35,7 @@ type AuctionsRequest struct {
 }
 
 func (ar AuctionsRequest) resolve(sta State) (miniAuctionList, requestError) {
-	regionLadBases, ok := sta.liveAuctionsDatabases[ar.RegionName]
+	regionLadBases, ok := sta.LiveAuctionsDatabases[ar.RegionName]
 	if !ok {
 		return miniAuctionList{}, requestError{codes.NotFound, "Invalid region"}
 	}

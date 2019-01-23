@@ -19,40 +19,40 @@ type requestError struct {
 	message string
 }
 
-func newState(mess messenger.Messenger, res internal.Resolver) State {
+func NewState(mess messenger.Messenger, res internal.Resolver) State {
 	return State{
 		Messenger:             mess,
-		resolver:              res,
+		Resolver:              res,
 		Regions:               res.Config.FilterInRegions(res.Config.Regions),
 		Statuses:              internal.Statuses{},
 		auctionIntakeStatuses: map[internal.RegionName]map[blizzard.RealmSlug]time.Time{},
 		expansions:            res.Config.Expansions,
 		professions:           res.Config.Professions,
-		itemBlacklist:         newItemBlacklistMap(res.Config.ItemBlacklist),
+		ItemBlacklist:         newItemBlacklistMap(res.Config.ItemBlacklist),
 	}
 }
 
 type State struct {
 	Messenger                 messenger.Messenger
-	resolver                  internal.Resolver
-	listeners                 listeners
-	pricelistHistoryDatabases database.PricelistHistoryDatabases
-	liveAuctionsDatabases     database.LiveAuctionsDatabases
-	itemsDatabase             database.ItemsDatabase
-	sessionSecret             uuid.UUID
-	runID                     uuid.UUID
+	Resolver                  internal.Resolver
+	Listeners                 listeners
+	PricelistHistoryDatabases database.PricelistHistoryDatabases
+	LiveAuctionsDatabases     database.LiveAuctionsDatabases
+	ItemsDatabase             database.ItemsDatabase
+	SessionSecret             uuid.UUID
+	RunID                     uuid.UUID
 
 	Regions               []internal.Region
 	Statuses              internal.Statuses
 	auctionIntakeStatuses map[internal.RegionName]map[blizzard.RealmSlug]time.Time
-	itemClasses           blizzard.ItemClasses
+	ItemClasses           blizzard.ItemClasses
 	expansions            []internal.Expansion
 	professions           []internal.Profession
-	itemBlacklist         itemBlacklistMap
+	ItemBlacklist         ItemBlacklistMap
 }
 
-func newItemBlacklistMap(IDs []blizzard.ItemID) itemBlacklistMap {
-	out := itemBlacklistMap{}
+func newItemBlacklistMap(IDs []blizzard.ItemID) ItemBlacklistMap {
+	out := ItemBlacklistMap{}
 
 	if len(IDs) == 0 {
 		return out
@@ -65,15 +65,15 @@ func newItemBlacklistMap(IDs []blizzard.ItemID) itemBlacklistMap {
 	return out
 }
 
-type itemBlacklistMap map[blizzard.ItemID]struct{}
+type ItemBlacklistMap map[blizzard.ItemID]struct{}
 
 type ListenStopChan chan interface{}
 
 type listenFunc func(stop ListenStopChan) error
 
-type subjectListeners map[subjects.Subject]listenFunc
+type SubjectListeners map[subjects.Subject]listenFunc
 
-func newListeners(sListeners subjectListeners) listeners {
+func NewListeners(sListeners SubjectListeners) listeners {
 	ls := listeners{}
 	for subj, l := range sListeners {
 		ls[subj] = listener{l, make(ListenStopChan)}
@@ -84,8 +84,8 @@ func newListeners(sListeners subjectListeners) listeners {
 
 type listeners map[subjects.Subject]listener
 
-func (ls listeners) listen() error {
-	logging.WithField("listeners", len(ls)).Info("Starting listeners")
+func (ls listeners) Listen() error {
+	logging.WithField("Listeners", len(ls)).Info("Starting Listeners")
 
 	for _, l := range ls {
 		if err := l.call(l.stopChan); err != nil {
@@ -96,8 +96,8 @@ func (ls listeners) listen() error {
 	return nil
 }
 
-func (ls listeners) stop() {
-	logging.Info("Stopping listeners")
+func (ls listeners) Stop() {
+	logging.Info("Stopping Listeners")
 
 	for _, l := range ls {
 		l.stopChan <- struct{}{}

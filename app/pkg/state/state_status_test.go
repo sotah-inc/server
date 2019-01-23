@@ -33,7 +33,7 @@ func TestListenForStatus(t *testing.T) {
 
 	// setting up a listener for responding to status requests
 	stop := make(chan interface{})
-	err = sta.listenForStatus(stop)
+	err = sta.ListenForStatus(stop)
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -63,7 +63,7 @@ func TestListenForNonexistentStatusNoResolver(t *testing.T) {
 
 	// setting up a listener for responding to status requests
 	stop := make(chan interface{})
-	err = sta.listenForStatus(stop)
+	err = sta.ListenForStatus(stop)
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -87,7 +87,7 @@ func TestListenForNonexistentStatus(t *testing.T) {
 	}))
 
 	sta := State{
-		resolver: resolver{
+		Resolver: resolver{
 			getStatusURL: func(regionHostname string) string { return ts.URL },
 		},
 	}
@@ -102,7 +102,7 @@ func TestListenForNonexistentStatus(t *testing.T) {
 
 	// setting up a listener for responding to status requests
 	stop := make(chan interface{})
-	err = sta.listenForStatus(stop)
+	err = sta.ListenForStatus(stop)
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -126,10 +126,10 @@ func TestListenForStatusToFetch(t *testing.T) {
 		return
 	}
 
-	// loading State with a resolver to the test server and a single region
+	// loading State with a Resolver to the test server and a single region
 	reg := region{Name: "test", Hostname: "test"}
 	sta := State{
-		resolver: resolver{
+		Resolver: resolver{
 			getStatusURL: func(regionHostname string) string { return ts.URL },
 		},
 		Regions: []region{reg},
@@ -145,7 +145,7 @@ func TestListenForStatusToFetch(t *testing.T) {
 
 	// setting up a listener for responding to status requests
 	stop := make(chan interface{})
-	err = sta.listenForStatus(stop)
+	err = sta.ListenForStatus(stop)
 	if !assert.Nil(t, err) {
 		return
 	}

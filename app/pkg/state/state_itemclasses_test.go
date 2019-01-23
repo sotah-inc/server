@@ -3,7 +3,7 @@ package state
 import (
 	"testing"
 
-	"github.com/sotah-inc/server/app/blizzard"
+	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,7 +24,7 @@ func TestListenForItemClasses(t *testing.T) {
 	}
 
 	// attaching the items to the State
-	sta.itemClasses = result
+	sta.ItemClasses = result
 
 	// setting up a subscriber that will publish items
 	stop := make(chan interface{})

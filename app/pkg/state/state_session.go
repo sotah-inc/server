@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 
 	nats "github.com/nats-io/go-nats"
-	"github.com/sotah-inc/server/app/codes"
-	"github.com/sotah-inc/server/app/subjects"
+	"github.com/sotah-inc/server/app/pkg/messenger/codes"
+	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 )
 
 type sessionSecretData struct {
@@ -16,7 +16,7 @@ func (sta State) listenForSessionSecret(stop ListenStopChan) error {
 	err := sta.Messenger.subscribe(subjects.SessionSecret, stop, func(natsMsg nats.Msg) {
 		m := newMessage()
 
-		encodedData, err := json.Marshal(sessionSecretData{sta.sessionSecret.String()})
+		encodedData, err := json.Marshal(sessionSecretData{sta.SessionSecret.String()})
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError

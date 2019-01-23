@@ -3,7 +3,7 @@ package state
 import (
 	"testing"
 
-	"github.com/sotah-inc/server/app/blizzard"
+	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/stretchr/testify/assert"
 )
 

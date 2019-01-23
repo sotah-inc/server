@@ -34,7 +34,7 @@ type priceListRequest struct {
 }
 
 func (plRequest priceListRequest) resolve(sta State) (internal.MiniAuctionList, requestError) {
-	regionLadBases, ok := sta.liveAuctionsDatabases[plRequest.RegionName]
+	regionLadBases, ok := sta.LiveAuctionsDatabases[plRequest.RegionName]
 	if !ok {
 		return internal.MiniAuctionList{}, requestError{codes.NotFound, "Invalid region"}
 	}

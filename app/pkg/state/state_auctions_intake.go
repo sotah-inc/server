@@ -50,7 +50,7 @@ type AuctionsIntakeRequest struct {
 }
 
 func (aiRequest AuctionsIntakeRequest) resolve(sta State) (RegionRealmMap, RegionRealmMap, error) {
-	c := sta.resolver.Config
+	c := sta.Resolver.Config
 
 	includedRegionRealms := RegionRealmMap{}
 	excludedRegionRealms := RegionRealmMap{}
@@ -91,7 +91,7 @@ func (aiRequest AuctionsIntakeRequest) handle(sta State) {
 	// misc for metrics
 	totalRealms := 0
 	for rName, reas := range sta.Statuses {
-		totalRealms += len(reas.Realms.FilterWithWhitelist(sta.resolver.Config.Whitelist[rName]))
+		totalRealms += len(reas.Realms.FilterWithWhitelist(sta.Resolver.Config.Whitelist[rName]))
 	}
 	includedRealmCount := 0
 	for _, reas := range includedRegionRealms {
@@ -120,13 +120,13 @@ func (aiRequest AuctionsIntakeRequest) handle(sta State) {
 
 		// loading auctions from file cache or gcloud store
 		loadedAuctions := func() chan internal.LoadAuctionsJob {
-			if sta.resolver.Config.UseGCloud {
-				return sta.resolver.Store.LoadRegionRealmMap(rMap)
+			if sta.Resolver.Config.UseGCloud {
+				return sta.Resolver.Store.LoadRegionRealmMap(rMap)
 			}
 
-			return rMap.toRealms().LoadAuctionsFromCacheDir(sta.resolver.Config)
+			return rMap.toRealms().LoadAuctionsFromCacheDir(sta.Resolver.Config)
 		}()
-		done := sta.pricelistHistoryDatabases.Load(loadedAuctions, *sta.resolver.Config, sta.resolver.Store)
+		done := sta.PricelistHistoryDatabases.Load(loadedAuctions, *sta.Resolver.Config, sta.Resolver.Store)
 		<-done
 
 		logging.WithFields(logrus.Fields{
@@ -166,7 +166,7 @@ func (sta State) listenForAuctionsIntake(stop ListenStopChan) error {
 
 			totalRealms := 0
 			for rName, reas := range sta.Statuses {
-				totalRealms += len(reas.Realms.FilterWithWhitelist(sta.resolver.Config.Whitelist[rName]))
+				totalRealms += len(reas.Realms.FilterWithWhitelist(sta.Resolver.Config.Whitelist[rName]))
 			}
 			includedRealmCount := 0
 			for _, reas := range includedRegionRealms {
@@ -193,7 +193,7 @@ func (sta State) listenForAuctionsIntake(stop ListenStopChan) error {
 
 			// gathering the total number of auctions pre-intake
 			logging.Info("Going over all auctions to for pre-intake metrics")
-			for statsJob := range sta.liveAuctionsDatabases.GetStats(nil) {
+			for statsJob := range sta.LiveAuctionsDatabases.GetStats(nil) {
 				if statsJob.Err != nil {
 					logging.WithFields(logrus.Fields{
 						"error":  statsJob.Err.Error(),
@@ -206,7 +206,7 @@ func (sta State) listenForAuctionsIntake(stop ListenStopChan) error {
 
 				totalPreviousAuctions += statsJob.Stats.TotalAuctions
 			}
-			for statsJob := range sta.liveAuctionsDatabases.GetStats(excludedRegionRealms) {
+			for statsJob := range sta.LiveAuctionsDatabases.GetStats(excludedRegionRealms) {
 				if statsJob.Err != nil {
 					logging.WithFields(logrus.Fields{
 						"error":  statsJob.Err.Error(),
@@ -233,13 +233,13 @@ func (sta State) listenForAuctionsIntake(stop ListenStopChan) error {
 
 				// loading auctions
 				loadedAuctions := func() chan internal.LoadAuctionsJob {
-					if sta.resolver.Config.UseGCloud {
-						return sta.resolver.Store.LoadRegionRealmMap(rMap)
+					if sta.Resolver.Config.UseGCloud {
+						return sta.Resolver.Store.LoadRegionRealmMap(rMap)
 					}
 
-					return rMap.toRealms().LoadAuctionsFromCacheDir(sta.resolver.Config)
+					return rMap.toRealms().LoadAuctionsFromCacheDir(sta.Resolver.Config)
 				}()
-				loadedAuctionsResults := sta.liveAuctionsDatabases.Load(loadedAuctions)
+				loadedAuctionsResults := sta.LiveAuctionsDatabases.Load(loadedAuctions)
 				for result := range loadedAuctionsResults {
 					totalAuctions += len(result.Stats.AuctionIds)
 					totalOwners += len(result.Stats.OwnerNames)
@@ -277,7 +277,7 @@ func (sta State) listenForAuctionsIntake(stop ListenStopChan) error {
 			if err != nil {
 				logging.WithField("error", err.Error()).Error("Failed to marshal auctions-intake-request")
 			} else {
-				sta.resolver.Messenger.Publish(subjects.PricelistsIntake, encodedAiRequest)
+				sta.Resolver.Messenger.Publish(subjects.PricelistsIntake, encodedAiRequest)
 			}
 		}
 	}()

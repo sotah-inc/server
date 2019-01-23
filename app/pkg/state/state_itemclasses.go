@@ -5,9 +5,9 @@ import (
 	"errors"
 
 	nats "github.com/nats-io/go-nats"
-	"github.com/sotah-inc/server/app/blizzard"
-	"github.com/sotah-inc/server/app/codes"
-	"github.com/sotah-inc/server/app/subjects"
+	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/messenger/codes"
+	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 )
 
 func newItemClassesFromMessenger(mess messenger) (blizzard.ItemClasses, error) {
@@ -27,7 +27,7 @@ func (sta State) listenForItemClasses(stop ListenStopChan) error {
 	err := sta.Messenger.subscribe(subjects.ItemClasses, stop, func(natsMsg nats.Msg) {
 		m := newMessage()
 
-		encodedItemClasses, err := json.Marshal(sta.itemClasses)
+		encodedItemClasses, err := json.Marshal(sta.ItemClasses)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError

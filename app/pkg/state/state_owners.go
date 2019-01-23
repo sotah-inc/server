@@ -29,7 +29,7 @@ type OwnersRequest struct {
 }
 
 func (request OwnersRequest) resolve(sta State) (miniAuctionList, error) {
-	regionLadBases, ok := sta.liveAuctionsDatabases[request.RegionName]
+	regionLadBases, ok := sta.LiveAuctionsDatabases[request.RegionName]
 	if !ok {
 		return miniAuctionList{}, errors.New("Invalid region name")
 	}

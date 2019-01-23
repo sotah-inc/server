@@ -13,8 +13,8 @@ type miniAuctionSortFn func(MiniAuctionList)
 
 func newMiniAuctionSorter() miniAuctionSorter {
 	return miniAuctionSorter{
-		"item":         func(mAuctionList MiniAuctionList) { sort.Sort(byItem(mAuctionList)) },
-		"item-r":       func(mAuctionList MiniAuctionList) { sort.Sort(byItemReversed(mAuctionList)) },
+		"Item":         func(mAuctionList MiniAuctionList) { sort.Sort(byItem(mAuctionList)) },
+		"Item-r":       func(mAuctionList MiniAuctionList) { sort.Sort(byItemReversed(mAuctionList)) },
 		"quantity":     func(mAuctionList MiniAuctionList) { sort.Sort(byQuantity(mAuctionList)) },
 		"quantity-r":   func(mAuctionList MiniAuctionList) { sort.Sort(byQuantityReversed(mAuctionList)) },
 		"bid":          func(mAuctionList MiniAuctionList) { sort.Sort(byBid(mAuctionList)) },
@@ -35,7 +35,7 @@ type miniAuctionSorter map[string]miniAuctionSortFn
 func (mas miniAuctionSorter) sort(kind sortkinds.SortKind, direction sortdirections.SortDirection, data MiniAuctionList) error {
 	// resolving the sort kind as a string
 	kindMap := map[sortkinds.SortKind]string{
-		sortkinds.Item:      "item",
+		sortkinds.Item:      "Item",
 		sortkinds.Quantity:  "quantity",
 		sortkinds.Bid:       "bid",
 		sortkinds.Buyout:    "buyout",

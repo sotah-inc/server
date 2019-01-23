@@ -2,9 +2,9 @@ package state
 
 import (
 	nats "github.com/nats-io/go-nats"
-	"github.com/sotah-inc/server/app/logging"
-	"github.com/sotah-inc/server/app/metric"
-	"github.com/sotah-inc/server/app/subjects"
+	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
+	"github.com/sotah-inc/server/app/pkg/metric"
 )
 
 func (sta State) listenForPricelistsIntake(stop ListenStopChan) error {

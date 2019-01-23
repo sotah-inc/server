@@ -2,16 +2,20 @@ package command
 
 import (
 	"fmt"
-	"github.com/sotah-inc/server/app/pkg/messenger"
-	"github.com/sotah-inc/server/app/pkg/store"
 	"os"
 	"os/signal"
+
+	"github.com/sotah-inc/server/app/pkg/database"
+
+	"github.com/sotah-inc/server/app/pkg/messenger"
+	"github.com/sotah-inc/server/app/pkg/store"
 
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/internal"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
+	"github.com/sotah-inc/server/app/pkg/state"
 	"github.com/sotah-inc/server/app/pkg/util"
 	"github.com/twinj/uuid"
 )
@@ -38,14 +42,14 @@ func api(c internal.Config, m messenger.Messenger, s store.Store) error {
 
 	// establishing a state
 	res := internal.NewResolver(c, m, s)
-	sta := newState(m, res)
+	sta := state.NewState(m, res)
 
 	// creating a uuid4 api-session secret and run-id of state
-	sta.runID = uuid.NewV4()
-	sta.sessionSecret = uuid.NewV4()
+	sta.RunID = uuid.NewV4()
+	sta.SessionSecret = uuid.NewV4()
 
 	// ensuring cache-dirs exist
-	cacheDirs, err := apiCacheDirs(c, sta.regions)
+	cacheDirs, err := apiCacheDirs(c, sta.Regions)
 	if err != nil {
 		return err
 	}
@@ -55,25 +59,25 @@ func api(c internal.Config, m messenger.Messenger, s store.Store) error {
 	}
 
 	// loading up items database
-	idBase, err := newItemsDatabase(c)
+	idBase, err := database.NewItemsDatabase(c)
 	if err != nil {
 		return err
 	}
-	sta.itemsDatabase = idBase
+	sta.ItemsDatabase = idBase
 
 	// refreshing the access-token for the resolver blizz client
-	nextClient, err := res.blizzardClient.RefreshFromHTTP(blizzard.OAuthTokenEndpoint)
+	nextClient, err := res.BlizzardClient.RefreshFromHTTP(blizzard.OAuthTokenEndpoint)
 	if err != nil {
 		logging.WithField("error", err.Error()).Error("Failed to refresh blizzard client")
 
 		return err
 	}
-	res.blizzardClient = nextClient
-	sta.resolver = res
+	res.BlizzardClient = nextClient
+	sta.Resolver = res
 
 	// filling state with region statuses
-	for _, reg := range sta.regions {
-		regionStatus, err := reg.getStatus(res)
+	for _, reg := range sta.Regions {
+		regionStatus, err := reg.GetStatus(res)
 		if err != nil {
 			logging.WithFields(logrus.Fields{
 				"error":  err.Error(),
@@ -83,17 +87,17 @@ func api(c internal.Config, m messenger.Messenger, s store.Store) error {
 			return err
 		}
 
-		regionStatus.Realms = c.filterInRealms(reg, regionStatus.Realms)
-		sta.statuses[reg.Name] = regionStatus
+		regionStatus.Realms = c.FilterInRealms(reg, regionStatus.Realms)
+		sta.Statuses[reg.Name] = regionStatus
 	}
 
 	// gathering item-classes
-	primaryRegion, err := c.Regions.getPrimaryRegion()
+	primaryRegion, err := c.Regions.GetPrimaryRegion()
 	if err != nil {
 		return err
 	}
 
-	uri, err := res.appendAccessToken(res.getItemClassesURL(primaryRegion.Hostname))
+	uri, err := res.AppendAccessToken(res.GetItemClassesURL(primaryRegion.Hostname))
 	if err != nil {
 		return err
 	}
@@ -102,7 +106,7 @@ func api(c internal.Config, m messenger.Messenger, s store.Store) error {
 	if err != nil {
 		return err
 	}
-	sta.itemClasses = iClasses
+	sta.ItemClasses = iClasses
 
 	// gathering profession icons into storage
 	if c.UseGCloud {
@@ -111,33 +115,33 @@ func api(c internal.Config, m messenger.Messenger, s store.Store) error {
 			iconNames[i] = prof.Icon
 		}
 
-		syncedIcons, err := s.syncItemIcons(iconNames, res)
+		syncedIcons, err := s.SyncItemIcons(iconNames, res)
 		if err != nil {
 			return err
 		}
 		for job := range syncedIcons {
-			if job.err != nil {
-				return job.err
+			if job.Err != nil {
+				return job.Err
 			}
 
 			for i, prof := range c.Professions {
-				if prof.Icon != job.iconName {
+				if prof.Icon != job.IconName {
 					continue
 				}
 
-				c.Professions[i].IconURL = job.iconURL
+				c.Professions[i].IconURL = job.IconURL
 			}
 		}
 	} else {
 		for i, prof := range c.Professions {
-			c.Professions[i].IconURL = defaultGetItemIconURL(prof.Icon)
+			c.Professions[i].IconURL = internal.DefaultGetItemIconURL(prof.Icon)
 		}
 	}
 
 	// opening all listeners
-	sta.listeners = newListeners(subjectListeners{
-		subjects.GenericTestErrors: sta.listenForGenericTestErrors,
-		subjects.Status:            sta.listenForStatus,
+	sta.Listeners = state.NewListeners(state.SubjectListeners{
+		subjects.GenericTestErrors: sta.ListenForGenericTestErrors,
+		subjects.Status:            sta.ListenForStatus,
 		subjects.Regions:           sta.listenForRegions,
 		subjects.ItemsQuery:        sta.listenForItemsQuery,
 		subjects.ItemClasses:       sta.listenForItemClasses,
@@ -146,13 +150,13 @@ func api(c internal.Config, m messenger.Messenger, s store.Store) error {
 		subjects.SessionSecret:     sta.listenForSessionSecret,
 		subjects.RuntimeInfo:       sta.listenForRuntimeInfo,
 	})
-	if err := sta.listeners.listen(); err != nil {
+	if err := sta.Listeners.Listen(); err != nil {
 		return err
 	}
 
 	// starting up a collector
-	collectorStop := make(workerStopChan)
-	onCollectorStop := sta.startCollector(collectorStop, res)
+	collectorStop := make(state.WorkerStopChan)
+	onCollectorStop := sta.StartCollector(collectorStop, res)
 
 	// catching SIGINT
 	logging.Info("Waiting for SIGINT")
@@ -163,7 +167,7 @@ func api(c internal.Config, m messenger.Messenger, s store.Store) error {
 	logging.Info("Caught SIGINT, exiting")
 
 	// stopping listeners
-	sta.listeners.stop()
+	sta.Listeners.Stop()
 
 	logging.Info("Stopping collector")
 	collectorStop <- struct{}{}

@@ -4,26 +4,28 @@ import (
 	"encoding/json"
 
 	nats "github.com/nats-io/go-nats"
-	"github.com/sotah-inc/server/app/blizzard"
-	"github.com/sotah-inc/server/app/codes"
-	"github.com/sotah-inc/server/app/subjects"
+	"github.com/sotah-inc/server/app/internal"
+	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/messenger"
+	"github.com/sotah-inc/server/app/pkg/messenger/codes"
+	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 )
 
 func (sta State) listenForRegions(stop ListenStopChan) error {
-	err := sta.Messenger.subscribe(subjects.Regions, stop, func(natsMsg nats.Msg) {
-		m := newMessage()
+	err := sta.Messenger.Subscribe(subjects.Regions, stop, func(natsMsg nats.Msg) {
+		m := messenger.NewMessage()
 
 		encodedRegions, err := json.Marshal(sta.Regions)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.Messenger.replyTo(natsMsg, m)
+			sta.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		m.Data = string(encodedRegions)
-		sta.Messenger.replyTo(natsMsg, m)
+		sta.Messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err
@@ -33,32 +35,32 @@ func (sta State) listenForRegions(stop ListenStopChan) error {
 }
 
 type bootResponse struct {
-	Regions     regionList           `json:"Regions"`
-	ItemClasses blizzard.ItemClasses `json:"item_classes"`
-	Expansions  []expansion          `json:"expansions"`
-	Professions []profession         `json:"professions"`
+	Regions     internal.RegionList   `json:"Regions"`
+	ItemClasses blizzard.ItemClasses  `json:"item_classes"`
+	Expansions  []internal.Expansion  `json:"expansions"`
+	Professions []internal.Profession `json:"professions"`
 }
 
 func (sta State) listenForBoot(stop ListenStopChan) error {
-	err := sta.Messenger.subscribe(subjects.Boot, stop, func(natsMsg nats.Msg) {
-		m := newMessage()
+	err := sta.Messenger.Subscribe(subjects.Boot, stop, func(natsMsg nats.Msg) {
+		m := messenger.NewMessage()
 
 		encodedResponse, err := json.Marshal(bootResponse{
 			Regions:     sta.Regions,
-			ItemClasses: sta.itemClasses,
+			ItemClasses: sta.ItemClasses,
 			Expansions:  sta.expansions,
 			Professions: sta.professions,
 		})
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.Messenger.replyTo(natsMsg, m)
+			sta.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		m.Data = string(encodedResponse)
-		sta.Messenger.replyTo(natsMsg, m)
+		sta.Messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err
@@ -67,12 +69,12 @@ func (sta State) listenForBoot(stop ListenStopChan) error {
 	return nil
 }
 
-func (sta State) listenForGenericTestErrors(stop ListenStopChan) error {
-	err := sta.Messenger.subscribe(subjects.GenericTestErrors, stop, func(natsMsg nats.Msg) {
-		m := newMessage()
+func (sta State) ListenForGenericTestErrors(stop ListenStopChan) error {
+	err := sta.Messenger.Subscribe(subjects.GenericTestErrors, stop, func(natsMsg nats.Msg) {
+		m := messenger.NewMessage()
 		m.Err = "Test error"
 		m.Code = codes.GenericError
-		sta.Messenger.replyTo(natsMsg, m)
+		sta.Messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err
@@ -86,9 +88,9 @@ type auctionsIntakeResult struct {
 	removedAuctionsCount int
 }
 
-func (sta State) auctionsIntake(job getAuctionsJob) (auctionsIntakeResult, error) {
-	rea := job.realm
-	reg := rea.region
+func (sta State) auctionsIntake(job internal.GetAuctionsJob) (auctionsIntakeResult, error) {
+	rea := job.Realm
+	reg := rea.Region
 
 	// setting the Realm last-modified
 	for i, statusRealm := range sta.Statuses[reg.Name].Realms {
@@ -96,14 +98,14 @@ func (sta State) auctionsIntake(job getAuctionsJob) (auctionsIntakeResult, error
 			continue
 		}
 
-		sta.Statuses[reg.Name].Realms[i].LastModified = job.lastModified.Unix()
+		sta.Statuses[reg.Name].Realms[i].LastModified = job.LastModified.Unix()
 
 		break
 	}
 
 	// gathering item-ids for item fetching
 	itemIdsMap := map[blizzard.ItemID]struct{}{}
-	for _, auc := range job.auctions.Auctions {
+	for _, auc := range job.Auctions.Auctions {
 		itemIdsMap[auc.Item] = struct{}{}
 	}
 	itemIds := make([]blizzard.ItemID, len(itemIdsMap))

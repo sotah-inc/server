@@ -23,14 +23,14 @@ func TestRealmGetAuctions(t *testing.T) {
 	if !assert.Nil(t, err) {
 		return
 	}
-	res.getAuctionInfoURL = func(regionHostname string, slug blizzard.RealmSlug) string {
+	res.etAuctionInfoURL = func(regionHostname string, slug blizzard.RealmSlug) string {
 		return auctionInfoTs.URL
 	}
 	auctionsTs, err := utiltest.ServeFile("./TestData/Auctions.json")
 	if !assert.Nil(t, err) {
 		return
 	}
-	res.getAuctionsURL = func(url string) string {
+	res.GetAuctionsURL = func(url string) string {
 		return auctionsTs.URL
 	}
 
@@ -44,7 +44,7 @@ func TestRealmGetAuctions(t *testing.T) {
 
 	rea := s.Realms[0]
 
-	aucs, _, err := rea.getAuctions(res)
+	aucs, _, err := rea.GetAuctions(res)
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -71,14 +71,14 @@ func TestRealmsGetAuctions(t *testing.T) {
 	if !assert.Nil(t, err) {
 		return
 	}
-	res.getAuctionInfoURL = func(regionHostname string, slug blizzard.RealmSlug) string {
+	res.etAuctionInfoURL = func(regionHostname string, slug blizzard.RealmSlug) string {
 		return auctionInfoTs.URL
 	}
 	auctionsTs, err := utiltest.ServeFile("./TestData/Auctions.json")
 	if !assert.Nil(t, err) {
 		return
 	}
-	res.getAuctionsURL = func(url string) string {
+	res.GetAuctionsURL = func(url string) string {
 		return auctionsTs.URL
 	}
 
@@ -97,12 +97,12 @@ func TestRealmsGetAuctions(t *testing.T) {
 				break
 			}
 
-			if !assert.Nil(t, job.err) {
+			if !assert.Nil(t, job.Err) {
 				return
 			}
 
-			_, whitelistOk := whitelist[job.realm.Slug]
-			if !assert.True(t, whitelistOk, fmt.Sprintf("Job for invalid Realm found: %s", job.realm.Slug)) {
+			_, whitelistOk := whitelist[job.Realm.Slug]
+			if !assert.True(t, whitelistOk, fmt.Sprintf("Job for invalid Realm found: %s", job.Realm.Slug)) {
 				return
 			}
 		}
@@ -131,14 +131,14 @@ func TestRealmsGetAllAuctions(t *testing.T) {
 	if !assert.Nil(t, err) {
 		return
 	}
-	res.getAuctionInfoURL = func(regionHostname string, slug blizzard.RealmSlug) string {
+	res.etAuctionInfoURL = func(regionHostname string, slug blizzard.RealmSlug) string {
 		return auctionInfoTs.URL
 	}
 	auctionsTs, err := utiltest.ServeFile("./TestData/Auctions.json")
 	if !assert.Nil(t, err) {
 		return
 	}
-	res.getAuctionsURL = func(url string) string {
+	res.GetAuctionsURL = func(url string) string {
 		return auctionsTs.URL
 	}
 
@@ -154,7 +154,7 @@ func TestRealmsGetAllAuctions(t *testing.T) {
 				break
 			}
 
-			if !assert.Nil(t, job.err) {
+			if !assert.Nil(t, job.Err) {
 				return
 			}
 		}

@@ -4,9 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/sotah-inc/server/app/pkg/messenger"
+
 	nats "github.com/nats-io/go-nats"
-	"github.com/sotah-inc/server/app/codes"
-	"github.com/sotah-inc/server/app/subjects"
+	"github.com/sotah-inc/server/app/internal"
+	"github.com/sotah-inc/server/app/pkg/messenger/codes"
+	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 )
 
 func newStatusRequest(payload []byte) (StatusRequest, error) {
@@ -20,11 +23,11 @@ func newStatusRequest(payload []byte) (StatusRequest, error) {
 }
 
 type StatusRequest struct {
-	RegionName regionName `json:"region_name"`
+	RegionName internal.RegionName `json:"region_name"`
 }
 
-func (sr StatusRequest) resolve(sta State) (region, error) {
-	var reg region
+func (sr StatusRequest) resolve(sta State) (internal.Region, error) {
+	var reg internal.Region
 	for _, r := range sta.Regions {
 		if r.Name != sr.RegionName {
 			continue
@@ -35,21 +38,21 @@ func (sr StatusRequest) resolve(sta State) (region, error) {
 	}
 
 	if reg.Name == "" {
-		return region{}, errors.New("Invalid region")
+		return internal.Region{}, errors.New("Invalid region")
 	}
 
 	return reg, nil
 }
 
-func (sta State) listenForStatus(stop ListenStopChan) error {
-	err := sta.Messenger.subscribe(subjects.Status, stop, func(natsMsg nats.Msg) {
-		m := newMessage()
+func (sta State) ListenForStatus(stop ListenStopChan) error {
+	err := sta.Messenger.Subscribe(subjects.Status, stop, func(natsMsg nats.Msg) {
+		m := messenger.NewMessage()
 
 		sr, err := newStatusRequest(natsMsg.Data)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.Messenger.replyTo(natsMsg, m)
+			sta.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -58,7 +61,7 @@ func (sta State) listenForStatus(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.NotFound
-			sta.Messenger.replyTo(natsMsg, m)
+			sta.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -67,7 +70,7 @@ func (sta State) listenForStatus(stop ListenStopChan) error {
 		if !ok {
 			m.Err = "Region found but not in Statuses"
 			m.Code = codes.NotFound
-			sta.Messenger.replyTo(natsMsg, m)
+			sta.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -76,13 +79,13 @@ func (sta State) listenForStatus(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.Messenger.replyTo(natsMsg, m)
+			sta.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		m.Data = string(encodedStatus)
-		sta.Messenger.replyTo(natsMsg, m)
+		sta.Messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err

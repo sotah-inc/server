@@ -6,10 +6,10 @@ import (
 	"time"
 
 	nats "github.com/nats-io/go-nats"
-	"github.com/sotah-inc/server/app/blizzard"
-	"github.com/sotah-inc/server/app/codes"
 	"github.com/sotah-inc/server/app/logging"
-	"github.com/sotah-inc/server/app/subjects"
+	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/messenger/codes"
+	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/util"
 )
 
@@ -68,7 +68,7 @@ func (plhRequest priceListHistoryRequest) resolve(sta State) (realm, pricelistHi
 	}
 
 	phdShards, reErr := func() (pricelistHistoryDatabaseShards, requestError) {
-		regionShards, ok := sta.pricelistHistoryDatabases[plhRequest.RegionName]
+		regionShards, ok := sta.PricelistHistoryDatabases[plhRequest.RegionName]
 		if !ok {
 			return pricelistHistoryDatabaseShards{}, requestError{codes.NotFound, "Invalid region (pricelist-history databases)"}
 		}

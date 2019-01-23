@@ -4,16 +4,15 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/sotah-inc/server/app/metric"
-
-	"github.com/sotah-inc/server/app/logging"
-	"github.com/sotah-inc/server/app/subjects"
-
 	"github.com/sirupsen/logrus"
-	"github.com/sotah-inc/server/app/blizzard"
+	"github.com/sotah-inc/server/app/internal"
+	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
+	"github.com/sotah-inc/server/app/pkg/metric"
 )
 
-func (sta State) startCollector(stopChan WorkerStopChan, res resolver) WorkerStopChan {
+func (sta State) StartCollector(stopChan WorkerStopChan, res internal.Resolver) WorkerStopChan {
 	onStop := make(WorkerStopChan)
 	go func() {
 		ticker := time.NewTicker(20 * time.Minute)
@@ -23,15 +22,15 @@ func (sta State) startCollector(stopChan WorkerStopChan, res resolver) WorkerSto
 		for {
 			select {
 			case <-ticker.C:
-				// refreshing the access-token for the resolver blizz client
-				nextClient, err := res.blizzardClient.RefreshFromHTTP(blizzard.OAuthTokenEndpoint)
+				// refreshing the access-token for the Resolver blizz client
+				nextClient, err := res.BlizzardClient.RefreshFromHTTP(blizzard.OAuthTokenEndpoint)
 				if err != nil {
 					logging.WithField("error", err.Error()).Error("Failed to refresh blizzard client")
 
 					continue
 				}
-				res.blizzardClient = nextClient
-				sta.resolver = res
+				res.BlizzardClient = nextClient
+				sta.Resolver = res
 
 				sta.collectRegions(res)
 			case <-stopChan:
@@ -47,7 +46,7 @@ func (sta State) startCollector(stopChan WorkerStopChan, res resolver) WorkerSto
 	return onStop
 }
 
-func (sta State) collectRegions(res resolver) {
+func (sta State) collectRegions(res internal.Resolver) {
 	logging.Info("Collecting Regions")
 
 	// going over the list of Regions
@@ -57,12 +56,12 @@ func (sta State) collectRegions(res resolver) {
 	includedRealmCount := 0
 	for _, reg := range sta.Regions {
 		// gathering whitelist for this region
-		wList := res.config.getRegionWhitelist(reg.Name)
+		wList := res.Config.GetRegionWhitelist(reg.Name)
 		if wList != nil && len(*wList) == 0 {
 			continue
 		}
 
-		totalRealms += len(sta.Statuses[reg.Name].Realms.filterWithWhitelist(wList))
+		totalRealms += len(sta.Statuses[reg.Name].Realms.FilterWithWhitelist(wList))
 
 		// misc
 		receivedItemIds := map[blizzard.ItemID]struct{}{}
@@ -74,14 +73,14 @@ func (sta State) collectRegions(res resolver) {
 			"realms":    len(sta.Statuses[reg.Name].Realms),
 			"whitelist": wList,
 		}).Debug("Downloading region")
-		auctionsOut := sta.Statuses[reg.Name].Realms.getAuctionsOrAll(sta.resolver, wList)
+		auctionsOut := sta.Statuses[reg.Name].Realms.GetAuctionsOrAll(sta.Resolver, wList)
 		for job := range auctionsOut {
 			result, err := sta.auctionsIntake(job)
 			if err != nil {
 				logging.WithFields(logrus.Fields{
 					"error":  err.Error(),
 					"region": reg.Name,
-					"Realm":  job.realm.Slug,
+					"Realm":  job.Realm.Slug,
 				}).Error("Failed to intake auctions")
 
 				continue
@@ -89,7 +88,7 @@ func (sta State) collectRegions(res resolver) {
 
 			includedRealmCount++
 
-			irData[reg.Name][job.realm.Slug] = job.lastModified.Unix()
+			irData[reg.Name][job.Realm.Slug] = job.LastModified.Unix()
 			for _, ID := range result.itemIds {
 				receivedItemIds[ID] = struct{}{}
 			}
@@ -100,7 +99,7 @@ func (sta State) collectRegions(res resolver) {
 		err := func() error {
 			logging.Debug("Fetching items from database")
 
-			iMap, err := sta.itemsDatabase.getItems()
+			iMap, err := sta.ItemsDatabase.GetItems()
 			if err != nil {
 				return err
 			}
@@ -126,53 +125,56 @@ func (sta State) collectRegions(res resolver) {
 
 				logging.WithField("items", len(newItemIds)).Debug("Resolving new items")
 
-				itemsOut := getItems(newItemIds, sta.itemBlacklist, res)
+				itemsOut := internal.GetItems(newItemIds, sta.ItemBlacklist, res)
 				for itemsOutJob := range itemsOut {
-					if itemsOutJob.err != nil {
+					if itemsOutJob.Err != nil {
 						logging.WithFields(logrus.Fields{
-							"error": itemsOutJob.err.Error(),
+							"error": itemsOutJob.Err.Error(),
 							"ID":    itemsOutJob.ID,
 						}).Error("Failed to fetch item")
 
 						continue
 					}
 
-					iMap[itemsOutJob.ID] = item{itemsOutJob.item, ""}
+					iMap[itemsOutJob.ID] = internal.Item{
+						Item:    itemsOutJob.Item,
+						IconURL: "",
+					}
 				}
 			}
 
-			missingItemIcons := iMap.getItemIconsMap(true)
+			missingItemIcons := iMap.GetItemIconsMap(true)
 			if len(missingItemIcons) > 0 {
 				hasNewResults = true
 
 				logging.WithField("icons", len(missingItemIcons)).Debug("Gathering item icons")
-				if !res.config.UseGCloud {
+				if !res.Config.UseGCloud {
 					for iconName, IDs := range missingItemIcons {
 						for _, ID := range IDs {
 							itemValue := iMap[ID]
-							itemValue.IconURL = defaultGetItemIconURL(iconName)
+							itemValue.IconURL = internal.DefaultGetItemIconURL(iconName)
 							iMap[ID] = itemValue
 						}
 					}
 				} else {
-					iconSyncJobs, err := res.store.syncItemIcons(missingItemIcons.getItemIcons(), res)
+					iconSyncJobs, err := res.Store.SyncItemIcons(missingItemIcons.GetItemIcons(), res)
 					if err != nil {
 						return err
 					}
 
 					for iconSyncJob := range iconSyncJobs {
-						if iconSyncJob.err != nil {
+						if iconSyncJob.Err != nil {
 							logging.WithFields(logrus.Fields{
 								"error": err.Error(),
-								"icon":  iconSyncJob.iconName,
+								"icon":  iconSyncJob.IconName,
 							}).Error("Failed to sync item icon")
 
 							continue
 						}
 
-						for _, ID := range missingItemIcons[iconSyncJob.iconName] {
+						for _, ID := range missingItemIcons[iconSyncJob.IconName] {
 							itemValue := iMap[ID]
-							itemValue.IconURL = iconSyncJob.iconURL
+							itemValue.IconURL = iconSyncJob.IconURL
 							iMap[ID] = itemValue
 						}
 					}
@@ -180,7 +182,7 @@ func (sta State) collectRegions(res resolver) {
 			}
 
 			if hasNewResults {
-				if err := sta.itemsDatabase.persistItems(iMap); err != nil {
+				if err := sta.ItemsDatabase.PersistItems(iMap); err != nil {
 					return err
 				}
 			}
@@ -203,7 +205,7 @@ func (sta State) collectRegions(res resolver) {
 			return err
 		}
 
-		return res.messenger.publish(subjects.AuctionsIntake, encodedAiRequest)
+		return res.Messenger.Publish(subjects.AuctionsIntake, encodedAiRequest)
 	}()
 	if err != nil {
 		logging.WithField("error", err.Error()).Error("Failed to publish auctions-intake-request")

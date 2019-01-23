@@ -3,10 +3,11 @@ package database
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/sotah-inc/server/app/util"
 
 	"github.com/boltdb/bolt"
-	"github.com/sotah-inc/server/app/logging"
+	"github.com/sotah-inc/server/app/pkg/logging"
 )
 
 func storeDatabasePath(c config) (string, error) {

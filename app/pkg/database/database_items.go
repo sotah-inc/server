@@ -33,7 +33,7 @@ func itemsDatabasePath(c internal.Config) (string, error) {
 	return fmt.Sprintf("%s/items.db", dbDir), nil
 }
 
-func newItemsDatabase(c internal.Config) (ItemsDatabase, error) {
+func NewItemsDatabase(c internal.Config) (ItemsDatabase, error) {
 	dbFilepath, err := itemsDatabasePath(c)
 	if err != nil {
 		return ItemsDatabase{}, err
@@ -53,7 +53,7 @@ type ItemsDatabase struct {
 	db *bolt.DB
 }
 
-func (idBase ItemsDatabase) getItems() (internal.ItemsMap, error) {
+func (idBase ItemsDatabase) GetItems() (internal.ItemsMap, error) {
 	out := internal.ItemsMap{}
 
 	err := idBase.db.View(func(tx *bolt.Tx) error {
@@ -157,7 +157,7 @@ type itemKeyspace int64
 
 type itemsMapBatch map[itemKeyspace]internal.ItemsMap
 
-func (idBase ItemsDatabase) persistItems(iMap internal.ItemsMap) error {
+func (idBase ItemsDatabase) PersistItems(iMap internal.ItemsMap) error {
 	logging.WithField("items", len(iMap)).Debug("Persisting items")
 
 	imBatch := newItemsMapBatch(iMap)

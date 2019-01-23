@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 
 	nats "github.com/nats-io/go-nats"
-	"github.com/sotah-inc/server/app/blizzard"
-	"github.com/sotah-inc/server/app/codes"
-	"github.com/sotah-inc/server/app/subjects"
+	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/messenger/codes"
+	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 )
 
 type realmValuation struct {
@@ -44,7 +44,7 @@ func (iRequest infoRequest) resolve(sta State) (infoResponse, error) {
 	for _, reg := range sta.Regions {
 		regValuation := regionValuation{reg, map[blizzard.RealmSlug]realmValuation{}}
 		for _, rea := range sta.Statuses[reg.Name].Realms {
-			maList, err := sta.liveAuctionsDatabases[reg.Name][rea.Slug].getMiniauctions()
+			maList, err := sta.LiveAuctionsDatabases[reg.Name][rea.Slug].getMiniauctions()
 			if err != nil {
 				return infoResponse{}, err
 			}
@@ -63,7 +63,7 @@ func (iRequest infoRequest) resolve(sta State) (infoResponse, error) {
 		regValuations[reg.Name] = regValuation
 	}
 
-	items, err := sta.itemsDatabase.getItems()
+	items, err := sta.ItemsDatabase.getItems()
 	if err != nil {
 		return infoResponse{}, err
 	}

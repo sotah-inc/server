@@ -23,7 +23,7 @@ func TestMiniAuctionsSortByItem(t *testing.T) {
 		return
 	}
 
-	expectedSortedMad, err := newMiniAuctionsDataFromFilepath("./TestData/mini-Auctions-sort-by-item.json")
+	expectedSortedMad, err := newMiniAuctionsDataFromFilepath("./TestData/mini-Auctions-sort-by-Item.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -47,7 +47,7 @@ func TestMiniAuctionsSortByItemReversed(t *testing.T) {
 		return
 	}
 
-	expectedSortedMad, err := newMiniAuctionsDataFromFilepath("./TestData/mini-Auctions-sort-by-item-reversed.json")
+	expectedSortedMad, err := newMiniAuctionsDataFromFilepath("./TestData/mini-Auctions-sort-by-Item-reversed.json")
 	if !assert.Nil(t, err) {
 		return
 	}

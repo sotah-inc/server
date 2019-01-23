@@ -65,7 +65,7 @@ func (c Config) FilterInRegions(regs RegionList) RegionList {
 	return out
 }
 
-func (c Config) filterInRealms(reg Region, reas Realms) Realms {
+func (c Config) FilterInRealms(reg Region, reas Realms) Realms {
 	wList, ok := c.Whitelist[reg.Name]
 	if !ok {
 		return reas

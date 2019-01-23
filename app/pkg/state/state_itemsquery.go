@@ -7,8 +7,8 @@ import (
 
 	nats "github.com/nats-io/go-nats"
 	"github.com/renstrom/fuzzysearch/fuzzy"
-	"github.com/sotah-inc/server/app/codes"
-	"github.com/sotah-inc/server/app/subjects"
+	"github.com/sotah-inc/server/app/pkg/messenger/codes"
+	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/util"
 )
 
@@ -114,7 +114,7 @@ type itemsQueryRequest struct {
 }
 
 func (request itemsQueryRequest) resolve(sta State) (itemsQueryResult, error) {
-	iMap, err := sta.itemsDatabase.getItems()
+	iMap, err := sta.ItemsDatabase.getItems()
 	if err != nil {
 		return itemsQueryResult{}, err
 	}

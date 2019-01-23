@@ -4,11 +4,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 
-	"github.com/sotah-inc/server/app/blizzard"
+	"github.com/sotah-inc/server/app/pkg/blizzard"
 
 	nats "github.com/nats-io/go-nats"
-	"github.com/sotah-inc/server/app/codes"
-	"github.com/sotah-inc/server/app/subjects"
+	"github.com/sotah-inc/server/app/pkg/messenger/codes"
+	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/util"
 )
 
@@ -27,7 +27,7 @@ type itemsRequest struct {
 }
 
 func (iRequest itemsRequest) resolve(sta State) (itemsMap, error) {
-	return sta.itemsDatabase.findItems(iRequest.ItemIds)
+	return sta.ItemsDatabase.findItems(iRequest.ItemIds)
 }
 
 type itemsResponse struct {

@@ -3,11 +3,11 @@ package state
 import (
 	"encoding/json"
 
-	"github.com/sotah-inc/server/app/blizzard"
+	"github.com/sotah-inc/server/app/pkg/blizzard"
 
 	nats "github.com/nats-io/go-nats"
-	"github.com/sotah-inc/server/app/codes"
-	"github.com/sotah-inc/server/app/subjects"
+	"github.com/sotah-inc/server/app/pkg/messenger/codes"
+	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 )
 
 type ownerItemsOwnership struct {
@@ -38,7 +38,7 @@ type ownersQueryRequestByItems struct {
 }
 
 func (request ownersQueryRequestByItems) resolve(sta State) (miniAuctionList, requestError) {
-	regionLadBases, ok := sta.liveAuctionsDatabases[request.RegionName]
+	regionLadBases, ok := sta.LiveAuctionsDatabases[request.RegionName]
 	if !ok {
 		return miniAuctionList{}, requestError{codes.NotFound, "Invalid region"}
 	}

@@ -5,8 +5,8 @@ import (
 	"errors"
 
 	nats "github.com/nats-io/go-nats"
-	"github.com/sotah-inc/server/app/codes"
-	"github.com/sotah-inc/server/app/subjects"
+	"github.com/sotah-inc/server/app/pkg/messenger/codes"
+	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 )
 
 func newRuntimeInfoDataFromMessenger(mess messenger) (runtimeInfoData, error) {
@@ -40,7 +40,7 @@ func (sta State) listenForRuntimeInfo(stop ListenStopChan) error {
 		m := newMessage()
 
 		out := runtimeInfoData{
-			runID: sta.runID.String(),
+			runID: sta.RunID.String(),
 		}
 
 		encodedData, err := json.Marshal(out)

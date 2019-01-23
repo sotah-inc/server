@@ -13,7 +13,7 @@ import (
 
 type RegionList []Region
 
-func (rl RegionList) getPrimaryRegion() (Region, error) {
+func (rl RegionList) GetPrimaryRegion() (Region, error) {
 	for _, reg := range rl {
 		if reg.Primary {
 			return reg, nil
@@ -49,8 +49,8 @@ type Region struct {
 	Primary  bool       `json:"primary"`
 }
 
-func (reg Region) getStatus(res Resolver) (status, error) {
-	uri, err := res.appendAccessToken(res.getStatusURL(reg.Hostname))
+func (reg Region) GetStatus(res Resolver) (status, error) {
+	uri, err := res.AppendAccessToken(res.GetStatusURL(reg.Hostname))
 	if err != nil {
 		return status{}, err
 	}

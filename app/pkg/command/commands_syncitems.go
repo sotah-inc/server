@@ -3,7 +3,7 @@ package command
 import (
 	"fmt"
 
-	"github.com/sotah-inc/server/app/logging"
+	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/util"
 )
 

@@ -30,11 +30,11 @@ func newRealms(reg Region, blizzRealms []blizzard.Realm) Realms {
 	return reas
 }
 
-type getAuctionsJob struct {
-	err          error
-	realm        Realm
-	auctions     blizzard.Auctions
-	lastModified time.Time
+type GetAuctionsJob struct {
+	Err          error
+	Realm        Realm
+	Auctions     blizzard.Auctions
+	LastModified time.Time
 }
 
 type Realms []Realm
@@ -58,7 +58,7 @@ func (reas Realms) FilterWithWhitelist(wList *getAuctionsWhitelist) Realms {
 	return out
 }
 
-func (reas Realms) getAuctionsOrAll(res Resolver, wList *getAuctionsWhitelist) chan getAuctionsJob {
+func (reas Realms) GetAuctionsOrAll(res Resolver, wList *getAuctionsWhitelist) chan GetAuctionsJob {
 	if wList == nil {
 		return reas.getAllAuctions(res)
 	}
@@ -66,7 +66,7 @@ func (reas Realms) getAuctionsOrAll(res Resolver, wList *getAuctionsWhitelist) c
 	return reas.getAuctions(res, *wList)
 }
 
-func (reas Realms) getAllAuctions(res Resolver) chan getAuctionsJob {
+func (reas Realms) getAllAuctions(res Resolver) chan GetAuctionsJob {
 	wList := getAuctionsWhitelist{}
 	for _, rea := range reas {
 		wList[rea.Slug] = true
@@ -74,15 +74,15 @@ func (reas Realms) getAllAuctions(res Resolver) chan getAuctionsJob {
 	return reas.getAuctions(res, wList)
 }
 
-func (reas Realms) getAuctions(res Resolver, wList getAuctionsWhitelist) chan getAuctionsJob {
+func (reas Realms) getAuctions(res Resolver, wList getAuctionsWhitelist) chan GetAuctionsJob {
 	// establishing channels
-	out := make(chan getAuctionsJob)
+	out := make(chan GetAuctionsJob)
 	in := make(chan Realm)
 
 	// spinning up the workers for fetching Auctions
 	worker := func() {
 		for rea := range in {
-			aucs, lastModified, err := rea.getAuctions(res)
+			aucs, lastModified, err := rea.GetAuctions(res)
 
 			// optionally skipping draining out due to error
 			if err != nil {
@@ -111,7 +111,7 @@ func (reas Realms) getAuctions(res Resolver, wList getAuctionsWhitelist) chan ge
 				"Realm":    rea.Slug,
 				"Auctions": len(aucs.Auctions),
 			}).Debug("Auctions received")
-			out <- getAuctionsJob{nil, rea, aucs, lastModified}
+			out <- GetAuctionsJob{nil, rea, aucs, lastModified}
 		}
 	}
 	postWork := func() {
@@ -224,8 +224,8 @@ func (rea Realm) auctionsFilepath(c *Config) (string, error) {
 	)
 }
 
-func (rea Realm) getAuctions(res Resolver) (blizzard.Auctions, time.Time, error) {
-	uri, err := res.appendAccessToken(res.getAuctionInfoURL(rea.Region.Hostname, rea.Slug))
+func (rea Realm) GetAuctions(res Resolver) (blizzard.Auctions, time.Time, error) {
+	uri, err := res.AppendAccessToken(res.GetAuctionInfoURL(rea.Region.Hostname, rea.Slug))
 	if err != nil {
 		return blizzard.Auctions{}, time.Time{}, err
 	}

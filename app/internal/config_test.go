@@ -37,8 +37,8 @@ func TestGetStatus(t *testing.T) {
 		return
 	}
 
-	s, err := reg.getStatus(
-		Resolver{getStatusURL: func(regionHostname string) string { return realmStatusTs.URL }},
+	s, err := reg.GetStatus(
+		Resolver{GetStatusURL: func(regionHostname string) string { return realmStatusTs.URL }},
 	)
 	if !assert.Nil(t, err) || !assert.NotEmpty(t, s.Realms) {
 		return

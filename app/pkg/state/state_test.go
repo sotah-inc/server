@@ -3,9 +3,9 @@ package state
 import (
 	"testing"
 
-	"github.com/sotah-inc/server/app/codes"
+	"github.com/sotah-inc/server/app/pkg/messenger/codes"
 
-	"github.com/sotah-inc/server/app/subjects"
+	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -69,7 +69,7 @@ func TestListenForGenericTestErrors(t *testing.T) {
 
 	// setting up a listener for responding to status requests
 	stop := make(chan interface{})
-	err = sta.listenForGenericTestErrors(stop)
+	err = sta.ListenForGenericTestErrors(stop)
 	if !assert.Nil(t, err) {
 		return
 	}

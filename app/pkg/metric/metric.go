@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"github.com/sotah-inc/server/app/logging"
+	"github.com/sotah-inc/server/app/pkg/logging"
 )
 
 const defaultMessage = "welp"
