@@ -1,4 +1,4 @@
-package internal
+package blizzard
 
 import (
 	"fmt"
@@ -11,4 +11,10 @@ func DefaultGetItemIconURL(name string) string {
 	return fmt.Sprintf(itemIconURLFormat, name)
 }
 
-type getItemIconURLFunc func(string) string
+type GetItemIconURLFunc func(string) string
+
+func DefaultGetCharacterIconURLFunc(name string) string {
+	return fmt.Sprintf(characterIconURLFormat, name)
+}
+
+type GetCharacterIconURLFunc func(string) string

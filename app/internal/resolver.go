@@ -17,7 +17,7 @@ func NewResolver(c Config, mess messenger.Messenger, stor store.Store) Resolver 
 		GetAuctionInfoURL: blizzard.DefaultGetAuctionInfoURL,
 		GetAuctionsURL:    blizzard.DefaultGetAuctionsURL,
 		GetItemURL:        blizzard.DefaultGetItemURL,
-		GetItemIconURL:    DefaultGetItemIconURL,
+		GetItemIconURL:    blizzard.DefaultGetItemIconURL,
 		GetItemClassesURL: blizzard.DefaultGetItemClassesURL,
 	}
 }
@@ -32,7 +32,7 @@ type Resolver struct {
 	GetAuctionInfoURL blizzard.GetAuctionInfoURLFunc
 	GetAuctionsURL    blizzard.GetAuctionsURLFunc
 	GetItemURL        blizzard.GetItemURLFunc
-	GetItemIconURL    getItemIconURLFunc
+	GetItemIconURL    blizzard.GetItemIconURLFunc
 	GetItemClassesURL blizzard.GetItemClassesURLFunc
 }
 
