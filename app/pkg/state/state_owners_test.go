@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -11,11 +12,10 @@ func TestListenForOwners(t *testing.T) {
 	sta := State{}
 
 	// connecting
-	mess, err := newMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
+	mess, err := messenger.NewMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
 	if !assert.Nil(t, err) {
 		return
 	}
-	sta.Messenger = mess
 
 	// building test auctions
 	_, err = blizzard.NewAuctionsFromFilepath("./TestData/auctions.json")
@@ -69,11 +69,10 @@ func TestListenForOwnersFiltered(t *testing.T) {
 	sta := State{}
 
 	// connecting
-	mess, err := newMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
+	mess, err := messenger.NewMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
 	if !assert.Nil(t, err) {
 		return
 	}
-	sta.Messenger = mess
 
 	// building test auctions
 	_, err = blizzard.NewAuctionsFromFilepath("./TestData/auctions.json")

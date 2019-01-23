@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/sortdirections"
 	"github.com/sotah-inc/server/app/sortkinds"
 	"github.com/stretchr/testify/assert"
@@ -13,11 +14,10 @@ func TestListenForAuctions(t *testing.T) {
 	sta := State{}
 
 	// connecting
-	mess, err := newMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
+	mess, err := messenger.NewMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
 	if !assert.Nil(t, err) {
 		return
 	}
-	sta.Messenger = mess
 
 	// building test auctions
 	aucs, err := blizzard.NewAuctionsFromFilepath("./TestData/auctions.json")
@@ -70,11 +70,10 @@ func TestListenForSortedAuctions(t *testing.T) {
 	sta := State{}
 
 	// connecting
-	mess, err := newMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
+	mess, err := messenger.NewMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
 	if !assert.Nil(t, err) {
 		return
 	}
-	sta.Messenger = mess
 
 	// building test auctions
 	_, err = blizzard.NewAuctionsFromFilepath("./TestData/auctions.json")
@@ -135,11 +134,10 @@ func TestListenForAuctionsFilteredByOwnerName(t *testing.T) {
 	sta := State{}
 
 	// connecting
-	mess, err := newMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
+	mess, err := messenger.NewMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
 	if !assert.Nil(t, err) {
 		return
 	}
-	sta.Messenger = mess
 
 	// building test auctions
 	_, err = blizzard.NewAuctionsFromFilepath("./TestData/auctions.json")

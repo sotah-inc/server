@@ -3,6 +3,7 @@ package state
 import (
 	"testing"
 
+	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
 
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
@@ -14,11 +15,10 @@ func TestListenForRegions(t *testing.T) {
 	sta := State{}
 
 	// connecting
-	mess, err := newMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
+	mess, err := messenger.NewMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
 	if !assert.Nil(t, err) {
 		return
 	}
-	sta.Messenger = mess
 
 	// building test status
 	reg := region{Hostname: "us.battle.net"}
@@ -61,11 +61,10 @@ func TestListenForGenericTestErrors(t *testing.T) {
 	sta := State{}
 
 	// connecting
-	mess, err := newMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
+	mess, err := messenger.NewMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
 	if !assert.Nil(t, err) {
 		return
 	}
-	sta.Messenger = mess
 
 	// setting up a listener for responding to status requests
 	stop := make(chan interface{})

@@ -42,7 +42,7 @@ func liveAuctions(c internal.Config, m messenger.Messenger, s store.Store) error
 
 	// establishing a state
 	res := internal.NewResolver(c, m, s)
-	sta := state.NewState(m, res)
+	sta := state.NewState(res)
 
 	// gathering region-status from the root service
 	logging.Info("Gathering regions")

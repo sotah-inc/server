@@ -23,7 +23,7 @@ func TestRealmGetAuctions(t *testing.T) {
 	if !assert.Nil(t, err) {
 		return
 	}
-	res.etAuctionInfoURL = func(regionHostname string, slug blizzard.RealmSlug) string {
+	res.GetAuctionInfoURL = func(regionHostname string, slug blizzard.RealmSlug) string {
 		return auctionInfoTs.URL
 	}
 	auctionsTs, err := utiltest.ServeFile("./TestData/Auctions.json")
@@ -34,7 +34,7 @@ func TestRealmGetAuctions(t *testing.T) {
 		return auctionsTs.URL
 	}
 
-	s, err := newStatusFromFilepath(Region{}, "./TestData/Realm-Status.json")
+	s, err := NewStatusFromFilepath(Region{}, "./TestData/Realm-Status.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -58,7 +58,7 @@ func TestRealmsGetAuctions(t *testing.T) {
 	res := Resolver{Config: &Config{}}
 
 	// setting up a test Status
-	s, err := newStatusFromFilepath(Region{}, "./TestData/Realm-Status.json")
+	s, err := NewStatusFromFilepath(Region{}, "./TestData/Realm-Status.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -71,7 +71,7 @@ func TestRealmsGetAuctions(t *testing.T) {
 	if !assert.Nil(t, err) {
 		return
 	}
-	res.etAuctionInfoURL = func(regionHostname string, slug blizzard.RealmSlug) string {
+	res.GetAuctionInfoURL = func(regionHostname string, slug blizzard.RealmSlug) string {
 		return auctionInfoTs.URL
 	}
 	auctionsTs, err := utiltest.ServeFile("./TestData/Auctions.json")
@@ -118,7 +118,7 @@ func TestRealmsGetAllAuctions(t *testing.T) {
 	res := Resolver{Config: &Config{}}
 
 	// setting up a test Status
-	s, err := newStatusFromFilepath(Region{}, "./TestData/Realm-Status.json")
+	s, err := NewStatusFromFilepath(Region{}, "./TestData/Realm-Status.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -131,7 +131,7 @@ func TestRealmsGetAllAuctions(t *testing.T) {
 	if !assert.Nil(t, err) {
 		return
 	}
-	res.etAuctionInfoURL = func(regionHostname string, slug blizzard.RealmSlug) string {
+	res.GetAuctionInfoURL = func(regionHostname string, slug blizzard.RealmSlug) string {
 		return auctionInfoTs.URL
 	}
 	auctionsTs, err := utiltest.ServeFile("./TestData/Auctions.json")
@@ -165,27 +165,13 @@ func TestRealmsGetAllAuctions(t *testing.T) {
 	}
 }
 
-func validateStatus(t *testing.T, reg Region, s Status) bool {
-	if !assert.NotEmpty(t, s.Realms) {
-		return false
-	}
-
-	for _, rea := range s.Realms {
-		if !assert.Equal(t, reg.Hostname, rea.Region.Hostname) {
-			return false
-		}
-	}
-
-	return true
-}
-
 func TestNewStatusFromFilepath(t *testing.T) {
 	reg := Region{Hostname: "us.battle.net"}
-	s, err := newStatusFromFilepath(reg, "./TestData/Realm-Status.json")
+	s, err := NewStatusFromFilepath(reg, "./TestData/Realm-Status.json")
 	if !assert.Nil(t, err) {
 		return
 	}
-	if !validateStatus(t, reg, s) {
+	if !utiltest.ValidateStatus(t, reg, s) {
 		return
 	}
 }
@@ -198,15 +184,14 @@ func TestNewStatusFromMessenger(t *testing.T) {
 	if !assert.Nil(t, err) {
 		return
 	}
-	sta.Messenger = mess
 
 	// building test Status
 	reg := Region{Name: "us", Hostname: "us.battle.net"}
-	s, err := newStatusFromFilepath(reg, "./TestData/Realm-Status.json")
+	s, err := NewStatusFromFilepath(reg, "./TestData/Realm-Status.json")
 	if !assert.Nil(t, err) {
 		return
 	}
-	if !validateStatus(t, reg, s) {
+	if !utiltest.ValidateStatus(t, reg, s) {
 		return
 	}
 	sta.Statuses = map[RegionName]Status{reg.Name: s}
@@ -214,7 +199,7 @@ func TestNewStatusFromMessenger(t *testing.T) {
 
 	// setting up a subscriber that will publish Status retrieval requests
 	stop := make(chan interface{})
-	err = sta.listenForStatus(stop)
+	err = sta.ListenForStatus(stop)
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -237,7 +222,7 @@ func TestNewStatus(t *testing.T) {
 
 	reg := Region{Hostname: "us.battle.net"}
 	s := newStatus(reg, blizzStatus)
-	if !validateStatus(t, reg, s) {
+	if !utiltest.ValidateStatus(t, reg, s) {
 		return
 	}
 }

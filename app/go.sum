@@ -109,6 +109,7 @@ github.com/sirupsen/logrus v1.3.0 h1:hI/7Q+DtNZ2kINb6qt/lS+IyXnHQe9e90POfeewL/ME
 github.com/sirupsen/logrus v1.3.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
 github.com/sotah-inc/server v0.0.0-20190123171559-aa23415f2195 h1:zsjeFPTQP020OYxNSbNuhBVG+fCksj+Ptp6/asjaCU0=
 github.com/sotah-inc/server v0.0.0-20190123171559-aa23415f2195/go.mod h1:AGHWLsDmgwWIAMoaL+bF/grQxmztgzZMhtXT8sjxR/0=
+github.com/sotah-inc/server v0.0.0-20190123171723-7e008cf13727 h1:Z3n4u9Up05eOMNzHs8tgaWILw46Ai4lYQonXoe/ToQc=
 github.com/sourcegraph/annotate v0.0.0-20160123013949-f4cad6c6324d/go.mod h1:UdhH50NIW0fCiwBSr0co2m7BnFLdv4fQTgdqdJTHFeE=
 github.com/sourcegraph/syntaxhighlight v0.0.0-20170531221838-bd320f5d308e/go.mod h1:HuIsMU8RRBOtsCgI77wP899iHVBQpCmg4ErYMZB+2IA=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=

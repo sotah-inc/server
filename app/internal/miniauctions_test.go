@@ -30,7 +30,6 @@ func TestNewMiniAuctionsFromMessenger(t *testing.T) {
 	if !assert.Nil(t, err) {
 		return
 	}
-	sta.Messenger = mess
 
 	// building test Auctions
 	aucs, err := blizzard.NewAuctionsFromFilepath("./TestData/Auctions.json")

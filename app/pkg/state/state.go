@@ -7,7 +7,6 @@ import (
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/database"
 	"github.com/sotah-inc/server/app/pkg/logging"
-	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/twinj/uuid"
@@ -18,9 +17,8 @@ type requestError struct {
 	message string
 }
 
-func NewState(mess messenger.Messenger, res internal.Resolver) State {
+func NewState(res internal.Resolver) State {
 	return State{
-		Messenger:             mess,
 		Resolver:              res,
 		Regions:               res.Config.FilterInRegions(res.Config.Regions),
 		Statuses:              internal.Statuses{},
@@ -32,7 +30,6 @@ func NewState(mess messenger.Messenger, res internal.Resolver) State {
 }
 
 type State struct {
-	Messenger                 messenger.Messenger
 	Resolver                  internal.Resolver
 	Listeners                 listeners
 	PricelistHistoryDatabases database.PricelistHistoryDatabases

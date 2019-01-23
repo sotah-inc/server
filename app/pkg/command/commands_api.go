@@ -42,7 +42,7 @@ func api(c internal.Config, m messenger.Messenger, s store.Store) error {
 
 	// establishing a state
 	res := internal.NewResolver(c, m, s)
-	sta := state.NewState(m, res)
+	sta := state.NewState(res)
 
 	// creating a uuid4 api-session secret and run-id of state
 	sta.RunID = uuid.NewV4()

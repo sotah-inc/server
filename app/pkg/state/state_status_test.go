@@ -5,7 +5,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/sotah-inc/server/app/utiltest"
+	"github.com/sotah-inc/server/app/internal"
+	"github.com/sotah-inc/server/app/pkg/messenger"
+
+	"github.com/sotah-inc/server/app/pkg/utiltest"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -13,23 +16,22 @@ func TestListenForStatus(t *testing.T) {
 	sta := State{}
 
 	// connecting
-	mess, err := newMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
+	mess, err := messenger.NewMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
 	if !assert.Nil(t, err) {
 		return
 	}
-	sta.Messenger = mess
 
 	// building test status
-	reg := region{Name: "test", Hostname: "test"}
-	s, err := newStatusFromFilepath(reg, "./TestData/Realm-status.json")
+	reg := internal.Region{Name: "test", Hostname: "test"}
+	s, err := internal.NewStatusFromFilepath(reg, "./TestData/Realm-status.json")
 	if !assert.Nil(t, err) {
 		return
 	}
-	if !validateStatus(t, reg, s) {
+	if !utiltest.ValidateStatus(t, reg, s) {
 		return
 	}
-	sta.Regions = []region{reg}
-	sta.Statuses = map[regionName]status{reg.Name: s}
+	sta.Regions = []internal.Region{reg}
+	sta.Statuses = map[internal.RegionName]internal.Status{reg.Name: s}
 
 	// setting up a listener for responding to status requests
 	stop := make(chan interface{})
@@ -39,8 +41,8 @@ func TestListenForStatus(t *testing.T) {
 	}
 
 	// subscribing to receive Statuses
-	receivedStatus, err := newStatusFromMessenger(reg, mess)
-	if !assert.Nil(t, err) || !assert.Equal(t, s.region.Hostname, receivedStatus.region.Hostname) {
+	receivedStatus, err := internal.NewStatusFromMessenger(reg, mess)
+	if !assert.Nil(t, err) || !assert.Equal(t, s.Region.Hostname, receivedStatus.Region.Hostname) {
 		stop <- struct{}{}
 
 		return
@@ -54,12 +56,11 @@ func TestListenForNonexistentStatusNoResolver(t *testing.T) {
 	sta := State{}
 
 	// connecting
-	mess, err := newMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
+	mess, err := messenger.NewMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
 	if !assert.Nil(t, err) {
 		return
 	}
-	sta.Messenger = mess
-	sta.Statuses = map[regionName]status{}
+	sta.Statuses = map[internal.RegionName]internal.Status{}
 
 	// setting up a listener for responding to status requests
 	stop := make(chan interface{})
@@ -69,7 +70,7 @@ func TestListenForNonexistentStatusNoResolver(t *testing.T) {
 	}
 
 	// subscribing to receive Statuses
-	_, err = newStatusFromMessenger(region{Name: "test", Hostname: "test"}, mess)
+	_, err = internal.NewStatusFromMessenger(internal.Region{Name: "test", Hostname: "test"}, mess)
 	if !assert.NotNil(t, err) && assert.Equal(t, "Invalid region", err.Error()) {
 		stop <- struct{}{}
 
@@ -87,18 +88,17 @@ func TestListenForNonexistentStatus(t *testing.T) {
 	}))
 
 	sta := State{
-		Resolver: resolver{
-			getStatusURL: func(regionHostname string) string { return ts.URL },
+		Resolver: internal.Resolver{
+			GetStatusURL: func(regionHostname string) string { return ts.URL },
 		},
 	}
 
 	// connecting
-	mess, err := newMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
+	mess, err := messenger.NewMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
 	if !assert.Nil(t, err) {
 		return
 	}
-	sta.Messenger = mess
-	sta.Statuses = map[regionName]status{}
+	sta.Statuses = map[internal.RegionName]internal.Status{}
 
 	// setting up a listener for responding to status requests
 	stop := make(chan interface{})
@@ -108,7 +108,7 @@ func TestListenForNonexistentStatus(t *testing.T) {
 	}
 
 	// subscribing to receive Statuses
-	_, err = newStatusFromMessenger(region{Name: "test", Hostname: "test"}, mess)
+	_, err = internal.NewStatusFromMessenger(internal.Region{Name: "test", Hostname: "test"}, mess)
 	if !assert.NotNil(t, err) && assert.Equal(t, "Invalid region", err.Error()) {
 		stop <- struct{}{}
 
@@ -127,21 +127,21 @@ func TestListenForStatusToFetch(t *testing.T) {
 	}
 
 	// loading State with a Resolver to the test server and a single region
-	reg := region{Name: "test", Hostname: "test"}
+	reg := internal.Region{Name: "test", Hostname: "test"}
 	sta := State{
-		Resolver: resolver{
-			getStatusURL: func(regionHostname string) string { return ts.URL },
+		Resolver: internal.Resolver{
+			GetStatusURL: func(regionHostname string) string { return ts.URL },
 		},
-		Regions: []region{reg},
+		Regions: []internal.Region{reg},
 	}
 
 	// connecting
-	mess, err := newMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
+	mess, err := messenger.NewMessengerFromEnvVars("NATS_HOST", "NATS_PORT")
 	if !assert.Nil(t, err) {
 		return
 	}
-	sta.Messenger = mess
-	sta.Statuses = map[regionName]status{}
+
+	sta.Statuses = map[internal.RegionName]internal.Status{}
 
 	// setting up a listener for responding to status requests
 	stop := make(chan interface{})
@@ -151,7 +151,7 @@ func TestListenForStatusToFetch(t *testing.T) {
 	}
 
 	// subscribing to receive Statuses
-	stat, err := newStatusFromMessenger(reg, mess)
+	stat, err := internal.NewStatusFromMessenger(reg, mess)
 	if !assert.Nil(t, err) {
 		stop <- struct{}{}
 

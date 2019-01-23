@@ -43,7 +43,7 @@ func pricelistHistories(c internal.Config, m messenger.Messenger, s store.Store)
 
 	// establishing a state
 	res := internal.NewResolver(c, m, s)
-	sta := state.NewState(m, res)
+	sta := state.NewState(res)
 
 	// gathering region-status from the root service
 	logging.Info("Gathering regions")

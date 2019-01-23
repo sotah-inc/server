@@ -386,7 +386,7 @@ func NewStatusFromMessenger(reg Region, mess messenger.Messenger) (Status, error
 	return newStatus(reg, stat), nil
 }
 
-func newStatusFromFilepath(reg Region, relativeFilepath string) (Status, error) {
+func NewStatusFromFilepath(reg Region, relativeFilepath string) (Status, error) {
 	stat, err := blizzard.NewStatusFromFilepath(relativeFilepath)
 	if err != nil {
 		return Status{}, err
