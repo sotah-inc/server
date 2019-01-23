@@ -42,7 +42,7 @@ type Config struct {
 	ItemBlacklist []blizzard.ItemID                    `json:"item_blacklist"`
 }
 
-func (c Config) getRegionWhitelist(rName RegionName) *getAuctionsWhitelist {
+func (c Config) GetRegionWhitelist(rName RegionName) *getAuctionsWhitelist {
 	if _, ok := c.Whitelist[rName]; ok {
 		return c.Whitelist[rName]
 	}
@@ -65,14 +65,14 @@ func (c Config) FilterInRegions(regs RegionList) RegionList {
 	return out
 }
 
-func (c Config) filterInRealms(reg Region, reas realms) realms {
+func (c Config) filterInRealms(reg Region, reas Realms) Realms {
 	wList, ok := c.Whitelist[reg.Name]
 	if !ok {
 		return reas
 	}
 	wListValue := *wList
 
-	out := realms{}
+	out := Realms{}
 
 	for _, rea := range reas {
 		if _, ok := wListValue[rea.Slug]; !ok {

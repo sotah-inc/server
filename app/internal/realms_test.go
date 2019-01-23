@@ -26,7 +26,7 @@ func TestRealmGetAuctions(t *testing.T) {
 	res.getAuctionInfoURL = func(regionHostname string, slug blizzard.RealmSlug) string {
 		return auctionInfoTs.URL
 	}
-	auctionsTs, err := utiltest.ServeFile("./TestData/auctions.json")
+	auctionsTs, err := utiltest.ServeFile("./TestData/Auctions.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -74,7 +74,7 @@ func TestRealmsGetAuctions(t *testing.T) {
 	res.getAuctionInfoURL = func(regionHostname string, slug blizzard.RealmSlug) string {
 		return auctionInfoTs.URL
 	}
-	auctionsTs, err := utiltest.ServeFile("./TestData/auctions.json")
+	auctionsTs, err := utiltest.ServeFile("./TestData/Auctions.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -134,7 +134,7 @@ func TestRealmsGetAllAuctions(t *testing.T) {
 	res.getAuctionInfoURL = func(regionHostname string, slug blizzard.RealmSlug) string {
 		return auctionInfoTs.URL
 	}
-	auctionsTs, err := utiltest.ServeFile("./TestData/auctions.json")
+	auctionsTs, err := utiltest.ServeFile("./TestData/Auctions.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -171,7 +171,7 @@ func validateStatus(t *testing.T, reg Region, s status) bool {
 	}
 
 	for _, rea := range s.Realms {
-		if !assert.Equal(t, reg.Hostname, rea.region.Hostname) {
+		if !assert.Equal(t, reg.Hostname, rea.Region.Hostname) {
 			return false
 		}
 	}

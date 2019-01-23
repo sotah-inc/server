@@ -35,7 +35,7 @@ type runtimeInfoData struct {
 	runID string `json:"run_id"`
 }
 
-func (sta State) listenForRuntimeInfo(stop listenStopChan) error {
+func (sta State) listenForRuntimeInfo(stop ListenStopChan) error {
 	err := sta.Messenger.subscribe(subjects.RuntimeInfo, stop, func(natsMsg nats.Msg) {
 		m := newMessage()
 

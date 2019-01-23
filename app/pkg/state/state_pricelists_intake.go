@@ -7,9 +7,9 @@ import (
 	"github.com/sotah-inc/server/app/subjects"
 )
 
-func (sta State) listenForPricelistsIntake(stop listenStopChan) error {
+func (sta State) listenForPricelistsIntake(stop ListenStopChan) error {
 	// declaring a channel for queueing up pricelist-intake requests from the listener
-	listenerIn := make(chan auctionsIntakeRequest, 10)
+	listenerIn := make(chan AuctionsIntakeRequest, 10)
 
 	// spinning up a worker for pricelist-intake requests
 	go func() {

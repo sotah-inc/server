@@ -12,7 +12,7 @@ import (
 func TestMiniAuctionsSortByItem(t *testing.T) {
 	t.Skip("TODO after creating blizzard package")
 
-	mad, err := newMiniAuctionsDataFromFilepath("./TestData/mini-auctions.json")
+	mad, err := newMiniAuctionsDataFromFilepath("./TestData/mini-Auctions.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -23,7 +23,7 @@ func TestMiniAuctionsSortByItem(t *testing.T) {
 		return
 	}
 
-	expectedSortedMad, err := newMiniAuctionsDataFromFilepath("./TestData/mini-auctions-sort-by-item.json")
+	expectedSortedMad, err := newMiniAuctionsDataFromFilepath("./TestData/mini-Auctions-sort-by-item.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -36,7 +36,7 @@ func TestMiniAuctionsSortByItem(t *testing.T) {
 func TestMiniAuctionsSortByItemReversed(t *testing.T) {
 	t.Skip("TODO after creating blizzard package")
 
-	mad, err := newMiniAuctionsDataFromFilepath("./TestData/mini-auctions.json")
+	mad, err := newMiniAuctionsDataFromFilepath("./TestData/mini-Auctions.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -47,7 +47,7 @@ func TestMiniAuctionsSortByItemReversed(t *testing.T) {
 		return
 	}
 
-	expectedSortedMad, err := newMiniAuctionsDataFromFilepath("./TestData/mini-auctions-sort-by-item-reversed.json")
+	expectedSortedMad, err := newMiniAuctionsDataFromFilepath("./TestData/mini-Auctions-sort-by-item-reversed.json")
 	if !assert.Nil(t, err) {
 		return
 	}

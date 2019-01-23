@@ -10,8 +10,8 @@ func NewResolver(c Config, mess messenger.Messenger, stor store.Store) Resolver 
 	return Resolver{
 		blizzardClient: blizzard.NewClient(c.ClientID, c.ClientSecret),
 		Config:         &c,
-		messenger:      mess,
-		store:          stor,
+		Messenger:      mess,
+		Store:          stor,
 
 		getStatusURL:      blizzard.DefaultGetStatusURL,
 		getAuctionInfoURL: blizzard.DefaultGetAuctionInfoURL,
@@ -24,8 +24,8 @@ func NewResolver(c Config, mess messenger.Messenger, stor store.Store) Resolver 
 
 type Resolver struct {
 	Config         *Config
-	messenger      messenger.Messenger
-	store          store.Store
+	Messenger      messenger.Messenger
+	Store          store.Store
 	blizzardClient blizzard.Client
 
 	getStatusURL      blizzard.GetStatusURLFunc

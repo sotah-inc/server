@@ -7,26 +7,28 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sotah-inc/server/app/objstate"
+	"github.com/sotah-inc/server/app/pkg/state"
 
 	storage "cloud.google.com/go/storage"
 	"github.com/sirupsen/logrus"
-	"github.com/sotah-inc/server/app/blizzard"
-	"github.com/sotah-inc/server/app/logging"
-	"github.com/sotah-inc/server/app/util"
+	"github.com/sotah-inc/server/app/internal"
+	"github.com/sotah-inc/server/app/objstate"
+	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/util"
 	"google.golang.org/api/iterator"
 )
 
-func (sto Store) getRealmAuctionsBucketName(rea realm) string {
-	return fmt.Sprintf("raw-auctions_%s_%s", rea.region.Name, rea.Slug)
+func (sto Store) getRealmAuctionsBucketName(rea internal.Realm) string {
+	return fmt.Sprintf("raw-auctions_%s_%s", rea.Region.Name, rea.Slug)
 }
 
-func (sto Store) getRealmAuctionsBucket(rea realm) *storage.BucketHandle {
+func (sto Store) GetRealmAuctionsBucket(rea internal.Realm) *storage.BucketHandle {
 	return sto.client.Bucket(sto.getRealmAuctionsBucketName(rea))
 }
 
-func (sto Store) createRealmAuctionsBucket(rea realm) (*storage.BucketHandle, error) {
-	bkt := sto.getRealmAuctionsBucket(rea)
+func (sto Store) createRealmAuctionsBucket(rea internal.Realm) (*storage.BucketHandle, error) {
+	bkt := sto.GetRealmAuctionsBucket(rea)
 	err := bkt.Create(sto.Context, sto.projectID, &storage.BucketAttrs{
 		StorageClass: "REGIONAL",
 		Location:     "us-east1",
@@ -38,8 +40,8 @@ func (sto Store) createRealmAuctionsBucket(rea realm) (*storage.BucketHandle, er
 	return bkt, nil
 }
 
-func (sto Store) realmAuctionsBucketExists(rea realm) (bool, error) {
-	_, err := sto.getRealmAuctionsBucket(rea).Attrs(sto.Context)
+func (sto Store) realmAuctionsBucketExists(rea internal.Realm) (bool, error) {
+	_, err := sto.GetRealmAuctionsBucket(rea).Attrs(sto.Context)
 	if err != nil {
 		if err != storage.ErrBucketNotExist {
 			return false, err
@@ -51,7 +53,7 @@ func (sto Store) realmAuctionsBucketExists(rea realm) (bool, error) {
 	return true, nil
 }
 
-func (sto Store) resolveRealmAuctionsBucket(rea realm) (*storage.BucketHandle, error) {
+func (sto Store) resolveRealmAuctionsBucket(rea internal.Realm) (*storage.BucketHandle, error) {
 	exists, err := sto.realmAuctionsBucketExists(rea)
 	if err != nil {
 		return nil, err
@@ -61,15 +63,15 @@ func (sto Store) resolveRealmAuctionsBucket(rea realm) (*storage.BucketHandle, e
 		return sto.createRealmAuctionsBucket(rea)
 	}
 
-	return sto.getRealmAuctionsBucket(rea), nil
+	return sto.GetRealmAuctionsBucket(rea), nil
 }
 
-func (sto Store) getRealmAuctionsObjectName(lastModified time.Time) string {
+func (sto Store) GetRealmAuctionsObjectName(lastModified time.Time) string {
 	return fmt.Sprintf("%d.json.gz", lastModified.Unix())
 }
 
 func (sto Store) getRealmAuctionsObject(bkt *storage.BucketHandle, lastModified time.Time) *storage.ObjectHandle {
-	return bkt.Object(sto.getRealmAuctionsObjectName(lastModified))
+	return bkt.Object(sto.GetRealmAuctionsObjectName(lastModified))
 }
 
 func (sto Store) realmAuctionsObjectExists(bkt *storage.BucketHandle, lastModified time.Time) (bool, error) {
@@ -85,19 +87,19 @@ func (sto Store) realmAuctionsObjectExists(bkt *storage.BucketHandle, lastModifi
 	return true, nil
 }
 
-func (sto Store) WriteRealmAuctions(rea realm, lastModified time.Time, body []byte) error {
+func (sto Store) WriteRealmAuctions(rea internal.Realm, lastModified time.Time, body []byte) error {
 	bkt, err := sto.resolveRealmAuctionsBucket(rea)
 	if err != nil {
 		return err
 	}
 
 	logging.WithFields(logrus.Fields{
-		"region": rea.region.Name,
+		"region": rea.Region.Name,
 		"realm":  rea.Slug,
 		"length": len(body),
 	}).Debug("Writing auctions to gcloud storage")
 
-	wc := bkt.Object(sto.getRealmAuctionsObjectName(lastModified)).NewWriter(sto.Context)
+	wc := bkt.Object(sto.GetRealmAuctionsObjectName(lastModified)).NewWriter(sto.Context)
 	wc.ContentType = "application/json"
 	wc.ContentEncoding = "gzip"
 
@@ -108,9 +110,9 @@ func (sto Store) WriteRealmAuctions(rea realm, lastModified time.Time, body []by
 	return wc.Close()
 }
 
-func (sto Store) getTotalRealmAuctionsSize(rea realm) (int64, error) {
+func (sto Store) getTotalRealmAuctionsSize(rea internal.Realm) (int64, error) {
 	logging.WithFields(logrus.Fields{
-		"region": rea.region.Name,
+		"region": rea.Region.Name,
 		"realm":  rea.Slug,
 	}).Debug("Gathering total bucket size")
 
@@ -123,7 +125,7 @@ func (sto Store) getTotalRealmAuctionsSize(rea realm) (int64, error) {
 		return 0, nil
 	}
 
-	it := sto.getRealmAuctionsBucket(rea).Objects(sto.Context, nil)
+	it := sto.GetRealmAuctionsBucket(rea).Objects(sto.Context, nil)
 	totalSize := int64(0)
 	for {
 		objAttrs, err := it.Next()
@@ -143,14 +145,14 @@ func (sto Store) getTotalRealmAuctionsSize(rea realm) (int64, error) {
 
 type storeCollectJob struct {
 	obj        *storage.ObjectHandle
-	realm      realm
+	realm      internal.Realm
 	targetTime time.Time
 }
 
-func (sto Store) collectRegionRealms(c config, regs regionList, stas statuses) chan storeCollectJob {
+func (sto Store) collectRegionRealms(c internal.Config, regs internal.RegionList, stas internal.Statuses) chan storeCollectJob {
 	// establishing channels
 	out := make(chan storeCollectJob)
-	in := make(chan realm)
+	in := make(chan internal.Realm)
 
 	// spinning up the workers for gathering total realm auction size
 	worker := func() {
@@ -160,7 +162,7 @@ func (sto Store) collectRegionRealms(c config, regs regionList, stas statuses) c
 			if err != nil {
 				logging.WithFields(logrus.Fields{
 					"error":  err.Error(),
-					"region": rea.region.Name,
+					"region": rea.Region.Name,
 					"realm":  rea.Slug,
 				}).Error("Failed to check if realm-auctions bucket exists")
 
@@ -171,17 +173,17 @@ func (sto Store) collectRegionRealms(c config, regs regionList, stas statuses) c
 			}
 
 			logging.WithFields(logrus.Fields{
-				"region": rea.region.Name,
+				"region": rea.Region.Name,
 				"realm":  rea.Slug,
 			}).Debug("Checking Store for realm-auctions-object for processing")
 
 			// checking the Store for the latest realm-auctions object for processing
-			bkt := sto.getRealmAuctionsBucket(rea)
+			bkt := sto.GetRealmAuctionsBucket(rea)
 			obj, targetTime, err := sto.getLatestRealmAuctionsObjectForProcessing(bkt)
 			if err != nil {
 				logging.WithFields(logrus.Fields{
 					"error":  err.Error(),
-					"region": rea.region.Name,
+					"region": rea.Region.Name,
 					"realm":  rea.Slug,
 				}).Error("Failed to fetch latest realm-auctions object for processing")
 
@@ -191,7 +193,7 @@ func (sto Store) collectRegionRealms(c config, regs regionList, stas statuses) c
 			// optionally halting on no results returned
 			if targetTime.IsZero() {
 				logging.WithFields(logrus.Fields{
-					"region": rea.region.Name,
+					"region": rea.Region.Name,
 					"realm":  rea.Slug,
 				}).Debug("No results found for processing via auctions-intake collector")
 
@@ -220,7 +222,7 @@ func (sto Store) collectRegionRealms(c config, regs regionList, stas statuses) c
 	return out
 }
 
-func (sto Store) startCollector(c config, regs []region, stas statuses, collectOut chan auctionsIntakeRequest) {
+func (sto Store) startCollector(c internal.Config, regs []internal.Region, stas internal.Statuses, collectOut chan state.AuctionsIntakeRequest) {
 	logging.Info("Starting auctions-intake collector")
 
 	for {
@@ -228,7 +230,7 @@ func (sto Store) startCollector(c config, regs []region, stas statuses, collectO
 			break
 		}
 
-		aiRequest := auctionsIntakeRequest{RegionRealmTimestamps: intakeRequestData{}}
+		aiRequest := state.AuctionsIntakeRequest{RegionRealmTimestamps: state.IntakeRequestData{}}
 		for _, reg := range regs {
 			aiRequest.RegionRealmTimestamps[reg.Name] = map[blizzard.RealmSlug]int64{}
 		}
@@ -241,7 +243,7 @@ func (sto Store) startCollector(c config, regs []region, stas statuses, collectO
 			if err != nil {
 				logging.WithFields(logrus.Fields{
 					"error":  err.Error(),
-					"region": job.realm.region.Name,
+					"region": job.realm.Region.Name,
 					"realm":  job.realm.Slug,
 				}).Error("Failed to gathering obj attrs")
 
@@ -249,7 +251,7 @@ func (sto Store) startCollector(c config, regs []region, stas statuses, collectO
 			}
 
 			hasResults = true
-			aiRequest.RegionRealmTimestamps[job.realm.region.Name][job.realm.Slug] = job.targetTime.Unix()
+			aiRequest.RegionRealmTimestamps[job.realm.Region.Name][job.realm.Slug] = job.targetTime.Unix()
 
 			objMeta := func() map[string]string {
 				if objAttrs.Metadata == nil {
@@ -262,7 +264,7 @@ func (sto Store) startCollector(c config, regs []region, stas statuses, collectO
 			if _, err := job.obj.Update(sto.Context, storage.ObjectAttrsToUpdate{Metadata: objMeta}); err != nil {
 				logging.WithFields(logrus.Fields{
 					"error":         err.Error(),
-					"region":        job.realm.region.Name,
+					"region":        job.realm.Region.Name,
 					"realm":         job.realm.Slug,
 					"last-modified": job.targetTime.Unix(),
 				}).Error("Failed to update metadata of object")
@@ -283,15 +285,15 @@ func (sto Store) startCollector(c config, regs []region, stas statuses, collectO
 }
 
 type getTotalRealmAuctionSizeJob struct {
-	realm     realm
+	realm     internal.Realm
 	totalSize int64
 	err       error
 }
 
-func (sto Store) getTotalRealmsAuctionSize(reas realms) chan getTotalRealmAuctionSizeJob {
+func (sto Store) getTotalRealmsAuctionSize(reas internal.Realms) chan getTotalRealmAuctionSizeJob {
 	// establishing channels
 	out := make(chan getTotalRealmAuctionSizeJob)
-	in := make(chan realm)
+	in := make(chan internal.Realm)
 
 	// spinning up the workers for gathering total realm auction size
 	worker := func() {
@@ -317,37 +319,47 @@ func (sto Store) getTotalRealmsAuctionSize(reas realms) chan getTotalRealmAuctio
 	return out
 }
 
-func (sto Store) loadRegionRealmMap(rMap realmMap) chan loadAuctionsJob {
+func (sto Store) LoadRegionRealmMap(rMap state.RealmMap) chan internal.LoadAuctionsJob {
 	// establishing channels
-	out := make(chan loadAuctionsJob)
-	in := make(chan realmMapValue)
+	out := make(chan internal.LoadAuctionsJob)
+	in := make(chan state.RealmMapValue)
 
 	// spinning up the workers for fetching auctions
 	worker := func() {
 		for rValue := range in {
-			aucs, lastModified, err := sto.loadRealmAuctions(rValue.realm, rValue.lastModified)
+			aucs, lastModified, err := sto.loadRealmAuctions(rValue.Realm, rValue.LastModified)
 			if err != nil {
 				logging.WithFields(logrus.Fields{
 					"error":  err.Error(),
-					"region": rValue.realm.region.Name,
-					"realm":  rValue.realm.Slug,
+					"region": rValue.Realm.Region.Name,
+					"realm":  rValue.Realm.Slug,
 				}).Error("Failed to load Store auctions")
 
-				out <- loadAuctionsJob{err, rValue.realm, blizzard.Auctions{}, time.Time{}}
+				out <- internal.LoadAuctionsJob{
+					Err:          err,
+					Realm:        rValue.Realm,
+					Auctions:     blizzard.Auctions{},
+					LastModified: time.Time{},
+				}
 
 				continue
 			}
 
 			if lastModified.IsZero() {
 				logging.WithFields(logrus.Fields{
-					"region": rValue.realm.region.Name,
-					"realm":  rValue.realm.Slug,
+					"region": rValue.Realm.Region.Name,
+					"realm":  rValue.Realm.Slug,
 				}).Info("No auctions were loaded")
 
 				continue
 			}
 
-			out <- loadAuctionsJob{err, rValue.realm, aucs, lastModified}
+			out <- internal.LoadAuctionsJob{
+				Err:          err,
+				Realm:        rValue.Realm,
+				Auctions:     aucs,
+				LastModified: lastModified,
+			}
 		}
 	}
 	postWork := func() {
@@ -357,8 +369,8 @@ func (sto Store) loadRegionRealmMap(rMap realmMap) chan loadAuctionsJob {
 
 	// queueing up the realms
 	go func() {
-		for _, rValue := range rMap.values {
-			logging.WithField("realm", rValue.realm.Slug).Debug("Queueing up auction for Store loading")
+		for _, rValue := range rMap.Values {
+			logging.WithField("realm", rValue.Realm.Slug).Debug("Queueing up auction for Store loading")
 			in <- rValue
 		}
 
@@ -368,10 +380,10 @@ func (sto Store) loadRegionRealmMap(rMap realmMap) chan loadAuctionsJob {
 	return out
 }
 
-func (sto Store) LoadRealmsAuctions(c *config, reas realms) chan loadAuctionsJob {
+func (sto Store) LoadRealmsAuctions(c *internal.Config, reas internal.Realms) chan internal.LoadAuctionsJob {
 	// establishing channels
-	out := make(chan loadAuctionsJob)
-	in := make(chan realm)
+	out := make(chan internal.LoadAuctionsJob)
+	in := make(chan internal.Realm)
 
 	// spinning up the workers for fetching auctions
 	worker := func() {
@@ -380,25 +392,35 @@ func (sto Store) LoadRealmsAuctions(c *config, reas realms) chan loadAuctionsJob
 			if err != nil {
 				logging.WithFields(logrus.Fields{
 					"error":  err.Error(),
-					"region": rea.region.Name,
+					"region": rea.Region.Name,
 					"realm":  rea.Slug,
 				}).Error("Failed to load Store auctions")
 
-				out <- loadAuctionsJob{err, rea, blizzard.Auctions{}, time.Time{}}
+				out <- internal.LoadAuctionsJob{
+					Err:          err,
+					Realm:        rea,
+					Auctions:     blizzard.Auctions{},
+					LastModified: time.Time{},
+				}
 
 				continue
 			}
 
 			if lastModified.IsZero() {
 				logging.WithFields(logrus.Fields{
-					"region": rea.region.Name,
+					"region": rea.Region.Name,
 					"realm":  rea.Slug,
 				}).Info("No auctions were loaded")
 
 				continue
 			}
 
-			out <- loadAuctionsJob{err, rea, aucs, lastModified}
+			out <- internal.LoadAuctionsJob{
+				Err:          err,
+				Realm:        rea,
+				Auctions:     aucs,
+				LastModified: lastModified,
+			}
 		}
 	}
 	postWork := func() {
@@ -409,7 +431,7 @@ func (sto Store) LoadRealmsAuctions(c *config, reas realms) chan loadAuctionsJob
 	// queueing up the realms
 	go func() {
 		for _, rea := range reas {
-			wList := c.getRegionWhitelist(rea.region.Name)
+			wList := c.GetRegionWhitelist(rea.Region.Name)
 			if wList != nil {
 				resolvedWhiteList := *wList
 				if _, ok := resolvedWhiteList[rea.Slug]; !ok {
@@ -549,7 +571,7 @@ func (sto Store) getLatestRealmAuctionsObjectForProcessing(bkt *storage.BucketHa
 	return obj, lastModified, nil
 }
 
-func (sto Store) loadRealmAuctions(rea realm, targetTime time.Time) (blizzard.Auctions, time.Time, error) {
+func (sto Store) loadRealmAuctions(rea internal.Realm, targetTime time.Time) (blizzard.Auctions, time.Time, error) {
 	hasBucket, err := sto.realmAuctionsBucketExists(rea)
 	if err != nil {
 		return blizzard.Auctions{}, time.Time{}, err
@@ -557,7 +579,7 @@ func (sto Store) loadRealmAuctions(rea realm, targetTime time.Time) (blizzard.Au
 
 	if !hasBucket {
 		logging.WithFields(logrus.Fields{
-			"region": rea.region.Name,
+			"region": rea.Region.Name,
 			"realm":  rea.Slug,
 		}).Error("Realm has no bucket")
 
@@ -576,7 +598,7 @@ func (sto Store) loadRealmAuctions(rea realm, targetTime time.Time) (blizzard.Au
 
 	if obj == nil {
 		logging.WithFields(logrus.Fields{
-			"region": rea.region.Name,
+			"region": rea.Region.Name,
 			"realm":  rea.Slug,
 		}).Info("Found no auctions in Store")
 
@@ -584,7 +606,7 @@ func (sto Store) loadRealmAuctions(rea realm, targetTime time.Time) (blizzard.Au
 	}
 
 	logging.WithFields(logrus.Fields{
-		"region": rea.region.Name,
+		"region": rea.Region.Name,
 		"realm":  rea.Slug,
 	}).Debug("Loading auctions from Store")
 
@@ -592,7 +614,7 @@ func (sto Store) loadRealmAuctions(rea realm, targetTime time.Time) (blizzard.Au
 	if err != nil {
 		logging.WithFields(logrus.Fields{
 			"error":  err.Error(),
-			"region": rea.region.Name,
+			"region": rea.Region.Name,
 			"realm":  rea.Slug,
 		}).Error("Failed to parse realm auctions, deleting and returning blank auctions")
 
@@ -604,7 +626,7 @@ func (sto Store) loadRealmAuctions(rea realm, targetTime time.Time) (blizzard.Au
 	}
 
 	logging.WithFields(logrus.Fields{
-		"region": rea.region.Name,
+		"region": rea.Region.Name,
 		"realm":  rea.Slug,
 	}).Debug("Loaded auctions from Store")
 

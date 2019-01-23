@@ -9,7 +9,7 @@ import (
 	"github.com/sotah-inc/server/app/subjects"
 )
 
-func (sta State) listenForRegions(stop listenStopChan) error {
+func (sta State) listenForRegions(stop ListenStopChan) error {
 	err := sta.Messenger.subscribe(subjects.Regions, stop, func(natsMsg nats.Msg) {
 		m := newMessage()
 
@@ -39,7 +39,7 @@ type bootResponse struct {
 	Professions []profession         `json:"professions"`
 }
 
-func (sta State) listenForBoot(stop listenStopChan) error {
+func (sta State) listenForBoot(stop ListenStopChan) error {
 	err := sta.Messenger.subscribe(subjects.Boot, stop, func(natsMsg nats.Msg) {
 		m := newMessage()
 
@@ -67,7 +67,7 @@ func (sta State) listenForBoot(stop listenStopChan) error {
 	return nil
 }
 
-func (sta State) listenForGenericTestErrors(stop listenStopChan) error {
+func (sta State) listenForGenericTestErrors(stop ListenStopChan) error {
 	err := sta.Messenger.subscribe(subjects.GenericTestErrors, stop, func(natsMsg nats.Msg) {
 		m := newMessage()
 		m.Err = "Test error"
@@ -90,7 +90,7 @@ func (sta State) auctionsIntake(job getAuctionsJob) (auctionsIntakeResult, error
 	rea := job.realm
 	reg := rea.region
 
-	// setting the realm last-modified
+	// setting the Realm last-modified
 	for i, statusRealm := range sta.Statuses[reg.Name].Realms {
 		if statusRealm.Slug != rea.Slug {
 			continue

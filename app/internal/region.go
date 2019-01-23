@@ -63,6 +63,6 @@ func (reg Region) getStatus(res Resolver) (status, error) {
 	return status{stat, reg, newRealms(reg, stat.Realms)}, nil
 }
 
-func (reg Region) databaseDir(parentDirPath string) string {
+func (reg Region) DatabaseDir(parentDirPath string) string {
 	return fmt.Sprintf("%s/%s", parentDirPath, reg.Name)
 }

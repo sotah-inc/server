@@ -22,7 +22,7 @@ func TestListenForRegions(t *testing.T) {
 
 	// building test status
 	reg := region{Hostname: "us.battle.net"}
-	s, err := newStatusFromFilepath(reg, "./TestData/realm-status.json")
+	s, err := newStatusFromFilepath(reg, "./TestData/Realm-status.json")
 	if !assert.Nil(t, err) {
 		return
 	}

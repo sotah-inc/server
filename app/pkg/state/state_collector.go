@@ -13,8 +13,8 @@ import (
 	"github.com/sotah-inc/server/app/blizzard"
 )
 
-func (sta State) startCollector(stopChan workerStopChan, res resolver) workerStopChan {
-	onStop := make(workerStopChan)
+func (sta State) startCollector(stopChan WorkerStopChan, res resolver) WorkerStopChan {
+	onStop := make(WorkerStopChan)
 	go func() {
 		ticker := time.NewTicker(20 * time.Minute)
 
@@ -52,7 +52,7 @@ func (sta State) collectRegions(res resolver) {
 
 	// going over the list of Regions
 	startTime := time.Now()
-	irData := intakeRequestData{}
+	irData := IntakeRequestData{}
 	totalRealms := 0
 	includedRealmCount := 0
 	for _, reg := range sta.Regions {
@@ -81,7 +81,7 @@ func (sta State) collectRegions(res resolver) {
 				logging.WithFields(logrus.Fields{
 					"error":  err.Error(),
 					"region": reg.Name,
-					"realm":  job.realm.Slug,
+					"Realm":  job.realm.Slug,
 				}).Error("Failed to intake auctions")
 
 				continue
@@ -196,7 +196,7 @@ func (sta State) collectRegions(res resolver) {
 	}
 
 	// publishing for intake into live auctions
-	aiRequest := auctionsIntakeRequest{irData}
+	aiRequest := AuctionsIntakeRequest{irData}
 	err := func() error {
 		encodedAiRequest, err := json.Marshal(aiRequest)
 		if err != nil {

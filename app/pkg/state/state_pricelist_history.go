@@ -64,7 +64,7 @@ func (plhRequest priceListHistoryRequest) resolve(sta State) (realm, pricelistHi
 		return nil
 	}()
 	if rea == nil {
-		return realm{}, pricelistHistoryDatabaseShards{}, requestError{codes.NotFound, "Invalid realm (Statuses)"}
+		return realm{}, pricelistHistoryDatabaseShards{}, requestError{codes.NotFound, "Invalid Realm (Statuses)"}
 	}
 
 	phdShards, reErr := func() (pricelistHistoryDatabaseShards, requestError) {
@@ -75,7 +75,7 @@ func (plhRequest priceListHistoryRequest) resolve(sta State) (realm, pricelistHi
 
 		realmShards, ok := regionShards[plhRequest.RealmSlug]
 		if !ok {
-			return pricelistHistoryDatabaseShards{}, requestError{codes.NotFound, "Invalid realm (pricelist-histories)"}
+			return pricelistHistoryDatabaseShards{}, requestError{codes.NotFound, "Invalid Realm (pricelist-histories)"}
 		}
 
 		return realmShards, requestError{codes.Ok, ""}
@@ -84,7 +84,7 @@ func (plhRequest priceListHistoryRequest) resolve(sta State) (realm, pricelistHi
 	return *rea, phdShards, reErr
 }
 
-func (sta State) listenForPriceListHistory(stop listenStopChan) error {
+func (sta State) listenForPriceListHistory(stop ListenStopChan) error {
 	err := sta.Messenger.subscribe(subjects.PriceListHistory, stop, func(natsMsg nats.Msg) {
 		m := newMessage()
 

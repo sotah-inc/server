@@ -96,7 +96,7 @@ func (request ownersQueryRequest) resolve(sta State) (ownersQueryResult, error) 
 		return ownersQueryResult{}, errors.New("Realm slug cannot be blank")
 	}
 
-	// resolving region-realm auctions
+	// resolving region-Realm auctions
 	regionLadBases, ok := sta.liveAuctionsDatabases[request.RegionName]
 	if !ok {
 		return ownersQueryResult{}, errors.New("Invalid region name")
@@ -104,7 +104,7 @@ func (request ownersQueryRequest) resolve(sta State) (ownersQueryResult, error) 
 
 	ladBase, ok := regionLadBases[request.RealmSlug]
 	if !ok {
-		return ownersQueryResult{}, errors.New("Invalid realm slug")
+		return ownersQueryResult{}, errors.New("Invalid Realm slug")
 	}
 
 	maList, err := ladBase.getMiniauctions()
@@ -134,7 +134,7 @@ func (request ownersQueryRequest) resolve(sta State) (ownersQueryResult, error) 
 	return oqResult, nil
 }
 
-func (sta State) listenForOwnersQuery(stop listenStopChan) error {
+func (sta State) listenForOwnersQuery(stop ListenStopChan) error {
 	err := sta.Messenger.subscribe(subjects.OwnersQuery, stop, func(natsMsg nats.Msg) {
 		m := newMessage()
 

@@ -10,7 +10,7 @@ import (
 )
 
 type realmValuation struct {
-	Realm         realm `json:"realm"`
+	Realm         realm `json:"Realm"`
 	TotalQuantity int64 `json:"total_quantity"`
 	TotalBuyout   int64 `json:"total_buyout"`
 	TotalSellers  int   `json:"total_sellers"`
@@ -71,7 +71,7 @@ func (iRequest infoRequest) resolve(sta State) (infoResponse, error) {
 	return infoResponse{len(items), regValuations}, nil
 }
 
-func (sta State) listenForInfo(stop listenStopChan) error {
+func (sta State) listenForInfo(stop ListenStopChan) error {
 	err := sta.Messenger.subscribe(subjects.Info, stop, func(natsMsg nats.Msg) {
 		m := newMessage()
 

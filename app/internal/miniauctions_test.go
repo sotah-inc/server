@@ -12,7 +12,7 @@ import (
 func TestNewMiniAuctionsDataFromFilepath(t *testing.T) {
 	t.Skip("TODO after creating blizzard package")
 
-	mad, err := newMiniAuctionsDataFromFilepath("./TestData/mini-auctions.json")
+	mad, err := newMiniAuctionsDataFromFilepath("./TestData/mini-Auctions.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -32,8 +32,8 @@ func TestNewMiniAuctionsFromMessenger(t *testing.T) {
 	}
 	sta.Messenger = mess
 
-	// building test auctions
-	aucs, err := blizzard.NewAuctionsFromFilepath("./TestData/auctions.json")
+	// building test Auctions
+	aucs, err := blizzard.NewAuctionsFromFilepath("./TestData/Auctions.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -45,16 +45,16 @@ func TestNewMiniAuctionsFromMessenger(t *testing.T) {
 		return
 	}
 
-	// setting up a subscriber that will publish auctions
+	// setting up a subscriber that will publish Auctions
 	stop := make(chan interface{})
 	err = sta.ListenForAuctions(stop)
 	if !assert.Nil(t, err) {
 		return
 	}
 
-	// subscribing to receive auctions
+	// subscribing to receive Auctions
 	receivedMiniAuctions, err := newMiniAuctionsListFromMessenger(newMiniAuctionsListFromMessengerConfig{
-		realm:     Realm{Realm: rea, region: reg},
+		realm:     Realm{Realm: rea, Region: reg},
 		messenger: mess,
 		count:     10,
 	})

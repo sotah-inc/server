@@ -45,7 +45,7 @@ func (request ownersQueryRequestByItems) resolve(sta State) (miniAuctionList, re
 
 	ladBase, ok := regionLadBases[request.RealmSlug]
 	if !ok {
-		return miniAuctionList{}, requestError{codes.NotFound, "Invalid realm"}
+		return miniAuctionList{}, requestError{codes.NotFound, "Invalid Realm"}
 	}
 
 	maList, err := ladBase.getMiniauctions()
@@ -56,7 +56,7 @@ func (request ownersQueryRequestByItems) resolve(sta State) (miniAuctionList, re
 	return maList, requestError{codes.Ok, ""}
 }
 
-func (sta State) listenForOwnersQueryByItems(stop listenStopChan) error {
+func (sta State) listenForOwnersQueryByItems(stop ListenStopChan) error {
 	err := sta.Messenger.subscribe(subjects.OwnersQueryByItems, stop, func(natsMsg nats.Msg) {
 		m := newMessage()
 

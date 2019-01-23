@@ -13,13 +13,14 @@ import (
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
+	"github.com/sotah-inc/server/app/pkg/state"
 )
 
 type Messenger struct {
 	conn *nats.Conn
 }
 
-func newMessage() message {
+func NewMessage() message {
 	return message{Code: codes.Ok}
 }
 
@@ -71,7 +72,7 @@ func NewMessenger(host string, port int) (Messenger, error) {
 	return mess, nil
 }
 
-func (mess Messenger) subscribe(subject subjects.Subject, stop listenStopChan, cb func(nats.Msg)) error {
+func (mess Messenger) Subscribe(subject subjects.Subject, stop state.ListenStopChan, cb func(nats.Msg)) error {
 	logging.WithField("subject", subject).Debug("Subscribing to subject")
 
 	sub, err := mess.conn.Subscribe(string(subject), func(natsMsg *nats.Msg) {
@@ -94,7 +95,7 @@ func (mess Messenger) subscribe(subject subjects.Subject, stop listenStopChan, c
 	return nil
 }
 
-func (mess Messenger) replyTo(natsMsg nats.Msg, m message) error {
+func (mess Messenger) ReplyTo(natsMsg nats.Msg, m message) error {
 	if m.Code == codes.Blank {
 		return errors.New("Code cannot be blank")
 	}
@@ -120,13 +121,13 @@ func (mess Messenger) replyTo(natsMsg nats.Msg, m message) error {
 		}).Debug("Publishing a reply")
 	}
 
-	// attempting to publish it
+	// attempting to Publish it
 	err = mess.conn.Publish(natsMsg.Reply, jsonMessage)
 	if err != nil {
 		logging.WithFields(logrus.Fields{
 			"error":   err.Error(),
 			"subject": natsMsg.Reply,
-		}).Error("Failed to publish message")
+		}).Error("Failed to Publish message")
 		return err
 	}
 
@@ -148,6 +149,6 @@ func (mess Messenger) Request(subject subjects.Subject, data []byte) (message, e
 	return *msg, nil
 }
 
-func (mess Messenger) publish(subject subjects.Subject, data []byte) error {
+func (mess Messenger) Publish(subject subjects.Subject, data []byte) error {
 	return mess.conn.Publish(string(subject), data)
 }

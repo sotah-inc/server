@@ -21,7 +21,7 @@ func TestListenForStatus(t *testing.T) {
 
 	// building test status
 	reg := region{Name: "test", Hostname: "test"}
-	s, err := newStatusFromFilepath(reg, "./TestData/realm-status.json")
+	s, err := newStatusFromFilepath(reg, "./TestData/Realm-status.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -121,7 +121,7 @@ func TestListenForNonexistentStatus(t *testing.T) {
 
 func TestListenForStatusToFetch(t *testing.T) {
 	// listening for status requests
-	ts, err := utiltest.ServeFile("./TestData/realm-status.json")
+	ts, err := utiltest.ServeFile("./TestData/Realm-status.json")
 	if !assert.Nil(t, err) {
 		return
 	}

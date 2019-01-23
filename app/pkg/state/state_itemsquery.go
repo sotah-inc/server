@@ -131,7 +131,7 @@ func (request itemsQueryRequest) resolve(sta State) (itemsQueryResult, error) {
 	return iqResult, nil
 }
 
-func (sta State) listenForItemsQuery(stop listenStopChan) error {
+func (sta State) listenForItemsQuery(stop ListenStopChan) error {
 	err := sta.Messenger.subscribe(subjects.ItemsQuery, stop, func(natsMsg nats.Msg) {
 		m := newMessage()
 

@@ -23,7 +23,7 @@ func newItemsRequest(payload []byte) (itemsRequest, error) {
 }
 
 type itemsRequest struct {
-	ItemIds []blizzard.ItemID `json:"itemIds"`
+	ItemIds []blizzard.ItemID `json:"ItemIds"`
 }
 
 func (iRequest itemsRequest) resolve(sta State) (itemsMap, error) {
@@ -48,7 +48,7 @@ func (iResponse itemsResponse) encodeForMessage() (string, error) {
 	return base64.StdEncoding.EncodeToString(gzippedResult), nil
 }
 
-func (sta State) listenForItems(stop listenStopChan) error {
+func (sta State) listenForItems(stop ListenStopChan) error {
 	err := sta.Messenger.subscribe(subjects.Items, stop, func(natsMsg nats.Msg) {
 		m := newMessage()
 

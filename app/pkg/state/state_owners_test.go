@@ -23,9 +23,9 @@ func TestListenForOwners(t *testing.T) {
 		return
 	}
 
-	// building a test realm
+	// building a test Realm
 	reg := region{Name: "us"}
-	rea, err := blizzard.NewRealmFromFilepath("./TestData/realm.json")
+	rea, err := blizzard.NewRealmFromFilepath("./TestData/Realm.json")
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -81,9 +81,9 @@ func TestListenForOwnersFiltered(t *testing.T) {
 		return
 	}
 
-	// building a test realm
+	// building a test Realm
 	reg := region{Name: "us"}
-	rea, err := blizzard.NewRealmFromFilepath("./TestData/realm.json")
+	rea, err := blizzard.NewRealmFromFilepath("./TestData/Realm.json")
 	if !assert.Nil(t, err) {
 		return
 	}

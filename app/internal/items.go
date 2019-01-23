@@ -44,7 +44,7 @@ func getItems(IDs []blizzard.ItemID, ibMap itemBlacklistMap, res Resolver) chan 
 	}
 	util.Work(8, worker, postWork)
 
-	// queueing up the realms
+	// queueing up the Realms
 	go func() {
 		for _, ID := range IDs {
 			if _, ok := ibMap[ID]; ok {
@@ -98,9 +98,9 @@ func getItem(ID blizzard.ItemID, res Resolver) (blizzard.Item, error) {
 		return blizzard.NewItemFromFilepath(itemFilepath)
 	}
 
-	// optionally checking gcloud store
+	// optionally checking gcloud Store
 	if res.Config.UseGCloud {
-		exists, err := res.store.ItemExists(ID)
+		exists, err := res.Store.ItemExists(ID)
 		if err != nil {
 			return blizzard.Item{}, err
 		}
@@ -108,7 +108,7 @@ func getItem(ID blizzard.ItemID, res Resolver) (blizzard.Item, error) {
 		if exists {
 			logging.WithField("item", ID).Debug("Loading item from gcloud storage")
 
-			return blizzard.NewItemFromGcloudObject(res.store.Context, res.store.GetItemObject(ID))
+			return blizzard.NewItemFromGcloudObject(res.Store.Context, res.Store.GetItemObject(ID))
 		}
 	}
 
@@ -130,14 +130,14 @@ func getItem(ID blizzard.ItemID, res Resolver) (blizzard.Item, error) {
 		return blizzard.Item{}, err
 	}
 
-	// optionally writing it back to gcloud store or disk
+	// optionally writing it back to gcloud Store or disk
 	if res.Config.UseGCloud {
 		encodedBody, err := util.GzipEncode(resp.Body)
 		if err != nil {
 			return blizzard.Item{}, err
 		}
 
-		if err := res.store.WriteItem(ID, encodedBody); err != nil {
+		if err := res.Store.WriteItem(ID, encodedBody); err != nil {
 			return blizzard.Item{}, err
 		}
 	}

@@ -3,7 +3,8 @@ package state
 import (
 	"encoding/base64"
 	"encoding/json"
-	"github.com/nats-io/go-nats"
+
+	nats "github.com/nats-io/go-nats"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
@@ -41,7 +42,7 @@ func (ar AuctionsRequest) resolve(sta State) (miniAuctionList, requestError) {
 
 	realmLadbase, ok := regionLadBases[ar.RealmSlug]
 	if !ok {
-		return miniAuctionList{}, requestError{codes.NotFound, "Invalid realm"}
+		return miniAuctionList{}, requestError{codes.NotFound, "Invalid Realm"}
 	}
 
 	if ar.Page < 0 {
@@ -104,7 +105,7 @@ func (ar auctionsResponse) encodeForMessage() (string, error) {
 	return base64.StdEncoding.EncodeToString(gzipEncodedAuctions), nil
 }
 
-func (sta State) ListenForAuctions(stop listenStopChan) error {
+func (sta State) ListenForAuctions(stop ListenStopChan) error {
 	err := sta.Messenger.subscribe(subjects.Auctions, stop, func(natsMsg nats.Msg) {
 		m := newMessage()
 

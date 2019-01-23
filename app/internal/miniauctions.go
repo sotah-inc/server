@@ -34,7 +34,7 @@ func newMiniAuctionsData(body []byte) (miniAuctionsData, error) {
 }
 
 type miniAuctionsData struct {
-	Auctions MiniAuctionList `json:"auctions"`
+	Auctions MiniAuctionList `json:"Auctions"`
 }
 
 type newMiniAuctionsListFromMessengerConfig struct {
@@ -54,7 +54,7 @@ func (config newMiniAuctionsListFromMessengerConfig) toAuctionsRequest() state.A
 	}
 
 	return state.AuctionsRequest{
-		RegionName:    config.realm.region.Name,
+		RegionName:    config.realm.Region.Name,
 		RealmSlug:     config.realm.Slug,
 		Count:         config.count,
 		Page:          config.page,
@@ -64,8 +64,8 @@ func (config newMiniAuctionsListFromMessengerConfig) toAuctionsRequest() state.A
 	}
 }
 
-func newMiniAuctionListFromBlizzardAuctions(aucs []blizzard.Auction) MiniAuctionList {
-	// gathering a map of all mini-auctions
+func NewMiniAuctionListFromBlizzardAuctions(aucs []blizzard.Auction) MiniAuctionList {
+	// gathering a map of all mini-Auctions
 	mAuctions := miniAuctions{}
 	for _, auc := range aucs {
 		maHash := newMiniAuctionHash(auc)

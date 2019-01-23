@@ -21,7 +21,7 @@ import (
 
 type getAuctionsWhitelist map[blizzard.RealmSlug]interface{}
 
-func newRealms(reg Region, blizzRealms []blizzard.Realm) realms {
+func newRealms(reg Region, blizzRealms []blizzard.Realm) Realms {
 	reas := make([]Realm, len(blizzRealms))
 	for i, rea := range blizzRealms {
 		reas[i] = Realm{rea, reg, 0}
@@ -37,16 +37,16 @@ type getAuctionsJob struct {
 	lastModified time.Time
 }
 
-type realms []Realm
+type Realms []Realm
 
-func (reas realms) filterWithWhitelist(wList *getAuctionsWhitelist) realms {
+func (reas Realms) FilterWithWhitelist(wList *getAuctionsWhitelist) Realms {
 	if wList == nil {
 		return reas
 	}
 
 	wListValue := *wList
 
-	out := realms{}
+	out := Realms{}
 	for _, rea := range reas {
 		if _, ok := wListValue[rea.Slug]; !ok {
 			continue
@@ -58,7 +58,7 @@ func (reas realms) filterWithWhitelist(wList *getAuctionsWhitelist) realms {
 	return out
 }
 
-func (reas realms) getAuctionsOrAll(res Resolver, wList *getAuctionsWhitelist) chan getAuctionsJob {
+func (reas Realms) getAuctionsOrAll(res Resolver, wList *getAuctionsWhitelist) chan getAuctionsJob {
 	if wList == nil {
 		return reas.getAllAuctions(res)
 	}
@@ -66,7 +66,7 @@ func (reas realms) getAuctionsOrAll(res Resolver, wList *getAuctionsWhitelist) c
 	return reas.getAuctions(res, *wList)
 }
 
-func (reas realms) getAllAuctions(res Resolver) chan getAuctionsJob {
+func (reas Realms) getAllAuctions(res Resolver) chan getAuctionsJob {
 	wList := getAuctionsWhitelist{}
 	for _, rea := range reas {
 		wList[rea.Slug] = true
@@ -74,12 +74,12 @@ func (reas realms) getAllAuctions(res Resolver) chan getAuctionsJob {
 	return reas.getAuctions(res, wList)
 }
 
-func (reas realms) getAuctions(res Resolver, wList getAuctionsWhitelist) chan getAuctionsJob {
+func (reas Realms) getAuctions(res Resolver, wList getAuctionsWhitelist) chan getAuctionsJob {
 	// establishing channels
 	out := make(chan getAuctionsJob)
 	in := make(chan Realm)
 
-	// spinning up the workers for fetching auctions
+	// spinning up the workers for fetching Auctions
 	worker := func() {
 		for rea := range in {
 			aucs, lastModified, err := rea.getAuctions(res)
@@ -88,7 +88,7 @@ func (reas realms) getAuctions(res Resolver, wList getAuctionsWhitelist) chan ge
 			if err != nil {
 				logging.WithFields(logrus.Fields{
 					"error":  err.Error(),
-					"Region": rea.region.Name,
+					"Region": rea.Region.Name,
 					"Realm":  rea.Slug,
 				}).Error("Auction fetch failure")
 
@@ -98,18 +98,18 @@ func (reas realms) getAuctions(res Resolver, wList getAuctionsWhitelist) chan ge
 			// optionally skipping draining out due to no new data
 			if lastModified.IsZero() {
 				logging.WithFields(logrus.Fields{
-					"Region": rea.region.Name,
+					"Region": rea.Region.Name,
 					"Realm":  rea.Slug,
-				}).Info("No auctions received")
+				}).Info("No Auctions received")
 
 				continue
 			}
 
 			// draining out
 			logging.WithFields(logrus.Fields{
-				"Region":   rea.region.Name,
+				"Region":   rea.Region.Name,
 				"Realm":    rea.Slug,
-				"auctions": len(aucs.Auctions),
+				"Auctions": len(aucs.Auctions),
 			}).Debug("Auctions received")
 			out <- getAuctionsJob{nil, rea, aucs, lastModified}
 		}
@@ -119,7 +119,7 @@ func (reas realms) getAuctions(res Resolver, wList getAuctionsWhitelist) chan ge
 	}
 	util.Work(4, worker, postWork)
 
-	// queueing up the realms
+	// queueing up the Realms
 	go func() {
 		for _, rea := range reas {
 			if _, ok := wList[rea.Slug]; !ok {
@@ -127,7 +127,7 @@ func (reas realms) getAuctions(res Resolver, wList getAuctionsWhitelist) chan ge
 			}
 
 			logging.WithFields(logrus.Fields{
-				"Region": rea.region.Name,
+				"Region": rea.Region.Name,
 				"Realm":  rea.Slug,
 			}).Debug("Queueing up auction for downloading")
 			in <- rea
@@ -139,44 +139,44 @@ func (reas realms) getAuctions(res Resolver, wList getAuctionsWhitelist) chan ge
 	return out
 }
 
-func (rea Realm) databaseDir(parentDirPath string) string {
+func (rea Realm) DatabaseDir(parentDirPath string) string {
 	return fmt.Sprintf("%s/%s", parentDirPath, rea.Slug)
 }
 
-type loadAuctionsJob struct {
-	err          error
-	realm        Realm
-	auctions     blizzard.Auctions
-	lastModified time.Time
+type LoadAuctionsJob struct {
+	Err          error
+	Realm        Realm
+	Auctions     blizzard.Auctions
+	LastModified time.Time
 }
 
-func (reas realms) loadAuctions(c *Config, sto store.Store) chan loadAuctionsJob {
+func (reas Realms) loadAuctions(c *Config, sto store.Store) chan LoadAuctionsJob {
 	if c.UseGCloud {
 		return sto.LoadRealmsAuctions(c, reas)
 	}
 
-	return reas.loadAuctionsFromCacheDir(c)
+	return reas.LoadAuctionsFromCacheDir(c)
 }
 
-func (reas realms) loadAuctionsFromCacheDir(c *Config) chan loadAuctionsJob {
+func (reas Realms) LoadAuctionsFromCacheDir(c *Config) chan LoadAuctionsJob {
 	// establishing channels
-	out := make(chan loadAuctionsJob)
+	out := make(chan LoadAuctionsJob)
 	in := make(chan Realm)
 
-	// spinning up the workers for fetching auctions
+	// spinning up the workers for fetching Auctions
 	worker := func() {
 		for rea := range in {
 			aucs, lastModified, err := rea.loadAuctionsFromFilecache(c)
 			if lastModified.IsZero() {
 				logging.WithFields(logrus.Fields{
-					"Region": rea.region.Name,
+					"Region": rea.Region.Name,
 					"Realm":  rea.Slug,
-				}).Error("Last-modified was blank when loading auctions from filecache")
+				}).Error("Last-modified was blank when loading Auctions from filecache")
 
 				continue
 			}
 
-			out <- loadAuctionsJob{err, rea, aucs, lastModified}
+			out <- LoadAuctionsJob{err, rea, aucs, lastModified}
 		}
 	}
 	postWork := func() {
@@ -184,10 +184,10 @@ func (reas realms) loadAuctionsFromCacheDir(c *Config) chan loadAuctionsJob {
 	}
 	util.Work(4, worker, postWork)
 
-	// queueing up the realms
+	// queueing up the Realms
 	go func() {
 		for _, rea := range reas {
-			wList := c.getRegionWhitelist(rea.region.Name)
+			wList := c.GetRegionWhitelist(rea.Region.Name)
 			if wList != nil {
 				resolvedWhiteList := *wList
 				if _, ok := resolvedWhiteList[rea.Slug]; !ok {
@@ -196,7 +196,7 @@ func (reas realms) loadAuctionsFromCacheDir(c *Config) chan loadAuctionsJob {
 			}
 
 			logging.WithFields(logrus.Fields{
-				"Region": rea.region.Name,
+				"Region": rea.Region.Name,
 				"Realm":  rea.Slug,
 			}).Debug("Queueing up auction for loading")
 			in <- rea
@@ -210,22 +210,22 @@ func (reas realms) loadAuctionsFromCacheDir(c *Config) chan loadAuctionsJob {
 
 type Realm struct {
 	blizzard.Realm
-	region       Region
+	Region       Region
 	LastModified int64 `json:"last_modified"`
 }
 
 func (rea Realm) LogEntry() *logrus.Entry {
-	return logging.WithFields(logrus.Fields{"Region": rea.region.Name, "Realm": rea.Slug})
+	return logging.WithFields(logrus.Fields{"Region": rea.Region.Name, "Realm": rea.Slug})
 }
 
 func (rea Realm) auctionsFilepath(c *Config) (string, error) {
 	return filepath.Abs(
-		fmt.Sprintf("%s/auctions/%s/%s.json.gz", c.CacheDir, rea.region.Name, rea.Slug),
+		fmt.Sprintf("%s/Auctions/%s/%s.json.gz", c.CacheDir, rea.Region.Name, rea.Slug),
 	)
 }
 
 func (rea Realm) getAuctions(res Resolver) (blizzard.Auctions, time.Time, error) {
-	uri, err := res.appendAccessToken(res.getAuctionInfoURL(rea.region.Hostname, rea.Slug))
+	uri, err := res.appendAccessToken(res.getAuctionInfoURL(rea.Region.Hostname, rea.Slug))
 	if err != nil {
 		return blizzard.Auctions{}, time.Time{}, err
 	}
@@ -238,12 +238,12 @@ func (rea Realm) getAuctions(res Resolver) (blizzard.Auctions, time.Time, error)
 
 	// validating the list of files
 	if len(aInfo.Files) == 0 {
-		return blizzard.Auctions{}, time.Time{}, errors.New("Cannot fetch auctions with blank files")
+		return blizzard.Auctions{}, time.Time{}, errors.New("Cannot fetch Auctions with blank files")
 	}
 	aFile := aInfo.Files[0]
 
 	// validating the Realm Region
-	if rea.region.Name == "" {
+	if rea.Region.Name == "" {
 		return blizzard.Auctions{}, time.Time{}, errors.New("Region name cannot be blank")
 	}
 
@@ -277,20 +277,20 @@ func (rea Realm) downloadAndCache(aFile blizzard.AuctionFile, res Resolver) (bli
 
 	if res.Config.UseGCloud {
 		logging.WithFields(logrus.Fields{
-			"Region":       rea.region.Name,
+			"Region":       rea.Region.Name,
 			"Realm":        rea.Slug,
-			"lastModified": aFile.LastModifiedAsTime().Unix(),
+			"LastModified": aFile.LastModifiedAsTime().Unix(),
 			"encodedBody":  len(encodedBody),
-		}).Debug("Writing auction data to gcloud store")
+		}).Debug("Writing auction data to gcloud Store")
 
 		// writing the auction data to the gcloud storage
-		if err := res.store.WriteRealmAuctions(rea, aFile.LastModifiedAsTime(), encodedBody); err != nil {
+		if err := res.Store.WriteRealmAuctions(rea, aFile.LastModifiedAsTime(), encodedBody); err != nil {
 			logging.WithFields(logrus.Fields{
 				"error":        err.Error(),
-				"Region":       rea.region.Name,
+				"Region":       rea.Region.Name,
 				"Realm":        rea.Slug,
-				"lastModified": aFile.LastModifiedAsTime().Unix(),
-			}).Debug("Failed to write auctions to gcloud storage")
+				"LastModified": aFile.LastModifiedAsTime().Unix(),
+			}).Debug("Failed to write Auctions to gcloud storage")
 
 			return blizzard.Auctions{}, err
 		}
@@ -303,7 +303,7 @@ func (rea Realm) downloadAndCache(aFile blizzard.AuctionFile, res Resolver) (bli
 		return blizzard.Auctions{}, errors.New("Cache dir cannot be blank")
 	}
 
-	// gathering auctions filepath
+	// gathering Auctions filepath
 	auctionsFilepath, err := rea.auctionsFilepath(res.Config)
 	if err != nil {
 		return blizzard.Auctions{}, err
@@ -311,7 +311,7 @@ func (rea Realm) downloadAndCache(aFile blizzard.AuctionFile, res Resolver) (bli
 
 	// writing the auction data to the cache dir
 	logging.WithFields(logrus.Fields{
-		"Region":      rea.region.Name,
+		"Region":      rea.Region.Name,
 		"Realm":       rea.Slug,
 		"filepath":    auctionsFilepath,
 		"encodedBody": len(encodedBody),
@@ -327,13 +327,13 @@ func (rea Realm) downloadAndCache(aFile blizzard.AuctionFile, res Resolver) (bli
 }
 
 func (rea Realm) loadAuctionsFromFilecache(c *Config) (blizzard.Auctions, time.Time, error) {
-	// resolving the cached auctions filepath
+	// resolving the cached Auctions filepath
 	cachedAuctionsFilepath, err := rea.auctionsFilepath(c)
 	if err != nil {
 		return blizzard.Auctions{}, time.Time{}, err
 	}
 
-	// optionally skipping non-exist auctions files
+	// optionally skipping non-exist Auctions files
 	cachedAuctionsStat, err := os.Stat(cachedAuctionsFilepath)
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -343,21 +343,21 @@ func (rea Realm) loadAuctionsFromFilecache(c *Config) (blizzard.Auctions, time.T
 		return blizzard.Auctions{}, time.Time{}, nil
 	}
 
-	// loading the gzipped cached auctions file
+	// loading the gzipped cached Auctions file
 	logging.WithFields(logrus.Fields{
-		"Region":   rea.region.Name,
+		"Region":   rea.Region.Name,
 		"Realm":    rea.Slug,
 		"filepath": cachedAuctionsFilepath,
-	}).Debug("Loading auctions from filepath")
+	}).Debug("Loading Auctions from filepath")
 	aucs, err := blizzard.NewAuctionsFromGzFilepath(cachedAuctionsFilepath)
 	if err != nil {
 		return blizzard.Auctions{}, time.Time{}, err
 	}
 	logging.WithFields(logrus.Fields{
-		"Region":   rea.region.Name,
+		"Region":   rea.Region.Name,
 		"Realm":    rea.Slug,
 		"filepath": cachedAuctionsFilepath,
-	}).Debug("Finished loading auctions from filepath")
+	}).Debug("Finished loading Auctions from filepath")
 
 	return aucs, cachedAuctionsStat.ModTime(), nil
 }
@@ -402,7 +402,7 @@ func newStatus(reg Region, stat blizzard.Status) status {
 type status struct {
 	blizzard.Status
 	region Region
-	Realms realms `json:"realms"`
+	Realms Realms `json:"Realms"`
 }
 
 type Statuses map[RegionName]status

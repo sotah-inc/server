@@ -67,16 +67,16 @@ func newItemBlacklistMap(IDs []blizzard.ItemID) itemBlacklistMap {
 
 type itemBlacklistMap map[blizzard.ItemID]struct{}
 
-type listenStopChan chan interface{}
+type ListenStopChan chan interface{}
 
-type listenFunc func(stop listenStopChan) error
+type listenFunc func(stop ListenStopChan) error
 
 type subjectListeners map[subjects.Subject]listenFunc
 
 func newListeners(sListeners subjectListeners) listeners {
 	ls := listeners{}
 	for subj, l := range sListeners {
-		ls[subj] = listener{l, make(listenStopChan)}
+		ls[subj] = listener{l, make(ListenStopChan)}
 	}
 
 	return ls
@@ -106,7 +106,7 @@ func (ls listeners) stop() {
 
 type listener struct {
 	call     listenFunc
-	stopChan listenStopChan
+	stopChan ListenStopChan
 }
 
-type workerStopChan chan interface{}
+type WorkerStopChan chan interface{}

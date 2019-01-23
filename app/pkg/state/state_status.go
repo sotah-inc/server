@@ -41,7 +41,7 @@ func (sr StatusRequest) resolve(sta State) (region, error) {
 	return reg, nil
 }
 
-func (sta State) listenForStatus(stop listenStopChan) error {
+func (sta State) listenForStatus(stop ListenStopChan) error {
 	err := sta.Messenger.subscribe(subjects.Status, stop, func(natsMsg nats.Msg) {
 		m := newMessage()
 
