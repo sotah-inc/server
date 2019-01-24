@@ -58,23 +58,7 @@ func (reas Realms) FilterWithWhitelist(wList *getAuctionsWhitelist) Realms {
 	return out
 }
 
-func (reas Realms) GetAuctionsOrAll(res Resolver, wList *getAuctionsWhitelist) chan GetAuctionsJob {
-	if wList == nil {
-		return reas.getAllAuctions(res)
-	}
-
-	return reas.getAuctions(res, *wList)
-}
-
-func (reas Realms) getAllAuctions(res Resolver) chan GetAuctionsJob {
-	wList := getAuctionsWhitelist{}
-	for _, rea := range reas {
-		wList[rea.Slug] = true
-	}
-	return reas.getAuctions(res, wList)
-}
-
-func (reas Realms) getAuctions(res Resolver, wList getAuctionsWhitelist) chan GetAuctionsJob {
+func (reas Realms) GetAuctions(res Resolver) chan GetAuctionsJob {
 	// establishing channels
 	out := make(chan GetAuctionsJob)
 	in := make(chan Realm)
@@ -122,10 +106,6 @@ func (reas Realms) getAuctions(res Resolver, wList getAuctionsWhitelist) chan Ge
 	// queueing up the Realms
 	go func() {
 		for _, rea := range reas {
-			if _, ok := wList[rea.Slug]; !ok {
-				continue
-			}
-
 			logging.WithFields(logrus.Fields{
 				"Region": rea.Region.Name,
 				"Realm":  rea.Slug,

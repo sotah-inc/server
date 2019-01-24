@@ -61,7 +61,9 @@ func (sta State) collectRegions(res internal.Resolver) {
 			continue
 		}
 
-		totalRealms += len(sta.Statuses[reg.Name].Realms.FilterWithWhitelist(wList))
+		filteredRealms := sta.Statuses[reg.Name].Realms.FilterWithWhitelist(wList)
+
+		totalRealms += len(filteredRealms)
 
 		// misc
 		receivedItemIds := map[blizzard.ItemID]struct{}{}
@@ -70,10 +72,10 @@ func (sta State) collectRegions(res internal.Resolver) {
 		// downloading auctions in a region
 		logging.WithFields(logrus.Fields{
 			"region":    reg.Name,
-			"realms":    len(sta.Statuses[reg.Name].Realms),
+			"realms":    len(filteredRealms),
 			"whitelist": wList,
 		}).Debug("Downloading region")
-		auctionsOut := sta.Statuses[reg.Name].Realms.GetAuctionsOrAll(sta.Resolver, wList)
+		auctionsOut := filteredRealms.GetAuctions(sta.Resolver)
 		for job := range auctionsOut {
 			result, err := sta.auctionsIntake(job)
 			if err != nil {
@@ -152,7 +154,7 @@ func (sta State) collectRegions(res internal.Resolver) {
 					for iconName, IDs := range missingItemIcons {
 						for _, ID := range IDs {
 							itemValue := iMap[ID]
-							itemValue.IconURL = internal.DefaultGetItemIconURL(iconName)
+							itemValue.IconURL = blizzard.DefaultGetItemIconURL(iconName)
 							iMap[ID] = itemValue
 						}
 					}
