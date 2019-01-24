@@ -97,6 +97,9 @@ func (d DurationMetrics) toFields(kind durationKind) logrus.Fields {
 		"duration_kind":                         kind,
 		"duration_length":                       durationInSeconds,
 		fmt.Sprintf("%s_duration_length", kind): durationInSeconds,
+		"total_realms":                          d.TotalRealms,
+		"included_realms":                       d.IncludedRealms,
+		"excluded_realms":                       d.ExcludedRealms,
 	}
 }
 
