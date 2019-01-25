@@ -29,7 +29,7 @@ func NewItemFromHTTP(uri string) (Item, ResponseMeta, error) {
 	}
 
 	if resp.Status != 200 {
-		return Item{}, ResponseMeta{}, errors.New("Status was not 200")
+		return Item{}, ResponseMeta{}, errors.New("status was not 200")
 	}
 
 	item, err := NewItem(resp.Body)
