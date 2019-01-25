@@ -19,24 +19,24 @@ type DiskStore struct {
 	CacheDir string
 }
 
-func (ds DiskStore) resolveAuctionsDir(rea sotah.Realm) (string, error) {
+func (ds DiskStore) resolveAuctionsFilepath(rea sotah.Realm) (string, error) {
 	if len(ds.CacheDir) == 0 {
-		return "", errors.New("Cache dir cannot be blank")
+		return "", errors.New("cache dir cannot be blank")
 	}
 
 	if len(rea.Region.Name) == 0 {
-		return "", errors.New("Region name cannot be blank")
+		return "", errors.New("region name cannot be blank")
 	}
 
 	if len(rea.Slug) == 0 {
-		return "", errors.New("Realm slug cannot be blank")
+		return "", errors.New("realm slug cannot be blank")
 	}
 
-	return fmt.Sprintf("%s/auctions/%s/%s", ds.CacheDir, rea.Region.Name, rea.Slug), nil
+	return fmt.Sprintf("%s/auctions/%s/%s.json.gz", ds.CacheDir, rea.Region.Name, rea.Slug), nil
 }
 
 func (ds DiskStore) WriteAuctions(rea sotah.Realm, data []byte) error {
-	dest, err := ds.resolveAuctionsDir(rea)
+	dest, err := ds.resolveAuctionsFilepath(rea)
 	if err != nil {
 		return err
 	}
@@ -46,7 +46,7 @@ func (ds DiskStore) WriteAuctions(rea sotah.Realm, data []byte) error {
 
 func (ds DiskStore) GetAuctionsByRealm(rea sotah.Realm) (blizzard.Auctions, time.Time, error) {
 	// resolving the cached auctions filepath
-	cachedAuctionsFilepath, err := ds.resolveAuctionsDir(rea)
+	cachedAuctionsFilepath, err := ds.resolveAuctionsFilepath(rea)
 	if err != nil {
 		return blizzard.Auctions{}, time.Time{}, err
 	}
@@ -75,7 +75,7 @@ func (ds DiskStore) GetAuctionsByRealm(rea sotah.Realm) (blizzard.Auctions, time
 		"region":   rea.Region.Name,
 		"realm":    rea.Slug,
 		"filepath": cachedAuctionsFilepath,
-	}).Debug("Finished loading Auctions from filepath")
+	}).Debug("Finished loading auctions from filepath")
 
 	return aucs, cachedAuctionsStat.ModTime(), nil
 }
@@ -100,7 +100,7 @@ func (ds DiskStore) GetAuctionsByRealms(reas sotah.Realms) chan GetAuctionsByRea
 				logging.WithFields(logrus.Fields{
 					"Region": rea.Region.Name,
 					"Realm":  rea.Slug,
-				}).Error("Last-modified was blank when loading Auctions from filecache")
+				}).Error("Last-modified was blank when loading auctions from filecache")
 
 				continue
 			}

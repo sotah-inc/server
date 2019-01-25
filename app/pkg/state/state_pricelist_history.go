@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/sotah-inc/server/app/pkg/sotah"
+
 	nats "github.com/nats-io/go-nats"
-	"github.com/sotah-inc/server/app/internal"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/database"
 	"github.com/sotah-inc/server/app/pkg/logging"
@@ -45,21 +46,21 @@ func newPriceListHistoryRequest(payload []byte) (priceListHistoryRequest, error)
 }
 
 type priceListHistoryRequest struct {
-	RegionName  internal.RegionName `json:"region_name"`
+	RegionName  blizzard.RegionName `json:"region_name"`
 	RealmSlug   blizzard.RealmSlug  `json:"realm_slug"`
 	ItemIds     []blizzard.ItemID   `json:"item_ids"`
 	LowerBounds int64               `json:"lower_bounds"`
 	UpperBounds int64               `json:"upper_bounds"`
 }
 
-func (plhRequest priceListHistoryRequest) resolve(sta State) (internal.Realm, database.PricelistHistoryDatabaseShards, requestError) {
+func (plhRequest priceListHistoryRequest) resolve(sta State) (sotah.Realm, database.PricelistHistoryDatabaseShards, requestError) {
 	regionStatuses, ok := sta.Statuses[plhRequest.RegionName]
 	if !ok {
-		return internal.Realm{},
+		return sotah.Realm{},
 			database.PricelistHistoryDatabaseShards{},
 			requestError{codes.NotFound, "Invalid region (Statuses)"}
 	}
-	rea := func() *internal.Realm {
+	rea := func() *sotah.Realm {
 		for _, regionRealm := range regionStatuses.Realms {
 			if regionRealm.Slug == plhRequest.RealmSlug {
 				return &regionRealm
@@ -69,7 +70,7 @@ func (plhRequest priceListHistoryRequest) resolve(sta State) (internal.Realm, da
 		return nil
 	}()
 	if rea == nil {
-		return internal.Realm{},
+		return sotah.Realm{},
 			database.PricelistHistoryDatabaseShards{},
 			requestError{codes.NotFound, "Invalid Realm (Statuses)"}
 	}

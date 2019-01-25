@@ -3,6 +3,9 @@ package state
 import (
 	"time"
 
+	"github.com/sotah-inc/server/app/pkg/sotah"
+	"google.golang.org/grpc/resolver"
+
 	"github.com/sotah-inc/server/app/internal"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/database"
@@ -17,7 +20,7 @@ type requestError struct {
 	message string
 }
 
-func NewState(res internal.Resolver) State {
+func NewState(res resolver.Resolver) State {
 	return State{
 		Resolver:              res,
 		Regions:               res.Config.FilterInRegions(res.Config.Regions),
@@ -30,7 +33,7 @@ func NewState(res internal.Resolver) State {
 }
 
 type State struct {
-	Resolver                  internal.Resolver
+	Resolver                  resolver.Resolver
 	Listeners                 listeners
 	PricelistHistoryDatabases database.PricelistHistoryDatabases
 	LiveAuctionsDatabases     database.LiveAuctionsDatabases
@@ -38,7 +41,7 @@ type State struct {
 	SessionSecret             uuid.UUID
 	RunID                     uuid.UUID
 
-	Regions               []internal.Region
+	Regions               []sotah.Region
 	Statuses              internal.Statuses
 	auctionIntakeStatuses map[internal.RegionName]map[blizzard.RealmSlug]time.Time
 	ItemClasses           blizzard.ItemClasses

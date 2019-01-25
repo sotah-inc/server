@@ -10,7 +10,6 @@ import (
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/pkg/state"
-	"github.com/sotah-inc/server/app/pkg/util"
 )
 
 type OwnerName string
@@ -60,15 +59,6 @@ func newOwnersFromMessenger(mess messenger.Messenger, request state.OwnersReques
 	}
 
 	return newOwners([]byte(msg.Data))
-}
-
-func newOwnersFromFilepath(relativeFilepath string) (owners, error) {
-	body, err := util.ReadFile(relativeFilepath)
-	if err != nil {
-		return owners{}, err
-	}
-
-	return newOwners(body)
 }
 
 func newOwners(payload []byte) (owners, error) {
