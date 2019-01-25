@@ -9,6 +9,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state/sortdirections"
 	"github.com/sotah-inc/server/app/pkg/state/sortkinds"
 	"github.com/sotah-inc/server/app/pkg/util"
@@ -25,7 +26,7 @@ func newAuctionsRequest(payload []byte) (AuctionsRequest, error) {
 }
 
 type AuctionsRequest struct {
-	RegionName    regionName                   `json:"region_name"`
+	RegionName    blizzard.RegionName          `json:"region_name"`
 	RealmSlug     blizzard.RealmSlug           `json:"realm_slug"`
 	Page          int                          `json:"page"`
 	Count         int                          `json:"count"`

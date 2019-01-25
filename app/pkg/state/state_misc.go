@@ -2,6 +2,8 @@ package state
 
 import (
 	"encoding/json"
+	"errors"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 
 	nats "github.com/nats-io/go-nats"
 	"github.com/sotah-inc/server/app/internal"
@@ -32,6 +34,24 @@ func (sta State) ListenForRegions(stop ListenStopChan) error {
 	}
 
 	return nil
+}
+
+func (sta State) NewRegions() (sotah.RegionList, error) {
+	msg, err := sta.messenger.Request(subjects.Regions, []byte{})
+	if err != nil {
+		return sotah.RegionList{}, err
+	}
+
+	if msg.Code != codes.Ok {
+		return nil, errors.New(msg.Err)
+	}
+
+	regs := sotah.RegionList{}
+	if err := json.Unmarshal([]byte(msg.Data), &regs); err != nil {
+		return sotah.RegionList{}, err
+	}
+
+	return regs, nil
 }
 
 type bootResponse struct {

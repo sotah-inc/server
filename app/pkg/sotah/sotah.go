@@ -2,7 +2,6 @@ package sotah
 
 import (
 	"errors"
-
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 )
 

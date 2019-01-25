@@ -1,15 +1,15 @@
 package state
 
 import (
-	"time"
-
+	"github.com/sotah-inc/server/app/pkg/diskstore"
+	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/store"
 	"google.golang.org/grpc/resolver"
 
-	"github.com/sotah-inc/server/app/internal"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/database"
-	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/twinj/uuid"
@@ -20,51 +20,43 @@ type requestError struct {
 	message string
 }
 
-func NewState(res resolver.Resolver) State {
-	return State{
-		Resolver:              res,
-		Regions:               res.Config.FilterInRegions(res.Config.Regions),
-		Statuses:              internal.Statuses{},
-		auctionIntakeStatuses: map[internal.RegionName]map[blizzard.RealmSlug]time.Time{},
-		expansions:            res.Config.Expansions,
-		professions:           res.Config.Professions,
-		ItemBlacklist:         newItemBlacklistMap(res.Config.ItemBlacklist),
-	}
+type ItemBlacklistMap map[blizzard.ItemID]struct{}
+
+// derived command-specific state
+type APIState struct {
+	State
+
+	SessionSecret uuid.UUID
+
+	Regions       []sotah.Region
+	Statuses      sotah.Statuses
+	ItemClasses   blizzard.ItemClasses
+	expansions    []sotah.Expansion
+	professions   []sotah.Profession
+	ItemBlacklist ItemBlacklistMap
 }
 
-type State struct {
-	Resolver                  resolver.Resolver
-	Listeners                 listeners
+// databases
+type Databases struct {
 	PricelistHistoryDatabases database.PricelistHistoryDatabases
 	LiveAuctionsDatabases     database.LiveAuctionsDatabases
 	ItemsDatabase             database.ItemsDatabase
-	SessionSecret             uuid.UUID
-	RunID                     uuid.UUID
-
-	Regions               []sotah.Region
-	Statuses              internal.Statuses
-	auctionIntakeStatuses map[internal.RegionName]map[blizzard.RealmSlug]time.Time
-	ItemClasses           blizzard.ItemClasses
-	expansions            []internal.Expansion
-	professions           []internal.Profession
-	ItemBlacklist         ItemBlacklistMap
 }
 
-func newItemBlacklistMap(IDs []blizzard.ItemID) ItemBlacklistMap {
-	out := ItemBlacklistMap{}
-
-	if len(IDs) == 0 {
-		return out
-	}
-
-	for _, ID := range IDs {
-		out[ID] = struct{}{}
-	}
-
-	return out
+// io bundle
+type IO struct {
+	resolver  resolver.Resolver
+	databases Databases
+	messenger messenger.Messenger
+	store     store.Store
+	diskStore diskstore.DiskStore
 }
 
-type ItemBlacklistMap map[blizzard.ItemID]struct{}
+// listener functionality
+type listener struct {
+	call     listenFunc
+	stopChan ListenStopChan
+}
 
 type ListenStopChan chan interface{}
 
@@ -72,8 +64,8 @@ type listenFunc func(stop ListenStopChan) error
 
 type SubjectListeners map[subjects.Subject]listenFunc
 
-func NewListeners(sListeners SubjectListeners) listeners {
-	ls := listeners{}
+func NewListeners(sListeners SubjectListeners) Listeners {
+	ls := Listeners{}
 	for subj, l := range sListeners {
 		ls[subj] = listener{l, make(ListenStopChan)}
 	}
@@ -81,9 +73,9 @@ func NewListeners(sListeners SubjectListeners) listeners {
 	return ls
 }
 
-type listeners map[subjects.Subject]listener
+type Listeners map[subjects.Subject]listener
 
-func (ls listeners) Listen() error {
+func (ls Listeners) Listen() error {
 	logging.WithField("Listeners", len(ls)).Info("Starting Listeners")
 
 	for _, l := range ls {
@@ -95,7 +87,7 @@ func (ls listeners) Listen() error {
 	return nil
 }
 
-func (ls listeners) Stop() {
+func (ls Listeners) Stop() {
 	logging.Info("Stopping Listeners")
 
 	for _, l := range ls {
@@ -103,9 +95,13 @@ func (ls listeners) Stop() {
 	}
 }
 
-type listener struct {
-	call     listenFunc
-	stopChan ListenStopChan
+// state
+func NewState(runId uuid.UUID, ls Listeners) State {
+	return State{RunID: runId, Listeners: ls}
 }
 
-type WorkerStopChan chan interface{}
+type State struct {
+	RunID     uuid.UUID
+	Listeners Listeners
+	IO        IO
+}

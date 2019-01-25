@@ -3,6 +3,7 @@ package state
 import (
 	"encoding/json"
 	"errors"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 	"sort"
 
 	nats "github.com/nats-io/go-nats"
@@ -109,4 +110,22 @@ func (sta State) ListenForOwners(stop ListenStopChan) error {
 	}
 
 	return nil
+}
+
+func (sta State) NewOwners(request OwnersRequest) (sotah.Owners, error) {
+	encodedMessage, err := json.Marshal(request)
+	if err != nil {
+		return sotah.Owners{}, err
+	}
+
+	msg, err := sta.IO.messenger.Request(subjects.Owners, encodedMessage)
+	if err != nil {
+		return sotah.Owners{}, err
+	}
+
+	if msg.Code != codes.Ok {
+		return sotah.Owners{}, errors.New(msg.Err)
+	}
+
+	return sotah.NewOwners([]byte(msg.Data))
 }

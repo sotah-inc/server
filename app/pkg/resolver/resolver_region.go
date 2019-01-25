@@ -5,7 +5,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/sotah"
 )
 
-func (res Resolver) NewStatus(reg sotah.Region) (sotah.Status, error) {
+func (r Resolver) NewStatus(reg sotah.Region) (sotah.Status, error) {
 	uri, err := res.AppendAccessToken(res.GetStatusURL(reg.Hostname))
 	if err != nil {
 		return sotah.Status{}, err

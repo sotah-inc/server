@@ -175,7 +175,7 @@ func (sto Store) ExportItems() chan exportItemsJob {
 }
 
 func (sto Store) NewItem(obj *storage.ObjectHandle) (blizzard.Item, error) {
-	reader, err := obj.NewReader(ctx)
+	reader, err := obj.NewReader(sto.Context)
 	if err != nil {
 		return blizzard.Item{}, err
 	}
@@ -187,4 +187,54 @@ func (sto Store) NewItem(obj *storage.ObjectHandle) (blizzard.Item, error) {
 	}
 
 	return blizzard.NewItem(body)
+}
+
+func (sto Store) GetItem(ID blizzard.ItemID) (blizzard.Item, error) {
+	exists, err := sto.ItemExists(ID)
+	if err != nil {
+		return blizzard.Item{}, err
+	}
+
+	if !exists {
+		return blizzard.Item{}, nil
+	}
+
+	return sto.NewItem(sto.GetItemObject(ID))
+}
+
+type GetItemsJob struct {
+	Err    error
+	ID     blizzard.ItemID
+	Item   blizzard.Item
+	Exists bool
+}
+
+func (sto Store) GetItems(IDs []blizzard.ItemID) chan GetItemsJob {
+	// establishing channels
+	out := make(chan GetItemsJob)
+	in := make(chan blizzard.ItemID)
+
+	// spinning up the workers for fetching items
+	worker := func() {
+		for ID := range in {
+			itemValue, err := sto.GetItem(ID)
+			exists := itemValue.ID > 0
+			out <- GetItemsJob{err, ID, itemValue, exists}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(8, worker, postWork)
+
+	// queueing up the items
+	go func() {
+		for _, ID := range IDs {
+			in <- ID
+		}
+
+		close(in)
+	}()
+
+	return out
 }

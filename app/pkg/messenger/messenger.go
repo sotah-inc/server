@@ -8,13 +8,11 @@ import (
 	"strconv"
 	"time"
 
-	nats "github.com/nats-io/go-nats"
+	"github.com/nats-io/go-nats"
 	"github.com/sirupsen/logrus"
-	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
-	"github.com/sotah-inc/server/app/pkg/sotah"
 )
 
 type Messenger struct {
@@ -159,50 +157,4 @@ func (mess Messenger) Request(subject subjects.Subject, data []byte) (Message, e
 
 func (mess Messenger) Publish(subject subjects.Subject, data []byte) error {
 	return mess.conn.Publish(string(subject), data)
-}
-
-func (mess Messenger) NewRegions() (sotah.RegionList, error) {
-	msg, err := mess.Request(subjects.Regions, []byte{})
-	if err != nil {
-		return sotah.RegionList{}, err
-	}
-
-	if msg.Code != codes.Ok {
-		return nil, errors.New(msg.Err)
-	}
-
-	regs := sotah.RegionList{}
-	if err := json.Unmarshal([]byte(msg.Data), &regs); err != nil {
-		return sotah.RegionList{}, err
-	}
-
-	return regs, nil
-}
-
-type statusRequest struct {
-	RegionName blizzard.RegionName `json:"region_name"`
-}
-
-func (mess Messenger) NewStatus(reg sotah.Region) (sotah.Status, error) {
-	lm := statusRequest{RegionName: reg.Name}
-	encodedMessage, err := json.Marshal(lm)
-	if err != nil {
-		return sotah.Status{}, err
-	}
-
-	msg, err := mess.Request(subjects.Status, encodedMessage)
-	if err != nil {
-		return sotah.Status{}, err
-	}
-
-	if msg.Code != codes.Ok {
-		return sotah.Status{}, errors.New(msg.Err)
-	}
-
-	stat, err := blizzard.NewStatus([]byte(msg.Data))
-	if err != nil {
-		return sotah.Status{}, err
-	}
-
-	return sotah.NewStatus(reg, stat), nil
 }

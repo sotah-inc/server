@@ -2,16 +2,20 @@ package database
 
 import (
 	"fmt"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 
 	"github.com/boltdb/bolt"
-	"github.com/sotah-inc/server/app/internal"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/logging"
 )
 
+// bucketing
 func databaseItemsBucketName() []byte {
 	return []byte("items")
 }
+
+// keying
+type itemKeyspace int64
 
 func itemIDKeyspace(ID blizzard.ItemID) itemKeyspace {
 	keyspaceSize := int64(1000)
@@ -24,17 +28,13 @@ func itemsKeyName(keyspace itemKeyspace) []byte {
 	return []byte(fmt.Sprintf("item-batch-%d", keyspace))
 }
 
-func itemsDatabasePath(c internal.Config) (string, error) {
-	dbDir, err := c.DatabaseDir()
-	if err != nil {
-		return "", err
-	}
-
+// items db
+func itemsDatabasePath(dbDir string) (string, error) {
 	return fmt.Sprintf("%s/items.db", dbDir), nil
 }
 
-func NewItemsDatabase(c internal.Config) (ItemsDatabase, error) {
-	dbFilepath, err := itemsDatabasePath(c)
+func NewItemsDatabase(dbDir string) (ItemsDatabase, error) {
+	dbFilepath, err := itemsDatabasePath(dbDir)
 	if err != nil {
 		return ItemsDatabase{}, err
 	}
@@ -53,8 +53,9 @@ type ItemsDatabase struct {
 	db *bolt.DB
 }
 
-func (idBase ItemsDatabase) GetItems() (internal.ItemsMap, error) {
-	out := internal.ItemsMap{}
+// gathering items
+func (idBase ItemsDatabase) GetItems() (sotah.ItemsMap, error) {
+	out := sotah.ItemsMap{}
 
 	err := idBase.db.View(func(tx *bolt.Tx) error {
 		bkt := tx.Bucket(databaseItemsBucketName())
@@ -63,7 +64,7 @@ func (idBase ItemsDatabase) GetItems() (internal.ItemsMap, error) {
 		}
 
 		err := bkt.ForEach(func(k, v []byte) error {
-			iMap, err := internal.NewItemsMapFromGzipped(v)
+			iMap, err := sotah.NewItemsMapFromGzipped(v)
 			if err != nil {
 				return err
 			}
@@ -81,13 +82,14 @@ func (idBase ItemsDatabase) GetItems() (internal.ItemsMap, error) {
 		return nil
 	})
 	if err != nil {
-		return internal.ItemsMap{}, err
+		return sotah.ItemsMap{}, err
 	}
 
 	return out, nil
 }
 
-func (idBase ItemsDatabase) FindItems(IDs []blizzard.ItemID) (internal.ItemsMap, error) {
+func (idBase ItemsDatabase) FindItems(IDs []blizzard.ItemID) (sotah.ItemsMap, error) {
+	// gathering item keyspaces for fetching
 	keyspaces := func() []itemKeyspace {
 		result := map[itemKeyspace]struct{}{}
 		for _, ID := range IDs {
@@ -102,8 +104,10 @@ func (idBase ItemsDatabase) FindItems(IDs []blizzard.ItemID) (internal.ItemsMap,
 		return out
 	}()
 
-	IDsMap := internal.NewItemIdsMap(IDs)
-	out := internal.ItemsMap{}
+	// producing an id map for simpler filtering of results
+	IDsMap := sotah.NewItemIdsMap(IDs)
+
+	out := sotah.ItemsMap{}
 	err := idBase.db.View(func(tx *bolt.Tx) error {
 		bkt := tx.Bucket(databaseItemsBucketName())
 		if bkt == nil {
@@ -116,7 +120,7 @@ func (idBase ItemsDatabase) FindItems(IDs []blizzard.ItemID) (internal.ItemsMap,
 				continue
 			}
 
-			iMap, err := internal.NewItemsMapFromGzipped(value)
+			iMap, err := sotah.NewItemsMapFromGzipped(value)
 			if err != nil {
 				return err
 			}
@@ -133,33 +137,35 @@ func (idBase ItemsDatabase) FindItems(IDs []blizzard.ItemID) (internal.ItemsMap,
 		return nil
 	})
 	if err != nil {
-		return internal.ItemsMap{}, err
+		return sotah.ItemsMap{}, err
 	}
 
 	return out, nil
 }
 
-func newItemsMapBatch(iMap internal.ItemsMap) itemsMapBatch {
-	imBatch := itemsMapBatch{}
+// persisting
+func newItemsMapBatch(iMap sotah.ItemsMap) itemsMapBatch {
+	out := itemsMapBatch{}
 	for ID, itemValue := range iMap {
 		keyspace := itemIDKeyspace(ID)
-		if _, ok := imBatch[keyspace]; !ok {
-			imBatch[keyspace] = internal.ItemsMap{ID: itemValue}
+		if _, ok := out[keyspace]; !ok {
+			out[keyspace] = sotah.ItemsMap{ID: itemValue}
+
+			continue
 		} else {
-			imBatch[keyspace][ID] = itemValue
+			out[keyspace][ID] = itemValue
 		}
 	}
 
-	return imBatch
+	return out
 }
 
-type itemKeyspace int64
+type itemsMapBatch map[itemKeyspace]sotah.ItemsMap
 
-type itemsMapBatch map[itemKeyspace]internal.ItemsMap
-
-func (idBase ItemsDatabase) PersistItems(iMap internal.ItemsMap) error {
+func (idBase ItemsDatabase) PersistItems(iMap sotah.ItemsMap) error {
 	logging.WithField("items", len(iMap)).Debug("Persisting items")
 
+	// grouping items into batches based on keyspace
 	imBatch := newItemsMapBatch(iMap)
 
 	logging.WithField("batches", len(imBatch)).Debug("Persisting batches")

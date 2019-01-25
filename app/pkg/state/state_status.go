@@ -3,6 +3,8 @@ package state
 import (
 	"encoding/json"
 	"errors"
+	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 
 	"github.com/sotah-inc/server/app/pkg/messenger"
 
@@ -92,4 +94,28 @@ func (sta State) ListenForStatus(stop ListenStopChan) error {
 	}
 
 	return nil
+}
+
+func (sta State) NewStatus(reg sotah.Region) (sotah.Status, error) {
+	lm := StatusRequest{RegionName: reg.Name}
+	encodedMessage, err := json.Marshal(lm)
+	if err != nil {
+		return sotah.Status{}, err
+	}
+
+	msg, err := sta.messenger.Request(subjects.Status, encodedMessage)
+	if err != nil {
+		return sotah.Status{}, err
+	}
+
+	if msg.Code != codes.Ok {
+		return sotah.Status{}, errors.New(msg.Err)
+	}
+
+	stat, err := blizzard.NewStatus([]byte(msg.Data))
+	if err != nil {
+		return sotah.Status{}, err
+	}
+
+	return sotah.NewStatus(reg, stat), nil
 }

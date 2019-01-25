@@ -1,15 +1,14 @@
-package internal
+package sotah
 
 import (
 	"encoding/json"
 	"errors"
-	"regexp"
-	"strings"
-
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/pkg/state"
+	"regexp"
+	"strings"
 )
 
 type OwnerName string
@@ -19,7 +18,7 @@ type Owner struct {
 	NormalizedName string    `json:"normalized_name"`
 }
 
-func NewOwnersFromAuctions(aucs MiniAuctionList) (owners, error) {
+func NewOwnersFromAuctions(aucs MiniAuctionList) (Owners, error) {
 	ownerNamesMap := map[OwnerName]struct{}{}
 	for _, ma := range aucs {
 		ownerNamesMap[ma.Owner] = struct{}{}
@@ -27,7 +26,7 @@ func NewOwnersFromAuctions(aucs MiniAuctionList) (owners, error) {
 
 	reg, err := regexp.Compile("[^a-z0-9 ]+")
 	if err != nil {
-		return owners{}, err
+		return Owners{}, err
 	}
 
 	ownerList := make([]Owner, len(ownerNamesMap))
@@ -40,37 +39,19 @@ func NewOwnersFromAuctions(aucs MiniAuctionList) (owners, error) {
 		i++
 	}
 
-	return owners{Owners: ownerList}, nil
+	return Owners{Owners: ownerList}, nil
 }
 
-func newOwnersFromMessenger(mess messenger.Messenger, request state.OwnersRequest) (owners, error) {
-	encodedMessage, err := json.Marshal(request)
-	if err != nil {
-		return owners{}, err
-	}
-
-	msg, err := mess.Request(subjects.Owners, encodedMessage)
-	if err != nil {
-		return owners{}, err
-	}
-
-	if msg.Code != codes.Ok {
-		return owners{}, errors.New(msg.Err)
-	}
-
-	return newOwners([]byte(msg.Data))
-}
-
-func newOwners(payload []byte) (owners, error) {
-	o := &owners{}
+func NewOwners(payload []byte) (Owners, error) {
+	o := &Owners{}
 	if err := json.Unmarshal(payload, &o); err != nil {
-		return owners{}, err
+		return Owners{}, err
 	}
 
 	return *o, nil
 }
 
-type owners struct {
+type Owners struct {
 	Owners ownersList `json:"owners"`
 }
 
