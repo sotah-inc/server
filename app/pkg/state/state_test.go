@@ -74,7 +74,7 @@ func TestListenForGenericTestErrors(t *testing.T) {
 	}
 
 	// requesting a message from
-	msg, err := sta.Messenger.request(subjects.GenericTestErrors, []byte{})
+	msg, err := sta.IO.messenger.request(subjects.GenericTestErrors, []byte{})
 	if !assert.Nil(t, err) {
 		stop <- struct{}{}
 

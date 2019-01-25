@@ -92,8 +92,8 @@ func (plhRequest priceListHistoryRequest) resolve(sta State) (sotah.Realm, datab
 	return *rea, phdShards, reErr
 }
 
-func (sta State) ListenForPriceListHistory(stop ListenStopChan) error {
-	err := sta.Messenger.Subscribe(subjects.PriceListHistory, stop, func(natsMsg nats.Msg) {
+func (sta State) ListenForPriceListHistory(stop messenger.ListenStopChan) error {
+	err := sta.IO.messenger.Subscribe(subjects.PriceListHistory, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		// resolving the request
@@ -101,7 +101,7 @@ func (sta State) ListenForPriceListHistory(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -111,7 +111,7 @@ func (sta State) ListenForPriceListHistory(stop ListenStopChan) error {
 		if reErr.code != codes.Ok {
 			m.Err = reErr.message
 			m.Code = reErr.code
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -130,7 +130,7 @@ func (sta State) ListenForPriceListHistory(stop ListenStopChan) error {
 			if err != nil {
 				m.Err = err.Error()
 				m.Code = codes.GenericError
-				sta.Messenger.ReplyTo(natsMsg, m)
+				sta.IO.messenger.ReplyTo(natsMsg, m)
 
 				return
 			}
@@ -143,13 +143,13 @@ func (sta State) ListenForPriceListHistory(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		m.Data = data
-		sta.Messenger.ReplyTo(natsMsg, m)
+		sta.IO.messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err

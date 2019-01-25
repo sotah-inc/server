@@ -1,4 +1,4 @@
-package internal
+package sotah
 
 import (
 	"errors"
@@ -45,7 +45,7 @@ func (mas miniAuctionSorter) sort(kind sortkinds.SortKind, direction sortdirecti
 	}
 	resolvedKind, ok := kindMap[kind]
 	if !ok {
-		return errors.New("Invalid sort kind")
+		return errors.New("invalid sort kind")
 	}
 
 	if direction == sortdirections.Down {
@@ -55,7 +55,7 @@ func (mas miniAuctionSorter) sort(kind sortkinds.SortKind, direction sortdirecti
 	// resolving the sort func
 	sortFn, ok := mas[resolvedKind]
 	if !ok {
-		return errors.New("Sorter not found")
+		return errors.New("sorter not found")
 	}
 
 	sortFn(data)

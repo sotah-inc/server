@@ -3,6 +3,7 @@ package state
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 
 	nats "github.com/nats-io/go-nats"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
@@ -32,65 +33,42 @@ type AuctionsRequest struct {
 	Count         int                          `json:"count"`
 	SortDirection sortdirections.SortDirection `json:"sort_direction"`
 	SortKind      sortkinds.SortKind           `json:"sort_kind"`
-	OwnerFilters  []ownerName                  `json:"owner_filters"`
+	OwnerFilters  []sotah.OwnerName            `json:"owner_filters"`
 	ItemFilters   []blizzard.ItemID            `json:"item_filters"`
 }
 
-func (ar AuctionsRequest) resolve(sta State) (miniAuctionList, requestError) {
-	regionLadBases, ok := sta.LiveAuctionsDatabases[ar.RegionName]
+func (ar AuctionsRequest) resolve(sta State) (sotah.MiniAuctionList, requestError) {
+	regionLadBases, ok := sta.IO.databases.LiveAuctionsDatabases[ar.RegionName]
 	if !ok {
-		return miniAuctionList{}, requestError{codes.NotFound, "Invalid region"}
+		return sotah.MiniAuctionList{}, requestError{codes.NotFound, "Invalid region"}
 	}
 
 	realmLadbase, ok := regionLadBases[ar.RealmSlug]
 	if !ok {
-		return miniAuctionList{}, requestError{codes.NotFound, "Invalid Realm"}
+		return sotah.MiniAuctionList{}, requestError{codes.NotFound, "Invalid Realm"}
 	}
 
 	if ar.Page < 0 {
-		return miniAuctionList{}, requestError{codes.UserError, "Page must be >=0"}
+		return sotah.MiniAuctionList{}, requestError{codes.UserError, "Page must be >=0"}
 	}
 	if ar.Count == 0 {
-		return miniAuctionList{}, requestError{codes.UserError, "Count must be >0"}
+		return sotah.MiniAuctionList{}, requestError{codes.UserError, "Count must be >0"}
 	} else if ar.Count > 1000 {
-		return miniAuctionList{}, requestError{codes.UserError, "Count must be <=1000"}
+		return sotah.MiniAuctionList{}, requestError{codes.UserError, "Count must be <=1000"}
 	}
 
-	maList, err := realmLadbase.getMiniauctions()
+	maList, err := realmLadbase.GetMiniauctions()
 	if err != nil {
-		return miniAuctionList{}, requestError{codes.GenericError, err.Error()}
+		return sotah.MiniAuctionList{}, requestError{codes.GenericError, err.Error()}
 	}
 
 	return maList, requestError{codes.Ok, ""}
 }
 
-func NewAuctionsResponseFromEncoded(body []byte) (auctionsResponse, error) {
-	base64Decoded, err := base64.StdEncoding.DecodeString(string(body))
-	if err != nil {
-		return auctionsResponse{}, err
-	}
-
-	gzipDecoded, err := util.GzipDecode(base64Decoded)
-	if err != nil {
-		return auctionsResponse{}, err
-	}
-
-	return newAuctionsResponse(gzipDecoded)
-}
-
-func newAuctionsResponse(body []byte) (auctionsResponse, error) {
-	ar := &auctionsResponse{}
-	if err := json.Unmarshal(body, ar); err != nil {
-		return auctionsResponse{}, err
-	}
-
-	return *ar, nil
-}
-
 type auctionsResponse struct {
-	AuctionList miniAuctionList `json:"auctions"`
-	Total       int             `json:"total"`
-	TotalCount  int             `json:"total_count"`
+	AuctionList sotah.MiniAuctionList `json:"auctions"`
+	Total       int                   `json:"total"`
+	TotalCount  int                   `json:"total_count"`
 }
 
 func (ar auctionsResponse) encodeForMessage() (string, error) {
@@ -107,8 +85,8 @@ func (ar auctionsResponse) encodeForMessage() (string, error) {
 	return base64.StdEncoding.EncodeToString(gzipEncodedAuctions), nil
 }
 
-func (sta State) ListenForAuctions(stop ListenStopChan) error {
-	err := sta.Messenger.Subscribe(subjects.Auctions, stop, func(natsMsg nats.Msg) {
+func (sta State) ListenForAuctions(stop messenger.ListenStopChan) error {
+	err := sta.IO.messenger.Subscribe(subjects.Auctions, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		// resolving the request
@@ -116,7 +94,7 @@ func (sta State) ListenForAuctions(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -126,7 +104,7 @@ func (sta State) ListenForAuctions(stop ListenStopChan) error {
 		if reErr.code != codes.Ok {
 			m.Err = reErr.message
 			m.Code = reErr.code
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -158,7 +136,7 @@ func (sta State) ListenForAuctions(stop ListenStopChan) error {
 			if err != nil {
 				m.Err = err.Error()
 				m.Code = codes.UserError
-				sta.Messenger.ReplyTo(natsMsg, m)
+				sta.IO.messenger.ReplyTo(natsMsg, m)
 
 				return
 			}
@@ -169,7 +147,7 @@ func (sta State) ListenForAuctions(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.UserError
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -179,17 +157,44 @@ func (sta State) ListenForAuctions(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		m.Data = data
-		sta.Messenger.ReplyTo(natsMsg, m)
+		sta.IO.messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+type NewMiniAuctionsListFromMessengerConfig struct {
+	realm         sotah.Realm
+	count         int
+	page          int
+	sortDirection sortdirections.SortDirection
+	sortKind      sortkinds.SortKind
+	ownerFilter   sotah.OwnerName
+}
+
+func (sta State) NewMiniAuctionsList(req AuctionsRequest) (sotah.MiniAuctionList, error) {
+	encodedMessage, err := json.Marshal(req)
+	if err != nil {
+		return sotah.MiniAuctionList{}, err
+	}
+
+	msg, err := sta.IO.messenger.Request(subjects.Auctions, encodedMessage)
+	if err != nil {
+		return sotah.MiniAuctionList{}, err
+	}
+
+	if msg.Code != codes.Ok {
+		return sotah.MiniAuctionList{}, errors.New(msg.Err)
+	}
+
+	return sotah.NewMiniAuctionListFromGzipped([]byte(msg.Data))
 }

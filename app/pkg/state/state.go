@@ -28,7 +28,7 @@ type APIState struct {
 
 	SessionSecret uuid.UUID
 
-	Regions       []sotah.Region
+	Regions       sotah.RegionList
 	Statuses      sotah.Statuses
 	ItemClasses   blizzard.ItemClasses
 	expansions    []sotah.Expansion
@@ -60,7 +60,7 @@ type listener struct {
 
 type ListenStopChan chan interface{}
 
-type listenFunc func(stop ListenStopChan) error
+type listenFunc func(stop messenger.ListenStopChan) error
 
 type SubjectListeners map[subjects.Subject]listenFunc
 

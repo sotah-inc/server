@@ -13,21 +13,21 @@ type sessionSecretData struct {
 	SessionSecret string `json:"session_secret"`
 }
 
-func (sta State) ListenForSessionSecret(stop ListenStopChan) error {
-	err := sta.Messenger.Subscribe(subjects.SessionSecret, stop, func(natsMsg nats.Msg) {
+func (sta State) ListenForSessionSecret(stop messenger.ListenStopChan) error {
+	err := sta.IO.messenger.Subscribe(subjects.SessionSecret, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		encodedData, err := json.Marshal(sessionSecretData{sta.SessionSecret.String()})
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		m.Data = string(encodedData)
-		sta.Messenger.ReplyTo(natsMsg, m)
+		sta.IO.messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err

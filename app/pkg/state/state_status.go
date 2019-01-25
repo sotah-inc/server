@@ -46,15 +46,15 @@ func (sr StatusRequest) resolve(sta State) (internal.Region, error) {
 	return reg, nil
 }
 
-func (sta State) ListenForStatus(stop ListenStopChan) error {
-	err := sta.Messenger.Subscribe(subjects.Status, stop, func(natsMsg nats.Msg) {
+func (sta State) ListenForStatus(stop messenger.ListenStopChan) error {
+	err := sta.IO.messenger.Subscribe(subjects.Status, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		sr, err := newStatusRequest(natsMsg.Data)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -63,7 +63,7 @@ func (sta State) ListenForStatus(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.NotFound
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -72,7 +72,7 @@ func (sta State) ListenForStatus(stop ListenStopChan) error {
 		if !ok {
 			m.Err = "Region found but not in Statuses"
 			m.Code = codes.NotFound
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -81,13 +81,13 @@ func (sta State) ListenForStatus(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		m.Data = string(encodedStatus)
-		sta.Messenger.ReplyTo(natsMsg, m)
+		sta.IO.messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err
@@ -103,7 +103,7 @@ func (sta State) NewStatus(reg sotah.Region) (sotah.Status, error) {
 		return sotah.Status{}, err
 	}
 
-	msg, err := sta.messenger.Request(subjects.Status, encodedMessage)
+	msg, err := sta.IO.messenger.Request(subjects.Status, encodedMessage)
 	if err != nil {
 		return sotah.Status{}, err
 	}

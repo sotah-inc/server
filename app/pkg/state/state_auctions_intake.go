@@ -147,7 +147,7 @@ func (aiRequest AuctionsIntakeRequest) handle(sta State) {
 	)
 }
 
-func (sta State) ListenForAuctionsIntake(stop ListenStopChan) error {
+func (sta State) ListenForAuctionsIntake(stop messenger.ListenStopChan) error {
 	// spinning up a worker for handling auctions-intake requests
 	in := make(chan AuctionsIntakeRequest, 10)
 	go func() {
@@ -283,7 +283,7 @@ func (sta State) ListenForAuctionsIntake(stop ListenStopChan) error {
 	}()
 
 	// starting up a listener for auctions-intake
-	err := sta.Messenger.Subscribe(subjects.AuctionsIntake, stop, func(natsMsg nats.Msg) {
+	err := sta.IO.messenger.Subscribe(subjects.AuctionsIntake, stop, func(natsMsg nats.Msg) {
 		// resolving the request
 		aiRequest, err := newAuctionsIntakeRequest(natsMsg.Data)
 		if err != nil {

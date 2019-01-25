@@ -17,6 +17,16 @@ func (rl RegionList) GetPrimaryRegion() (Region, error) {
 	return Region{}, errors.New("Could not find primary Region")
 }
 
+func (rl RegionList) GetRegion(name blizzard.RegionName) Region {
+	for _, reg := range rl {
+		if reg.Name == name {
+			return reg
+		}
+	}
+
+	return Region{}
+}
+
 type Region struct {
 	Name     blizzard.RegionName `json:"name"`
 	Hostname string              `json:"hostname"`

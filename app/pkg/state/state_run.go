@@ -36,8 +36,8 @@ type runtimeInfoData struct {
 	runID string `json:"run_id"`
 }
 
-func (sta State) ListenForRuntimeInfo(stop ListenStopChan) error {
-	err := sta.Messenger.Subscribe(subjects.RuntimeInfo, stop, func(natsMsg nats.Msg) {
+func (sta State) ListenForRuntimeInfo(stop messenger.ListenStopChan) error {
+	err := sta.IO.messenger.Subscribe(subjects.RuntimeInfo, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		out := runtimeInfoData{
@@ -48,13 +48,13 @@ func (sta State) ListenForRuntimeInfo(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		m.Data = string(encodedData)
-		sta.Messenger.ReplyTo(natsMsg, m)
+		sta.IO.messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err

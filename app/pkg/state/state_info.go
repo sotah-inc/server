@@ -72,15 +72,15 @@ func (iRequest infoRequest) resolve(sta State) (infoResponse, error) {
 	return infoResponse{len(items), regValuations}, nil
 }
 
-func (sta State) listenForInfo(stop ListenStopChan) error {
-	err := sta.Messenger.Subscribe(subjects.Info, stop, func(natsMsg nats.Msg) {
+func (sta State) listenForInfo(stop messenger.ListenStopChan) error {
+	err := sta.IO.messenger.Subscribe(subjects.Info, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		iRequest, err := newInfoRequest(natsMsg.Data)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -89,7 +89,7 @@ func (sta State) listenForInfo(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -98,13 +98,13 @@ func (sta State) listenForInfo(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		m.Data = string(encodedStatus)
-		sta.Messenger.ReplyTo(natsMsg, m)
+		sta.IO.messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err

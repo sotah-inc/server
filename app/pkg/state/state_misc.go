@@ -13,21 +13,21 @@ import (
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 )
 
-func (sta State) ListenForRegions(stop ListenStopChan) error {
-	err := sta.Messenger.Subscribe(subjects.Regions, stop, func(natsMsg nats.Msg) {
+func (sta State) ListenForRegions(stop messenger.ListenStopChan) error {
+	err := sta.IO.messenger.Subscribe(subjects.Regions, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		encodedRegions, err := json.Marshal(sta.Regions)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		m.Data = string(encodedRegions)
-		sta.Messenger.ReplyTo(natsMsg, m)
+		sta.IO.messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err
@@ -37,7 +37,7 @@ func (sta State) ListenForRegions(stop ListenStopChan) error {
 }
 
 func (sta State) NewRegions() (sotah.RegionList, error) {
-	msg, err := sta.messenger.Request(subjects.Regions, []byte{})
+	msg, err := sta.IO.messenger.Request(subjects.Regions, []byte{})
 	if err != nil {
 		return sotah.RegionList{}, err
 	}
@@ -61,8 +61,8 @@ type bootResponse struct {
 	Professions []internal.Profession `json:"professions"`
 }
 
-func (sta State) ListenForBoot(stop ListenStopChan) error {
-	err := sta.Messenger.Subscribe(subjects.Boot, stop, func(natsMsg nats.Msg) {
+func (sta State) ListenForBoot(stop messenger.ListenStopChan) error {
+	err := sta.IO.messenger.Subscribe(subjects.Boot, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		encodedResponse, err := json.Marshal(bootResponse{
@@ -74,13 +74,13 @@ func (sta State) ListenForBoot(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		m.Data = string(encodedResponse)
-		sta.Messenger.ReplyTo(natsMsg, m)
+		sta.IO.messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err
@@ -89,12 +89,12 @@ func (sta State) ListenForBoot(stop ListenStopChan) error {
 	return nil
 }
 
-func (sta State) ListenForGenericTestErrors(stop ListenStopChan) error {
-	err := sta.Messenger.Subscribe(subjects.GenericTestErrors, stop, func(natsMsg nats.Msg) {
+func (sta State) ListenForGenericTestErrors(stop messenger.ListenStopChan) error {
+	err := sta.IO.messenger.Subscribe(subjects.GenericTestErrors, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 		m.Err = "Test error"
 		m.Code = codes.GenericError
-		sta.Messenger.ReplyTo(natsMsg, m)
+		sta.IO.messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err

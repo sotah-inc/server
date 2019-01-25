@@ -134,8 +134,8 @@ func (request itemsQueryRequest) resolve(sta State) (itemsQueryResult, error) {
 	return iqResult, nil
 }
 
-func (sta State) ListenForItemsQuery(stop ListenStopChan) error {
-	err := sta.Messenger.Subscribe(subjects.ItemsQuery, stop, func(natsMsg nats.Msg) {
+func (sta State) ListenForItemsQuery(stop messenger.ListenStopChan) error {
+	err := sta.IO.messenger.Subscribe(subjects.ItemsQuery, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		// resolving the request
@@ -143,7 +143,7 @@ func (sta State) ListenForItemsQuery(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -153,7 +153,7 @@ func (sta State) ListenForItemsQuery(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -178,14 +178,14 @@ func (sta State) ListenForItemsQuery(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		// dumping it out
 		m.Data = string(encodedMessage)
-		sta.Messenger.ReplyTo(natsMsg, m)
+		sta.IO.messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err

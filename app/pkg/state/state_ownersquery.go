@@ -138,8 +138,8 @@ func (request ownersQueryRequest) resolve(sta State) (ownersQueryResult, error) 
 	return oqResult, nil
 }
 
-func (sta State) ListenForOwnersQuery(stop ListenStopChan) error {
-	err := sta.Messenger.Subscribe(subjects.OwnersQuery, stop, func(natsMsg nats.Msg) {
+func (sta State) ListenForOwnersQuery(stop messenger.ListenStopChan) error {
+	err := sta.IO.messenger.Subscribe(subjects.OwnersQuery, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		// resolving the request
@@ -147,7 +147,7 @@ func (sta State) ListenForOwnersQuery(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -157,7 +157,7 @@ func (sta State) ListenForOwnersQuery(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.NotFound
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -182,14 +182,14 @@ func (sta State) ListenForOwnersQuery(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		// dumping it out
 		m.Data = string(encodedMessage)
-		sta.Messenger.ReplyTo(natsMsg, m)
+		sta.IO.messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err

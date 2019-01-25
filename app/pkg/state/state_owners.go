@@ -49,8 +49,8 @@ func (request OwnersRequest) resolve(sta State) (internal.MiniAuctionList, error
 	return maList, nil
 }
 
-func (sta State) ListenForOwners(stop ListenStopChan) error {
-	err := sta.Messenger.Subscribe(subjects.Owners, stop, func(natsMsg nats.Msg) {
+func (sta State) ListenForOwners(stop messenger.ListenStopChan) error {
+	err := sta.IO.messenger.Subscribe(subjects.Owners, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		// resolving the request
@@ -58,7 +58,7 @@ func (sta State) ListenForOwners(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -68,7 +68,7 @@ func (sta State) ListenForOwners(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.NotFound
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -77,7 +77,7 @@ func (sta State) ListenForOwners(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -96,14 +96,14 @@ func (sta State) ListenForOwners(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		// dumping it out
 		m.Data = string(encodedMessage)
-		sta.Messenger.ReplyTo(natsMsg, m)
+		sta.IO.messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err

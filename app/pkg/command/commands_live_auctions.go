@@ -100,7 +100,7 @@ func liveAuctions(c internal.Config, m messenger.Messenger, s store.Store) error
 	if err != nil {
 		return err
 	}
-	sta.LiveAuctionsDatabases = ladBases
+	sta.IO.databases.LiveAuctionsDatabases = ladBases
 
 	// opening all listeners
 	sta.Listeners = state.NewListeners(state.SubjectListeners{

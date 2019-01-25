@@ -50,8 +50,8 @@ func (iResponse itemsResponse) encodeForMessage() (string, error) {
 	return base64.StdEncoding.EncodeToString(gzippedResult), nil
 }
 
-func (sta State) ListenForItems(stop ListenStopChan) error {
-	err := sta.Messenger.Subscribe(subjects.Items, stop, func(natsMsg nats.Msg) {
+func (sta State) ListenForItems(stop messenger.ListenStopChan) error {
+	err := sta.IO.messenger.Subscribe(subjects.Items, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		// resolving the request
@@ -59,7 +59,7 @@ func (sta State) ListenForItems(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -68,7 +68,7 @@ func (sta State) ListenForItems(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -78,13 +78,13 @@ func (sta State) ListenForItems(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		m.Data = data
-		sta.Messenger.ReplyTo(natsMsg, m)
+		sta.IO.messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err

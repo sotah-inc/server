@@ -58,8 +58,8 @@ func (request ownersQueryRequestByItems) resolve(sta State) (internal.MiniAuctio
 	return maList, requestError{codes.Ok, ""}
 }
 
-func (sta State) ListenForOwnersQueryByItems(stop ListenStopChan) error {
-	err := sta.Messenger.Subscribe(subjects.OwnersQueryByItems, stop, func(natsMsg nats.Msg) {
+func (sta State) ListenForOwnersQueryByItems(stop messenger.ListenStopChan) error {
+	err := sta.IO.messenger.Subscribe(subjects.OwnersQueryByItems, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		// resolving the request
@@ -67,7 +67,7 @@ func (sta State) ListenForOwnersQueryByItems(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -82,7 +82,7 @@ func (sta State) ListenForOwnersQueryByItems(stop ListenStopChan) error {
 		if reErr.code != codes.Ok {
 			m.Err = reErr.message
 			m.Code = reErr.code
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -119,14 +119,14 @@ func (sta State) ListenForOwnersQueryByItems(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.Messenger.ReplyTo(natsMsg, m)
+			sta.IO.messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		// dumping it out
 		m.Data = string(encodedMessage)
-		sta.Messenger.ReplyTo(natsMsg, m)
+		sta.IO.messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err
