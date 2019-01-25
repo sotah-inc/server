@@ -114,10 +114,10 @@ func (sta State) ListenForAuctions(stop messenger.ListenStopChan) error {
 
 		// filtering in auctions by owners or items
 		if len(aRequest.OwnerFilters) > 0 {
-			aResponse.AuctionList = aResponse.AuctionList.filterByOwnerNames(aRequest.OwnerFilters)
+			aResponse.AuctionList = aResponse.AuctionList.FilterByOwnerNames(aRequest.OwnerFilters)
 		}
 		if len(aRequest.ItemFilters) > 0 {
-			aResponse.AuctionList = aResponse.AuctionList.filterByItemIDs(aRequest.ItemFilters)
+			aResponse.AuctionList = aResponse.AuctionList.FilterByItemIDs(aRequest.ItemFilters)
 		}
 
 		// calculating the total for paging
@@ -132,7 +132,7 @@ func (sta State) ListenForAuctions(stop messenger.ListenStopChan) error {
 
 		// optionally sorting
 		if aRequest.SortKind != sortkinds.None && aRequest.SortDirection != sortdirections.None {
-			err = aResponse.AuctionList.sort(aRequest.SortKind, aRequest.SortDirection)
+			err = aResponse.AuctionList.Sort(aRequest.SortKind, aRequest.SortDirection)
 			if err != nil {
 				m.Err = err.Error()
 				m.Code = codes.UserError
@@ -143,7 +143,7 @@ func (sta State) ListenForAuctions(stop messenger.ListenStopChan) error {
 		}
 
 		// truncating the list
-		aResponse.AuctionList, err = aResponse.AuctionList.limit(aRequest.Count, aRequest.Page)
+		aResponse.AuctionList, err = aResponse.AuctionList.Limit(aRequest.Count, aRequest.Page)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.UserError

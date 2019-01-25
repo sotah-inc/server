@@ -71,7 +71,7 @@ func newMiniAuctionList(body []byte) (MiniAuctionList, error) {
 
 type MiniAuctionList []miniAuction
 
-func (maList MiniAuctionList) limit(count int, page int) (MiniAuctionList, error) {
+func (maList MiniAuctionList) Limit(count int, page int) (MiniAuctionList, error) {
 	alLength := len(maList)
 	if alLength == 0 {
 		return maList, nil
@@ -79,7 +79,7 @@ func (maList MiniAuctionList) limit(count int, page int) (MiniAuctionList, error
 
 	start := page * count
 	if start > alLength {
-		return MiniAuctionList{}, fmt.Errorf("Start out of range: %d", start)
+		return MiniAuctionList{}, fmt.Errorf("start out of range: %d", start)
 	}
 
 	end := start + count
@@ -90,12 +90,12 @@ func (maList MiniAuctionList) limit(count int, page int) (MiniAuctionList, error
 	return maList[start:end], nil
 }
 
-func (maList MiniAuctionList) sort(kind sortkinds.SortKind, direction sortdirections.SortDirection) error {
+func (maList MiniAuctionList) Sort(kind sortkinds.SortKind, direction sortdirections.SortDirection) error {
 	mas := newMiniAuctionSorter()
 	return mas.sort(kind, direction, maList)
 }
 
-func (maList MiniAuctionList) filterByOwnerNames(ownerNameFilters []OwnerName) MiniAuctionList {
+func (maList MiniAuctionList) FilterByOwnerNames(ownerNameFilters []OwnerName) MiniAuctionList {
 	out := MiniAuctionList{}
 	for _, ma := range maList {
 		for _, ownerNameFilter := range ownerNameFilters {
@@ -108,7 +108,7 @@ func (maList MiniAuctionList) filterByOwnerNames(ownerNameFilters []OwnerName) M
 	return out
 }
 
-func (maList MiniAuctionList) filterByItemIDs(itemIDFilters []blizzard.ItemID) MiniAuctionList {
+func (maList MiniAuctionList) FilterByItemIDs(itemIDFilters []blizzard.ItemID) MiniAuctionList {
 	out := MiniAuctionList{}
 	for _, ma := range maList {
 		for _, itemIDFilter := range itemIDFilters {

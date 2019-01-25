@@ -2,15 +2,15 @@ package state
 
 import (
 	"encoding/json"
-	"time"
-
 	nats "github.com/nats-io/go-nats"
 	"github.com/sirupsen/logrus"
-	"github.com/sotah-inc/server/app/internal"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/pkg/metric"
+	"github.com/sotah-inc/server/app/pkg/sotah"
+	"time"
 )
 
 func newAuctionsIntakeRequest(payload []byte) (AuctionsIntakeRequest, error) {
@@ -24,7 +24,7 @@ func newAuctionsIntakeRequest(payload []byte) (AuctionsIntakeRequest, error) {
 }
 
 type RealmMapValue struct {
-	Realm        internal.Realm
+	Realm        sotah.Realm
 	LastModified time.Time
 }
 
@@ -32,8 +32,8 @@ type RealmMap struct {
 	Values map[blizzard.RealmSlug]RealmMapValue
 }
 
-func (rMap RealmMap) toRealms() internal.Realms {
-	out := internal.Realms{}
+func (rMap RealmMap) toRealms() sotah.Realms {
+	out := sotah.Realms{}
 	for _, rValue := range rMap.Values {
 		out = append(out, rValue.Realm)
 	}
@@ -41,17 +41,15 @@ func (rMap RealmMap) toRealms() internal.Realms {
 	return out
 }
 
-type RegionRealmMap = map[internal.RegionName]RealmMap
+type RegionRealmMap = map[blizzard.RegionName]RealmMap
 
-type IntakeRequestData = map[internal.RegionName]map[blizzard.RealmSlug]int64
+type IntakeRequestData = map[blizzard.RegionName]map[blizzard.RealmSlug]int64
 
 type AuctionsIntakeRequest struct {
 	RegionRealmTimestamps IntakeRequestData `json:"region_realm_timestamps"`
 }
 
 func (aiRequest AuctionsIntakeRequest) resolve(sta State) (RegionRealmMap, RegionRealmMap, error) {
-	c := sta.Resolver.Config
-
 	includedRegionRealms := RegionRealmMap{}
 	excludedRegionRealms := RegionRealmMap{}
 	for _, reg := range sta.Regions {
@@ -65,7 +63,7 @@ func (aiRequest AuctionsIntakeRequest) resolve(sta State) (RegionRealmMap, Regio
 
 	for rName, realmSlugs := range aiRequest.RegionRealmTimestamps {
 		for realmSlug, unixTimestamp := range realmSlugs {
-			for _, rea := range sta.Statuses[rName].Realms.FilterWithWhitelist(c.Whitelist[rName]) {
+			for _, rea := range sta.Statuses[rName].Realms {
 				if rea.Slug != realmSlug {
 					continue
 				}
@@ -90,8 +88,8 @@ func (aiRequest AuctionsIntakeRequest) handle(sta State) {
 
 	// misc for metrics
 	totalRealms := 0
-	for rName, reas := range sta.Statuses {
-		totalRealms += len(reas.Realms.FilterWithWhitelist(sta.Resolver.Config.Whitelist[rName]))
+	for _, status := range sta.Statuses {
+		totalRealms += len(status.Realms)
 	}
 	includedRealmCount := 0
 	for _, reas := range includedRegionRealms {

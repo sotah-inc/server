@@ -22,20 +22,6 @@ type requestError struct {
 
 type ItemBlacklistMap map[blizzard.ItemID]struct{}
 
-// derived command-specific state
-type APIState struct {
-	State
-
-	SessionSecret uuid.UUID
-
-	Regions       sotah.RegionList
-	Statuses      sotah.Statuses
-	ItemClasses   blizzard.ItemClasses
-	expansions    []sotah.Expansion
-	professions   []sotah.Profession
-	ItemBlacklist ItemBlacklistMap
-}
-
 // databases
 type Databases struct {
 	PricelistHistoryDatabases database.PricelistHistoryDatabases
@@ -55,10 +41,8 @@ type IO struct {
 // listener functionality
 type listener struct {
 	call     listenFunc
-	stopChan ListenStopChan
+	stopChan messenger.ListenStopChan
 }
-
-type ListenStopChan chan interface{}
 
 type listenFunc func(stop messenger.ListenStopChan) error
 
@@ -67,7 +51,7 @@ type SubjectListeners map[subjects.Subject]listenFunc
 func NewListeners(sListeners SubjectListeners) Listeners {
 	ls := Listeners{}
 	for subj, l := range sListeners {
-		ls[subj] = listener{l, make(ListenStopChan)}
+		ls[subj] = listener{l, make(messenger.ListenStopChan)}
 	}
 
 	return ls
@@ -96,12 +80,23 @@ func (ls Listeners) Stop() {
 }
 
 // state
-func NewState(runId uuid.UUID, ls Listeners) State {
-	return State{RunID: runId, Listeners: ls}
+func NewState(runId uuid.UUID, ls Listeners, useGCloud bool) State {
+	return State{RunID: runId, Listeners: ls, UseGCloud: useGCloud}
 }
 
 type State struct {
 	RunID     uuid.UUID
 	Listeners Listeners
-	IO        IO
+	UseGCloud bool
+
+	IO IO
+
+	SessionSecret uuid.UUID
+
+	Regions       sotah.RegionList
+	Statuses      sotah.Statuses
+	ItemClasses   blizzard.ItemClasses
+	expansions    []sotah.Expansion
+	professions   []sotah.Profession
+	ItemBlacklist ItemBlacklistMap
 }
