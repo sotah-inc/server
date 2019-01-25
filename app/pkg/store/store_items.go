@@ -173,3 +173,18 @@ func (sto Store) ExportItems() chan exportItemsJob {
 
 	return out
 }
+
+func (sto Store) NewItem(obj *storage.ObjectHandle) (blizzard.Item, error) {
+	reader, err := obj.NewReader(ctx)
+	if err != nil {
+		return blizzard.Item{}, err
+	}
+	defer reader.Close()
+
+	body, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return blizzard.Item{}, err
+	}
+
+	return blizzard.NewItem(body)
+}

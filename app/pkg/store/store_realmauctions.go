@@ -1,23 +1,22 @@
 package store
 
 import (
+	storage "cloud.google.com/go/storage"
 	"errors"
 	"fmt"
-	"strconv"
-	"strings"
-	"time"
-
-	"github.com/sotah-inc/server/app/pkg/sotah"
-
-	storage "cloud.google.com/go/storage"
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/internal"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state"
 	"github.com/sotah-inc/server/app/pkg/store/objstate"
 	"github.com/sotah-inc/server/app/pkg/util"
 	"google.golang.org/api/iterator"
+	"io/ioutil"
+	"strconv"
+	"strings"
+	"time"
 )
 
 func (sto Store) getRealmAuctionsBucketName(rea sotah.Realm) string {
@@ -632,4 +631,19 @@ func (sto Store) loadRealmAuctions(rea internal.Realm, targetTime time.Time) (bl
 	}).Debug("Loaded auctions from Store")
 
 	return aucs, lastModified, nil
+}
+
+func (sto Store) NewAuctions(obj *storage.ObjectHandle) (blizzard.Auctions, error) {
+	reader, err := obj.NewReader(sto.Context)
+	if err != nil {
+		return blizzard.Auctions{}, err
+	}
+	defer reader.Close()
+
+	body, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return blizzard.Auctions{}, err
+	}
+
+	return blizzard.NewAuctions(body)
 }
