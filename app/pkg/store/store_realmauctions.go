@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/sirupsen/logrus"
-	"github.com/sotah-inc/server/app/internal"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"

@@ -118,8 +118,8 @@ func (aiRequest AuctionsIntakeRequest) handle(sta State) {
 
 		// loading auctions from file cache or gcloud store
 		loadedAuctions := func() chan internal.LoadAuctionsJob {
-			if sta.Resolver.Config.UseGCloud {
-				return sta.Resolver.Store.LoadRegionRealmMap(rMap)
+			if sta.UseGCloud {
+				return sta.IO.store.LoadRegionRealmMap(rMap)
 			}
 
 			return rMap.toRealms().LoadAuctionsFromCacheDir(sta.Resolver.Config)
