@@ -1,15 +1,14 @@
-package internal
+package sotah
 
 import (
 	"encoding/json"
 	"fmt"
-	"path/filepath"
-
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/logging"
-	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
+
+type realmWhitelist map[blizzard.RealmSlug]struct{}
 
 func NewConfigFromFilepath(relativePath string) (Config, error) {
 	logging.WithField("path", relativePath).Info("Reading Config")
@@ -32,18 +31,16 @@ func newConfig(body []byte) (Config, error) {
 }
 
 type Config struct {
-	ClientID      string                                        `json:"client_id"`
-	ClientSecret  string                                        `json:"client_secret"`
-	Regions       sotah.RegionList                              `json:"regions"`
-	Whitelist     map[blizzard.RegionName]*getAuctionsWhitelist `json:"whitelist"`
-	CacheDir      string                                        `json:"cache_dir"`
-	UseGCloud     bool                                          `json:"use_gcloud"`
-	Expansions    []Expansion                                   `json:"expansions"`
-	Professions   []Profession                                  `json:"professions"`
-	ItemBlacklist []blizzard.ItemID                             `json:"item_blacklist"`
+	Regions       RegionList                              `json:"regions"`
+	Whitelist     map[blizzard.RegionName]*realmWhitelist `json:"whitelist"`
+	CacheDir      string                                  `json:"cache_dir"`
+	UseGCloud     bool                                    `json:"use_gcloud"`
+	Expansions    []Expansion                             `json:"expansions"`
+	Professions   []Profession                            `json:"professions"`
+	ItemBlacklist []blizzard.ItemID                       `json:"item_blacklist"`
 }
 
-func (c Config) GetRegionWhitelist(rName RegionName) *getAuctionsWhitelist {
+func (c Config) GetRegionWhitelist(rName blizzard.RegionName) *realmWhitelist {
 	if _, ok := c.Whitelist[rName]; ok {
 		return c.Whitelist[rName]
 	}
@@ -86,6 +83,6 @@ func (c Config) FilterInRealms(reg Region, reas Realms) Realms {
 	return out
 }
 
-func (c Config) DatabaseDir() (string, error) {
-	return filepath.Abs(fmt.Sprintf("%s/databases", c.CacheDir))
+func (c Config) DatabaseDir() string {
+	return fmt.Sprintf("%s/databases", c.CacheDir)
 }

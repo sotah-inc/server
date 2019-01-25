@@ -2,11 +2,6 @@ package sotah
 
 import (
 	"encoding/json"
-	"errors"
-	"github.com/sotah-inc/server/app/pkg/messenger"
-	"github.com/sotah-inc/server/app/pkg/messenger/codes"
-	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
-	"github.com/sotah-inc/server/app/pkg/state"
 	"regexp"
 	"strings"
 )
@@ -90,5 +85,3 @@ type OwnersByName ownersList
 func (by OwnersByName) Len() int           { return len(by) }
 func (by OwnersByName) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
 func (by OwnersByName) Less(i, j int) bool { return by[i].Name < by[j].Name }
-
-// use this: https://godoc.org/github.com/lithammer/fuzzysearch/fuzzy
