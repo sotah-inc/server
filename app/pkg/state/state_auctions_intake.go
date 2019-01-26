@@ -23,53 +23,31 @@ func newAuctionsIntakeRequest(payload []byte) (AuctionsIntakeRequest, error) {
 	return *ar, nil
 }
 
-type RealmMapValue struct {
-	Realm        sotah.Realm
-	LastModified time.Time
-}
-
-type RealmMap struct {
-	Values map[blizzard.RealmSlug]RealmMapValue
-}
-
-func (rMap RealmMap) toRealms() sotah.Realms {
-	out := sotah.Realms{}
-	for _, rValue := range rMap.Values {
-		out = append(out, rValue.Realm)
-	}
-
-	return out
-}
-
-type RegionRealmMap = map[blizzard.RegionName]RealmMap
-
-type IntakeRequestData = map[blizzard.RegionName]map[blizzard.RealmSlug]int64
-
 type AuctionsIntakeRequest struct {
 	RegionRealmTimestamps IntakeRequestData `json:"region_realm_timestamps"`
 }
 
-func (aiRequest AuctionsIntakeRequest) resolve(sta State) (RegionRealmMap, RegionRealmMap, error) {
-	includedRegionRealms := RegionRealmMap{}
-	excludedRegionRealms := RegionRealmMap{}
+func (aiRequest AuctionsIntakeRequest) resolve(sta State) (sotah.RegionRealmMap, sotah.RegionRealmMap, error) {
+	includedRegionRealms := sotah.RegionRealmMap{}
+	excludedRegionRealms := sotah.RegionRealmMap{}
 	for _, reg := range sta.Regions {
-		includedRegionRealms[reg.Name] = RealmMap{map[blizzard.RealmSlug]RealmMapValue{}}
+		includedRegionRealms[reg.Name] = sotah.RealmMap{}
 
-		excludedRegionRealms[reg.Name] = RealmMap{map[blizzard.RealmSlug]RealmMapValue{}}
+		excludedRegionRealms[reg.Name] = sotah.RealmMap{}
 		for _, rea := range sta.Statuses[reg.Name].Realms {
-			excludedRegionRealms[reg.Name].Values[rea.Slug] = RealmMapValue{rea, time.Time{}}
+			excludedRegionRealms[reg.Name][rea.Slug] = rea
 		}
 	}
 
 	for rName, realmSlugs := range aiRequest.RegionRealmTimestamps {
-		for realmSlug, unixTimestamp := range realmSlugs {
+		for realmSlug := range realmSlugs {
 			for _, rea := range sta.Statuses[rName].Realms {
 				if rea.Slug != realmSlug {
 					continue
 				}
 
-				includedRegionRealms[rName].Values[realmSlug] = RealmMapValue{rea, time.Unix(unixTimestamp, 0)}
-				delete(excludedRegionRealms[rName].Values, realmSlug)
+				includedRegionRealms[rName][realmSlug] = rea
+				delete(excludedRegionRealms[rName], realmSlug)
 			}
 		}
 	}
@@ -93,11 +71,11 @@ func (aiRequest AuctionsIntakeRequest) handle(sta State) {
 	}
 	includedRealmCount := 0
 	for _, reas := range includedRegionRealms {
-		includedRealmCount += len(reas.Values)
+		includedRealmCount += len(reas)
 	}
 	excludedRealmCount := 0
 	for _, reas := range excludedRegionRealms {
-		excludedRealmCount += len(reas.Values)
+		excludedRealmCount += len(reas)
 	}
 
 	logging.WithFields(logrus.Fields{

@@ -3,11 +3,9 @@ package store
 import (
 	"fmt"
 
-	storage "cloud.google.com/go/storage"
+	"cloud.google.com/go/storage"
 	"github.com/sirupsen/logrus"
-	"github.com/sotah-inc/server/app/internal"
 	"github.com/sotah-inc/server/app/pkg/logging"
-	"github.com/sotah-inc/server/app/pkg/util"
 )
 
 const storeItemIconURLFormat = "https://storage.googleapis.com/%s/%s"
@@ -109,64 +107,4 @@ func (sto Store) itemIconExists(iconName string) (bool, error) {
 	}
 
 	return true, nil
-}
-
-type storeSyncItemIconsJob struct {
-	Err      error
-	IconName string
-	IconURL  string
-}
-
-func (sto Store) SyncItemIcons(iconNames []string, res internal.Resolver) (chan storeSyncItemIconsJob, error) {
-	// establishing channels
-	out := make(chan storeSyncItemIconsJob)
-	in := make(chan string)
-
-	// spinning up the workers
-	worker := func() {
-		for iconName := range in {
-			iconURL, err := sto.syncItemIcon(iconName, res)
-			out <- storeSyncItemIconsJob{err, iconName, iconURL}
-		}
-	}
-	postWork := func() {
-		close(out)
-	}
-	util.Work(8, worker, postWork)
-
-	// queueing up
-	go func() {
-		for _, iconName := range iconNames {
-			in <- iconName
-		}
-
-		close(in)
-	}()
-
-	return out, nil
-}
-
-func (sto Store) syncItemIcon(iconName string, res internal.Resolver) (string, error) {
-	bkt := sto.itemIconsBucket
-
-	exists, err := sto.itemIconExists(iconName)
-	if err != nil {
-		return "", err
-	}
-
-	if exists {
-		return sto.getStoreItemIconURLFunc(bkt.Object(sto.getItemIconObjectName(iconName)))
-	}
-
-	body, err := util.Download(res.GetItemIconURL(iconName))
-	if err != nil {
-		logging.WithFields(logrus.Fields{
-			"error":    err.Error(),
-			"IconName": iconName,
-		}).Error("Failed to sync item icon (gcloud Store)")
-
-		return "", nil
-	}
-
-	return sto.writeItemIcon(bkt, iconName, body)
 }

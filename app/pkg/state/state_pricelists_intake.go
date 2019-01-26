@@ -3,6 +3,7 @@ package state
 import (
 	nats "github.com/nats-io/go-nats"
 	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/pkg/metric"
 )

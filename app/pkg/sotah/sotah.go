@@ -2,6 +2,7 @@ package sotah
 
 import (
 	"errors"
+
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 )
 
@@ -75,3 +76,7 @@ type Expansion struct {
 	Primary    bool   `json:"primary"`
 	LabelColor string `json:"label_color"`
 }
+
+type RegionRealmMap = map[blizzard.RegionName]RealmMap
+
+type RealmMap = map[blizzard.RealmSlug]Realm
