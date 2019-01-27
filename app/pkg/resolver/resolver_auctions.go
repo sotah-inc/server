@@ -41,7 +41,7 @@ func (r Resolver) GetAuctionsForRealm(rea sotah.Realm) (blizzard.Auctions, time.
 			return blizzard.Auctions{}, time.Time{}, err
 		}
 
-		return aucs.Auctions, aFile.LastModifiedAsTime(), nil
+		return aucs, aFile.LastModifiedAsTime(), nil
 	}
 
 	return blizzard.Auctions{}, time.Time{}, nil
@@ -64,13 +64,9 @@ func (r Resolver) GetAuctionsForRealms(reas sotah.Realms) chan GetAuctionsJob {
 		for rea := range in {
 			aucs, lastModified, err := r.GetAuctionsForRealm(rea)
 
-			// optionally skipping draining out due to error
+			// optionally halting on error
 			if err != nil {
-				logging.WithFields(logrus.Fields{
-					"error":  err.Error(),
-					"region": rea.Region.Name,
-					"realm":  rea.Slug,
-				}).Error("Auction fetch failure")
+				out <- GetAuctionsJob{err, rea, blizzard.Auctions{}, lastModified}
 
 				continue
 			}
@@ -85,7 +81,7 @@ func (r Resolver) GetAuctionsForRealms(reas sotah.Realms) chan GetAuctionsJob {
 				continue
 			}
 
-			// draining out
+			// draining out valid data received
 			logging.WithFields(logrus.Fields{
 				"region":   rea.Region.Name,
 				"realm":    rea.Slug,

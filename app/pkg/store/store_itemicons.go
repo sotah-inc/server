@@ -3,6 +3,8 @@ package store
 import (
 	"fmt"
 
+	"github.com/sotah-inc/server/app/pkg/util"
+
 	"cloud.google.com/go/storage"
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/logging"
@@ -107,4 +109,40 @@ func (sto Store) itemIconExists(iconName string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+type PersistItemIconsInJob struct {
+	IconName string
+	Data     []byte
+}
+
+type PersistItemIconsOutJob struct {
+	Err      error
+	IconName string
+	IconURL  string
+}
+
+func (sto Store) PersistItemIcons(in chan PersistItemIconsInJob) (chan PersistItemIconsOutJob, error) {
+	// resolving the bucket
+	bkt, err := sto.resolveItemIconsBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	// forming channels
+	out := make(chan PersistItemIconsOutJob)
+
+	// spinning up the workers for fetching items
+	worker := func() {
+		for job := range in {
+			iconURL, err := sto.writeItemIcon(bkt, job.IconName, job.Data)
+			out <- PersistItemIconsOutJob{err, job.IconName, iconURL}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(4, worker, postWork)
+
+	return out, nil
 }

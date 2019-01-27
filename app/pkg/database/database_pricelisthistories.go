@@ -190,10 +190,8 @@ func (phdBases PricelistHistoryDatabases) pruneDatabases() error {
 	return nil
 }
 
-type WorkerStopChan chan struct{}
-
-func (phdBases PricelistHistoryDatabases) StartPruner(stopChan WorkerStopChan) WorkerStopChan {
-	onStop := make(WorkerStopChan)
+func (phdBases PricelistHistoryDatabases) StartPruner(stopChan sotah.WorkerStopChan) sotah.WorkerStopChan {
+	onStop := make(sotah.WorkerStopChan)
 	go func() {
 		ticker := time.NewTicker(20 * time.Minute)
 

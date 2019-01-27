@@ -25,7 +25,7 @@ func (r Resolver) GetItem(primaryRegion sotah.Region, ID blizzard.ItemID) (blizz
 
 type GetItemsJob struct {
 	Err    error
-	ID     blizzard.ItemID
+	ItemId blizzard.ItemID
 	Item   blizzard.Item
 	Exists bool
 
@@ -39,10 +39,10 @@ func (r Resolver) GetItems(primaryRegion sotah.Region, IDs []blizzard.ItemID) ch
 
 	// spinning up the workers for fetching items
 	worker := func() {
-		for ID := range in {
-			itemValue, gzipDecodedData, err := r.GetItem(primaryRegion, ID)
+		for itemId := range in {
+			itemValue, gzipDecodedData, err := r.GetItem(primaryRegion, itemId)
 			exists := itemValue.ID > 0
-			out <- GetItemsJob{err, ID, itemValue, exists, gzipDecodedData}
+			out <- GetItemsJob{err, itemId, itemValue, exists, gzipDecodedData}
 		}
 	}
 	postWork := func() {

@@ -3,6 +3,7 @@ package state
 import (
 	"encoding/json"
 	"errors"
+
 	"github.com/sotah-inc/server/app/pkg/sotah"
 
 	nats "github.com/nats-io/go-nats"
@@ -101,40 +102,4 @@ func (sta State) ListenForGenericTestErrors(stop messenger.ListenStopChan) error
 	}
 
 	return nil
-}
-
-type auctionsIntakeResult struct {
-	itemIds              []blizzard.ItemID
-	removedAuctionsCount int
-}
-
-func (sta State) auctionsIntake(job internal.GetAuctionsJob) (auctionsIntakeResult, error) {
-	rea := job.Realm
-	reg := rea.Region
-
-	// setting the Realm last-modified
-	for i, statusRealm := range sta.Statuses[reg.Name].Realms {
-		if statusRealm.Slug != rea.Slug {
-			continue
-		}
-
-		sta.Statuses[reg.Name].Realms[i].LastModified = job.LastModified.Unix()
-
-		break
-	}
-
-	// gathering item-ids for item fetching
-	itemIdsMap := map[blizzard.ItemID]struct{}{}
-	for _, auc := range job.Auctions.Auctions {
-		itemIdsMap[auc.Item] = struct{}{}
-	}
-	itemIds := make([]blizzard.ItemID, len(itemIdsMap))
-	i := 0
-	for ID := range itemIdsMap {
-		itemIds[i] = ID
-		i++
-	}
-
-	// returning a list of item ids for syncing
-	return auctionsIntakeResult{itemIds: itemIds}, nil
 }

@@ -2,6 +2,7 @@ package sotah
 
 import (
 	"encoding/json"
+
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
@@ -73,7 +74,7 @@ func (iMap ItemsMap) getItemIds() []blizzard.ItemID {
 
 func (iMap ItemsMap) GetItemIconsMap(excludeWithURL bool) ItemIconItemIdsMap {
 	out := ItemIconItemIdsMap{}
-	for itemID, iValue := range iMap {
+	for itemId, iValue := range iMap {
 		if excludeWithURL && iValue.IconURL != "" {
 			continue
 		}
@@ -83,12 +84,12 @@ func (iMap ItemsMap) GetItemIconsMap(excludeWithURL bool) ItemIconItemIdsMap {
 		}
 
 		if _, ok := out[iValue.Icon]; !ok {
-			out[iValue.Icon] = []blizzard.ItemID{itemID}
+			out[iValue.Icon] = []blizzard.ItemID{itemId}
 
 			continue
 		}
 
-		out[iValue.Icon] = append(out[iValue.Icon], itemID)
+		out[iValue.Icon] = append(out[iValue.Icon], itemId)
 	}
 
 	return out

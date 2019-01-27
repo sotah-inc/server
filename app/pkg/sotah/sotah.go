@@ -82,3 +82,5 @@ type RegionRealmMap map[blizzard.RegionName]RealmMap
 type RealmMap map[blizzard.RealmSlug]Realm
 
 type UnixTimestamp int64
+
+type WorkerStopChan chan struct{}
