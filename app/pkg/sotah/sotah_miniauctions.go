@@ -208,9 +208,9 @@ func (maList MiniAuctionList) EncodeForDatabase() ([]byte, error) {
 }
 
 // mini-auctions
-func NewMiniAuctions(aucs []blizzard.Auction) MiniAuctions {
+func NewMiniAuctions(aucs blizzard.Auctions) MiniAuctions {
 	out := MiniAuctions{}
-	for _, auc := range aucs {
+	for _, auc := range aucs.Auctions {
 		maHash := newMiniAuctionHash(auc)
 		if mAuction, ok := out[maHash]; ok {
 			mAuction.AucList = append(mAuction.AucList, auc.Auc)

@@ -82,5 +82,5 @@ func DatabasePaths(databaseDir string) ([]databasePathPair, error) {
 type LoadInJob struct {
 	Realm      sotah.Realm
 	TargetTime time.Time
-	Auctions   []blizzard.Auction
+	Auctions   blizzard.Auctions
 }

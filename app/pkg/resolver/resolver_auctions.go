@@ -11,21 +11,21 @@ import (
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
-func (r Resolver) GetAuctionsForRealm(rea sotah.Realm) ([]blizzard.Auction, time.Time, error) {
+func (r Resolver) GetAuctionsForRealm(rea sotah.Realm) (blizzard.Auctions, time.Time, error) {
 	uri, err := r.AppendAccessToken(r.GetAuctionInfoURL(rea.Region.Hostname, rea.Slug))
 	if err != nil {
-		return []blizzard.Auction{}, time.Time{}, err
+		return blizzard.Auctions{}, time.Time{}, err
 	}
 
 	// resolving auction-info from the api
 	aInfo, _, err := blizzard.NewAuctionInfoFromHTTP(uri)
 	if err != nil {
-		return []blizzard.Auction{}, time.Time{}, err
+		return blizzard.Auctions{}, time.Time{}, err
 	}
 
 	// validating the list of files
 	if len(aInfo.Files) == 0 {
-		return []blizzard.Auction{}, time.Time{}, errors.New("cannot fetch Auctions with blank files")
+		return blizzard.Auctions{}, time.Time{}, errors.New("cannot fetch Auctions with blank files")
 	}
 	aFile := aInfo.Files[0]
 
@@ -33,24 +33,24 @@ func (r Resolver) GetAuctionsForRealm(rea sotah.Realm) ([]blizzard.Auction, time
 	if rea.LastModified == 0 || time.Unix(rea.LastModified, 0).Before(aFile.LastModifiedAsTime()) {
 		resp, err := blizzard.Download(aFile.URL)
 		if err != nil {
-			return []blizzard.Auction{}, time.Time{}, err
+			return blizzard.Auctions{}, time.Time{}, err
 		}
 
 		aucs, err := blizzard.NewAuctions(resp.Body)
 		if err != nil {
-			return []blizzard.Auction{}, time.Time{}, err
+			return blizzard.Auctions{}, time.Time{}, err
 		}
 
 		return aucs.Auctions, aFile.LastModifiedAsTime(), nil
 	}
 
-	return []blizzard.Auction{}, time.Time{}, nil
+	return blizzard.Auctions{}, time.Time{}, nil
 }
 
 type GetAuctionsJob struct {
 	Err          error
 	Realm        sotah.Realm
-	Auctions     []blizzard.Auction
+	Auctions     blizzard.Auctions
 	LastModified time.Time
 }
 
@@ -89,7 +89,7 @@ func (r Resolver) GetAuctionsForRealms(reas sotah.Realms) chan GetAuctionsJob {
 			logging.WithFields(logrus.Fields{
 				"region":   rea.Region.Name,
 				"realm":    rea.Slug,
-				"auctions": len(aucs),
+				"auctions": len(aucs.Auctions),
 			}).Debug("Auctions received")
 
 			out <- GetAuctionsJob{nil, rea, aucs, lastModified}
