@@ -33,7 +33,7 @@ func (sta State) StartCollector(stopChan sotah.WorkerStopChan) sotah.WorkerStopC
 				}
 				sta.IO.resolver.BlizzardClient = nextClient
 
-				sta.collectRegions(res)
+				sta.collectRegions()
 			case <-stopChan:
 				ticker.Stop()
 
@@ -61,8 +61,8 @@ func (sta State) collectRegions() {
 		receivedItemIds := map[blizzard.ItemID]struct{}{}
 
 		// starting channels for persisting auctions
-		loadAuctionsInJobs := make(chan store.LoadAuctionsInJob)
-		loadAuctionsOutJobs := sta.IO.store.LoadAuctions(loadAuctionsInJobs)
+		storeAuctionsInJobs := make(chan StoreAuctionsInJob)
+		storeAuctionsOutJobs := sta.StoreAuctions(storeAuctionsInJobs)
 
 		// queueing up the jobs
 		go func() {
@@ -77,18 +77,18 @@ func (sta State) collectRegions() {
 					continue
 				}
 
-				loadAuctionsInJobs <- store.LoadAuctionsInJob{
+				storeAuctionsInJobs <- StoreAuctionsInJob{
 					Realm:      getAuctionsJob.Realm,
 					TargetTime: getAuctionsJob.LastModified,
 					Auctions:   getAuctionsJob.Auctions,
 				}
 			}
 
-			close(loadAuctionsInJobs)
+			close(storeAuctionsInJobs)
 		}()
 
 		// waiting for the store-load-in jobs to drain out
-		for job := range loadAuctionsOutJobs {
+		for job := range storeAuctionsOutJobs {
 			// incrementing included-realm count
 			includedRealmCount++
 
