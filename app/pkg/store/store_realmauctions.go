@@ -206,6 +206,11 @@ func (sto Store) LoadAuctions(in chan LoadAuctionsInJob) chan LoadAuctionsOutJob
 	return out
 }
 
+type GetAuctionsFromTimesInJob struct {
+	Realm      sotah.Realm
+	TargetTime time.Time
+}
+
 type RealmTimes map[blizzard.RealmSlug]GetAuctionsFromTimesInJob
 
 func RealmTimesToRealms(rt RealmTimes) sotah.Realms {
@@ -234,11 +239,6 @@ func (job GetAuctionsFromTimesOutJob) ToLogrusFields() logrus.Fields {
 	}
 }
 
-type GetAuctionsFromTimesInJob struct {
-	Realm      sotah.Realm
-	TargetTime time.Time
-}
-
 func (sto Store) GetAuctionsFromTimes(times RealmTimes) chan GetAuctionsFromTimesOutJob {
 	in := make(chan GetAuctionsFromTimesInJob)
 	out := make(chan GetAuctionsFromTimesOutJob)
@@ -247,6 +247,16 @@ func (sto Store) GetAuctionsFromTimes(times RealmTimes) chan GetAuctionsFromTime
 	worker := func() {
 		for inJob := range in {
 			aucs, err := sto.getAuctions(inJob.Realm, inJob.TargetTime)
+			if err != nil {
+				out <- GetAuctionsFromTimesOutJob{
+					Err:        err,
+					Realm:      inJob.Realm,
+					TargetTime: inJob.TargetTime,
+					Auctions:   blizzard.Auctions{},
+				}
+
+				continue
+			}
 
 			out <- GetAuctionsFromTimesOutJob{err, inJob.Realm, inJob.TargetTime, aucs}
 		}
