@@ -3,13 +3,14 @@ package diskstore
 import (
 	"errors"
 	"fmt"
+	"os"
+	"time"
+
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/util"
-	"os"
-	"time"
 )
 
 func (ds DiskStore) resolveAuctionsFilepath(rea sotah.Realm) (string, error) {
@@ -80,12 +81,16 @@ type GetAuctionsByRealmsJob struct {
 	LastModified time.Time
 }
 
+func (job GetAuctionsByRealmsJob) ToLogrusFields() logrus.Fields {
+	return logrus.Fields{}
+}
+
 func (ds DiskStore) GetAuctionsByRealms(reas sotah.Realms) chan GetAuctionsByRealmsJob {
 	// establishing channels
 	out := make(chan GetAuctionsByRealmsJob)
 	in := make(chan sotah.Realm)
 
-	// spinning up the workers for fetching Auctions
+	// spinning up the workers for fetching auctions
 	worker := func() {
 		for rea := range in {
 			aucs, lastModified, err := ds.GetAuctionsByRealm(rea)
@@ -106,7 +111,7 @@ func (ds DiskStore) GetAuctionsByRealms(reas sotah.Realms) chan GetAuctionsByRea
 	}
 	util.Work(4, worker, postWork)
 
-	// queueing up the Realms
+	// queueing up the realms
 	go func() {
 		for _, rea := range reas {
 			logging.WithFields(logrus.Fields{

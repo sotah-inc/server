@@ -8,11 +8,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/sotah"
+
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/logging"
 )
-
-type unixTimestamp int64
 
 func normalizeTargetDate(targetDate time.Time) time.Time {
 	nearestWeekStartOffset := targetDate.Second() + targetDate.Minute()*60 + targetDate.Hour()*60*60
@@ -76,4 +77,10 @@ func DatabasePaths(databaseDir string) ([]databasePathPair, error) {
 	}
 
 	return out, nil
+}
+
+type LoadInJob struct {
+	Realm      sotah.Realm
+	TargetTime time.Time
+	Auctions   []blizzard.Auction
 }

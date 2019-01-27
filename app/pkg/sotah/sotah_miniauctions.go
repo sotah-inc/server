@@ -3,6 +3,7 @@ package sotah
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/state/sortdirections"
 	"github.com/sotah-inc/server/app/pkg/state/sortkinds"
@@ -42,7 +43,7 @@ type miniAuction struct {
 }
 
 // miniauction-list
-func newMiniAuctionListFromMiniAuctions(ma miniAuctions) MiniAuctionList {
+func NewMiniAuctionListFromMiniAuctions(ma MiniAuctions) MiniAuctionList {
 	out := MiniAuctionList{}
 	for _, mAuction := range ma {
 		out = append(out, mAuction)
@@ -206,9 +207,9 @@ func (maList MiniAuctionList) EncodeForDatabase() ([]byte, error) {
 	return gzipEncodedData, nil
 }
 
-// miniauctions
-func newMiniAuctions(aucs []blizzard.Auction) miniAuctions {
-	out := miniAuctions{}
+// mini-auctions
+func NewMiniAuctions(aucs []blizzard.Auction) MiniAuctions {
+	out := MiniAuctions{}
 	for _, auc := range aucs {
 		maHash := newMiniAuctionHash(auc)
 		if mAuction, ok := out[maHash]; ok {
@@ -226,7 +227,7 @@ func newMiniAuctions(aucs []blizzard.Auction) miniAuctions {
 	return out
 }
 
-type miniAuctions map[miniAuctionHash]miniAuction
+type MiniAuctions map[miniAuctionHash]miniAuction
 
 func newMiniAuctionHash(auc blizzard.Auction) miniAuctionHash {
 	return miniAuctionHash(fmt.Sprintf(

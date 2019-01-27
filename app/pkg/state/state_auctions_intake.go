@@ -5,11 +5,12 @@ import (
 	nats "github.com/nats-io/go-nats"
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/database"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/pkg/metric"
-	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/store"
 	"time"
 )
 
@@ -23,41 +24,51 @@ func newAuctionsIntakeRequest(payload []byte) (AuctionsIntakeRequest, error) {
 	return *ar, nil
 }
 
+type RealmTimestamps map[blizzard.RealmSlug]int
+
+type RegionRealmTimestamps map[blizzard.RegionName]RealmTimestamps
+
 type AuctionsIntakeRequest struct {
-	RegionRealmTimestamps IntakeRequestData `json:"region_realm_timestamps"`
+	RegionRealmTimestamps RegionRealmTimestamps `json:"region_realm_timestamps"`
 }
 
-func (aiRequest AuctionsIntakeRequest) resolve(sta State) (sotah.RegionRealmMap, sotah.RegionRealmMap, error) {
-	includedRegionRealms := sotah.RegionRealmMap{}
-	excludedRegionRealms := sotah.RegionRealmMap{}
+func (aiRequest AuctionsIntakeRequest) resolve(sta State) (store.RegionRealmTimes, store.RegionRealmTimes, error) {
+	includedRegionRealmTimes := store.RegionRealmTimes{}
+	excludedRegionRealmTimes := store.RegionRealmTimes{}
 	for _, reg := range sta.Regions {
-		includedRegionRealms[reg.Name] = sotah.RealmMap{}
+		includedRegionRealmTimes[reg.Name] = store.RealmTimes{}
 
-		excludedRegionRealms[reg.Name] = sotah.RealmMap{}
+		excludedRegionRealmTimes[reg.Name] = store.RealmTimes{}
 		for _, rea := range sta.Statuses[reg.Name].Realms {
-			excludedRegionRealms[reg.Name][rea.Slug] = rea
+			excludedRegionRealmTimes[reg.Name][rea.Slug] = store.GetAuctionsFromTimesInJob{
+				Realm:      rea,
+				TargetTime: time.Unix(0, 0),
+			}
 		}
 	}
 
 	for rName, realmSlugs := range aiRequest.RegionRealmTimestamps {
-		for realmSlug := range realmSlugs {
+		for realmSlug, unixTimestamp := range realmSlugs {
 			for _, rea := range sta.Statuses[rName].Realms {
 				if rea.Slug != realmSlug {
 					continue
 				}
 
-				includedRegionRealms[rName][realmSlug] = rea
-				delete(excludedRegionRealms[rName], realmSlug)
+				includedRegionRealmTimes[rName][realmSlug] = store.GetAuctionsFromTimesInJob{
+					Realm:      rea,
+					TargetTime: time.Unix(int64(unixTimestamp), 0),
+				}
+				delete(excludedRegionRealmTimes[rName], realmSlug)
 			}
 		}
 	}
 
-	return includedRegionRealms, excludedRegionRealms, nil
+	return includedRegionRealmTimes, excludedRegionRealmTimes, nil
 }
 
 func (aiRequest AuctionsIntakeRequest) handle(sta State) {
 	// resolving included and excluded region realms
-	includedRegionRealms, excludedRegionRealms, err := aiRequest.resolve(sta)
+	includedRegionRealmTimes, excludedRegionRealmTimes, err := aiRequest.resolve(sta)
 	if err != nil {
 		logging.WithField("error", err.Error()).Info("Failed to resolve auctions-intake-request")
 
@@ -70,11 +81,11 @@ func (aiRequest AuctionsIntakeRequest) handle(sta State) {
 		totalRealms += len(status.Realms)
 	}
 	includedRealmCount := 0
-	for _, reas := range includedRegionRealms {
+	for _, reas := range includedRegionRealmTimes {
 		includedRealmCount += len(reas)
 	}
 	excludedRealmCount := 0
-	for _, reas := range excludedRegionRealms {
+	for _, reas := range excludedRegionRealmTimes {
 		excludedRealmCount += len(reas)
 	}
 
@@ -88,26 +99,58 @@ func (aiRequest AuctionsIntakeRequest) handle(sta State) {
 	startTime := time.Now()
 
 	// loading in auctions from region-realms
-	for rName, rMap := range includedRegionRealms {
+	for regionName, realmTimes := range includedRegionRealmTimes {
 		logging.WithFields(logrus.Fields{
-			"region": rName,
-			"realms": len(rMap.Values),
+			"region": regionName,
+			"realms": len(realmTimes),
 		}).Debug("Going over realms to load auctions")
 
 		// loading auctions from file cache or gcloud store
-		loadedAuctions := func() chan internal.LoadAuctionsJob {
-			if sta.UseGCloud {
-				return sta.IO.store.LoadRegionRealmMap(rMap)
-			}
+		loadedAuctions := func() chan database.LoadInJob {
+			out := make(chan database.LoadInJob)
 
-			return rMap.toRealms().LoadAuctionsFromCacheDir(sta.Resolver.Config)
+			go func() {
+				if sta.UseGCloud {
+					for outJob := range sta.IO.store.GetAuctionsFromTimes(realmTimes) {
+						if outJob.Err != nil {
+							logrus.WithFields(outJob.ToLogrusFields()).Error("Failed to receive auctions from gcloud store")
+
+							continue
+						}
+
+						out <- database.LoadInJob{
+							Realm:      outJob.Realm,
+							TargetTime: outJob.TargetTime,
+							Auctions:   outJob.Auctions,
+						}
+					}
+
+					return
+				}
+
+				for outJob := range sta.IO.diskStore.GetAuctionsByRealms(store.RealmTimesToRealms(realmTimes)) {
+					if outJob.Err != nil {
+						logrus.WithFields(outJob.ToLogrusFields()).Error("Failed to receive auctions from disk-store")
+
+						continue
+					}
+
+					out <- database.LoadInJob{
+						Realm:      outJob.Realm,
+						TargetTime: outJob.LastModified,
+						Auctions:   outJob.Auctions,
+					}
+				}
+			}()
+
+			return out
 		}()
-		done := sta.PricelistHistoryDatabases.Load(loadedAuctions, *sta.Resolver.Config, sta.Resolver.Store)
+		done := sta.IO.databases.PricelistHistoryDatabases.Load(loadedAuctions)
 		<-done
 
 		logging.WithFields(logrus.Fields{
-			"region": rName,
-			"realms": len(rMap.Values),
+			"region": regionName,
+			"realms": len(realmTimes),
 		}).Debug("Finished loading auctions")
 	}
 

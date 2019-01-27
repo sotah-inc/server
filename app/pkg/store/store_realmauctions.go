@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"time"
 
+	"github.com/sotah-inc/server/app/pkg/util"
+
 	"cloud.google.com/go/storage"
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
@@ -117,6 +119,72 @@ func (sto Store) WriteRealmAuctions(rea sotah.Realm, lastModified time.Time, gzi
 	}
 
 	return wc.Close()
+}
+
+type RealmTimes map[blizzard.RealmSlug]GetAuctionsFromTimesInJob
+
+func RealmTimesToRealms(rt RealmTimes) sotah.Realms {
+	out := sotah.Realms{}
+	for _, job := range rt {
+		out = append(out, job.Realm)
+	}
+
+	return out
+}
+
+type RegionRealmTimes map[blizzard.RegionName]RealmTimes
+
+type GetAuctionsFromTimesOutJob struct {
+	Err        error
+	Realm      sotah.Realm
+	TargetTime time.Time
+	Auctions   blizzard.Auctions
+}
+
+func (job GetAuctionsFromTimesOutJob) ToLogrusFields() logrus.Fields {
+	return logrus.Fields{
+		"error":       job.Err.Error(),
+		"realm":       job.Realm.Slug,
+		"target_time": job.TargetTime.Unix(),
+	}
+}
+
+type GetAuctionsFromTimesInJob struct {
+	Realm      sotah.Realm
+	TargetTime time.Time
+}
+
+func (sto Store) GetAuctionsFromTimes(times RealmTimes) chan GetAuctionsFromTimesOutJob {
+	in := make(chan GetAuctionsFromTimesInJob)
+	out := make(chan GetAuctionsFromTimesOutJob)
+
+	// spinning up the workers for fetching Auctions
+	worker := func() {
+		for inJob := range in {
+			aucs, err := sto.getAuctions(inJob.Realm, inJob.TargetTime)
+
+			out <- GetAuctionsFromTimesOutJob{err, inJob.Realm, inJob.TargetTime, aucs}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(4, worker, postWork)
+
+	// queueing up the Realms
+	go func() {
+		for _, inJob := range times {
+			logging.WithFields(logrus.Fields{
+				"Region": inJob.Realm.Region.Name,
+				"Realm":  inJob.Realm.Slug,
+			}).Debug("Queueing up auction for loading")
+			in <- inJob
+		}
+
+		close(in)
+	}()
+
+	return out
 }
 
 func (sto Store) getAuctions(rea sotah.Realm, targetTime time.Time) (blizzard.Auctions, error) {

@@ -11,21 +11,21 @@ import (
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
-func (r Resolver) GetAuctionsForRealm(rea sotah.Realm) (blizzard.Auctions, time.Time, error) {
+func (r Resolver) GetAuctionsForRealm(rea sotah.Realm) ([]blizzard.Auction, time.Time, error) {
 	uri, err := r.AppendAccessToken(r.GetAuctionInfoURL(rea.Region.Hostname, rea.Slug))
 	if err != nil {
-		return blizzard.Auctions{}, time.Time{}, err
+		return []blizzard.Auction{}, time.Time{}, err
 	}
 
 	// resolving auction-info from the api
 	aInfo, _, err := blizzard.NewAuctionInfoFromHTTP(uri)
 	if err != nil {
-		return blizzard.Auctions{}, time.Time{}, err
+		return []blizzard.Auction{}, time.Time{}, err
 	}
 
 	// validating the list of files
 	if len(aInfo.Files) == 0 {
-		return blizzard.Auctions{}, time.Time{}, errors.New("cannot fetch Auctions with blank files")
+		return []blizzard.Auction{}, time.Time{}, errors.New("cannot fetch Auctions with blank files")
 	}
 	aFile := aInfo.Files[0]
 
@@ -33,24 +33,24 @@ func (r Resolver) GetAuctionsForRealm(rea sotah.Realm) (blizzard.Auctions, time.
 	if rea.LastModified == 0 || time.Unix(rea.LastModified, 0).Before(aFile.LastModifiedAsTime()) {
 		resp, err := blizzard.Download(aFile.URL)
 		if err != nil {
-			return blizzard.Auctions{}, time.Time{}, err
+			return []blizzard.Auction{}, time.Time{}, err
 		}
 
 		aucs, err := blizzard.NewAuctions(resp.Body)
 		if err != nil {
-			return blizzard.Auctions{}, time.Time{}, err
+			return []blizzard.Auction{}, time.Time{}, err
 		}
 
-		return aucs, aFile.LastModifiedAsTime(), nil
+		return aucs.Auctions, aFile.LastModifiedAsTime(), nil
 	}
 
-	return blizzard.Auctions{}, time.Time{}, nil
+	return []blizzard.Auction{}, time.Time{}, nil
 }
 
 type GetAuctionsJob struct {
 	Err          error
 	Realm        sotah.Realm
-	Auctions     blizzard.Auctions
+	Auctions     []blizzard.Auction
 	LastModified time.Time
 }
 
@@ -68,8 +68,8 @@ func (r Resolver) GetAuctionsForRealms(reas sotah.Realms) chan GetAuctionsJob {
 			if err != nil {
 				logging.WithFields(logrus.Fields{
 					"error":  err.Error(),
-					"Region": rea.Region.Name,
-					"Realm":  rea.Slug,
+					"region": rea.Region.Name,
+					"realm":  rea.Slug,
 				}).Error("Auction fetch failure")
 
 				continue
@@ -78,8 +78,8 @@ func (r Resolver) GetAuctionsForRealms(reas sotah.Realms) chan GetAuctionsJob {
 			// optionally skipping draining out due to no new data
 			if lastModified.IsZero() {
 				logging.WithFields(logrus.Fields{
-					"Region": rea.Region.Name,
-					"Realm":  rea.Slug,
+					"region": rea.Region.Name,
+					"realm":  rea.Slug,
 				}).Info("No Auctions received")
 
 				continue
@@ -87,9 +87,9 @@ func (r Resolver) GetAuctionsForRealms(reas sotah.Realms) chan GetAuctionsJob {
 
 			// draining out
 			logging.WithFields(logrus.Fields{
-				"Region":   rea.Region.Name,
-				"Realm":    rea.Slug,
-				"Auctions": len(aucs.Auctions),
+				"region":   rea.Region.Name,
+				"realm":    rea.Slug,
+				"auctions": len(aucs),
 			}).Debug("Auctions received")
 
 			out <- GetAuctionsJob{nil, rea, aucs, lastModified}
@@ -104,8 +104,8 @@ func (r Resolver) GetAuctionsForRealms(reas sotah.Realms) chan GetAuctionsJob {
 	go func() {
 		for _, rea := range reas {
 			logging.WithFields(logrus.Fields{
-				"Region": rea.Region.Name,
-				"Realm":  rea.Slug,
+				"region": rea.Region.Name,
+				"realm":  rea.Slug,
 			}).Debug("Queueing up auction for downloading")
 
 			in <- rea

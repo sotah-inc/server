@@ -2,12 +2,9 @@ package database
 
 import (
 	"fmt"
-	"path/filepath"
 	"time"
 
-	"github.com/sotah-inc/server/app/pkg/state"
-
-	"github.com/sotah-inc/server/app/internal"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 
 	"github.com/boltdb/bolt"
 	"github.com/sirupsen/logrus"
@@ -24,18 +21,12 @@ func liveAuctionsKeyName() []byte {
 	return []byte("live-auctions")
 }
 
-func liveAuctionsDatabasePath(c internal.Config, reg internal.Region, rea internal.Realm) (string, error) {
-	return filepath.Abs(
-		fmt.Sprintf("%s/databases/%s/%s/live-auctions.db", c.CacheDir, reg.Name, rea.Slug),
-	)
+func liveAuctionsDatabasePath(dirPath string, rea sotah.Realm) string {
+	return fmt.Sprintf("%s/%s/%s/live-auctions.db", dirPath, rea.Region.Name, rea.Slug)
 }
 
-func newLiveAuctionsDatabase(c internal.Config, reg internal.Region, rea internal.Realm) (liveAuctionsDatabase, error) {
-	dbFilepath, err := liveAuctionsDatabasePath(c, reg, rea)
-	if err != nil {
-		return liveAuctionsDatabase{}, err
-	}
-
+func newLiveAuctionsDatabase(dirPath string, rea sotah.Realm) (liveAuctionsDatabase, error) {
+	dbFilepath := liveAuctionsDatabasePath(dirPath, rea)
 	db, err := bolt.Open(dbFilepath, 0600, nil)
 	if err != nil {
 		return liveAuctionsDatabase{}, err
@@ -46,14 +37,14 @@ func newLiveAuctionsDatabase(c internal.Config, reg internal.Region, rea interna
 
 type liveAuctionsDatabase struct {
 	db    *bolt.DB
-	realm internal.Realm
+	realm sotah.Realm
 }
 
-func (ladBase liveAuctionsDatabase) persistMiniauctions(maList internal.MiniAuctionList) error {
+func (ladBase liveAuctionsDatabase) persistMiniAuctionList(maList sotah.MiniAuctionList) error {
 	logging.WithFields(logrus.Fields{
 		"db":                ladBase.db.Path(),
 		"miniauctions-list": len(maList),
-	}).Debug("Persisting miniauctions-list")
+	}).Debug("Persisting mini-auction-list")
 
 	encodedData, err := maList.EncodeForDatabase()
 	if err != nil {
@@ -79,8 +70,9 @@ func (ladBase liveAuctionsDatabase) persistMiniauctions(maList internal.MiniAuct
 	return nil
 }
 
-func (ladBase liveAuctionsDatabase) GetMiniauctions() (internal.MiniAuctionList, error) {
-	out := internal.MiniAuctionList{}
+func (ladBase liveAuctionsDatabase) GetMiniAuctionList() (sotah.MiniAuctionList, error) {
+	out := sotah.MiniAuctionList{}
+
 	err := ladBase.db.View(func(tx *bolt.Tx) error {
 		bkt := tx.Bucket(liveAuctionsBucketName())
 		if bkt == nil {
@@ -93,7 +85,7 @@ func (ladBase liveAuctionsDatabase) GetMiniauctions() (internal.MiniAuctionList,
 		}
 
 		var err error
-		out, err = internal.NewMiniAuctionsListFromGzipped(bkt.Get(liveAuctionsKeyName()))
+		out, err = sotah.NewMiniAuctionListFromGzipped(bkt.Get(liveAuctionsKeyName()))
 		if err != nil {
 			return err
 		}
@@ -101,7 +93,7 @@ func (ladBase liveAuctionsDatabase) GetMiniauctions() (internal.MiniAuctionList,
 		return nil
 	})
 	if err != nil {
-		return internal.MiniAuctionList{}, err
+		return sotah.MiniAuctionList{}, err
 	}
 
 	return out, nil
@@ -109,13 +101,13 @@ func (ladBase liveAuctionsDatabase) GetMiniauctions() (internal.MiniAuctionList,
 
 type miniAuctionListStats struct {
 	TotalAuctions int
-	OwnerNames    []internal.OwnerName
+	OwnerNames    []sotah.OwnerName
 	ItemIds       []blizzard.ItemID
 	AuctionIds    []int64
 }
 
 func (ladBase liveAuctionsDatabase) stats() (miniAuctionListStats, error) {
-	maList, err := ladBase.GetMiniauctions()
+	maList, err := ladBase.GetMiniAuctionList()
 	if err != nil {
 		return miniAuctionListStats{}, err
 	}
@@ -130,53 +122,42 @@ func (ladBase liveAuctionsDatabase) stats() (miniAuctionListStats, error) {
 	return out, nil
 }
 
-func NewLiveAuctionsDatabases(c internal.Config, regs internal.RegionList, stas internal.Statuses) (LiveAuctionsDatabases, error) {
+func NewLiveAuctionsDatabases(dirPath string, stas sotah.Statuses) (LiveAuctionsDatabases, error) {
 	ladBases := LiveAuctionsDatabases{}
 
-	for _, reg := range regs {
-		ladBases[reg.Name] = map[blizzard.RealmSlug]liveAuctionsDatabase{}
+	for regionName, status := range stas {
+		ladBases[regionName] = map[blizzard.RealmSlug]liveAuctionsDatabase{}
 
-		for _, rea := range stas[reg.Name].Realms {
-			ladBase, err := newLiveAuctionsDatabase(c, reg, rea)
+		for _, rea := range status.Realms {
+			ladBase, err := newLiveAuctionsDatabase(dirPath, rea)
 			if err != nil {
 				return LiveAuctionsDatabases{}, err
 			}
 
-			ladBases[reg.Name][rea.Slug] = ladBase
+			ladBases[regionName][rea.Slug] = ladBase
 		}
 	}
 
 	return ladBases, nil
 }
 
-type LiveAuctionsDatabases map[internal.RegionName]map[blizzard.RealmSlug]liveAuctionsDatabase
+type LiveAuctionsDatabases map[blizzard.RegionName]map[blizzard.RealmSlug]liveAuctionsDatabase
 
 type liveAuctionsDatabasesLoadResult struct {
-	Realm                internal.Realm
+	Realm                sotah.Realm
 	LastModified         time.Time
 	Stats                miniAuctionListStats
 	TotalRemovedAuctions int
 	TotalNewAuctions     int
 }
 
-func (ladBases LiveAuctionsDatabases) Load(in chan internal.LoadAuctionsJob) chan liveAuctionsDatabasesLoadResult {
+func (ladBases LiveAuctionsDatabases) Load(in chan LoadInJob) chan liveAuctionsDatabasesLoadResult {
 	// establishing channels
 	out := make(chan liveAuctionsDatabasesLoadResult)
 
 	// spinning up the workers for fetching auctions
 	worker := func() {
 		for job := range in {
-			// validating the job intake
-			if job.Err != nil {
-				logging.WithFields(logrus.Fields{
-					"error":  job.Err.Error(),
-					"region": job.Realm.Region.Name,
-					"Realm":  job.Realm.Slug,
-				}).Error("Failed to Load auctions")
-
-				continue
-			}
-
 			// resolving the live-auctions database and gathering current Stats
 			ladBase := ladBases[job.Realm.Region.Name][job.Realm.Slug]
 			malStats, err := ladBase.stats()
@@ -184,16 +165,16 @@ func (ladBases LiveAuctionsDatabases) Load(in chan internal.LoadAuctionsJob) cha
 				logging.WithFields(logrus.Fields{
 					"error":  err.Error(),
 					"region": job.Realm.Region.Name,
-					"Realm":  job.Realm.Slug,
+					"realm":  job.Realm.Slug,
 				}).Error("Failed to gather live-auctions Stats")
 
 				continue
 			}
 
-			// starting a Load result
+			// starting a load result
 			result := liveAuctionsDatabasesLoadResult{
 				Realm:        job.Realm,
-				LastModified: job.LastModified,
+				LastModified: job.TargetTime,
 				Stats:        malStats,
 			}
 
@@ -203,7 +184,7 @@ func (ladBases LiveAuctionsDatabases) Load(in chan internal.LoadAuctionsJob) cha
 				removedAuctionIds[auc] = struct{}{}
 			}
 			newAuctionIds := map[int64]struct{}{}
-			for _, auc := range job.Auctions.Auctions {
+			for _, auc := range job.Auctions {
 				if _, ok := removedAuctionIds[auc.Auc]; ok {
 					delete(removedAuctionIds, auc.Auc)
 				}
@@ -218,13 +199,13 @@ func (ladBases LiveAuctionsDatabases) Load(in chan internal.LoadAuctionsJob) cha
 			result.TotalNewAuctions = len(newAuctionIds)
 			result.TotalRemovedAuctions = len(removedAuctionIds)
 
-			maList := internal.NewMiniAuctionListFromBlizzardAuctions(job.Auctions.Auctions)
-			if err := ladBase.persistMiniauctions(maList); err != nil {
+			maList := sotah.NewMiniAuctionListFromMiniAuctions(sotah.NewMiniAuctions(job.Auctions))
+			if err := ladBase.persistMiniAuctionList(maList); err != nil {
 				logging.WithFields(logrus.Fields{
 					"error":  err.Error(),
 					"region": job.Realm.Region.Name,
-					"Realm":  job.Realm.Slug,
-				}).Error("Failed to persist mini-auctions")
+					"realm":  job.Realm.Slug,
+				}).Error("Failed to persist mini-auction-list")
 
 				continue
 			}
@@ -235,59 +216,35 @@ func (ladBases LiveAuctionsDatabases) Load(in chan internal.LoadAuctionsJob) cha
 	postWork := func() {
 		close(out)
 	}
-	util.Work(2, worker, postWork)
+	util.Work(4, worker, postWork)
 
 	return out
 }
 
 type getAllStatsJob struct {
 	Err   error
-	Realm internal.Realm
+	Realm sotah.Realm
 	Stats miniAuctionListStats
 }
 
-func (ladBases LiveAuctionsDatabases) GetStats(wList state.RegionRealmMap) chan getAllStatsJob {
-	in := make(chan liveAuctionsDatabase)
+func (ladBases LiveAuctionsDatabases) GetStats(realms sotah.Realms) chan getAllStatsJob {
+	in := make(chan sotah.Realm)
 	out := make(chan getAllStatsJob)
 
 	worker := func() {
-		for ladBase := range in {
-			stats, err := ladBase.stats()
-			out <- getAllStatsJob{err, ladBase.realm, stats}
+		for rea := range in {
+			stats, err := ladBases[rea.Region.Name][rea.Slug].stats()
+			out <- getAllStatsJob{err, rea, stats}
 		}
 	}
 	postWork := func() {
 		close(out)
 	}
-	util.Work(2, worker, postWork)
+	util.Work(4, worker, postWork)
 
 	go func() {
-		for rName, realmLiveAuctionDatabases := range ladBases {
-			realmWhitelist, ok := func() (state.RealmMap, bool) {
-				if wList == nil {
-					return state.RealmMap{}, true
-				}
-
-				out, ok := wList[rName]
-				if !ok {
-					return state.RealmMap{}, false
-				}
-
-				return out, true
-			}()
-			if !ok {
-				continue
-			}
-
-			for rSlug, ladBase := range realmLiveAuctionDatabases {
-				if wList != nil {
-					if _, ok := realmWhitelist.Values[rSlug]; !ok {
-						continue
-					}
-				}
-
-				in <- ladBase
-			}
+		for _, rea := range realms {
+			in <- rea
 		}
 
 		close(in)

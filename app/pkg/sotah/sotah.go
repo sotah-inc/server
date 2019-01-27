@@ -77,6 +77,8 @@ type Expansion struct {
 	LabelColor string `json:"label_color"`
 }
 
-type RegionRealmMap = map[blizzard.RegionName]RealmMap
+type RegionRealmMap map[blizzard.RegionName]RealmMap
 
-type RealmMap = map[blizzard.RealmSlug]Realm
+type RealmMap map[blizzard.RealmSlug]Realm
+
+type UnixTimestamp int64

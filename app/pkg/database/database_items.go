@@ -2,6 +2,7 @@ package database
 
 import (
 	"fmt"
+
 	"github.com/sotah-inc/server/app/pkg/sotah"
 
 	"github.com/boltdb/bolt"
@@ -28,7 +29,7 @@ func itemsKeyName(keyspace itemKeyspace) []byte {
 	return []byte(fmt.Sprintf("item-batch-%d", keyspace))
 }
 
-// items db
+// db
 func itemsDatabasePath(dbDir string) (string, error) {
 	return fmt.Sprintf("%s/items.db", dbDir), nil
 }

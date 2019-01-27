@@ -100,5 +100,3 @@ type State struct {
 	professions   []sotah.Profession
 	ItemBlacklist ItemBlacklistMap
 }
-
-type IntakeRequestData = map[blizzard.RegionName]map[blizzard.RealmSlug]int64
