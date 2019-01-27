@@ -57,7 +57,7 @@ func (ar AuctionsRequest) resolve(sta State) (sotah.MiniAuctionList, requestErro
 		return sotah.MiniAuctionList{}, requestError{codes.UserError, "Count must be <=1000"}
 	}
 
-	maList, err := realmLadbase.GetMiniauctions()
+	maList, err := realmLadbase.GetMiniAuctionList()
 	if err != nil {
 		return sotah.MiniAuctionList{}, requestError{codes.GenericError, err.Error()}
 	}
