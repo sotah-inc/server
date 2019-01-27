@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/sotah-inc/server/app/pkg/sotah"
-
 	"github.com/boltdb/bolt"
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
@@ -42,8 +41,8 @@ type liveAuctionsDatabase struct {
 
 func (ladBase liveAuctionsDatabase) persistMiniAuctionList(maList sotah.MiniAuctionList) error {
 	logging.WithFields(logrus.Fields{
-		"db":                ladBase.db.Path(),
-		"miniauctions-list": len(maList),
+		"db":                 ladBase.db.Path(),
+		"mini-auctions-list": len(maList),
 	}).Debug("Persisting mini-auction-list")
 
 	encodedData, err := maList.EncodeForDatabase()
