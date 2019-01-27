@@ -1,6 +1,7 @@
 package store
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -119,6 +120,90 @@ func (sto Store) WriteRealmAuctions(rea sotah.Realm, lastModified time.Time, gzi
 	}
 
 	return wc.Close()
+}
+
+type LoadAuctionsInJob struct {
+	Realm      sotah.Realm
+	TargetTime time.Time
+	Auctions   blizzard.Auctions
+}
+
+type LoadAuctionsOutJob struct {
+	Err        error
+	Realm      sotah.Realm
+	TargetTime time.Time
+	ItemIds    []blizzard.ItemID
+}
+
+func (job LoadAuctionsOutJob) ToLogrusFields() logrus.Fields {
+	return logrus.Fields{
+		"error":       job.Err.Error(),
+		"region":      job.Realm.Region.Name,
+		"realm":       job.Realm.Slug,
+		"target-time": job.TargetTime.Unix(),
+	}
+}
+
+func (sto Store) LoadAuctions(in chan LoadAuctionsInJob) chan LoadAuctionsOutJob {
+	out := make(chan LoadAuctionsOutJob)
+
+	// spinning up the workers for fetching Auctions
+	worker := func() {
+		for inJob := range in {
+			jsonEncodedData, err := json.Marshal(inJob.Auctions)
+			if err != nil {
+				out <- LoadAuctionsOutJob{
+					Err:        err,
+					Realm:      inJob.Realm,
+					TargetTime: inJob.TargetTime,
+					ItemIds:    []blizzard.ItemID{},
+				}
+
+				continue
+			}
+
+			gzipEncodedData, err := util.GzipEncode(jsonEncodedData)
+			if err != nil {
+				out <- LoadAuctionsOutJob{
+					Err:        err,
+					Realm:      inJob.Realm,
+					TargetTime: inJob.TargetTime,
+					ItemIds:    []blizzard.ItemID{},
+				}
+
+				continue
+			}
+
+			if err := sto.WriteRealmAuctions(inJob.Realm, inJob.TargetTime, gzipEncodedData); err != nil {
+				out <- LoadAuctionsOutJob{
+					Err:        err,
+					Realm:      inJob.Realm,
+					TargetTime: inJob.TargetTime,
+					ItemIds:    []blizzard.ItemID{},
+				}
+
+				continue
+			}
+
+			outItemIds := []blizzard.ItemID{}
+			for _, auc := range inJob.Auctions.Auctions {
+				outItemIds = append(outItemIds, auc.Item)
+			}
+
+			out <- LoadAuctionsOutJob{
+				Err:        nil,
+				Realm:      inJob.Realm,
+				TargetTime: inJob.TargetTime,
+				ItemIds:    outItemIds,
+			}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(4, worker, postWork)
+
+	return out
 }
 
 type RealmTimes map[blizzard.RealmSlug]GetAuctionsFromTimesInJob

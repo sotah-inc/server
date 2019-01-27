@@ -54,6 +54,15 @@ type GetAuctionsJob struct {
 	LastModified time.Time
 }
 
+func (job GetAuctionsJob) ToLogrusFields() logrus.Fields {
+	return logrus.Fields{
+		"error":         job.Err.Error(),
+		"region":        job.Realm.Region.Name,
+		"realm":         job.Realm.Slug,
+		"last-modified": job.LastModified.Unix(),
+	}
+}
+
 func (r Resolver) GetAuctionsForRealms(reas sotah.Realms) chan GetAuctionsJob {
 	// establishing channels
 	out := make(chan GetAuctionsJob)

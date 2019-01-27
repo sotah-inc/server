@@ -60,23 +60,41 @@ func (sta State) collectRegions() {
 		// misc
 		receivedItemIds := map[blizzard.ItemID]struct{}{}
 
-		// downloading auctions in a region
-		logging.WithFields(logrus.Fields{
-			"region": regionName,
-			"realms": len(status.Realms),
-		}).Debug("Downloading region")
-		getAuctionsJobs := sta.IO.resolver.GetAuctionsForRealms(status.Realms)
-		for job := range getAuctionsJobs {
+		// starting channels for persisting auctions
+		loadAuctionsInJobs := make(chan store.LoadAuctionsInJob)
+		loadAuctionsOutJobs := sta.IO.store.LoadAuctions(loadAuctionsInJobs)
+
+		// queueing up the jobs
+		go func() {
+			logging.WithFields(logrus.Fields{
+				"region": regionName,
+				"realms": len(status.Realms),
+			}).Debug("Downloading region")
+			for getAuctionsJob := range sta.IO.resolver.GetAuctionsForRealms(status.Realms) {
+				if getAuctionsJob.Err != nil {
+					logrus.WithFields(getAuctionsJob.ToLogrusFields()).Error("Failed to fetch auctions")
+
+					continue
+				}
+
+				loadAuctionsInJobs <- store.LoadAuctionsInJob{
+					Realm:      getAuctionsJob.Realm,
+					TargetTime: getAuctionsJob.LastModified,
+					Auctions:   getAuctionsJob.Auctions,
+				}
+			}
+
+			close(loadAuctionsInJobs)
+		}()
+
+		// waiting for the store-load-in jobs to drain out
+		for job := range loadAuctionsOutJobs {
 			// incrementing included-realm count
 			includedRealmCount++
 
 			// optionally skipping on error
 			if job.Err != nil {
-				logging.WithFields(logrus.Fields{
-					"error":  job.Err.Error(),
-					"region": job.Realm.Region.Name,
-					"realm":  job.Realm.Slug,
-				}).Error("Auction fetch failure")
+				logging.WithFields(job.ToLogrusFields()).Error("Failed to persist auctions")
 
 				continue
 			}
@@ -87,17 +105,17 @@ func (sta State) collectRegions() {
 					continue
 				}
 
-				sta.Statuses[job.Realm.Region.Name].Realms[i].LastModified = job.LastModified.Unix()
+				sta.Statuses[job.Realm.Region.Name].Realms[i].LastModified = job.TargetTime.Unix()
 
 				break
 			}
 
 			// appending to received item-ids
-			for _, auc := range job.Auctions.Auctions {
-				receivedItemIds[auc.Item] = struct{}{}
+			for _, itemId := range job.ItemIds {
+				receivedItemIds[itemId] = struct{}{}
 			}
 		}
-		logging.WithField("region", regionName).Debug("Downloaded region")
+		logging.WithField("region", regionName).Debug("Downloaded and persisted region")
 
 		// resolving items
 		err := func() error {
