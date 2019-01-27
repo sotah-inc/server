@@ -1,17 +1,14 @@
 package state
 
 import (
-	"encoding/json"
 	"time"
-
-	"github.com/sotah-inc/server/app/pkg/store"
 
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/logging"
-	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/store"
 )
 
 func (sta State) StartCollector(stopChan sotah.WorkerStopChan) sotah.WorkerStopChan {
@@ -265,18 +262,18 @@ func (sta State) collectRegions() {
 	}
 
 	// publishing for intake into live auctions
-	aiRequest := AuctionsIntakeRequest{irData}
-	err := func() error {
-		encodedAiRequest, err := json.Marshal(aiRequest)
-		if err != nil {
-			return err
-		}
-
-		return res.Messenger.Publish(subjects.AuctionsIntake, encodedAiRequest)
-	}()
-	if err != nil {
-		logging.WithField("error", err.Error()).Error("Failed to publish auctions-intake-request")
-	}
+	//aiRequest := AuctionsIntakeRequest{irData}
+	//err := func() error {
+	//	encodedAiRequest, err := json.Marshal(aiRequest)
+	//	if err != nil {
+	//		return err
+	//	}
+	//
+	//	return res.Messenger.Publish(subjects.AuctionsIntake, encodedAiRequest)
+	//}()
+	//if err != nil {
+	//	logging.WithField("error", err.Error()).Error("Failed to publish auctions-intake-request")
+	//}
 
 	metric.ReportDuration(
 		metric.CollectorDuration,
