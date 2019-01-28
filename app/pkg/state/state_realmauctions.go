@@ -5,11 +5,107 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-
 	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
+
+type RealmTimeTuple struct {
+	Realm      sotah.Realm
+	TargetTime time.Time
+}
+
+type RealmTimes map[blizzard.RealmSlug]RealmTimeTuple
+
+type RegionRealmTimes map[blizzard.RegionName]RealmTimes
+
+type GetAuctionsFromTimesOutJob struct {
+	Err        error
+	Realm      sotah.Realm
+	TargetTime time.Time
+	Auctions   blizzard.Auctions
+}
+
+func (job GetAuctionsFromTimesOutJob) ToLogrusFields() logrus.Fields {
+	return logrus.Fields{
+		"error":       job.Err.Error(),
+		"realm":       job.Realm.Slug,
+		"target_time": job.TargetTime.Unix(),
+	}
+}
+
+func (sta State) GetAuctionsFromTimes(times RegionRealmTimes) chan GetAuctionsFromTimesOutJob {
+	in := make(chan RealmTimeTuple)
+	out := make(chan GetAuctionsFromTimesOutJob)
+
+	// spinning up the workers for fetching Auctions
+	worker := func() {
+		for timeTuple := range in {
+			if !sta.UseGCloud {
+				aucs, lastModified, err := sta.IO.diskStore.GetAuctionsByRealm(timeTuple.Realm)
+				if err != nil {
+					out <- GetAuctionsFromTimesOutJob{
+						Err:        err,
+						Realm:      timeTuple.Realm,
+						TargetTime: time.Unix(0, 0),
+						Auctions:   blizzard.Auctions{},
+					}
+
+					continue
+				}
+
+				out <- GetAuctionsFromTimesOutJob{
+					Realm:      timeTuple.Realm,
+					TargetTime: lastModified,
+					Auctions:   aucs,
+				}
+
+				continue
+			}
+
+			aucs, err := sta.IO.store.GetAuctions(timeTuple.Realm, timeTuple.TargetTime)
+			if err != nil {
+				out <- GetAuctionsFromTimesOutJob{
+					Err:        err,
+					Realm:      timeTuple.Realm,
+					TargetTime: timeTuple.TargetTime,
+					Auctions:   blizzard.Auctions{},
+				}
+
+				continue
+			}
+
+			out <- GetAuctionsFromTimesOutJob{
+				Err:        nil,
+				Realm:      timeTuple.Realm,
+				TargetTime: timeTuple.TargetTime,
+				Auctions:   aucs,
+			}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(4, worker, postWork)
+
+	// queueing up the Realms
+	go func() {
+		for regionName, realmTimes := range times {
+			for realmSlug, timeTuple := range realmTimes {
+				logging.WithFields(logrus.Fields{
+					"Region": regionName,
+					"Realm":  realmSlug,
+				}).Debug("Queueing up auctions for loading")
+				in <- timeTuple
+			}
+		}
+
+		close(in)
+	}()
+
+	return out
+}
 
 type StoreAuctionsInJob struct {
 	Realm      sotah.Realm
