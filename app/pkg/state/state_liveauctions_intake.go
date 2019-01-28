@@ -64,7 +64,7 @@ func (iRequest liveAuctionsIntakeRequest) resolve(statuses sotah.Statuses) (Regi
 func (iRequest liveAuctionsIntakeRequest) handle(sta State) {
 	// declaring a load-in channel for the live-auctions db and starting it up
 	loadInJobs := make(chan database.LoadInJob)
-	sta.IO.databases.LiveAuctionsDatabases.Load(loadInJobs)
+	loadOutJobs := sta.IO.databases.LiveAuctionsDatabases.Load(loadInJobs)
 
 	// resolving included and excluded auctions
 	included, _ := iRequest.resolve(sta.Statuses)
@@ -86,6 +86,15 @@ func (iRequest liveAuctionsIntakeRequest) handle(sta State) {
 
 	// closing the load-in channel
 	close(loadInJobs)
+
+	// gathering load-out-jobs as they drain
+	for loadOutJob := range loadOutJobs {
+		if loadOutJob.Err != nil {
+			logrus.WithFields(loadOutJob.ToLogrusFields()).Error("Failed to load auctions")
+
+			continue
+		}
+	}
 
 	return
 }
