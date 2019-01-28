@@ -3,6 +3,8 @@ package state
 import (
 	"encoding/json"
 	nats "github.com/nats-io/go-nats"
+	"github.com/sirupsen/logrus"
+	"github.com/sotah-inc/server/app/pkg/database"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
@@ -60,6 +62,31 @@ func (iRequest liveAuctionsIntakeRequest) resolve(statuses sotah.Statuses) (Regi
 }
 
 func (iRequest liveAuctionsIntakeRequest) handle(sta State) {
+	// declaring a load-in channel for the live-auctions db and starting it up
+	loadInJobs := make(chan database.LoadInJob)
+	sta.IO.databases.LiveAuctionsDatabases.Load(loadInJobs)
+
+	// resolving included and excluded auctions
+	included, _ := iRequest.resolve(sta.Statuses)
+
+	// gathering auctions
+	for getAuctionsFromTimesJob := range sta.GetAuctionsFromTimes(included) {
+		if getAuctionsFromTimesJob.Err != nil {
+			logrus.WithFields(getAuctionsFromTimesJob.ToLogrusFields()).Error("Failed to fetch auctions")
+
+			continue
+		}
+
+		loadInJobs <- database.LoadInJob{
+			Realm:      getAuctionsFromTimesJob.Realm,
+			TargetTime: getAuctionsFromTimesJob.TargetTime,
+			Auctions:   getAuctionsFromTimesJob.Auctions,
+		}
+	}
+
+	// closing the load-in channel
+	close(loadInJobs)
+
 	return
 }
 
