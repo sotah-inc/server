@@ -246,7 +246,7 @@ func (sto Store) GetAuctionsFromTimes(times RealmTimes) chan GetAuctionsFromTime
 	// spinning up the workers for fetching Auctions
 	worker := func() {
 		for inJob := range in {
-			aucs, err := sto.getAuctions(inJob.Realm, inJob.TargetTime)
+			aucs, err := sto.GetAuctions(inJob.Realm, inJob.TargetTime)
 			if err != nil {
 				out <- GetAuctionsFromTimesOutJob{
 					Err:        err,
@@ -282,7 +282,7 @@ func (sto Store) GetAuctionsFromTimes(times RealmTimes) chan GetAuctionsFromTime
 	return out
 }
 
-func (sto Store) getAuctions(rea sotah.Realm, targetTime time.Time) (blizzard.Auctions, error) {
+func (sto Store) GetAuctions(rea sotah.Realm, targetTime time.Time) (blizzard.Auctions, error) {
 	hasBucket, err := sto.RealmAuctionsBucketExists(rea)
 	if err != nil {
 		return blizzard.Auctions{}, err
