@@ -142,7 +142,8 @@ func NewLiveAuctionsDatabases(dirPath string, stas sotah.Statuses) (LiveAuctions
 
 type LiveAuctionsDatabases map[blizzard.RegionName]map[blizzard.RealmSlug]liveAuctionsDatabase
 
-type liveAuctionsDatabasesLoadResult struct {
+type liveAuctionsLoadOutJob struct {
+	Err                  error
 	Realm                sotah.Realm
 	LastModified         time.Time
 	Stats                miniAuctionListStats
@@ -150,9 +151,18 @@ type liveAuctionsDatabasesLoadResult struct {
 	TotalNewAuctions     int
 }
 
-func (ladBases LiveAuctionsDatabases) Load(in chan LoadInJob) chan liveAuctionsDatabasesLoadResult {
+func (job liveAuctionsLoadOutJob) ToLogrusFields() logrus.Fields {
+	return logrus.Fields{
+		"error":         job.Err.Error(),
+		"region":        job.Realm.Region.Name,
+		"realm":         job.Realm.Slug,
+		"last-modified": job.LastModified.Unix(),
+	}
+}
+
+func (ladBases LiveAuctionsDatabases) Load(in chan LoadInJob) chan liveAuctionsLoadOutJob {
 	// establishing channels
-	out := make(chan liveAuctionsDatabasesLoadResult)
+	out := make(chan liveAuctionsLoadOutJob)
 
 	// spinning up the workers for fetching auctions
 	worker := func() {
@@ -165,38 +175,42 @@ func (ladBases LiveAuctionsDatabases) Load(in chan LoadInJob) chan liveAuctionsD
 					"error":  err.Error(),
 					"region": job.Realm.Region.Name,
 					"realm":  job.Realm.Slug,
-				}).Error("Failed to gather live-auctions Stats")
+				}).Error("Failed to gather live-auctions stats")
+
+				out <- liveAuctionsLoadOutJob{
+					Err:                  err,
+					Realm:                job.Realm,
+					LastModified:         job.TargetTime,
+					Stats:                miniAuctionListStats{},
+					TotalRemovedAuctions: 0,
+					TotalNewAuctions:     0,
+				}
 
 				continue
 			}
 
-			// starting a load result
-			result := liveAuctionsDatabasesLoadResult{
-				Realm:        job.Realm,
-				LastModified: job.TargetTime,
-				Stats:        malStats,
-			}
+			// gathering previous and new auction counts for metrics collection
+			totalNewAuctions, totalRemovedAuctions := func() (int, int) {
+				removedAuctionIds := map[int64]struct{}{}
+				for _, auc := range malStats.AuctionIds {
+					removedAuctionIds[auc] = struct{}{}
+				}
+				newAuctionIds := map[int64]struct{}{}
+				for _, auc := range job.Auctions.Auctions {
+					if _, ok := removedAuctionIds[auc.Auc]; ok {
+						delete(removedAuctionIds, auc.Auc)
+					}
 
-			// gathering previous and new auction ids for comparison
-			removedAuctionIds := map[int64]struct{}{}
-			for _, auc := range malStats.AuctionIds {
-				removedAuctionIds[auc] = struct{}{}
-			}
-			newAuctionIds := map[int64]struct{}{}
-			for _, auc := range job.Auctions.Auctions {
-				if _, ok := removedAuctionIds[auc.Auc]; ok {
-					delete(removedAuctionIds, auc.Auc)
+					newAuctionIds[auc.Auc] = struct{}{}
+				}
+				for _, auc := range malStats.AuctionIds {
+					if _, ok := newAuctionIds[auc]; ok {
+						delete(newAuctionIds, auc)
+					}
 				}
 
-				newAuctionIds[auc.Auc] = struct{}{}
-			}
-			for _, auc := range malStats.AuctionIds {
-				if _, ok := newAuctionIds[auc]; ok {
-					delete(newAuctionIds, auc)
-				}
-			}
-			result.TotalNewAuctions = len(newAuctionIds)
-			result.TotalRemovedAuctions = len(removedAuctionIds)
+				return len(newAuctionIds), len(removedAuctionIds)
+			}()
 
 			maList := sotah.NewMiniAuctionListFromMiniAuctions(sotah.NewMiniAuctions(job.Auctions))
 			if err := ladBase.persistMiniAuctionList(maList); err != nil {
@@ -206,10 +220,26 @@ func (ladBases LiveAuctionsDatabases) Load(in chan LoadInJob) chan liveAuctionsD
 					"realm":  job.Realm.Slug,
 				}).Error("Failed to persist mini-auction-list")
 
+				out <- liveAuctionsLoadOutJob{
+					Err:                  err,
+					Realm:                job.Realm,
+					LastModified:         job.TargetTime,
+					Stats:                miniAuctionListStats{},
+					TotalRemovedAuctions: 0,
+					TotalNewAuctions:     0,
+				}
+
 				continue
 			}
 
-			out <- result
+			out <- liveAuctionsLoadOutJob{
+				Err:                  nil,
+				Realm:                job.Realm,
+				LastModified:         job.TargetTime,
+				TotalNewAuctions:     totalNewAuctions,
+				TotalRemovedAuctions: totalRemovedAuctions,
+				Stats:                malStats,
+			}
 		}
 	}
 	postWork := func() {
