@@ -25,4 +25,5 @@ const (
 	Boot               Subject = "boot"
 	SessionSecret      Subject = "sessionSecret"
 	RuntimeInfo        Subject = "runtimeInfo"
+	LiveAuctionsIntake Subject = "liveAuctionsIntake"
 )

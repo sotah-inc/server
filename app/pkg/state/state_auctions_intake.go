@@ -24,10 +24,6 @@ func newAuctionsIntakeRequest(payload []byte) (AuctionsIntakeRequest, error) {
 	return *ar, nil
 }
 
-type RealmTimestamps map[blizzard.RealmSlug]int
-
-type RegionRealmTimestamps map[blizzard.RegionName]RealmTimestamps
-
 type AuctionsIntakeRequest struct {
 	RegionRealmTimestamps RegionRealmTimestamps `json:"region_realm_timestamps"`
 }

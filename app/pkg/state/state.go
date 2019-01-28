@@ -1,6 +1,8 @@
 package state
 
 import (
+	"time"
+
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/database"
 	"github.com/sotah-inc/server/app/pkg/diskstore"
@@ -99,3 +101,16 @@ type State struct {
 	professions   []sotah.Profession
 	ItemBlacklist ItemBlacklistMap
 }
+
+type RealmTimeTuple struct {
+	Realm      sotah.Realm
+	TargetTime time.Time
+}
+
+type RealmTimes map[blizzard.RealmSlug]RealmTimeTuple
+
+type RegionRealmTimes map[blizzard.RegionName]RealmTimes
+
+type RealmTimestamps map[blizzard.RealmSlug]int64
+
+type RegionRealmTimestamps map[blizzard.RegionName]RealmTimestamps

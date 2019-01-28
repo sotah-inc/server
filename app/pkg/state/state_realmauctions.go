@@ -11,15 +11,6 @@ import (
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
-type RealmTimeTuple struct {
-	Realm      sotah.Realm
-	TargetTime time.Time
-}
-
-type RealmTimes map[blizzard.RealmSlug]RealmTimeTuple
-
-type RegionRealmTimes map[blizzard.RegionName]RealmTimes
-
 type GetAuctionsFromTimesOutJob struct {
 	Err        error
 	Realm      sotah.Realm
