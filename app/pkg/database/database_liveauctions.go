@@ -220,20 +220,28 @@ func (ladBases LiveAuctionsDatabases) Load(in chan LoadInJob) chan liveAuctionsD
 	return out
 }
 
-type getAllStatsJob struct {
+type GetAllStatsJob struct {
 	Err   error
 	Realm sotah.Realm
 	Stats miniAuctionListStats
 }
 
-func (ladBases LiveAuctionsDatabases) GetStats(realms sotah.Realms) chan getAllStatsJob {
+func (job GetAllStatsJob) ToLogrusFields() logrus.Fields {
+	return logrus.Fields{
+		"error":  job.Err.Error(),
+		"region": job.Realm.Region.Name,
+		"realm":  job.Realm.Slug,
+	}
+}
+
+func (ladBases LiveAuctionsDatabases) GetStats(realms sotah.Realms) chan GetAllStatsJob {
 	in := make(chan sotah.Realm)
-	out := make(chan getAllStatsJob)
+	out := make(chan GetAllStatsJob)
 
 	worker := func() {
 		for rea := range in {
 			stats, err := ladBases[rea.Region.Name][rea.Slug].stats()
-			out <- getAllStatsJob{err, rea, stats}
+			out <- GetAllStatsJob{err, rea, stats}
 		}
 	}
 	postWork := func() {
