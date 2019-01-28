@@ -278,6 +278,8 @@ func (sta State) collectRegions() {
 	}()
 	if err != nil {
 		logging.WithField("error", err.Error()).Error("Failed to publish live-auctions-intake-request")
+
+		return
 	}
 
 	metric.ReportDuration(
