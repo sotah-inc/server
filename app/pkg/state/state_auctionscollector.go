@@ -1,6 +1,8 @@
 package state
 
 import (
+	"encoding/json"
+	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -45,9 +47,12 @@ func (sta State) StartCollector(stopChan sotah.WorkerStopChan) sotah.WorkerStopC
 }
 
 func (sta State) collectRegions() {
-	logging.Info("Collecting Regions")
+	logging.Info("Collecting regions")
 
-	// going over the list of Regions
+	// for subsequently pushing to the live-auctions-intake listener
+	regionRealmTimestamps := RegionRealmTimestamps{}
+
+	// going over the list of regions
 	startTime := time.Now()
 	totalRealms := 0
 	includedRealmCount := 0
@@ -261,19 +266,19 @@ func (sta State) collectRegions() {
 		}
 	}
 
-	// publishing for intake into live auctions
-	//aiRequest := AuctionsIntakeRequest{irData}
-	//err := func() error {
-	//	encodedAiRequest, err := json.Marshal(aiRequest)
-	//	if err != nil {
-	//		return err
-	//	}
-	//
-	//	return res.Messenger.Publish(subjects.AuctionsIntake, encodedAiRequest)
-	//}()
-	//if err != nil {
-	//	logging.WithField("error", err.Error()).Error("Failed to publish auctions-intake-request")
-	//}
+	// publishing for live-auctions-intake
+	iRequest := liveAuctionsIntakeRequest{RegionRealmTimestamps: regionRealmTimestamps}
+	err := func() error {
+		encodedRequest, err := json.Marshal(iRequest)
+		if err != nil {
+			return err
+		}
+
+		return sta.IO.messenger.Publish(subjects.LiveAuctionsIntake, encodedRequest)
+	}()
+	if err != nil {
+		logging.WithField("error", err.Error()).Error("Failed to publish live-auctions-intake-request")
+	}
 
 	metric.ReportDuration(
 		metric.CollectorDuration,
