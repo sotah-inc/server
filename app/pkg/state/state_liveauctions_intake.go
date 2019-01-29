@@ -2,6 +2,8 @@ package state
 
 import (
 	"encoding/json"
+	"time"
+
 	nats "github.com/nats-io/go-nats"
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/database"
@@ -10,7 +12,6 @@ import (
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/sotah"
-	"time"
 )
 
 func newLiveAuctionsIntakeRequest(data []byte) (liveAuctionsIntakeRequest, error) {
@@ -62,12 +63,33 @@ func (iRequest liveAuctionsIntakeRequest) resolve(statuses sotah.Statuses) (Regi
 }
 
 func (iRequest liveAuctionsIntakeRequest) handle(sta State) {
+	// misc
+	startTime := time.Now()
+
 	// declaring a load-in channel for the live-auctions db and starting it up
 	loadInJobs := make(chan database.LoadInJob)
 	loadOutJobs := sta.IO.databases.LiveAuctionsDatabases.Load(loadInJobs)
 
 	// resolving included and excluded auctions
-	included, _ := iRequest.resolve(sta.Statuses)
+	included, excluded := iRequest.resolve(sta.Statuses)
+
+	// counting realms for reporting
+	includedRealmCount := func() int {
+		out := 0
+		for _, realmTimes := range included {
+			out += len(realmTimes)
+		}
+
+		return out
+	}()
+	excludedRealmCount := func() int {
+		out := 0
+		for _, realmsMap := range excluded {
+			out += len(realmsMap)
+		}
+
+		return out
+	}()
 
 	// gathering auctions
 	for getAuctionsFromTimesJob := range sta.GetAuctionsFromTimes(included) {
@@ -96,6 +118,13 @@ func (iRequest liveAuctionsIntakeRequest) handle(sta State) {
 		}
 	}
 
+	metric.ReportDuration(metric.AuctionsIntakeDuration, metric.DurationMetrics{
+		Duration:       time.Now().Sub(startTime),
+		IncludedRealms: includedRealmCount,
+		ExcludedRealms: excludedRealmCount,
+		TotalRealms:    includedRealmCount + excludedRealmCount,
+	}, logrus.Fields{})
+
 	return
 }
 
@@ -113,7 +142,7 @@ func (sta State) ListenForLiveAuctionsIntake(stop messenger.ListenStopChan) erro
 		}
 
 		metric.ReportIntakeBufferSize(metric.LiveAuctionsIntake, len(iRequest.RegionRealmTimestamps))
-		logging.Info("Received auctions-intake-request")
+		logging.WithField("capacity", len(in)).Info("Received auctions-intake-request, pushing onto handle channel")
 
 		in <- iRequest
 	})
