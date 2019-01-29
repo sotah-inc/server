@@ -97,9 +97,26 @@ func (phdBases PricelistHistoryDatabases) resolveDatabaseFromLoadInJob(job LoadI
 	return phdBase, nil
 }
 
-func (phdBases PricelistHistoryDatabases) Load(in chan LoadInJob) chan struct{} {
-	done := make(chan struct{})
+type pricelistHistoriesLoadOutJob struct {
+	Err          error
+	Realm        sotah.Realm
+	LastModified time.Time
+}
 
+func (job pricelistHistoriesLoadOutJob) ToLogrusFields() logrus.Fields {
+	return logrus.Fields{
+		"error":         job.Err.Error(),
+		"region":        job.Realm.Region.Name,
+		"realm":         job.Realm.Slug,
+		"last-modified": job.LastModified.Unix(),
+	}
+}
+
+func (phdBases PricelistHistoryDatabases) Load(in chan LoadInJob) chan pricelistHistoriesLoadOutJob {
+	// establishing channels
+	out := make(chan pricelistHistoriesLoadOutJob)
+
+	// spinning up workers for receiving auctions and persisting them
 	worker := func() {
 		for job := range in {
 			phdBase, err := phdBases.resolveDatabaseFromLoadInJob(job)
@@ -109,6 +126,12 @@ func (phdBases PricelistHistoryDatabases) Load(in chan LoadInJob) chan struct{} 
 					"region": job.Realm.Region.Name,
 					"Realm":  job.Realm.Slug,
 				}).Error("Could not resolve database from load job")
+
+				out <- pricelistHistoriesLoadOutJob{
+					Err:          err,
+					Realm:        job.Realm,
+					LastModified: job.TargetTime,
+				}
 
 				continue
 			}
@@ -121,18 +144,28 @@ func (phdBases PricelistHistoryDatabases) Load(in chan LoadInJob) chan struct{} 
 					"realm":  job.Realm.Slug,
 				}).Error("Failed to persist pricelists")
 
+				out <- pricelistHistoriesLoadOutJob{
+					Err:          err,
+					Realm:        job.Realm,
+					LastModified: job.TargetTime,
+				}
+
 				continue
+			}
+
+			out <- pricelistHistoriesLoadOutJob{
+				Err:          nil,
+				Realm:        job.Realm,
+				LastModified: job.TargetTime,
 			}
 		}
 	}
 	postWork := func() {
-		done <- struct{}{}
-
-		return
+		close(out)
 	}
-	util.Work(2, worker, postWork)
+	util.Work(4, worker, postWork)
 
-	return done
+	return out
 }
 
 func (phdBases PricelistHistoryDatabases) pruneDatabases() error {
