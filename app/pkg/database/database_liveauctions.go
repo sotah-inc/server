@@ -164,7 +164,7 @@ func (ladBases LiveAuctionsDatabases) Load(in chan LoadInJob) chan liveAuctionsL
 	// establishing channels
 	out := make(chan liveAuctionsLoadOutJob)
 
-	// spinning up the workers for fetching auctions
+	// spinning up workers for receiving auctions and persisting them
 	worker := func() {
 		for job := range in {
 			// resolving the live-auctions database and gathering current Stats
