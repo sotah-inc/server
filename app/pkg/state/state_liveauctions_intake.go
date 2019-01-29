@@ -91,6 +91,22 @@ func (iRequest liveAuctionsIntakeRequest) handle(sta State) {
 		return out
 	}()
 
+	// gathering stats for further data gathering
+	totalPreviousAuctions := 0
+	totalAuctions := 0
+	for _, realmsMap := range excluded {
+		for getStatsJob := range sta.IO.databases.LiveAuctionsDatabases.GetStats(realmsMap.ToRealms()) {
+			if getStatsJob.Err != nil {
+				logrus.WithFields(getStatsJob.ToLogrusFields()).Error("Failed to get live-auction stats")
+
+				continue
+			}
+
+			totalPreviousAuctions += getStatsJob.Stats.TotalAuctions
+			totalAuctions += getStatsJob.Stats.TotalAuctions
+		}
+	}
+
 	// gathering auctions
 	for getAuctionsFromTimesJob := range sta.GetAuctionsFromTimes(included) {
 		if getAuctionsFromTimesJob.Err != nil {
@@ -98,6 +114,8 @@ func (iRequest liveAuctionsIntakeRequest) handle(sta State) {
 
 			continue
 		}
+
+		totalAuctions += len(getAuctionsFromTimesJob.Auctions.Auctions)
 
 		loadInJobs <- database.LoadInJob{
 			Realm:      getAuctionsFromTimesJob.Realm,
@@ -123,7 +141,10 @@ func (iRequest liveAuctionsIntakeRequest) handle(sta State) {
 		IncludedRealms: includedRealmCount,
 		ExcludedRealms: excludedRealmCount,
 		TotalRealms:    includedRealmCount + excludedRealmCount,
-	}, logrus.Fields{})
+	}, logrus.Fields{
+		"total_auctions":          totalAuctions,
+		"total_previous_auctions": totalPreviousAuctions,
+	})
 
 	return
 }
