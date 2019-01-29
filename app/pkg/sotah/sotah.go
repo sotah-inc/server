@@ -81,6 +81,15 @@ type RegionRealmMap map[blizzard.RegionName]RealmMap
 
 type RealmMap map[blizzard.RealmSlug]Realm
 
+func (rMap RealmMap) ToRealms() Realms {
+	out := Realms{}
+	for _, realm := range rMap {
+		out = append(out, realm)
+	}
+
+	return out
+}
+
 type UnixTimestamp int64
 
 type WorkerStopChan chan struct{}
