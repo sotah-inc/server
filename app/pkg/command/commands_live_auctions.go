@@ -105,7 +105,7 @@ func liveAuctions(c internal.Config, m messenger.Messenger, s store.Store) error
 	// opening all listeners
 	sta.Listeners = state.NewListeners(state.SubjectListeners{
 		subjects.Auctions:           sta.ListenForAuctions,
-		subjects.AuctionsIntake:     sta.ListenForAuctionsIntake,
+		subjects.LiveAuctionsIntake: sta.ListenForLiveAuctionsIntake,
 		subjects.PriceList:          sta.ListenForPriceList,
 		subjects.Owners:             sta.ListenForOwners,
 		subjects.OwnersQueryByItems: sta.ListenForOwnersQueryByItems,

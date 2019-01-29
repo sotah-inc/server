@@ -138,12 +138,17 @@ func (iRequest liveAuctionsIntakeRequest) handle(sta State) {
 	close(loadInJobs)
 
 	// gathering load-out-jobs as they drain
+	totalNewAuctions := 0
+	totalRemovedAuctions := 0
 	for loadOutJob := range loadOutJobs {
 		if loadOutJob.Err != nil {
 			logrus.WithFields(loadOutJob.ToLogrusFields()).Error("Failed to load auctions")
 
 			continue
 		}
+
+		totalNewAuctions += loadOutJob.TotalNewAuctions
+		totalRemovedAuctions += loadOutJob.TotalRemovedAuctions
 	}
 
 	metric.ReportDuration(metric.AuctionsIntakeDuration, metric.DurationMetrics{
@@ -156,6 +161,8 @@ func (iRequest liveAuctionsIntakeRequest) handle(sta State) {
 		"total_previous_auctions": totalPreviousAuctions,
 		"total_owners":            totalOwners,
 		"total_items":             len(itemIdsMap),
+		"total_new_auctions":      totalNewAuctions,
+		"total_removed_auctions":  totalRemovedAuctions,
 	})
 
 	return
