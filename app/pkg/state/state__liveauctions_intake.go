@@ -151,7 +151,7 @@ func (iRequest liveAuctionsIntakeRequest) handle(sta State) {
 		totalRemovedAuctions += loadOutJob.TotalRemovedAuctions
 	}
 
-	metric.ReportDuration(metric.AuctionsIntakeDuration, metric.DurationMetrics{
+	metric.ReportDuration(metric.LiveAuctionsIntakeDuration, metric.DurationMetrics{
 		Duration:       time.Now().Sub(startTime),
 		IncludedRealms: includedRealmCount,
 		ExcludedRealms: excludedRealmCount,
@@ -182,7 +182,7 @@ func (sta State) ListenForLiveAuctionsIntake(stop messenger.ListenStopChan) erro
 		}
 
 		metric.ReportIntakeBufferSize(metric.LiveAuctionsIntake, len(iRequest.RegionRealmTimestamps))
-		logging.WithField("capacity", len(in)).Info("Received auctions-intake-request, pushing onto handle channel")
+		logging.WithField("capacity", len(in)).Info("Received live-auctions-intake-request, pushing onto handle channel")
 
 		in <- iRequest
 	})

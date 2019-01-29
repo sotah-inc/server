@@ -78,9 +78,9 @@ type durationKind string
 kinds of duration metrics
 */
 const (
-	CollectorDuration        durationKind = "collector_duration"
-	AuctionsIntakeDuration   durationKind = "auctions_intake_duration"
-	PricelistsIntakeDuration durationKind = "pricelists_intake_duration"
+	CollectorDuration                durationKind = "collector_duration"
+	LiveAuctionsIntakeDuration       durationKind = "live_auctions_intake_duration"
+	PricelistHistoriesIntakeDuration durationKind = "pricelist_histories_intake_duration"
 )
 
 // DurationMetrics - required metrics for every duration entry
@@ -119,8 +119,8 @@ type intakeKind string
 kinds of intake buffer metrics
 */
 const (
-	LiveAuctionsIntake intakeKind = "live_auctions_intake"
-	PricelistsIntake   intakeKind = "pricelists_intake"
+	LiveAuctionsIntake       intakeKind = "live_auctions_intake"
+	PricelistHistoriesIntake intakeKind = "pricelist_histories_intake"
 )
 
 // ReportIntakeBufferSize - for knowing whether intake buffers are full
