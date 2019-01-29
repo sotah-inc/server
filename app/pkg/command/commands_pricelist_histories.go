@@ -162,8 +162,8 @@ func pricelistHistories(c internal.Config, m messenger.Messenger, s store.Store)
 	// opening all listeners
 	logging.Info("Opening all listeners")
 	sta.Listeners = state.NewListeners(state.SubjectListeners{
-		subjects.PricelistsIntake: sta.ListenForPricelistsIntake,
-		subjects.PriceListHistory: sta.ListenForPriceListHistory,
+		subjects.PricelistHistoriesIntake: sta.ListenForPricelistHistoriesIntake,
+		subjects.PriceListHistory:         sta.ListenForPriceListHistory,
 	})
 	if err := sta.Listeners.Listen(); err != nil {
 		return err

@@ -9,7 +9,6 @@ Status - subject name for returning current status
 const (
 	Status                   Subject = "status"
 	Auctions                 Subject = "auctions"
-	PricelistsIntake         Subject = "pricelistsIntake"
 	Regions                  Subject = "regions"
 	GenericTestErrors        Subject = "genericTestErrors"
 	Owners                   Subject = "owners"
