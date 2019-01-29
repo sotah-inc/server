@@ -94,6 +94,8 @@ func (iRequest liveAuctionsIntakeRequest) handle(sta State) {
 	// gathering stats for further data gathering
 	totalPreviousAuctions := 0
 	totalAuctions := 0
+	totalOwners := 0
+	itemIdsMap := sotah.ItemIdsMap{}
 	for _, realmsMap := range excluded {
 		for getStatsJob := range sta.IO.databases.LiveAuctionsDatabases.GetStats(realmsMap.ToRealms()) {
 			if getStatsJob.Err != nil {
@@ -104,6 +106,10 @@ func (iRequest liveAuctionsIntakeRequest) handle(sta State) {
 
 			totalPreviousAuctions += getStatsJob.Stats.TotalAuctions
 			totalAuctions += getStatsJob.Stats.TotalAuctions
+			totalOwners += len(getStatsJob.Stats.OwnerNames)
+			for _, itemId := range getStatsJob.Stats.ItemIds {
+				itemIdsMap[itemId] = struct{}{}
+			}
 		}
 	}
 
@@ -116,6 +122,10 @@ func (iRequest liveAuctionsIntakeRequest) handle(sta State) {
 		}
 
 		totalAuctions += len(getAuctionsFromTimesJob.Auctions.Auctions)
+		totalOwners += len(getAuctionsFromTimesJob.Auctions.OwnerNames())
+		for _, auc := range getAuctionsFromTimesJob.Auctions.Auctions {
+			itemIdsMap[auc.Item] = struct{}{}
+		}
 
 		loadInJobs <- database.LoadInJob{
 			Realm:      getAuctionsFromTimesJob.Realm,
@@ -144,6 +154,8 @@ func (iRequest liveAuctionsIntakeRequest) handle(sta State) {
 	}, logrus.Fields{
 		"total_auctions":          totalAuctions,
 		"total_previous_auctions": totalPreviousAuctions,
+		"total_owners":            totalOwners,
+		"total_items":             len(itemIdsMap),
 	})
 
 	return
