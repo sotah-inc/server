@@ -41,14 +41,14 @@ func pricelistHistoryDatabaseFilePath(dirPath string, rea sotah.Realm, targetTim
 func NewPricelistHistoryDatabases(dirPath string, statuses sotah.Statuses) (PricelistHistoryDatabases, error) {
 	phdBases := PricelistHistoryDatabases{
 		databaseDir: dirPath,
-		databases:   regionRealmDatabaseShards{},
+		Databases:   regionRealmDatabaseShards{},
 	}
 
 	for regionName, regionStatuses := range statuses {
-		phdBases.databases[regionName] = realmDatabaseShards{}
+		phdBases.Databases[regionName] = realmDatabaseShards{}
 
 		for _, rea := range regionStatuses.Realms {
-			phdBases.databases[regionName][rea.Slug] = PricelistHistoryDatabaseShards{}
+			phdBases.Databases[regionName][rea.Slug] = PricelistHistoryDatabaseShards{}
 
 			dbPathPairs, err := DatabasePaths(fmt.Sprintf("%s/%s/%s", dirPath, regionName, rea.Slug))
 			if err != nil {
@@ -61,7 +61,7 @@ func NewPricelistHistoryDatabases(dirPath string, statuses sotah.Statuses) (Pric
 					return PricelistHistoryDatabases{}, err
 				}
 
-				phdBases.databases[regionName][rea.Slug][sotah.UnixTimestamp(dbPathPair.TargetTime.Unix())] = phdBase
+				phdBases.Databases[regionName][rea.Slug][sotah.UnixTimestamp(dbPathPair.TargetTime.Unix())] = phdBase
 			}
 		}
 	}
@@ -75,14 +75,14 @@ type realmDatabaseShards map[blizzard.RealmSlug]PricelistHistoryDatabaseShards
 
 type PricelistHistoryDatabases struct {
 	databaseDir string
-	databases   regionRealmDatabaseShards
+	Databases   regionRealmDatabaseShards
 }
 
-func (phdBases PricelistHistoryDatabases) resolveDatabaseFromLoadInJob(job LoadInJob) (pricelistHistoryDatabase, error) {
+func (phdBases PricelistHistoryDatabases) resolveDatabaseFromLoadInJob(job LoadInJob) (PricelistHistoryDatabase, error) {
 	normalizedTargetDate := normalizeTargetDate(job.TargetTime)
 	normalizedTargetTimestamp := sotah.UnixTimestamp(normalizedTargetDate.Unix())
 
-	phdBase, ok := phdBases.databases[job.Realm.Region.Name][job.Realm.Slug][normalizedTargetTimestamp]
+	phdBase, ok := phdBases.Databases[job.Realm.Region.Name][job.Realm.Slug][normalizedTargetTimestamp]
 	if ok {
 		return phdBase, nil
 	}
@@ -90,9 +90,9 @@ func (phdBases PricelistHistoryDatabases) resolveDatabaseFromLoadInJob(job LoadI
 	dbPath := pricelistHistoryDatabaseFilePath(phdBases.databaseDir, job.Realm, normalizedTargetDate)
 	phdBase, err := newPricelistHistoryDatabase(dbPath, normalizedTargetDate)
 	if err != nil {
-		return pricelistHistoryDatabase{}, err
+		return PricelistHistoryDatabase{}, err
 	}
-	phdBases.databases[job.Realm.Region.Name][job.Realm.Slug][normalizedTargetTimestamp] = phdBase
+	phdBases.Databases[job.Realm.Region.Name][job.Realm.Slug][normalizedTargetTimestamp] = phdBase
 
 	return phdBase, nil
 }
@@ -171,7 +171,7 @@ func (phdBases PricelistHistoryDatabases) Load(in chan LoadInJob) chan pricelist
 func (phdBases PricelistHistoryDatabases) pruneDatabases() error {
 	earliestUnixTimestamp := DatabaseRetentionLimit().Unix()
 	logging.WithField("limit", earliestUnixTimestamp).Info("Checking for databases to prune")
-	for rName, realmDatabases := range phdBases.databases {
+	for rName, realmDatabases := range phdBases.Databases {
 		for rSlug, databaseShards := range realmDatabases {
 			for unixTimestamp, phdBase := range databaseShards {
 				if int64(unixTimestamp) > earliestUnixTimestamp {
@@ -183,7 +183,7 @@ func (phdBases PricelistHistoryDatabases) pruneDatabases() error {
 					"realm":              rSlug,
 					"database-timestamp": unixTimestamp,
 				}).Debug("Removing database from shard map")
-				delete(phdBases.databases[rName][rSlug], unixTimestamp)
+				delete(phdBases.Databases[rName][rSlug], unixTimestamp)
 
 				dbPath := phdBase.db.Path()
 
@@ -251,7 +251,7 @@ func (phdBases PricelistHistoryDatabases) StartPruner(stopChan sotah.WorkerStopC
 	return onStop
 }
 
-type PricelistHistoryDatabaseShards map[sotah.UnixTimestamp]pricelistHistoryDatabase
+type PricelistHistoryDatabaseShards map[sotah.UnixTimestamp]PricelistHistoryDatabase
 
 func (phdShards PricelistHistoryDatabaseShards) GetPriceHistory(
 	rea sotah.Realm,
@@ -282,16 +282,16 @@ func (phdShards PricelistHistoryDatabaseShards) GetPriceHistory(
 	return pHistory, nil
 }
 
-func newPricelistHistoryDatabase(dbFilepath string, targetDate time.Time) (pricelistHistoryDatabase, error) {
+func newPricelistHistoryDatabase(dbFilepath string, targetDate time.Time) (PricelistHistoryDatabase, error) {
 	db, err := bolt.Open(dbFilepath, 0600, nil)
 	if err != nil {
-		return pricelistHistoryDatabase{}, err
+		return PricelistHistoryDatabase{}, err
 	}
 
-	return pricelistHistoryDatabase{db, targetDate}, nil
+	return PricelistHistoryDatabase{db, targetDate}, nil
 }
 
-type pricelistHistoryDatabase struct {
+type PricelistHistoryDatabase struct {
 	db         *bolt.DB
 	targetDate time.Time
 }
@@ -303,7 +303,7 @@ type getItemPriceHistoriesJob struct {
 	history sotah.PriceHistory
 }
 
-func (phdBase pricelistHistoryDatabase) getItemPriceHistories(itemIds []blizzard.ItemID) chan getItemPriceHistoriesJob {
+func (phdBase PricelistHistoryDatabase) getItemPriceHistories(itemIds []blizzard.ItemID) chan getItemPriceHistoriesJob {
 	// drawing channels
 	in := make(chan blizzard.ItemID)
 	out := make(chan getItemPriceHistoriesJob)
@@ -332,7 +332,7 @@ func (phdBase pricelistHistoryDatabase) getItemPriceHistories(itemIds []blizzard
 	return out
 }
 
-func (phdBase pricelistHistoryDatabase) getItemPriceHistory(itemID blizzard.ItemID) (sotah.PriceHistory, error) {
+func (phdBase PricelistHistoryDatabase) getItemPriceHistory(itemID blizzard.ItemID) (sotah.PriceHistory, error) {
 	out := sotah.PriceHistory{}
 
 	err := phdBase.db.View(func(tx *bolt.Tx) error {
@@ -361,7 +361,7 @@ func (phdBase pricelistHistoryDatabase) getItemPriceHistory(itemID blizzard.Item
 	return out, nil
 }
 
-func (phdBase pricelistHistoryDatabase) persistItemPrices(targetTime time.Time, iPrices sotah.ItemPrices) error {
+func (phdBase PricelistHistoryDatabase) persistItemPrices(targetTime time.Time, iPrices sotah.ItemPrices) error {
 	targetTimestamp := sotah.UnixTimestamp(targetTime.Unix())
 
 	logging.WithFields(logrus.Fields{
