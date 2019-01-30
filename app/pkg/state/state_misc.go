@@ -4,41 +4,16 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/sotah-inc/server/app/pkg/sotah"
-
 	nats "github.com/nats-io/go-nats"
-	"github.com/sotah-inc/server/app/internal"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 )
 
-func (sta State) ListenForRegions(stop messenger.ListenStopChan) error {
-	err := sta.IO.messenger.Subscribe(subjects.Regions, stop, func(natsMsg nats.Msg) {
-		m := messenger.NewMessage()
-
-		encodedRegions, err := json.Marshal(sta.Regions)
-		if err != nil {
-			m.Err = err.Error()
-			m.Code = codes.MsgJSONParseError
-			sta.IO.messenger.ReplyTo(natsMsg, m)
-
-			return
-		}
-
-		m.Data = string(encodedRegions)
-		sta.IO.messenger.ReplyTo(natsMsg, m)
-	})
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (sta State) NewRegions() (sotah.RegionList, error) {
-	msg, err := sta.IO.messenger.Request(subjects.Regions, []byte{})
+	msg, err := sta.IO.messenger.Request(subjects.Boot, []byte{})
 	if err != nil {
 		return sotah.RegionList{}, err
 	}
@@ -47,19 +22,19 @@ func (sta State) NewRegions() (sotah.RegionList, error) {
 		return nil, errors.New(msg.Err)
 	}
 
-	regs := sotah.RegionList{}
-	if err := json.Unmarshal([]byte(msg.Data), &regs); err != nil {
+	boot := bootResponse{}
+	if err := json.Unmarshal([]byte(msg.Data), &boot); err != nil {
 		return sotah.RegionList{}, err
 	}
 
-	return regs, nil
+	return boot.Regions, nil
 }
 
 type bootResponse struct {
-	Regions     internal.RegionList   `json:"Regions"`
-	ItemClasses blizzard.ItemClasses  `json:"item_classes"`
-	Expansions  []internal.Expansion  `json:"expansions"`
-	Professions []internal.Profession `json:"professions"`
+	Regions     sotah.RegionList     `json:"Regions"`
+	ItemClasses blizzard.ItemClasses `json:"item_classes"`
+	Expansions  []sotah.Expansion    `json:"expansions"`
+	Professions []sotah.Profession   `json:"professions"`
 }
 
 func (sta State) ListenForBoot(stop messenger.ListenStopChan) error {
