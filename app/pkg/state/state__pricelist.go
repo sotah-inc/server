@@ -6,11 +6,11 @@ import (
 	"errors"
 
 	nats "github.com/nats-io/go-nats"
-	"github.com/sotah-inc/server/app/internal"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
@@ -25,25 +25,25 @@ func newPriceListRequest(payload []byte) (priceListRequest, error) {
 }
 
 type priceListRequest struct {
-	RegionName internal.RegionName `json:"region_name"`
+	RegionName blizzard.RegionName `json:"region_name"`
 	RealmSlug  blizzard.RealmSlug  `json:"realm_slug"`
 	ItemIds    []blizzard.ItemID   `json:"item_ids"`
 }
 
-func (plRequest priceListRequest) resolve(sta State) (internal.MiniAuctionList, requestError) {
-	regionLadBases, ok := sta.LiveAuctionsDatabases[plRequest.RegionName]
+func (plRequest priceListRequest) resolve(sta State) (sotah.MiniAuctionList, requestError) {
+	regionLadBases, ok := sta.IO.databases.LiveAuctionsDatabases[plRequest.RegionName]
 	if !ok {
-		return internal.MiniAuctionList{}, requestError{codes.NotFound, "Invalid region"}
+		return sotah.MiniAuctionList{}, requestError{codes.NotFound, "Invalid region"}
 	}
 
 	ladBase, ok := regionLadBases[plRequest.RealmSlug]
 	if !ok {
-		return internal.MiniAuctionList{}, requestError{codes.NotFound, "Invalid Realm"}
+		return sotah.MiniAuctionList{}, requestError{codes.NotFound, "Invalid Realm"}
 	}
 
-	maList, err := ladBase.GetMiniauctions()
+	maList, err := ladBase.GetMiniAuctionList()
 	if err != nil {
-		return internal.MiniAuctionList{}, requestError{codes.GenericError, err.Error()}
+		return sotah.MiniAuctionList{}, requestError{codes.GenericError, err.Error()}
 	}
 
 	return maList, requestError{codes.Ok, ""}
@@ -77,7 +77,7 @@ func newPriceListResponse(body []byte) (priceListResponse, error) {
 }
 
 type priceListResponse struct {
-	PriceList PriceList `json:"price_list"`
+	PriceList sotah.ItemPrices `json:"price_list"`
 }
 
 func (plResponse priceListResponse) encodeForMessage() (string, error) {
@@ -118,8 +118,18 @@ func (sta State) ListenForPriceList(stop messenger.ListenStopChan) error {
 			return
 		}
 
-		// deriving a pricelist-response from the provided Realm auctions
-		plResponse := priceListResponse{NewPriceList(plRequest.ItemIds, realmAuctions)}
+		// deriving a pricelist-response from the provided realm auctions
+		iPrices := sotah.NewItemPrices(realmAuctions)
+		responseItemPrices := sotah.ItemPrices{}
+		for _, itemId := range plRequest.ItemIds {
+			if iPrice, ok := iPrices[itemId]; ok {
+				responseItemPrices[itemId] = iPrice
+
+				continue
+			}
+		}
+
+		plResponse := priceListResponse{responseItemPrices}
 		data, err := plResponse.encodeForMessage()
 		if err != nil {
 			m.Err = err.Error()
