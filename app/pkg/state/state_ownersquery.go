@@ -5,21 +5,19 @@ import (
 	"errors"
 	"sort"
 
-	"github.com/sotah-inc/server/app/pkg/messenger"
-
-	"github.com/sotah-inc/server/app/internal"
-
 	"github.com/lithammer/fuzzysearch/fuzzy"
 	nats "github.com/nats-io/go-nats"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 )
 
 type ownersQueryItem struct {
-	Target string         `json:"target"`
-	Owner  internal.Owner `json:"owner"`
-	Rank   int            `json:"rank"`
+	Target string      `json:"target"`
+	Owner  sotah.Owner `json:"owner"`
+	Rank   int         `json:"rank"`
 }
 
 type ownersQueryItems []ownersQueryItem
@@ -62,16 +60,6 @@ func (by ownersQueryItemsByRank) Len() int           { return len(by) }
 func (by ownersQueryItemsByRank) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
 func (by ownersQueryItemsByRank) Less(i, j int) bool { return by[i].Rank < by[j].Rank }
 
-func newOwnersQueryResult(payload []byte) (ownersQueryResult, error) {
-	result := &ownersQueryResult{}
-	err := json.Unmarshal(payload, result)
-	if err != nil {
-		return ownersQueryResult{}, err
-	}
-
-	return *result, nil
-}
-
 type ownersQueryResult struct {
 	Items ownersQueryItems `json:"items"`
 }
@@ -87,37 +75,37 @@ func newOwnersQueryRequest(payload []byte) (ownersQueryRequest, error) {
 }
 
 type ownersQueryRequest struct {
-	RegionName internal.RegionName `json:"region_name"`
+	RegionName blizzard.RegionName `json:"region_name"`
 	RealmSlug  blizzard.RealmSlug  `json:"realm_slug"`
 	Query      string              `json:"query"`
 }
 
 func (request ownersQueryRequest) resolve(sta State) (ownersQueryResult, error) {
 	if request.RegionName == "" {
-		return ownersQueryResult{}, errors.New("Region name cannot be blank")
+		return ownersQueryResult{}, errors.New("region name cannot be blank")
 	}
 	if request.RealmSlug == "" {
-		return ownersQueryResult{}, errors.New("Realm slug cannot be blank")
+		return ownersQueryResult{}, errors.New("realm slug cannot be blank")
 	}
 
 	// resolving region-Realm auctions
-	regionLadBases, ok := sta.LiveAuctionsDatabases[request.RegionName]
+	regionLadBases, ok := sta.IO.databases.LiveAuctionsDatabases[request.RegionName]
 	if !ok {
-		return ownersQueryResult{}, errors.New("Invalid region name")
+		return ownersQueryResult{}, errors.New("invalid region name")
 	}
 
 	ladBase, ok := regionLadBases[request.RealmSlug]
 	if !ok {
-		return ownersQueryResult{}, errors.New("Invalid Realm slug")
+		return ownersQueryResult{}, errors.New("invalid Realm slug")
 	}
 
-	maList, err := ladBase.GetMiniauctions()
+	maList, err := ladBase.GetMiniAuctionList()
 	if err != nil {
 		return ownersQueryResult{}, err
 	}
 
 	// resolving owners from auctions
-	oResult, err := internal.NewOwnersFromAuctions(maList)
+	oResult, err := sotah.NewOwnersFromAuctions(maList)
 	if err != nil {
 		return ownersQueryResult{}, err
 	}
