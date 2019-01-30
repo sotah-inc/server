@@ -18,7 +18,7 @@ import (
 )
 
 type priceListHistoryResponse struct {
-	History map[blizzard.ItemID]database.PriceListHistory `json:"history"`
+	History sotah.ItemPriceHistories `json:"history"`
 }
 
 func (plhResponse priceListHistoryResponse) encodeForMessage() (string, error) {
@@ -72,11 +72,11 @@ func (plhRequest priceListHistoryRequest) resolve(sta State) (sotah.Realm, datab
 	if rea == nil {
 		return sotah.Realm{},
 			database.PricelistHistoryDatabaseShards{},
-			requestError{codes.NotFound, "Invalid Realm (Statuses)"}
+			requestError{codes.NotFound, "Invalid realm (Statuses)"}
 	}
 
 	phdShards, reErr := func() (database.PricelistHistoryDatabaseShards, requestError) {
-		regionShards, ok := sta.PricelistHistoryDatabases[plhRequest.RegionName]
+		regionShards, ok := sta.IO.databases.PricelistHistoryDatabases.Databases[plhRequest.RegionName]
 		if !ok {
 			return database.PricelistHistoryDatabaseShards{}, requestError{codes.NotFound, "Invalid region (pricelist-history databases)"}
 		}
@@ -107,7 +107,7 @@ func (sta State) ListenForPriceListHistory(stop messenger.ListenStopChan) error 
 		}
 
 		// resolving the database from the request
-		rea, tdMap, reErr := plhRequest.resolve(sta)
+		rea, phdShards, reErr := plhRequest.resolve(sta)
 		if reErr.code != codes.Ok {
 			m.Err = reErr.message
 			m.Code = reErr.code
@@ -116,12 +116,12 @@ func (sta State) ListenForPriceListHistory(stop messenger.ListenStopChan) error 
 			return
 		}
 
-		logging.WithField("database-shards", len(tdMap)).Info("Querying database shards")
+		logging.WithField("database-shards", len(phdShards)).Info("Querying database shards")
 
 		// gathering up pricelist history
-		plhResponse := priceListHistoryResponse{History: map[blizzard.ItemID]database.PriceListHistory{}}
+		plhResponse := priceListHistoryResponse{History: sotah.ItemPriceHistories{}}
 		for _, ID := range plhRequest.ItemIds {
-			plHistory, err := tdMap.GetPricelistHistory(
+			plHistory, err := phdShards.GetPriceHistory(
 				rea,
 				ID,
 				time.Unix(plhRequest.LowerBounds, 0),
