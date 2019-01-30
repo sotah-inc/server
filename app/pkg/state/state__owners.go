@@ -32,12 +32,12 @@ type OwnersRequest struct {
 func (request OwnersRequest) resolve(sta State) (sotah.MiniAuctionList, error) {
 	regionLadBases, ok := sta.IO.databases.LiveAuctionsDatabases[request.RegionName]
 	if !ok {
-		return sotah.MiniAuctionList{}, errors.New("Invalid region name")
+		return sotah.MiniAuctionList{}, errors.New("invalid region name")
 	}
 
 	ladBase, ok := regionLadBases[request.RealmSlug]
 	if !ok {
-		return sotah.MiniAuctionList{}, errors.New("Invalid Realm slug")
+		return sotah.MiniAuctionList{}, errors.New("invalid Realm slug")
 	}
 
 	maList, err := ladBase.GetMiniAuctionList()
