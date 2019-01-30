@@ -18,9 +18,9 @@ func databaseItemsBucketName() []byte {
 // keying
 type itemKeyspace int64
 
-func itemIDKeyspace(ID blizzard.ItemID) itemKeyspace {
+func itemIDKeyspace(itemId blizzard.ItemID) itemKeyspace {
 	keyspaceSize := int64(1000)
-	keyspace := (int64(ID) - (int64(ID) % keyspaceSize)) / keyspaceSize
+	keyspace := (int64(itemId) - (int64(itemId) % keyspaceSize)) / keyspaceSize
 
 	return itemKeyspace(keyspace)
 }
@@ -89,11 +89,11 @@ func (idBase ItemsDatabase) GetItems() (sotah.ItemsMap, error) {
 	return out, nil
 }
 
-func (idBase ItemsDatabase) FindItems(IDs []blizzard.ItemID) (sotah.ItemsMap, error) {
+func (idBase ItemsDatabase) FindItems(itemIds []blizzard.ItemID) (sotah.ItemsMap, error) {
 	// gathering item keyspaces for fetching
 	keyspaces := func() []itemKeyspace {
 		result := map[itemKeyspace]struct{}{}
-		for _, ID := range IDs {
+		for _, ID := range itemIds {
 			result[itemIDKeyspace(ID)] = struct{}{}
 		}
 
@@ -106,7 +106,7 @@ func (idBase ItemsDatabase) FindItems(IDs []blizzard.ItemID) (sotah.ItemsMap, er
 	}()
 
 	// producing an id map for simpler filtering of results
-	IDsMap := sotah.NewItemIdsMap(IDs)
+	itemIdsMap := sotah.NewItemIdsMap(itemIds)
 
 	out := sotah.ItemsMap{}
 	err := idBase.db.View(func(tx *bolt.Tx) error {
@@ -126,12 +126,12 @@ func (idBase ItemsDatabase) FindItems(IDs []blizzard.ItemID) (sotah.ItemsMap, er
 				return err
 			}
 
-			for ID, itemValue := range iMap {
-				if _, ok := IDsMap[ID]; !ok {
+			for itemId, item := range iMap {
+				if _, ok := itemIdsMap[itemId]; !ok {
 					continue
 				}
 
-				out[ID] = itemValue
+				out[itemId] = item
 			}
 		}
 
