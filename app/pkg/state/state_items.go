@@ -4,13 +4,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 
-	"github.com/sotah-inc/server/app/pkg/messenger"
-
 	nats "github.com/nats-io/go-nats"
-	"github.com/sotah-inc/server/app/internal"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
@@ -28,12 +27,12 @@ type itemsRequest struct {
 	ItemIds []blizzard.ItemID `json:"ItemIds"`
 }
 
-func (iRequest itemsRequest) resolve(sta State) (internal.ItemsMap, error) {
-	return sta.ItemsDatabase.FindItems(iRequest.ItemIds)
+func (iRequest itemsRequest) resolve(sta State) (sotah.ItemsMap, error) {
+	return sta.IO.databases.ItemsDatabase.FindItems(iRequest.ItemIds)
 }
 
 type itemsResponse struct {
-	Items internal.ItemsMap `json:"items"`
+	Items sotah.ItemsMap `json:"items"`
 }
 
 func (iResponse itemsResponse) encodeForMessage() (string, error) {
