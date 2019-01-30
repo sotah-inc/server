@@ -114,6 +114,7 @@ github.com/sotah-inc/server v0.0.0-20190129022556-f35ea5b270f7 h1:HjPEOxlLvwfqCq
 github.com/sotah-inc/server v0.0.0-20190129133728-12acabc03f7b h1:qIjl531ZyEGja3ODjYVmGuIwUqUdEz0x3jnJEMZQeeo=
 github.com/sotah-inc/server v0.0.0-20190129185411-0fff7917297c h1:FfNSZyJAUxsej+NXoC6gnmYZ4Ux+fAQo05cU5Mxebeg=
 github.com/sotah-inc/server v0.0.0-20190130021740-17ec3f14f751 h1:mySZKQKYrLVZNZdDTfX7cl34Id1mDQTOkEEOSXsKc9E=
+github.com/sotah-inc/server v0.0.0-20190130180003-7f43737d8b4b h1:T9FYfHS+KwrbDS8phAR5qF9SaPpYUmAVxSJXzCF0dxQ=
 github.com/sourcegraph/annotate v0.0.0-20160123013949-f4cad6c6324d/go.mod h1:UdhH50NIW0fCiwBSr0co2m7BnFLdv4fQTgdqdJTHFeE=
 github.com/sourcegraph/syntaxhighlight v0.0.0-20170531221838-bd320f5d308e/go.mod h1:HuIsMU8RRBOtsCgI77wP899iHVBQpCmg4ErYMZB+2IA=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=

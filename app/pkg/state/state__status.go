@@ -3,13 +3,13 @@ package state
 import (
 	"encoding/json"
 	"errors"
+
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 
 	"github.com/sotah-inc/server/app/pkg/messenger"
 
 	nats "github.com/nats-io/go-nats"
-	"github.com/sotah-inc/server/app/internal"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 )
@@ -25,22 +25,22 @@ func newStatusRequest(payload []byte) (StatusRequest, error) {
 }
 
 type StatusRequest struct {
-	RegionName internal.RegionName `json:"region_name"`
+	RegionName blizzard.RegionName `json:"region_name"`
 }
 
-func (sr StatusRequest) resolve(sta State) (internal.Region, error) {
-	var reg internal.Region
-	for _, r := range sta.Regions {
-		if r.Name != sr.RegionName {
-			continue
+func (sr StatusRequest) resolve(sta State) (sotah.Region, error) {
+	reg := func() sotah.Region {
+		for _, r := range sta.Regions {
+			if r.Name != sr.RegionName {
+				return r
+			}
 		}
 
-		reg = r
-		break
-	}
+		return sotah.Region{}
+	}()
 
 	if reg.Name == "" {
-		return internal.Region{}, errors.New("Invalid region")
+		return sotah.Region{}, errors.New("invalid region")
 	}
 
 	return reg, nil
