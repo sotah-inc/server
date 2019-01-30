@@ -62,7 +62,7 @@ type itemsQueryResult struct {
 	Items itemsQueryItems `json:"items"`
 }
 
-func itemsQueryResult(payload []byte) (itemsQueryRequest, error) {
+func newItemsQueryRequest(payload []byte) (itemsQueryRequest, error) {
 	request := &itemsQueryRequest{}
 	err := json.Unmarshal(payload, &request)
 	if err != nil {
