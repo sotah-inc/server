@@ -2,23 +2,20 @@ package state
 
 import (
 	"encoding/json"
-	"errors"
 	"sort"
-
-	"github.com/sotah-inc/server/app/pkg/messenger"
 
 	"github.com/lithammer/fuzzysearch/fuzzy"
 	nats "github.com/nats-io/go-nats"
-	"github.com/sotah-inc/server/app/internal"
+	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
-	"github.com/sotah-inc/server/app/pkg/util"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 )
 
 type itemsQueryItem struct {
-	Target string        `json:"target"`
-	Item   internal.Item `json:"item"`
-	Rank   int           `json:"rank"`
+	Target string     `json:"target"`
+	Item   sotah.Item `json:"item"`
+	Rank   int        `json:"rank"`
 }
 
 type itemsQueryItems []itemsQueryItem
@@ -61,48 +58,11 @@ func (by itemsQueryItemsByRank) Len() int           { return len(by) }
 func (by itemsQueryItemsByRank) Swap(i, j int)      { by[i], by[j] = by[j], by[i] }
 func (by itemsQueryItemsByRank) Less(i, j int) bool { return by[i].Rank < by[j].Rank }
 
-func newItemsQueryResultFromMessenger(mess messenger.Messenger, request itemsQueryRequest) (itemsQueryResult, error) {
-	encodedMessage, err := json.Marshal(request)
-	if err != nil {
-		return itemsQueryResult{}, err
-	}
-
-	msg, err := mess.Request(subjects.ItemsQuery, encodedMessage)
-	if err != nil {
-		return itemsQueryResult{}, err
-	}
-
-	if msg.Code != codes.Ok {
-		return itemsQueryResult{}, errors.New(msg.Err)
-	}
-
-	return newItemsQueryResult([]byte(msg.Data))
-}
-
-func newItemsQueryResultFromFilepath(relativeFilepath string) (itemsQueryResult, error) {
-	body, err := util.ReadFile(relativeFilepath)
-	if err != nil {
-		return itemsQueryResult{}, err
-	}
-
-	return newItemsQueryResult(body)
-}
-
-func newItemsQueryResult(payload []byte) (itemsQueryResult, error) {
-	request := &itemsQueryResult{}
-	err := json.Unmarshal(payload, &request)
-	if err != nil {
-		return itemsQueryResult{}, err
-	}
-
-	return *request, nil
-}
-
 type itemsQueryResult struct {
 	Items itemsQueryItems `json:"items"`
 }
 
-func newItemsQueryRequest(payload []byte) (itemsQueryRequest, error) {
+func itemsQueryResult(payload []byte) (itemsQueryRequest, error) {
 	request := &itemsQueryRequest{}
 	err := json.Unmarshal(payload, &request)
 	if err != nil {
@@ -117,7 +77,7 @@ type itemsQueryRequest struct {
 }
 
 func (request itemsQueryRequest) resolve(sta State) (itemsQueryResult, error) {
-	iMap, err := sta.ItemsDatabase.GetItems()
+	iMap, err := sta.IO.databases.ItemsDatabase.GetItems()
 	if err != nil {
 		return itemsQueryResult{}, err
 	}
