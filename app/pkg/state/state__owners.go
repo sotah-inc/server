@@ -3,15 +3,14 @@ package state
 import (
 	"encoding/json"
 	"errors"
-	"github.com/sotah-inc/server/app/pkg/sotah"
 	"sort"
 
 	nats "github.com/nats-io/go-nats"
-	"github.com/sotah-inc/server/app/internal"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 )
 
 func newOwnersRequest(payload []byte) (OwnersRequest, error) {
@@ -25,25 +24,25 @@ func newOwnersRequest(payload []byte) (OwnersRequest, error) {
 }
 
 type OwnersRequest struct {
-	RegionName internal.RegionName `json:"region_name"`
+	RegionName blizzard.RegionName `json:"region_name"`
 	RealmSlug  blizzard.RealmSlug  `json:"realm_slug"`
 	Query      string              `json:"query"`
 }
 
-func (request OwnersRequest) resolve(sta State) (internal.MiniAuctionList, error) {
-	regionLadBases, ok := sta.LiveAuctionsDatabases[request.RegionName]
+func (request OwnersRequest) resolve(sta State) (sotah.MiniAuctionList, error) {
+	regionLadBases, ok := sta.IO.databases.LiveAuctionsDatabases[request.RegionName]
 	if !ok {
-		return internal.MiniAuctionList{}, errors.New("Invalid region name")
+		return sotah.MiniAuctionList{}, errors.New("Invalid region name")
 	}
 
 	ladBase, ok := regionLadBases[request.RealmSlug]
 	if !ok {
-		return internal.MiniAuctionList{}, errors.New("Invalid Realm slug")
+		return sotah.MiniAuctionList{}, errors.New("Invalid Realm slug")
 	}
 
-	maList, err := ladBase.GetMiniauctions()
+	maList, err := ladBase.GetMiniAuctionList()
 	if err != nil {
-		return internal.MiniAuctionList{}, err
+		return sotah.MiniAuctionList{}, err
 	}
 
 	return maList, nil
@@ -63,7 +62,7 @@ func (sta State) ListenForOwners(stop messenger.ListenStopChan) error {
 			return
 		}
 
-		// resolving miniauctionslist from the request and State
+		// resolving mini-auctions-list from the request and State
 		mal, err := request.resolve(sta)
 		if err != nil {
 			m.Err = err.Error()
@@ -73,7 +72,7 @@ func (sta State) ListenForOwners(stop messenger.ListenStopChan) error {
 			return
 		}
 
-		o, err := internal.NewOwnersFromAuctions(mal)
+		o, err := sotah.NewOwnersFromAuctions(mal)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
@@ -88,7 +87,7 @@ func (sta State) ListenForOwners(stop messenger.ListenStopChan) error {
 		}
 
 		// sorting and truncating
-		sort.Sort(internal.OwnersByName(o.Owners))
+		sort.Sort(sotah.OwnersByName(o.Owners))
 		o.Owners = o.Owners.Limit()
 
 		// marshalling for Messenger
@@ -110,22 +109,4 @@ func (sta State) ListenForOwners(stop messenger.ListenStopChan) error {
 	}
 
 	return nil
-}
-
-func (sta State) NewOwners(request OwnersRequest) (sotah.Owners, error) {
-	encodedMessage, err := json.Marshal(request)
-	if err != nil {
-		return sotah.Owners{}, err
-	}
-
-	msg, err := sta.IO.messenger.Request(subjects.Owners, encodedMessage)
-	if err != nil {
-		return sotah.Owners{}, err
-	}
-
-	if msg.Code != codes.Ok {
-		return sotah.Owners{}, errors.New(msg.Err)
-	}
-
-	return sotah.NewOwners([]byte(msg.Data))
 }
