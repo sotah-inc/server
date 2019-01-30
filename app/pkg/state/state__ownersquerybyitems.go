@@ -3,13 +3,12 @@ package state
 import (
 	"encoding/json"
 
-	"github.com/sotah-inc/server/app/internal"
-
 	nats "github.com/nats-io/go-nats"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 )
 
 type ownerItemsOwnership struct {
@@ -18,9 +17,9 @@ type ownerItemsOwnership struct {
 }
 
 type ownersQueryResultByItems struct {
-	Ownership   map[internal.OwnerName]ownerItemsOwnership `json:"ownership"`
-	TotalValue  int64                                      `json:"total_value"`
-	TotalVolume int64                                      `json:"total_volume"`
+	Ownership   map[sotah.OwnerName]ownerItemsOwnership `json:"ownership"`
+	TotalValue  int64                                   `json:"total_value"`
+	TotalVolume int64                                   `json:"total_volume"`
 }
 
 func newOwnersQueryRequestByItem(payload []byte) (ownersQueryRequestByItems, error) {
@@ -34,25 +33,25 @@ func newOwnersQueryRequestByItem(payload []byte) (ownersQueryRequestByItems, err
 }
 
 type ownersQueryRequestByItems struct {
-	RegionName internal.RegionName `json:"region_name"`
+	RegionName blizzard.RegionName `json:"region_name"`
 	RealmSlug  blizzard.RealmSlug  `json:"realm_slug"`
 	Items      []blizzard.ItemID   `json:"items"`
 }
 
-func (request ownersQueryRequestByItems) resolve(sta State) (internal.MiniAuctionList, requestError) {
-	regionLadBases, ok := sta.LiveAuctionsDatabases[request.RegionName]
+func (request ownersQueryRequestByItems) resolve(sta State) (sotah.MiniAuctionList, requestError) {
+	regionLadBases, ok := sta.IO.databases.LiveAuctionsDatabases[request.RegionName]
 	if !ok {
-		return internal.MiniAuctionList{}, requestError{codes.NotFound, "Invalid region"}
+		return sotah.MiniAuctionList{}, requestError{codes.NotFound, "Invalid region"}
 	}
 
 	ladBase, ok := regionLadBases[request.RealmSlug]
 	if !ok {
-		return internal.MiniAuctionList{}, requestError{codes.NotFound, "Invalid Realm"}
+		return sotah.MiniAuctionList{}, requestError{codes.NotFound, "Invalid Realm"}
 	}
 
-	maList, err := ladBase.GetMiniauctions()
+	maList, err := ladBase.GetMiniAuctionList()
 	if err != nil {
-		return internal.MiniAuctionList{}, requestError{codes.GenericError, err.Error()}
+		return sotah.MiniAuctionList{}, requestError{codes.GenericError, err.Error()}
 	}
 
 	return maList, requestError{codes.Ok, ""}
@@ -89,7 +88,7 @@ func (sta State) ListenForOwnersQueryByItems(stop messenger.ListenStopChan) erro
 
 		// going over the auctions to gather results
 		result := ownersQueryResultByItems{
-			Ownership:   map[internal.OwnerName]ownerItemsOwnership{},
+			Ownership:   map[sotah.OwnerName]ownerItemsOwnership{},
 			TotalValue:  0,
 			TotalVolume: 0,
 		}
