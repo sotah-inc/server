@@ -17,8 +17,15 @@ import (
 const OAuthTokenEndpoint = "https://us.battle.net/oauth/token?grant_type=client_credentials"
 
 // NewClient - generates a client used for querying blizz api
-func NewClient(id string, secret string) Client {
-	return Client{id, secret, ""}
+func NewClient(id string, secret string) (Client, error) {
+	if len(id) == 0 {
+		return Client{}, errors.New("client id is blank")
+	}
+	if len(secret) == 0 {
+		return Client{}, errors.New("client secret is blank")
+	}
+
+	return Client{id, secret, ""}, nil
 }
 
 // Client - used for querying blizz api
