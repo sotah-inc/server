@@ -123,7 +123,7 @@ func (c Client) RefreshFromHTTP(uri string) (Client, error) {
 // AppendAccessToken - appends access token used for making authenticated requests
 func (c Client) AppendAccessToken(destination string) (string, error) {
 	if c.accessToken == "" {
-		return "", errors.New("Could not append access token, access token is blank")
+		return "", errors.New("could not append access token, access token is blank")
 	}
 
 	u, err := url.Parse(destination)
