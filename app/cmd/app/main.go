@@ -5,9 +5,11 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/cmd/app/commands"
+	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/logging/stackdriver"
 	"github.com/sotah-inc/server/app/pkg/messenger"
+	"github.com/sotah-inc/server/app/pkg/resolver"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/store"
 	"github.com/twinj/uuid"
@@ -26,14 +28,14 @@ func main() {
 	// parsing the command flags
 	var (
 		app            = kingpin.New("sotah-server", "A command-line Blizzard AH client.")
-		natsHost       = app.Flag("nats-host", "NATS hostname").Default("localhost").OverrideDefaultFromEnvar("NATS_HOST").Short('h').String()
-		natsPort       = app.Flag("nats-port", "NATS port").Default("4222").OverrideDefaultFromEnvar("NATS_PORT").Short('p').Int()
+		natsHost       = app.Flag("nats-host", "NATS hostname").Default("localhost").Envar("NATS_HOST").Short('h').String()
+		natsPort       = app.Flag("nats-port", "NATS port").Default("4222").Envar("NATS_PORT").Short('p').Int()
 		configFilepath = app.Flag("config", "Relative path to config json").Required().Short('c').String()
 		clientID       = app.Flag("client-id", "Blizzard API Client ID").Envar("CLIENT_ID").String()
-		clientSecret   = app.Flag("client-secret", "Blizzard API Client Secret").OverrideDefaultFromEnvar("CLIENT_SECRET").String()
+		clientSecret   = app.Flag("client-secret", "Blizzard API Client Secret").Envar("CLIENT_SECRET").String()
 		verbosity      = app.Flag("verbosity", "Log verbosity").Default("info").Short('v').String()
 		cacheDir       = app.Flag("cache-dir", "Directory to cache data files to").Required().String()
-		projectID      = app.Flag("project-id", "GCloud Storage Project ID").Default("").OverrideDefaultFromEnvar("PROJECT_ID").String()
+		projectID      = app.Flag("project-id", "GCloud Storage Project ID").Default("").Envar("PROJECT_ID").String()
 
 		apiTestCommand            = app.Command(commands.APITest, "For running sotah-api tests.")
 		apiTestDataDir            = apiTestCommand.Flag("data-dir", "Directory to load test fixtures from").Required().Short('d').String()
@@ -78,32 +80,6 @@ func main() {
 	}
 	logging.Info("Starting")
 
-	// optionally overriding client id and client secret in config
-	if len(*clientID) > 0 {
-		logging.WithField("client-id", *clientID).Info("Overriding client-id found in config")
-
-		c.ClientID = *clientID
-	}
-	if len(*clientSecret) > 0 {
-		logging.WithField("client-id", *clientSecret).Info("Overriding client-secret found in config")
-
-		c.ClientSecret = *clientSecret
-	}
-
-	// optionally overriding cache-dir in config
-	if len(*cacheDir) > 0 {
-		logging.WithField("cache-dir", *cacheDir).Info("Overriding cache-dir found in config")
-
-		c.CacheDir = *cacheDir
-	}
-
-	// validating the cache dir
-	if c.CacheDir == "" {
-		logging.Fatal("Cache-dir cannot be blank")
-
-		return
-	}
-
 	// connecting the messenger
 	mess, err := messenger.NewMessenger(*natsHost, *natsPort)
 	if err != nil {
@@ -129,6 +105,21 @@ func main() {
 			return
 		}
 	}
+
+	// connecting the blizzard client
+	blizzardClient := blizzard.Client{}
+	if len(*clientID) > 0 && len(*clientSecret) > 0 {
+		blizzardClient, err = blizzard.NewClient(*clientID, *clientSecret)
+		if err != nil {
+			logging.WithField("error", err.Error()).Fatal("Could not create blizzard client")
+
+			return
+		}
+	}
+
+	// creating a resolver
+	resolv := resolver.NewResolver()
+	resolv.BlizzardClient = blizzardClient
 
 	logging.WithField("command", cmd).Info("Running command")
 
