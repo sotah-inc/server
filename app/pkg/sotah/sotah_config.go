@@ -2,7 +2,7 @@ package sotah
 
 import (
 	"encoding/json"
-	"fmt"
+
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/util"
@@ -33,7 +33,6 @@ func newConfig(body []byte) (Config, error) {
 type Config struct {
 	Regions       RegionList                              `json:"regions"`
 	Whitelist     map[blizzard.RegionName]*realmWhitelist `json:"whitelist"`
-	CacheDir      string                                  `json:"cache_dir"`
 	UseGCloud     bool                                    `json:"use_gcloud"`
 	Expansions    []Expansion                             `json:"expansions"`
 	Professions   []Profession                            `json:"professions"`
@@ -81,8 +80,4 @@ func (c Config) FilterInRealms(reg Region, reas Realms) Realms {
 	}
 
 	return out
-}
-
-func (c Config) DatabaseDir() string {
-	return fmt.Sprintf("%s/databases", c.CacheDir)
 }
