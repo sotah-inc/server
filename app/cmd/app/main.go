@@ -37,16 +37,17 @@ func main() {
 		cacheDir       = app.Flag("cache-dir", "Directory to cache data files to").Required().String()
 		projectID      = app.Flag("project-id", "GCloud Storage Project ID").Default("").Envar("PROJECT_ID").String()
 
-		apiTestCommand            = app.Command(commands.APITest, "For running sotah-api tests.")
+		apiTestCommand            = app.Command(string(commands.APITest), "For running sotah-api tests.")
 		apiTestDataDir            = apiTestCommand.Flag("data-dir", "Directory to load test fixtures from").Required().Short('d').String()
-		apiCommand                = app.Command(commands.API, "For running sotah-server.")
-		syncItemsCommand          = app.Command(commands.SyncItems, "For syncing items in gcloud storage to local disk.")
-		liveAuctionsCommand       = app.Command(commands.LiveAuctions, "For in-memory storage of current auctions.")
-		pricelistHistoriesCommand = app.Command(commands.PricelistHistories, "For on-disk storage of pricelist histories.")
-		pruneStoreCommand         = app.Command(commands.PruneStore, "For pruning gcloud store of non-primary region auctions.")
+		apiCommand                = app.Command(string(commands.API), "For running sotah-server.")
+		syncItemsCommand          = app.Command(string(commands.SyncItems), "For syncing items in gcloud storage to local disk.")
+		liveAuctionsCommand       = app.Command(string(commands.LiveAuctions), "For in-memory storage of current auctions.")
+		pricelistHistoriesCommand = app.Command(string(commands.PricelistHistories), "For on-disk storage of pricelist histories.")
+		pruneStoreCommand         = app.Command(string(commands.PruneStore), "For pruning gcloud store of non-primary region auctions.")
 	)
 	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
 
+	// establishing log verbosity
 	logVerbosity, err := logrus.ParseLevel(*verbosity)
 	if err != nil {
 		logging.WithField("error", err.Error()).Fatal("Could not parse log level")
@@ -118,31 +119,38 @@ func main() {
 	}
 
 	// creating a resolver
-	resolv := resolver.NewResolver()
-	resolv.BlizzardClient = blizzardClient
+	res := resolver.NewResolver(blizzardClient)
 
 	logging.WithField("command", cmd).Info("Running command")
 
+	// declaring a command map
 	cMap := commandMap{
 		apiTestCommand.FullCommand(): func() error {
-			return apiTest(c, mess, stor, *apiTestDataDir)
+			//return apiTest(c, mess, stor, *apiTestDataDir)
+			return nil
 		},
 		apiCommand.FullCommand(): func() error {
 			return api(c, mess, stor)
 		},
 		syncItemsCommand.FullCommand(): func() error {
-			return syncItems(c, stor)
+			//return syncItems(c, stor)
+			return nil
 		},
 		liveAuctionsCommand.FullCommand(): func() error {
-			return liveAuctions(c, mess, stor)
+			//return liveAuctions(c, mess, stor)
+			return nil
 		},
 		pricelistHistoriesCommand.FullCommand(): func() error {
-			return pricelistHistories(c, mess, stor)
+			//return pricelistHistories(c, mess, stor)
+			return nil
 		},
 		pruneStoreCommand.FullCommand(): func() error {
-			return pruneStore(c, mess, stor)
+			//return pruneStore(c, mess, stor)
+			return nil
 		},
 	}
+
+	// resolving the command func
 	cmdFunc, ok := cMap[cmd]
 	if !ok {
 		logging.WithField("command", cmd).Fatal("Invalid command")
@@ -150,18 +158,7 @@ func main() {
 		return
 	}
 
-	if c.UseGCloud {
-		stackdriverHook, err := stackdriver.NewHook(*projectID, cmd)
-		if err != nil {
-			logging.WithFields(logrus.Fields{
-				"error":     err.Error(),
-				"projectID": projectID,
-			}).Fatal("Could not create new stackdriver logrus hook")
-		}
-
-		logging.ResetLogger(logVerbosity, stackdriverHook)
-	}
-
+	// calling the command func
 	if err := cmdFunc(); err != nil {
 		logging.WithFields(logrus.Fields{
 			"error":   err.Error,

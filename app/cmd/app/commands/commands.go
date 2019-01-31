@@ -1,14 +1,15 @@
 package commands
 
+type command string
+
 /*
 Commands - commands that run on main
 */
 var (
-	APITest            = "api-test"
-	API                = "api"
-	SyncItems          = "sync-items"
-	LiveAuctions       = "live-auctions"
-	PricelistHistories = "pricelist-histories"
-	PruneStore         = "prune-store"
-	ReformHistory      = "reform-history"
+	APITest            command = "api-test"
+	API                command = "api"
+	SyncItems          command = "sync-items"
+	LiveAuctions       command = "live-auctions"
+	PricelistHistories command = "pricelist-histories"
+	PruneStore         command = "prune-store"
 )
