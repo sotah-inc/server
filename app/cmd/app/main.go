@@ -5,10 +5,10 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/cmd/app/commands"
-	"github.com/sotah-inc/server/app/internal"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/logging/stackdriver"
 	"github.com/sotah-inc/server/app/pkg/messenger"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/store"
 	"github.com/twinj/uuid"
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
@@ -29,7 +29,7 @@ func main() {
 		natsHost       = app.Flag("nats-host", "NATS hostname").Default("localhost").OverrideDefaultFromEnvar("NATS_HOST").Short('h').String()
 		natsPort       = app.Flag("nats-port", "NATS port").Default("4222").OverrideDefaultFromEnvar("NATS_PORT").Short('p').Int()
 		configFilepath = app.Flag("config", "Relative path to config json").Required().Short('c').String()
-		clientID       = app.Flag("client-id", "Blizzard API Client ID").OverrideDefaultFromEnvar("CLIENT_ID").String()
+		clientID       = app.Flag("client-id", "Blizzard API Client ID").Envar("CLIENT_ID").String()
 		clientSecret   = app.Flag("client-secret", "Blizzard API Client Secret").OverrideDefaultFromEnvar("CLIENT_SECRET").String()
 		verbosity      = app.Flag("verbosity", "Log verbosity").Default("info").Short('v').String()
 		cacheDir       = app.Flag("cache-dir", "Directory to cache data files to").Required().String()
@@ -54,7 +54,7 @@ func main() {
 	logging.SetLevel(logVerbosity)
 
 	// loading the config file
-	c, err := internal.NewConfigFromFilepath(*configFilepath)
+	c, err := sotah.NewConfigFromFilepath(*configFilepath)
 	if err != nil {
 		logging.WithFields(logrus.Fields{
 			"error":    err.Error(),
