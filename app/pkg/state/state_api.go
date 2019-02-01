@@ -15,8 +15,6 @@ import (
 	"github.com/twinj/uuid"
 )
 
-type ItemBlacklistMap map[blizzard.ItemID]struct{}
-
 type APIStateConfig struct {
 	sotahConfig sotah.Config
 
@@ -33,7 +31,7 @@ type APIStateConfig struct {
 
 	ItemsDatabaseDir string
 
-	ItemBlacklist ItemBlacklistMap
+	ItemBlacklist []blizzard.ItemID
 }
 
 func NewAPIState(config APIStateConfig) (APIState, error) {
@@ -177,5 +175,5 @@ type APIState struct {
 	ItemClasses   blizzard.ItemClasses
 	Expansions    []sotah.Expansion
 	Professions   []sotah.Profession
-	ItemBlacklist ItemBlacklistMap
+	ItemBlacklist []blizzard.ItemID
 }
