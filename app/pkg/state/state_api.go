@@ -16,9 +16,8 @@ import (
 )
 
 type APIStateConfig struct {
-	sotahConfig sotah.Config
+	SotahConfig sotah.Config
 
-	UseGCloud       bool
 	GCloudProjectID string
 
 	MessengerHost string
@@ -30,25 +29,23 @@ type APIStateConfig struct {
 	BlizzardClientSecret string
 
 	ItemsDatabaseDir string
-
-	ItemBlacklist []blizzard.ItemID
 }
 
 func NewAPIState(config APIStateConfig) (APIState, error) {
 	// establishing an initial state
 	apiState := APIState{
-		State: NewState(uuid.NewV4(), config.UseGCloud),
+		State: NewState(uuid.NewV4(), config.SotahConfig.UseGCloud),
 	}
 	apiState.SessionSecret = uuid.NewV4()
 
 	// setting api-state from config, including filtering in regions based on config whitelist
-	apiState.Regions = config.sotahConfig.FilterInRegions(config.sotahConfig.Regions)
-	apiState.Expansions = config.sotahConfig.Expansions
-	apiState.Professions = config.sotahConfig.Professions
-	apiState.ItemBlacklist = config.ItemBlacklist
+	apiState.Regions = config.SotahConfig.FilterInRegions(config.SotahConfig.Regions)
+	apiState.Expansions = config.SotahConfig.Expansions
+	apiState.Professions = config.SotahConfig.Professions
+	apiState.ItemBlacklist = config.SotahConfig.ItemBlacklist
 
 	// establishing a store (gcloud store or disk store)
-	if config.UseGCloud {
+	if config.SotahConfig.UseGCloud {
 		stor, err := store.NewStore(config.GCloudProjectID)
 		if err != nil {
 			return APIState{}, err
@@ -93,7 +90,7 @@ func NewAPIState(config APIStateConfig) (APIState, error) {
 		}
 
 		sotahStatus := sotah.NewStatus(reg, status)
-		sotahStatus.Realms = config.sotahConfig.FilterInRealms(reg, sotah.NewRealms(reg, status.Realms))
+		sotahStatus.Realms = config.SotahConfig.FilterInRealms(reg, sotah.NewRealms(reg, status.Realms))
 		apiState.Statuses[reg.Name] = sotahStatus
 	}
 
