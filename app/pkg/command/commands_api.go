@@ -5,158 +5,191 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/sotah-inc/server/app/pkg/database"
-
-	"github.com/sotah-inc/server/app/pkg/messenger"
-	"github.com/sotah-inc/server/app/pkg/store"
-
-	"github.com/sirupsen/logrus"
-	"github.com/sotah-inc/server/app/internal"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/database"
+	"github.com/sotah-inc/server/app/pkg/diskstore"
 	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
+	"github.com/sotah-inc/server/app/pkg/resolver"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state"
+	"github.com/sotah-inc/server/app/pkg/store"
 	"github.com/sotah-inc/server/app/pkg/util"
 	"github.com/twinj/uuid"
 )
 
-func apiCacheDirs(c internal.Config, regions internal.RegionList) ([]string, error) {
-	databaseDir, err := c.DatabaseDir()
-	if err != nil {
-		return nil, err
+type APIStateConfig struct {
+	sotahConfig sotah.Config
+
+	UseGCloud       bool
+	GCloudProjectID string
+
+	MessengerHost string
+	MessengerPort int
+
+	DiskStoreCacheDir string
+
+	BlizzardClientId     string
+	BlizzardClientSecret string
+
+	ItemsDatabaseDir string
+}
+
+func NewAPIState(config APIStateConfig) (APIState, error) {
+	// establishing an initial state
+	apiState := APIState{
+		State: state.NewState(uuid.NewV4(), config.UseGCloud),
+	}
+	apiState.SessionSecret = uuid.NewV4()
+
+	// setting api-state from config, including filtering in regions based on config whitelist
+	apiState.Regions = config.sotahConfig.FilterInRegions(config.sotahConfig.Regions)
+	apiState.Expansions = config.sotahConfig.Expansions
+	apiState.Professions = config.sotahConfig.Professions
+
+	// establishing a store (gcloud store or disk store)
+	if config.UseGCloud {
+		stor, err := store.NewStore(config.GCloudProjectID)
+		if err != nil {
+			return APIState{}, err
+		}
+
+		apiState.IO.Store = stor
+	} else {
+		cacheDirs := []string{
+			config.DiskStoreCacheDir,
+			fmt.Sprintf("%s/items", config.DiskStoreCacheDir),
+			fmt.Sprintf("%s/auctions", config.DiskStoreCacheDir),
+		}
+		for _, reg := range apiState.Regions {
+			cacheDirs = append(cacheDirs, fmt.Sprintf("%s/auctions/%s", config.DiskStoreCacheDir, reg.Name))
+		}
+		if err := util.EnsureDirsExist(cacheDirs); err != nil {
+			return APIState{}, err
+		}
+
+		apiState.IO.DiskStore = diskstore.NewDiskStore(config.DiskStoreCacheDir)
 	}
 
-	cacheDirs := []string{databaseDir, fmt.Sprintf("%s/items", c.CacheDir)}
-	if !c.UseGCloud {
-		cacheDirs = append(cacheDirs, fmt.Sprintf("%s/auctions", c.CacheDir))
-		for _, reg := range regions {
-			cacheDirs = append(cacheDirs, fmt.Sprintf("%s/auctions/%s", c.CacheDir, reg.Name))
+	// connecting to the messenger host
+	mess, err := messenger.NewMessenger(config.MessengerHost, config.MessengerPort)
+	if err != nil {
+		return APIState{}, err
+	}
+	apiState.IO.Messenger = mess
+
+	// connecting a new blizzard client
+	blizzardClient, err := blizzard.NewClient(config.BlizzardClientId, config.BlizzardClientSecret)
+	if err != nil {
+		return APIState{}, err
+	}
+	apiState.IO.Resolver = resolver.NewResolver(blizzardClient)
+
+	// filling state with region statuses
+	for _, reg := range apiState.Regions {
+		status, _, err := blizzard.NewStatusFromHTTP(blizzard.DefaultGetStatusURL(reg.Hostname))
+		if err != nil {
+			return APIState{}, err
+		}
+
+		sotahStatus := sotah.NewStatus(reg, status)
+		sotahStatus.Realms = config.sotahConfig.FilterInRealms(reg, sotah.NewRealms(reg, status.Realms))
+		apiState.Statuses[reg.Name] = sotahStatus
+	}
+
+	// filling state with item-classes
+	primaryRegion, err := apiState.Regions.GetPrimaryRegion()
+	if err != nil {
+		return APIState{}, err
+	}
+	uri, err := apiState.IO.Resolver.AppendAccessToken(apiState.IO.Resolver.GetItemClassesURL(primaryRegion.Hostname))
+	if err != nil {
+		return APIState{}, err
+	}
+	itemClasses, _, err := blizzard.NewItemClassesFromHTTP(uri)
+	if err != nil {
+		return APIState{}, err
+	}
+	apiState.ItemClasses = itemClasses
+
+	// loading the items database
+	itemsDatabase, err := database.NewItemsDatabase(config.ItemsDatabaseDir)
+	if err != nil {
+		return APIState{}, err
+	}
+	apiState.IO.Databases.ItemsDatabase = itemsDatabase
+
+	// gathering profession icons
+	if apiState.UseGCloud {
+		for i, prof := range apiState.Professions {
+			itemIconUrl, err := func() (string, error) {
+				exists, err := apiState.IO.Store.ItemIconExists(prof.Icon)
+				if err != nil {
+					return "", err
+				}
+
+				if exists {
+					obj, err := apiState.IO.Store.GetItemIconObject(prof.Icon)
+					if err != nil {
+						return "", err
+					}
+
+					return apiState.IO.Store.GetStoreItemIconURLFunc(obj)
+				}
+
+				body, err := util.Download(blizzard.DefaultGetItemIconURL(prof.Icon))
+				if err != nil {
+					return "", err
+				}
+
+				return apiState.IO.Store.WriteItemIcon(prof.Icon, body)
+			}()
+			if err != nil {
+				return APIState{}, err
+			}
+
+			apiState.Professions[i].Icon = itemIconUrl
+		}
+	} else {
+		for i, prof := range apiState.Professions {
+			apiState.Professions[i].Icon = blizzard.DefaultGetItemIconURL(prof.Icon)
 		}
 	}
 
-	return cacheDirs, nil
+	// establishing listeners
+	apiState.Listeners = state.NewListeners(state.SubjectListeners{
+		subjects.Boot:          apiState.ListenForBoot,
+		subjects.SessionSecret: apiState.ListenForSessionSecret,
+		subjects.Status:        apiState.ListenForStatus,
+		subjects.Items:         apiState.ListenForItems,
+		subjects.ItemsQuery:    apiState.ListenForItemsQuery,
+	})
+
+	return apiState, nil
 }
 
-func api(c internal.Config, m messenger.Messenger, s store.Store) error {
+type APIState struct {
+	state.State
+}
+
+func Api(config APIStateConfig) error {
 	logging.Info("Starting api")
 
 	// establishing a state
-	res := internal.NewResolver(c, m, s)
-	sta := state.NewState(res)
-
-	// creating a uuid4 api-session secret and run-id of state
-	sta.RunID = uuid.NewV4()
-	sta.SessionSecret = uuid.NewV4()
-
-	// ensuring cache-dirs exist
-	cacheDirs, err := apiCacheDirs(c, sta.Regions)
+	apiState, err := NewAPIState(config)
 	if err != nil {
 		return err
-	}
-
-	if err := util.EnsureDirsExist(cacheDirs); err != nil {
-		return err
-	}
-
-	// loading up items database
-	idBase, err := database.NewItemsDatabase(c)
-	if err != nil {
-		return err
-	}
-	sta.ItemsDatabase = idBase
-
-	// refreshing the access-token for the resolver blizz client
-	nextClient, err := res.BlizzardClient.RefreshFromHTTP(blizzard.OAuthTokenEndpoint)
-	if err != nil {
-		logging.WithField("error", err.Error()).Error("Failed to refresh blizzard client")
-
-		return err
-	}
-	res.BlizzardClient = nextClient
-	sta.Resolver = res
-
-	// filling state with region statuses
-	for _, reg := range sta.Regions {
-		regionStatus, err := reg.GetStatus(res)
-		if err != nil {
-			logging.WithFields(logrus.Fields{
-				"error":  err.Error(),
-				"region": reg.Name,
-			}).Error("Failed to fetch status")
-
-			return err
-		}
-
-		regionStatus.Realms = c.FilterInRealms(reg, regionStatus.Realms)
-		sta.Statuses[reg.Name] = regionStatus
-	}
-
-	// gathering item-classes
-	primaryRegion, err := c.Regions.GetPrimaryRegion()
-	if err != nil {
-		return err
-	}
-
-	uri, err := res.AppendAccessToken(res.GetItemClassesURL(primaryRegion.Hostname))
-	if err != nil {
-		return err
-	}
-
-	iClasses, _, err := blizzard.NewItemClassesFromHTTP(uri)
-	if err != nil {
-		return err
-	}
-	sta.ItemClasses = iClasses
-
-	// gathering profession icons into storage
-	if c.UseGCloud {
-		iconNames := make([]string, len(c.Professions))
-		for i, prof := range c.Professions {
-			iconNames[i] = prof.Icon
-		}
-
-		syncedIcons, err := s.SyncItemIcons(iconNames, res)
-		if err != nil {
-			return err
-		}
-		for job := range syncedIcons {
-			if job.Err != nil {
-				return job.Err
-			}
-
-			for i, prof := range c.Professions {
-				if prof.Icon != job.IconName {
-					continue
-				}
-
-				c.Professions[i].IconURL = job.IconURL
-			}
-		}
-	} else {
-		for i, prof := range c.Professions {
-			c.Professions[i].IconURL = internal.DefaultGetItemIconURL(prof.Icon)
-		}
 	}
 
 	// opening all listeners
-	sta.Listeners = state.NewListeners(state.SubjectListeners{
-		subjects.GenericTestErrors: sta.ListenForGenericTestErrors,
-		subjects.Status:            sta.ListenForStatus,
-		subjects.Regions:           sta.ListenForRegions,
-		subjects.ItemsQuery:        sta.ListenForItemsQuery,
-		subjects.ItemClasses:       sta.ListenForItemClasses,
-		subjects.Items:             sta.ListenForItems,
-		subjects.Boot:              sta.ListenForBoot,
-		subjects.SessionSecret:     sta.ListenForSessionSecret,
-		subjects.RuntimeInfo:       sta.ListenForRuntimeInfo,
-	})
-	if err := sta.Listeners.Listen(); err != nil {
+	if err := apiState.Listeners.Listen(); err != nil {
 		return err
 	}
 
 	// starting up a collector
-	collectorStop := make(state.WorkerStopChan)
-	onCollectorStop := sta.StartCollector(collectorStop, res)
+	collectorStop := make(sotah.WorkerStopChan)
+	onCollectorStop := apiState.StartCollector(collectorStop)
 
 	// catching SIGINT
 	logging.Info("Waiting for SIGINT")
@@ -167,7 +200,7 @@ func api(c internal.Config, m messenger.Messenger, s store.Store) error {
 	logging.Info("Caught SIGINT, exiting")
 
 	// stopping listeners
-	sta.Listeners.Stop()
+	apiState.Listeners.Stop()
 
 	logging.Info("Stopping collector")
 	collectorStop <- struct{}{}
