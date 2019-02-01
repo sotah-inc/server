@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/sotah-inc/server/app/pkg/database"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state"
 
 	"github.com/sotah-inc/server/app/pkg/messenger"
@@ -19,100 +20,22 @@ import (
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
-func pricelistHistoriesCacheDirs(c internal.Config, regions internal.RegionList, stas internal.Statuses) ([]string, error) {
-	databaseDir, err := c.DatabaseDir()
-	if err != nil {
-		return nil, err
-	}
-
-	cacheDirs := []string{databaseDir}
-	for _, reg := range regions {
-		regionDatabaseDir := reg.DatabaseDir(databaseDir)
-		cacheDirs = append(cacheDirs, regionDatabaseDir)
-
-		for _, rea := range stas[reg.Name].Realms {
-			cacheDirs = append(cacheDirs, rea.DatabaseDir(regionDatabaseDir))
-		}
-	}
-
-	return cacheDirs, nil
-}
-
-func pricelistHistories(c internal.Config, m messenger.Messenger, s store.Store) error {
+func PricelistHistories(config state.PricelistHistoriesStateConfig) error {
 	logging.Info("Starting pricelist-histories")
 
 	// establishing a state
-	res := internal.NewResolver(c, m, s)
-	sta := state.NewState(res)
-
-	// gathering region-status from the root service
-	logging.Info("Gathering regions")
-	regions, err := func() (internal.RegionList, error) {
-		out := internal.RegionList{}
-		attempts := 0
-		for {
-			var err error
-			out, err = internal.NewRegionsFromMessenger(m)
-			if err == nil {
-				break
-			} else {
-				logging.Info("Could not fetch regions, retrying in 250ms")
-
-				attempts++
-				time.Sleep(250 * time.Millisecond)
-			}
-
-			if attempts >= 20 {
-				return internal.RegionList{}, fmt.Errorf("Failed to fetch regions after %d attempts", attempts)
-			}
-		}
-
-		return out, nil
-	}()
+	phState, err := state.NewPricelistHistoriesState(config)
 	if err != nil {
-		logging.WithField("error", err.Error()).Error("Failed to fetch regions")
-
-		return err
-	}
-
-	sta.Regions = c.FilterInRegions(regions)
-
-	// filling state with statuses
-	logging.Info("Gathering statuses")
-	for _, reg := range sta.Regions {
-		regionStatus, err := internal.NewStatusFromMessenger(reg, m)
-		if err != nil {
-			logging.WithField("region", reg.Name).Info("Could not fetch status for region")
-
-			return err
-		}
-		regionStatus.Realms = c.FilterInRealms(reg, regionStatus.Realms)
-		sta.Statuses[reg.Name] = regionStatus
-	}
-
-	// ensuring cache-dirs exist
-	logging.Info("Ensuring cache-dirs exist")
-	cacheDirs, err := pricelistHistoriesCacheDirs(c, sta.Regions, sta.Statuses)
-	if err != nil {
-		return err
-	}
-
-	if err := util.EnsureDirsExist(cacheDirs); err != nil {
 		return err
 	}
 
 	// pruning old data
-	databaseDir, err := c.DatabaseDir()
-	if err != nil {
-		return err
-	}
-
 	earliestTime := database.DatabaseRetentionLimit()
-	for _, reg := range sta.Regions {
-		regionDatabaseDir := reg.DatabaseDir(databaseDir)
+	for _, reg := range phState.Regions {
+		regionDatabaseDir := fmt.Sprintf("%s/%s", config.PricelistHistoriesDatabaseDir, reg.Name)
 
-		for _, rea := range sta.Statuses[reg.Name].Realms {
-			realmDatabaseDir := rea.DatabaseDir(regionDatabaseDir)
+		for _, rea := range phState.Statuses[reg.Name].Realms {
+			realmDatabaseDir := fmt.Sprintf("%s/%s", regionDatabaseDir, rea.Slug)
 			dbPaths, err := database.DatabasePaths(realmDatabaseDir)
 			if err != nil {
 				logging.WithFields(logrus.Fields{
@@ -144,28 +67,21 @@ func pricelistHistories(c internal.Config, m messenger.Messenger, s store.Store)
 		}
 	}
 
-	// loading up databases
-	logging.Info("Loading up databases")
-	phdBases, err := database.NewPricelistHistoryDatabases(c, sta.Regions, sta.Statuses)
+	// loading the pricelist-histories databases
+	phDatabases, err := database.NewPricelistHistoryDatabases(config.PricelistHistoriesDatabaseDir, phState.Statuses)
 	if err != nil {
-		logging.WithField("error", err.Error()).Error("Failed to load databases")
-
 		return err
 	}
-	sta.PricelistHistoryDatabases = phdBases
+	phState.IO.Databases.PricelistHistoryDatabases = phDatabases
 
 	// starting up a pruner
 	logging.Info("Starting up the pricelist-histories file pruner")
-	prunerStop := make(state.WorkerStopChan)
-	onPrunerStop := phdBases.StartPruner(prunerStop)
+	prunerStop := make(sotah.WorkerStopChan)
+	onPrunerStop := phDatabases.StartPruner(prunerStop)
 
 	// opening all listeners
 	logging.Info("Opening all listeners")
-	sta.Listeners = state.NewListeners(state.SubjectListeners{
-		subjects.PricelistHistoriesIntake: sta.ListenForPricelistHistoriesIntake,
-		subjects.PriceListHistory:         sta.ListenForPriceListHistory,
-	})
-	if err := sta.Listeners.Listen(); err != nil {
+	if err := phState.Listeners.Listen(); err != nil {
 		return err
 	}
 
@@ -178,8 +94,9 @@ func pricelistHistories(c internal.Config, m messenger.Messenger, s store.Store)
 	logging.Info("Caught SIGINT, exiting")
 
 	// stopping listeners
-	sta.Listeners.Stop()
+	phState.Listeners.Stop()
 
+	// stopping pruner
 	logging.Info("Stopping pruner")
 	prunerStop <- struct{}{}
 
