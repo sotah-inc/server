@@ -32,11 +32,11 @@ type Databases struct {
 
 // io bundle
 type IO struct {
-	resolver  resolver.Resolver
-	databases Databases
-	messenger messenger.Messenger
-	store     store.Store
-	diskStore diskstore.DiskStore
+	Resolver  resolver.Resolver
+	Databases Databases
+	Messenger messenger.Messenger
+	Store     store.Store
+	DiskStore diskstore.DiskStore
 }
 
 // listener functionality
@@ -81,8 +81,8 @@ func (ls Listeners) Stop() {
 }
 
 // state
-func NewState(runId uuid.UUID, ls Listeners, useGCloud bool) State {
-	return State{RunID: runId, Listeners: ls, UseGCloud: useGCloud}
+func NewState(runId uuid.UUID, useGCloud bool) State {
+	return State{RunID: runId, UseGCloud: useGCloud}
 }
 
 type State struct {
@@ -97,8 +97,8 @@ type State struct {
 	Regions       sotah.RegionList
 	Statuses      sotah.Statuses
 	ItemClasses   blizzard.ItemClasses
-	expansions    []sotah.Expansion
-	professions   []sotah.Profession
+	Expansions    []sotah.Expansion
+	Professions   []sotah.Profession
 	ItemBlacklist ItemBlacklistMap
 }
 

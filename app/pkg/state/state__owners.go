@@ -30,7 +30,7 @@ type OwnersRequest struct {
 }
 
 func (request OwnersRequest) resolve(sta State) (sotah.MiniAuctionList, error) {
-	regionLadBases, ok := sta.IO.databases.LiveAuctionsDatabases[request.RegionName]
+	regionLadBases, ok := sta.IO.Databases.LiveAuctionsDatabases[request.RegionName]
 	if !ok {
 		return sotah.MiniAuctionList{}, errors.New("invalid region name")
 	}
@@ -49,7 +49,7 @@ func (request OwnersRequest) resolve(sta State) (sotah.MiniAuctionList, error) {
 }
 
 func (sta State) ListenForOwners(stop messenger.ListenStopChan) error {
-	err := sta.IO.messenger.Subscribe(subjects.Owners, stop, func(natsMsg nats.Msg) {
+	err := sta.IO.Messenger.Subscribe(subjects.Owners, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		// resolving the request
@@ -57,7 +57,7 @@ func (sta State) ListenForOwners(stop messenger.ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.IO.messenger.ReplyTo(natsMsg, m)
+			sta.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -67,7 +67,7 @@ func (sta State) ListenForOwners(stop messenger.ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.NotFound
-			sta.IO.messenger.ReplyTo(natsMsg, m)
+			sta.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -76,7 +76,7 @@ func (sta State) ListenForOwners(stop messenger.ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.IO.messenger.ReplyTo(natsMsg, m)
+			sta.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -95,14 +95,14 @@ func (sta State) ListenForOwners(stop messenger.ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.IO.messenger.ReplyTo(natsMsg, m)
+			sta.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		// dumping it out
 		m.Data = string(encodedMessage)
-		sta.IO.messenger.ReplyTo(natsMsg, m)
+		sta.IO.Messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err

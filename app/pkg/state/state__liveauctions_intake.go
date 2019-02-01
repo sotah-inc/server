@@ -68,7 +68,7 @@ func (iRequest liveAuctionsIntakeRequest) handle(sta State) {
 
 	// declaring a load-in channel for the live-auctions db and starting it up
 	loadInJobs := make(chan database.LoadInJob)
-	loadOutJobs := sta.IO.databases.LiveAuctionsDatabases.Load(loadInJobs)
+	loadOutJobs := sta.IO.Databases.LiveAuctionsDatabases.Load(loadInJobs)
 
 	// resolving included and excluded auctions
 	included, excluded := iRequest.resolve(sta.Statuses)
@@ -97,7 +97,7 @@ func (iRequest liveAuctionsIntakeRequest) handle(sta State) {
 	totalOwners := 0
 	itemIdsMap := sotah.ItemIdsMap{}
 	for _, realmsMap := range excluded {
-		for getStatsJob := range sta.IO.databases.LiveAuctionsDatabases.GetStats(realmsMap.ToRealms()) {
+		for getStatsJob := range sta.IO.Databases.LiveAuctionsDatabases.GetStats(realmsMap.ToRealms()) {
 			if getStatsJob.Err != nil {
 				logrus.WithFields(getStatsJob.ToLogrusFields()).Error("Failed to get live-auction stats")
 
@@ -172,7 +172,7 @@ func (sta State) ListenForLiveAuctionsIntake(stop messenger.ListenStopChan) erro
 	in := make(chan liveAuctionsIntakeRequest, 30)
 
 	// starting up a listener for live-auctions-intake
-	err := sta.IO.messenger.Subscribe(subjects.LiveAuctionsIntake, stop, func(natsMsg nats.Msg) {
+	err := sta.IO.Messenger.Subscribe(subjects.LiveAuctionsIntake, stop, func(natsMsg nats.Msg) {
 		// resolving the request
 		iRequest, err := newLiveAuctionsIntakeRequest(natsMsg.Data)
 		if err != nil {

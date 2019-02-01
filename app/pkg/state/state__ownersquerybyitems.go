@@ -39,7 +39,7 @@ type ownersQueryRequestByItems struct {
 }
 
 func (request ownersQueryRequestByItems) resolve(sta State) (sotah.MiniAuctionList, requestError) {
-	regionLadBases, ok := sta.IO.databases.LiveAuctionsDatabases[request.RegionName]
+	regionLadBases, ok := sta.IO.Databases.LiveAuctionsDatabases[request.RegionName]
 	if !ok {
 		return sotah.MiniAuctionList{}, requestError{codes.NotFound, "Invalid region"}
 	}
@@ -58,7 +58,7 @@ func (request ownersQueryRequestByItems) resolve(sta State) (sotah.MiniAuctionLi
 }
 
 func (sta State) ListenForOwnersQueryByItems(stop messenger.ListenStopChan) error {
-	err := sta.IO.messenger.Subscribe(subjects.OwnersQueryByItems, stop, func(natsMsg nats.Msg) {
+	err := sta.IO.Messenger.Subscribe(subjects.OwnersQueryByItems, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		// resolving the request
@@ -66,7 +66,7 @@ func (sta State) ListenForOwnersQueryByItems(stop messenger.ListenStopChan) erro
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.IO.messenger.ReplyTo(natsMsg, m)
+			sta.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -81,7 +81,7 @@ func (sta State) ListenForOwnersQueryByItems(stop messenger.ListenStopChan) erro
 		if reErr.code != codes.Ok {
 			m.Err = reErr.message
 			m.Code = reErr.code
-			sta.IO.messenger.ReplyTo(natsMsg, m)
+			sta.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -118,14 +118,14 @@ func (sta State) ListenForOwnersQueryByItems(stop messenger.ListenStopChan) erro
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.IO.messenger.ReplyTo(natsMsg, m)
+			sta.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		// dumping it out
 		m.Data = string(encodedMessage)
-		sta.IO.messenger.ReplyTo(natsMsg, m)
+		sta.IO.Messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err

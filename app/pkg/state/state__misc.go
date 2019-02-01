@@ -13,7 +13,7 @@ import (
 )
 
 func (sta State) NewRegions() (sotah.RegionList, error) {
-	msg, err := sta.IO.messenger.Request(subjects.Boot, []byte{})
+	msg, err := sta.IO.Messenger.Request(subjects.Boot, []byte{})
 	if err != nil {
 		return sotah.RegionList{}, err
 	}
@@ -38,25 +38,25 @@ type bootResponse struct {
 }
 
 func (sta State) ListenForBoot(stop messenger.ListenStopChan) error {
-	err := sta.IO.messenger.Subscribe(subjects.Boot, stop, func(natsMsg nats.Msg) {
+	err := sta.IO.Messenger.Subscribe(subjects.Boot, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		encodedResponse, err := json.Marshal(bootResponse{
 			Regions:     sta.Regions,
 			ItemClasses: sta.ItemClasses,
-			Expansions:  sta.expansions,
-			Professions: sta.professions,
+			Expansions:  sta.Expansions,
+			Professions: sta.Professions,
 		})
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.IO.messenger.ReplyTo(natsMsg, m)
+			sta.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		m.Data = string(encodedResponse)
-		sta.IO.messenger.ReplyTo(natsMsg, m)
+		sta.IO.Messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err
@@ -66,11 +66,11 @@ func (sta State) ListenForBoot(stop messenger.ListenStopChan) error {
 }
 
 func (sta State) ListenForGenericTestErrors(stop messenger.ListenStopChan) error {
-	err := sta.IO.messenger.Subscribe(subjects.GenericTestErrors, stop, func(natsMsg nats.Msg) {
+	err := sta.IO.Messenger.Subscribe(subjects.GenericTestErrors, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 		m.Err = "Test error"
 		m.Code = codes.GenericError
-		sta.IO.messenger.ReplyTo(natsMsg, m)
+		sta.IO.Messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err

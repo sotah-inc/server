@@ -68,7 +68,7 @@ func (pRequest pricelistHistoriesIntakeRequest) handle(sta State) {
 
 	// declaring a load-in channel for the pricelist-histories db and starting it up
 	loadInJobs := make(chan database.LoadInJob)
-	loadOutJobs := sta.IO.databases.PricelistHistoryDatabases.Load(loadInJobs)
+	loadOutJobs := sta.IO.Databases.PricelistHistoryDatabases.Load(loadInJobs)
 
 	// resolving included and excluded auctions
 	included, excluded := pRequest.resolve(sta.Statuses)
@@ -132,7 +132,7 @@ func (sta State) ListenForPricelistHistoriesIntake(stop messenger.ListenStopChan
 	in := make(chan pricelistHistoriesIntakeRequest, 30)
 
 	// starting up a listener for pricelist-histories-intake
-	err := sta.IO.messenger.Subscribe(subjects.PricelistHistoriesIntake, stop, func(natsMsg nats.Msg) {
+	err := sta.IO.Messenger.Subscribe(subjects.PricelistHistoriesIntake, stop, func(natsMsg nats.Msg) {
 		// resolving the request
 		pRequest, err := newPricelistHistoriesIntakeRequest(natsMsg.Data)
 		if err != nil {

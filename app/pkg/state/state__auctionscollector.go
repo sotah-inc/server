@@ -24,13 +24,13 @@ func (sta State) StartCollector(stopChan sotah.WorkerStopChan) sotah.WorkerStopC
 			select {
 			case <-ticker.C:
 				// refreshing the access-token for the Resolver blizz client
-				nextClient, err := sta.IO.resolver.BlizzardClient.RefreshFromHTTP(blizzard.OAuthTokenEndpoint)
+				nextClient, err := sta.IO.Resolver.BlizzardClient.RefreshFromHTTP(blizzard.OAuthTokenEndpoint)
 				if err != nil {
 					logging.WithField("error", err.Error()).Error("Failed to refresh blizzard client")
 
 					continue
 				}
-				sta.IO.resolver.BlizzardClient = nextClient
+				sta.IO.Resolver.BlizzardClient = nextClient
 
 				sta.collectRegions()
 			case <-stopChan:
@@ -72,7 +72,7 @@ func (sta State) collectRegions() {
 				"region": regionName,
 				"realms": len(status.Realms),
 			}).Debug("Downloading region")
-			for getAuctionsJob := range sta.IO.resolver.GetAuctionsForRealms(status.Realms) {
+			for getAuctionsJob := range sta.IO.Resolver.GetAuctionsForRealms(status.Realms) {
 				if getAuctionsJob.Err != nil {
 					logrus.WithFields(getAuctionsJob.ToLogrusFields()).Error("Failed to fetch auctions")
 
@@ -124,7 +124,7 @@ func (sta State) collectRegions() {
 			logging.Debug("Fetching items from database")
 
 			// gathering current items
-			iMap, err := sta.IO.databases.ItemsDatabase.GetItems()
+			iMap, err := sta.IO.Databases.ItemsDatabase.GetItems()
 			if err != nil {
 				return err
 			}
@@ -160,7 +160,7 @@ func (sta State) collectRegions() {
 					return sotah.ItemsMap{}, false, err
 				}
 
-				getItemsJobs := sta.IO.resolver.GetItems(primaryRegion, newItemIds)
+				getItemsJobs := sta.IO.Resolver.GetItems(primaryRegion, newItemIds)
 				for job := range getItemsJobs {
 					if job.Err != nil {
 						logging.WithFields(logrus.Fields{
@@ -209,7 +209,7 @@ func (sta State) collectRegions() {
 
 				// starting channels for persisting item-icons
 				persistItemIconsInJobs := make(chan store.PersistItemIconsInJob)
-				persistItemIconsOutJobs, err := sta.IO.store.PersistItemIcons(persistItemIconsInJobs)
+				persistItemIconsOutJobs, err := sta.IO.Store.PersistItemIcons(persistItemIconsInJobs)
 				if err != nil {
 					close(persistItemIconsInJobs)
 
@@ -218,7 +218,7 @@ func (sta State) collectRegions() {
 
 				// queueing up the jobs
 				go func() {
-					for outJob := range sta.IO.resolver.GetItemIcons(missingItemIcons.GetItemIcons()) {
+					for outJob := range sta.IO.Resolver.GetItemIcons(missingItemIcons.GetItemIcons()) {
 						if outJob.Err != nil {
 							logging.WithFields(outJob.ToLogrusFields()).Error("Failed to fetch item-icon")
 
@@ -251,7 +251,7 @@ func (sta State) collectRegions() {
 
 			// optionally persisting
 			if hasNewResults {
-				if err := sta.IO.databases.ItemsDatabase.PersistItems(iMap); err != nil {
+				if err := sta.IO.Databases.ItemsDatabase.PersistItems(iMap); err != nil {
 					return err
 				}
 			}
@@ -274,7 +274,7 @@ func (sta State) collectRegions() {
 			return err
 		}
 
-		return sta.IO.messenger.Publish(subjects.LiveAuctionsIntake, encodedRequest)
+		return sta.IO.Messenger.Publish(subjects.LiveAuctionsIntake, encodedRequest)
 	}()
 	if err != nil {
 		logging.WithField("error", err.Error()).Error("Failed to publish live-auctions-intake-request")

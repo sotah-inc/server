@@ -31,7 +31,7 @@ type priceListRequest struct {
 }
 
 func (plRequest priceListRequest) resolve(sta State) (sotah.MiniAuctionList, requestError) {
-	regionLadBases, ok := sta.IO.databases.LiveAuctionsDatabases[plRequest.RegionName]
+	regionLadBases, ok := sta.IO.Databases.LiveAuctionsDatabases[plRequest.RegionName]
 	if !ok {
 		return sotah.MiniAuctionList{}, requestError{codes.NotFound, "Invalid region"}
 	}
@@ -95,7 +95,7 @@ func (plResponse priceListResponse) encodeForMessage() (string, error) {
 }
 
 func (sta State) ListenForPriceList(stop messenger.ListenStopChan) error {
-	err := sta.IO.messenger.Subscribe(subjects.PriceList, stop, func(natsMsg nats.Msg) {
+	err := sta.IO.Messenger.Subscribe(subjects.PriceList, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		// resolving the request
@@ -103,7 +103,7 @@ func (sta State) ListenForPriceList(stop messenger.ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.IO.messenger.ReplyTo(natsMsg, m)
+			sta.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -113,7 +113,7 @@ func (sta State) ListenForPriceList(stop messenger.ListenStopChan) error {
 		if reErr.code != codes.Ok {
 			m.Err = reErr.message
 			m.Code = reErr.code
-			sta.IO.messenger.ReplyTo(natsMsg, m)
+			sta.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -134,13 +134,13 @@ func (sta State) ListenForPriceList(stop messenger.ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.IO.messenger.ReplyTo(natsMsg, m)
+			sta.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		m.Data = data
-		sta.IO.messenger.ReplyTo(natsMsg, m)
+		sta.IO.Messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err

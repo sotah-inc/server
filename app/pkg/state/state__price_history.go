@@ -76,7 +76,7 @@ func (plhRequest priceListHistoryRequest) resolve(sta State) (sotah.Realm, datab
 	}
 
 	phdShards, reErr := func() (database.PricelistHistoryDatabaseShards, requestError) {
-		regionShards, ok := sta.IO.databases.PricelistHistoryDatabases.Databases[plhRequest.RegionName]
+		regionShards, ok := sta.IO.Databases.PricelistHistoryDatabases.Databases[plhRequest.RegionName]
 		if !ok {
 			return database.PricelistHistoryDatabaseShards{}, requestError{codes.NotFound, "Invalid region (pricelist-history databases)"}
 		}
@@ -93,7 +93,7 @@ func (plhRequest priceListHistoryRequest) resolve(sta State) (sotah.Realm, datab
 }
 
 func (sta State) ListenForPriceListHistory(stop messenger.ListenStopChan) error {
-	err := sta.IO.messenger.Subscribe(subjects.PriceListHistory, stop, func(natsMsg nats.Msg) {
+	err := sta.IO.Messenger.Subscribe(subjects.PriceListHistory, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		// resolving the request
@@ -101,7 +101,7 @@ func (sta State) ListenForPriceListHistory(stop messenger.ListenStopChan) error 
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.IO.messenger.ReplyTo(natsMsg, m)
+			sta.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -111,7 +111,7 @@ func (sta State) ListenForPriceListHistory(stop messenger.ListenStopChan) error 
 		if reErr.code != codes.Ok {
 			m.Err = reErr.message
 			m.Code = reErr.code
-			sta.IO.messenger.ReplyTo(natsMsg, m)
+			sta.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -130,7 +130,7 @@ func (sta State) ListenForPriceListHistory(stop messenger.ListenStopChan) error 
 			if err != nil {
 				m.Err = err.Error()
 				m.Code = codes.GenericError
-				sta.IO.messenger.ReplyTo(natsMsg, m)
+				sta.IO.Messenger.ReplyTo(natsMsg, m)
 
 				return
 			}
@@ -143,13 +143,13 @@ func (sta State) ListenForPriceListHistory(stop messenger.ListenStopChan) error 
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.IO.messenger.ReplyTo(natsMsg, m)
+			sta.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		m.Data = data
-		sta.IO.messenger.ReplyTo(natsMsg, m)
+		sta.IO.Messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err

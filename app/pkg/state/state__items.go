@@ -28,7 +28,7 @@ type itemsRequest struct {
 }
 
 func (iRequest itemsRequest) resolve(sta State) (sotah.ItemsMap, error) {
-	return sta.IO.databases.ItemsDatabase.FindItems(iRequest.ItemIds)
+	return sta.IO.Databases.ItemsDatabase.FindItems(iRequest.ItemIds)
 }
 
 type itemsResponse struct {
@@ -50,7 +50,7 @@ func (iResponse itemsResponse) encodeForMessage() (string, error) {
 }
 
 func (sta State) ListenForItems(stop messenger.ListenStopChan) error {
-	err := sta.IO.messenger.Subscribe(subjects.Items, stop, func(natsMsg nats.Msg) {
+	err := sta.IO.Messenger.Subscribe(subjects.Items, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		// resolving the request
@@ -58,7 +58,7 @@ func (sta State) ListenForItems(stop messenger.ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.IO.messenger.ReplyTo(natsMsg, m)
+			sta.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -67,7 +67,7 @@ func (sta State) ListenForItems(stop messenger.ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.IO.messenger.ReplyTo(natsMsg, m)
+			sta.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -77,13 +77,13 @@ func (sta State) ListenForItems(stop messenger.ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.IO.messenger.ReplyTo(natsMsg, m)
+			sta.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		m.Data = data
-		sta.IO.messenger.ReplyTo(natsMsg, m)
+		sta.IO.Messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err

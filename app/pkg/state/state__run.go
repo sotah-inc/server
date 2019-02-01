@@ -37,7 +37,7 @@ type runtimeInfoData struct {
 }
 
 func (sta State) ListenForRuntimeInfo(stop messenger.ListenStopChan) error {
-	err := sta.IO.messenger.Subscribe(subjects.RuntimeInfo, stop, func(natsMsg nats.Msg) {
+	err := sta.IO.Messenger.Subscribe(subjects.RuntimeInfo, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		out := runtimeInfoData{
@@ -48,13 +48,13 @@ func (sta State) ListenForRuntimeInfo(stop messenger.ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.IO.messenger.ReplyTo(natsMsg, m)
+			sta.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		m.Data = string(encodedData)
-		sta.IO.messenger.ReplyTo(natsMsg, m)
+		sta.IO.Messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err

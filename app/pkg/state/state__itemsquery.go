@@ -77,7 +77,7 @@ type itemsQueryRequest struct {
 }
 
 func (request itemsQueryRequest) resolve(sta State) (itemsQueryResult, error) {
-	iMap, err := sta.IO.databases.ItemsDatabase.GetItems()
+	iMap, err := sta.IO.Databases.ItemsDatabase.GetItems()
 	if err != nil {
 		return itemsQueryResult{}, err
 	}
@@ -95,7 +95,7 @@ func (request itemsQueryRequest) resolve(sta State) (itemsQueryResult, error) {
 }
 
 func (sta State) ListenForItemsQuery(stop messenger.ListenStopChan) error {
-	err := sta.IO.messenger.Subscribe(subjects.ItemsQuery, stop, func(natsMsg nats.Msg) {
+	err := sta.IO.Messenger.Subscribe(subjects.ItemsQuery, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		// resolving the request
@@ -103,7 +103,7 @@ func (sta State) ListenForItemsQuery(stop messenger.ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.IO.messenger.ReplyTo(natsMsg, m)
+			sta.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -113,7 +113,7 @@ func (sta State) ListenForItemsQuery(stop messenger.ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.IO.messenger.ReplyTo(natsMsg, m)
+			sta.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -138,14 +138,14 @@ func (sta State) ListenForItemsQuery(stop messenger.ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.IO.messenger.ReplyTo(natsMsg, m)
+			sta.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		// dumping it out
 		m.Data = string(encodedMessage)
-		sta.IO.messenger.ReplyTo(natsMsg, m)
+		sta.IO.Messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err
