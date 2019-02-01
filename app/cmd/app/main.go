@@ -1,19 +1,18 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/cmd/app/commands"
-	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/command"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/logging/stackdriver"
-	"github.com/sotah-inc/server/app/pkg/messenger"
-	"github.com/sotah-inc/server/app/pkg/resolver"
 	"github.com/sotah-inc/server/app/pkg/sotah"
-	"github.com/sotah-inc/server/app/pkg/store"
+	"github.com/sotah-inc/server/app/pkg/state"
 	"github.com/twinj/uuid"
-	kingpin "gopkg.in/alecthomas/kingpin.v2"
+	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 type commandMap map[string]func() error
@@ -37,13 +36,9 @@ func main() {
 		cacheDir       = app.Flag("cache-dir", "Directory to cache data files to").Required().String()
 		projectID      = app.Flag("project-id", "GCloud Storage Project ID").Default("").Envar("PROJECT_ID").String()
 
-		apiTestCommand            = app.Command(string(commands.APITest), "For running sotah-api tests.")
-		apiTestDataDir            = apiTestCommand.Flag("data-dir", "Directory to load test fixtures from").Required().Short('d').String()
 		apiCommand                = app.Command(string(commands.API), "For running sotah-server.")
-		syncItemsCommand          = app.Command(string(commands.SyncItems), "For syncing items in gcloud storage to local disk.")
 		liveAuctionsCommand       = app.Command(string(commands.LiveAuctions), "For in-memory storage of current auctions.")
 		pricelistHistoriesCommand = app.Command(string(commands.PricelistHistories), "For on-disk storage of pricelist histories.")
-		pruneStoreCommand         = app.Command(string(commands.PruneStore), "For pruning gcloud store of non-primary region auctions.")
 	)
 	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
 
@@ -81,71 +76,29 @@ func main() {
 	}
 	logging.Info("Starting")
 
-	// connecting the messenger
-	mess, err := messenger.NewMessenger(*natsHost, *natsPort)
-	if err != nil {
-		logging.WithFields(logrus.Fields{
-			"error": err.Error(),
-			"host":  *natsHost,
-			"port":  *natsPort,
-		}).Fatal("Could not connect messenger")
-
-		return
-	}
-
-	// connecting storage
-	stor := store.Store{}
-	if c.UseGCloud {
-		stor, err = store.NewStore(*projectID)
-		if err != nil {
-			logging.WithFields(logrus.Fields{
-				"error":     err.Error(),
-				"projectId": *projectID,
-			}).Fatal("Could not connect store")
-
-			return
-		}
-	}
-
-	// connecting the blizzard client
-	blizzardClient := blizzard.Client{}
-	if len(*clientID) > 0 && len(*clientSecret) > 0 {
-		blizzardClient, err = blizzard.NewClient(*clientID, *clientSecret)
-		if err != nil {
-			logging.WithField("error", err.Error()).Fatal("Could not create blizzard client")
-
-			return
-		}
-	}
-
-	// creating a resolver
-	res := resolver.NewResolver(blizzardClient)
-
 	logging.WithField("command", cmd).Info("Running command")
 
 	// declaring a command map
 	cMap := commandMap{
-		apiTestCommand.FullCommand(): func() error {
-			//return apiTest(c, mess, stor, *apiTestDataDir)
-			return nil
-		},
 		apiCommand.FullCommand(): func() error {
-			return api(c, mess, stor)
-		},
-		syncItemsCommand.FullCommand(): func() error {
-			//return syncItems(c, stor)
-			return nil
+			return command.Api(state.APIStateConfig{
+				UseGCloud:            c.UseGCloud,
+				ItemBlacklist:        c.ItemBlacklist,
+				DiskStoreCacheDir:    *cacheDir,
+				ItemsDatabaseDir:     fmt.Sprintf("%s/databases/items", *cacheDir),
+				BlizzardClientSecret: *clientSecret,
+				BlizzardClientId:     *clientID,
+				MessengerPort:        *natsPort,
+				MessengerHost:        *natsHost,
+				GCloudProjectID:      *projectID,
+			})
 		},
 		liveAuctionsCommand.FullCommand(): func() error {
-			//return liveAuctions(c, mess, stor)
+			// return liveAuctions(c, mess, stor)
 			return nil
 		},
 		pricelistHistoriesCommand.FullCommand(): func() error {
-			//return pricelistHistories(c, mess, stor)
-			return nil
-		},
-		pruneStoreCommand.FullCommand(): func() error {
-			//return pruneStore(c, mess, stor)
+			// return pricelistHistories(c, mess, stor)
 			return nil
 		},
 	}
