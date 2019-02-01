@@ -234,7 +234,9 @@ func (sta APIState) collectRegions() {
 					inHasNewResults = true
 
 					for _, itemId := range missingItemIcons[job.IconName] {
-						inItemsMap[itemId].IconURL = job.IconURL
+						item := inItemsMap[itemId]
+						item.IconURL = job.IconURL
+						inItemsMap[itemId] = item
 					}
 				}
 

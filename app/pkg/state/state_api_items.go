@@ -27,7 +27,7 @@ type itemsRequest struct {
 	ItemIds []blizzard.ItemID `json:"ItemIds"`
 }
 
-func (iRequest itemsRequest) resolve(sta State) (sotah.ItemsMap, error) {
+func (iRequest itemsRequest) resolve(sta APIState) (sotah.ItemsMap, error) {
 	return sta.IO.Databases.ItemsDatabase.FindItems(iRequest.ItemIds)
 }
 

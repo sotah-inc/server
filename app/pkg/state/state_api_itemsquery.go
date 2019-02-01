@@ -76,7 +76,7 @@ type itemsQueryRequest struct {
 	Query string `json:"query"`
 }
 
-func (request itemsQueryRequest) resolve(sta State) (itemsQueryResult, error) {
+func (request itemsQueryRequest) resolve(sta APIState) (itemsQueryResult, error) {
 	iMap, err := sta.IO.Databases.ItemsDatabase.GetItems()
 	if err != nil {
 		return itemsQueryResult{}, err
