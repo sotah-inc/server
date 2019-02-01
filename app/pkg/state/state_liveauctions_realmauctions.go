@@ -26,7 +26,7 @@ func (job GetAuctionsFromTimesOutJob) ToLogrusFields() logrus.Fields {
 	}
 }
 
-func (sta State) GetAuctionsFromTimes(times RegionRealmTimes) chan GetAuctionsFromTimesOutJob {
+func (sta LiveAuctionsState) GetAuctionsFromTimes(times RegionRealmTimes) chan GetAuctionsFromTimesOutJob {
 	in := make(chan RealmTimeTuple)
 	out := make(chan GetAuctionsFromTimesOutJob)
 
@@ -120,7 +120,7 @@ func (job StoreAuctionsOutJob) ToLogrusFields() logrus.Fields {
 	}
 }
 
-func (sta State) StoreAuctions(in chan StoreAuctionsInJob) chan StoreAuctionsOutJob {
+func (sta LiveAuctionsState) StoreAuctions(in chan StoreAuctionsInJob) chan StoreAuctionsOutJob {
 	out := make(chan StoreAuctionsOutJob)
 
 	// spinning up the workers for fetching Auctions
