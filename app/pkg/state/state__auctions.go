@@ -37,7 +37,7 @@ type AuctionsRequest struct {
 	ItemFilters   []blizzard.ItemID            `json:"item_filters"`
 }
 
-func (ar AuctionsRequest) resolve(sta State) (sotah.MiniAuctionList, requestError) {
+func (ar AuctionsRequest) resolve(sta LiveAuctionsState) (sotah.MiniAuctionList, requestError) {
 	regionLadBases, ok := sta.IO.Databases.LiveAuctionsDatabases[ar.RegionName]
 	if !ok {
 		return sotah.MiniAuctionList{}, requestError{codes.NotFound, "Invalid region"}
@@ -85,7 +85,7 @@ func (ar auctionsResponse) encodeForMessage() (string, error) {
 	return base64.StdEncoding.EncodeToString(gzipEncodedAuctions), nil
 }
 
-func (sta State) ListenForAuctions(stop messenger.ListenStopChan) error {
+func (sta LiveAuctionsState) ListenForAuctions(stop messenger.ListenStopChan) error {
 	err := sta.IO.Messenger.Subscribe(subjects.Auctions, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 

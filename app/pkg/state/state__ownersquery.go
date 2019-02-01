@@ -80,7 +80,7 @@ type ownersQueryRequest struct {
 	Query      string              `json:"query"`
 }
 
-func (request ownersQueryRequest) resolve(sta State) (ownersQueryResult, error) {
+func (request ownersQueryRequest) resolve(sta LiveAuctionsState) (ownersQueryResult, error) {
 	if request.RegionName == "" {
 		return ownersQueryResult{}, errors.New("region name cannot be blank")
 	}
@@ -126,7 +126,7 @@ func (request ownersQueryRequest) resolve(sta State) (ownersQueryResult, error) 
 	return oqResult, nil
 }
 
-func (sta State) ListenForOwnersQuery(stop messenger.ListenStopChan) error {
+func (sta LiveAuctionsState) ListenForOwnersQuery(stop messenger.ListenStopChan) error {
 	err := sta.IO.Messenger.Subscribe(subjects.OwnersQuery, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 

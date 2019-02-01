@@ -38,7 +38,7 @@ type ownersQueryRequestByItems struct {
 	Items      []blizzard.ItemID   `json:"items"`
 }
 
-func (request ownersQueryRequestByItems) resolve(sta State) (sotah.MiniAuctionList, requestError) {
+func (request ownersQueryRequestByItems) resolve(sta LiveAuctionsState) (sotah.MiniAuctionList, requestError) {
 	regionLadBases, ok := sta.IO.Databases.LiveAuctionsDatabases[request.RegionName]
 	if !ok {
 		return sotah.MiniAuctionList{}, requestError{codes.NotFound, "Invalid region"}
@@ -57,7 +57,7 @@ func (request ownersQueryRequestByItems) resolve(sta State) (sotah.MiniAuctionLi
 	return maList, requestError{codes.Ok, ""}
 }
 
-func (sta State) ListenForOwnersQueryByItems(stop messenger.ListenStopChan) error {
+func (sta LiveAuctionsState) ListenForOwnersQueryByItems(stop messenger.ListenStopChan) error {
 	err := sta.IO.Messenger.Subscribe(subjects.OwnersQueryByItems, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 

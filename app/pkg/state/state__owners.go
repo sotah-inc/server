@@ -29,7 +29,7 @@ type OwnersRequest struct {
 	Query      string              `json:"query"`
 }
 
-func (request OwnersRequest) resolve(sta State) (sotah.MiniAuctionList, error) {
+func (request OwnersRequest) resolve(sta LiveAuctionsState) (sotah.MiniAuctionList, error) {
 	regionLadBases, ok := sta.IO.Databases.LiveAuctionsDatabases[request.RegionName]
 	if !ok {
 		return sotah.MiniAuctionList{}, errors.New("invalid region name")
@@ -48,7 +48,7 @@ func (request OwnersRequest) resolve(sta State) (sotah.MiniAuctionList, error) {
 	return maList, nil
 }
 
-func (sta State) ListenForOwners(stop messenger.ListenStopChan) error {
+func (sta LiveAuctionsState) ListenForOwners(stop messenger.ListenStopChan) error {
 	err := sta.IO.Messenger.Subscribe(subjects.Owners, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 

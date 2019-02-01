@@ -62,7 +62,7 @@ func (iRequest liveAuctionsIntakeRequest) resolve(statuses sotah.Statuses) (Regi
 	return included, excluded
 }
 
-func (iRequest liveAuctionsIntakeRequest) handle(sta State) {
+func (iRequest liveAuctionsIntakeRequest) handle(sta LiveAuctionsState) {
 	// misc
 	startTime := time.Now()
 
@@ -168,7 +168,7 @@ func (iRequest liveAuctionsIntakeRequest) handle(sta State) {
 	return
 }
 
-func (sta State) ListenForLiveAuctionsIntake(stop messenger.ListenStopChan) error {
+func (sta LiveAuctionsState) ListenForLiveAuctionsIntake(stop messenger.ListenStopChan) error {
 	in := make(chan liveAuctionsIntakeRequest, 30)
 
 	// starting up a listener for live-auctions-intake
