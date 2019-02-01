@@ -21,7 +21,7 @@ type PricelistHistoriesStateConfig struct {
 
 	DiskStoreCacheDir string
 
-	LiveAuctionsDatabaseDir string
+	PricelistHistoriesDatabaseDir string
 }
 
 func NewPricelistHistoriesState(config PricelistHistoriesStateConfig) (PricelistHistoriesState, error) {
@@ -77,7 +77,7 @@ func NewPricelistHistoriesState(config PricelistHistoriesStateConfig) (Pricelist
 	}
 
 	// loading the live-auctions databases
-	phDatabases, err := database.NewPricelistHistoryDatabases(config.LiveAuctionsDatabaseDir, phState.Statuses)
+	phDatabases, err := database.NewPricelistHistoryDatabases(config.PricelistHistoriesDatabaseDir, phState.Statuses)
 	if err != nil {
 		return PricelistHistoriesState{}, err
 	}
