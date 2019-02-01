@@ -6,7 +6,7 @@ import (
 )
 
 func (r Resolver) NewStatus(reg sotah.Region) (sotah.Status, error) {
-	uri, err := res.AppendAccessToken(res.GetStatusURL(reg.Hostname))
+	uri, err := r.AppendAccessToken(r.GetStatusURL(reg.Hostname))
 	if err != nil {
 		return sotah.Status{}, err
 	}
