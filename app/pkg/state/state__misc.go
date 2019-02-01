@@ -37,7 +37,7 @@ type bootResponse struct {
 	Professions []sotah.Profession   `json:"professions"`
 }
 
-func (sta State) ListenForBoot(stop messenger.ListenStopChan) error {
+func (sta APIState) ListenForBoot(stop messenger.ListenStopChan) error {
 	err := sta.IO.Messenger.Subscribe(subjects.Boot, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
