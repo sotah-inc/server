@@ -53,7 +53,7 @@ type priceListHistoryRequest struct {
 	UpperBounds int64               `json:"upper_bounds"`
 }
 
-func (plhRequest priceListHistoryRequest) resolve(sta State) (sotah.Realm, database.PricelistHistoryDatabaseShards, requestError) {
+func (plhRequest priceListHistoryRequest) resolve(sta PricelistHistoriesState) (sotah.Realm, database.PricelistHistoryDatabaseShards, requestError) {
 	regionStatuses, ok := sta.Statuses[plhRequest.RegionName]
 	if !ok {
 		return sotah.Realm{},
@@ -92,7 +92,7 @@ func (plhRequest priceListHistoryRequest) resolve(sta State) (sotah.Realm, datab
 	return *rea, phdShards, reErr
 }
 
-func (sta State) ListenForPriceListHistory(stop messenger.ListenStopChan) error {
+func (sta PricelistHistoriesState) ListenForPriceListHistory(stop messenger.ListenStopChan) error {
 	err := sta.IO.Messenger.Subscribe(subjects.PriceListHistory, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 

@@ -30,7 +30,7 @@ type priceListRequest struct {
 	ItemIds    []blizzard.ItemID   `json:"item_ids"`
 }
 
-func (plRequest priceListRequest) resolve(sta State) (sotah.MiniAuctionList, requestError) {
+func (plRequest priceListRequest) resolve(sta PricelistHistoriesState) (sotah.MiniAuctionList, requestError) {
 	regionLadBases, ok := sta.IO.Databases.LiveAuctionsDatabases[plRequest.RegionName]
 	if !ok {
 		return sotah.MiniAuctionList{}, requestError{codes.NotFound, "Invalid region"}
@@ -94,7 +94,7 @@ func (plResponse priceListResponse) encodeForMessage() (string, error) {
 	return base64.StdEncoding.EncodeToString(gzipEncodedMessage), nil
 }
 
-func (sta State) ListenForPriceList(stop messenger.ListenStopChan) error {
+func (sta PricelistHistoriesState) ListenForPriceList(stop messenger.ListenStopChan) error {
 	err := sta.IO.Messenger.Subscribe(subjects.PriceList, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
@@ -108,7 +108,7 @@ func (sta State) ListenForPriceList(stop messenger.ListenStopChan) error {
 			return
 		}
 
-		// resolving data from State
+		// resolving data from state
 		realmAuctions, reErr := plRequest.resolve(sta)
 		if reErr.code != codes.Ok {
 			m.Err = reErr.message

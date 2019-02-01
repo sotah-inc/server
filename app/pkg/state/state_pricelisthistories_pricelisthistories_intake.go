@@ -62,7 +62,7 @@ func (pRequest pricelistHistoriesIntakeRequest) resolve(statuses sotah.Statuses)
 	return included, excluded
 }
 
-func (pRequest pricelistHistoriesIntakeRequest) handle(sta State) {
+func (pRequest pricelistHistoriesIntakeRequest) handle(sta PricelistHistoriesState) {
 	// misc
 	startTime := time.Now()
 
@@ -128,7 +128,7 @@ func (pRequest pricelistHistoriesIntakeRequest) handle(sta State) {
 	return
 }
 
-func (sta State) ListenForPricelistHistoriesIntake(stop messenger.ListenStopChan) error {
+func (sta PricelistHistoriesState) ListenForPricelistHistoriesIntake(stop messenger.ListenStopChan) error {
 	in := make(chan pricelistHistoriesIntakeRequest, 30)
 
 	// starting up a listener for pricelist-histories-intake
