@@ -82,8 +82,7 @@ func main() {
 	cMap := commandMap{
 		apiCommand.FullCommand(): func() error {
 			return command.Api(state.APIStateConfig{
-				UseGCloud:            c.UseGCloud,
-				ItemBlacklist:        c.ItemBlacklist,
+				SotahConfig:          c,
 				DiskStoreCacheDir:    *cacheDir,
 				ItemsDatabaseDir:     fmt.Sprintf("%s/databases/items", *cacheDir),
 				BlizzardClientSecret: *clientSecret,
@@ -94,8 +93,14 @@ func main() {
 			})
 		},
 		liveAuctionsCommand.FullCommand(): func() error {
-			// return liveAuctions(c, mess, stor)
-			return nil
+			return command.LiveAuctions(state.LiveAuctionsStateConfig{
+				GCloudProjectID:         *projectID,
+				MessengerHost:           *natsHost,
+				MessengerPort:           *natsPort,
+				DiskStoreCacheDir:       *cacheDir,
+				UseGCloud:               c.UseGCloud,
+				LiveAuctionsDatabaseDir: fmt.Sprintf("%s/databases/auctions", *cacheDir),
+			})
 		},
 		pricelistHistoriesCommand.FullCommand(): func() error {
 			// return pricelistHistories(c, mess, stor)
