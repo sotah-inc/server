@@ -25,7 +25,13 @@ func NewClient(id string, secret string) (Client, error) {
 		return Client{}, errors.New("client secret is blank")
 	}
 
-	return Client{id, secret, ""}, nil
+	initialClient := Client{id, secret, ""}
+	client, err := initialClient.RefreshFromHTTP(OAuthTokenEndpoint)
+	if err != nil {
+		return Client{}, err
+	}
+
+	return client, nil
 }
 
 // Client - used for querying blizz api

@@ -64,7 +64,7 @@ func NewStatusFromHTTP(uri string) (Status, ResponseMeta, error) {
 	}
 
 	if resp.Status != 200 {
-		return Status{}, ResponseMeta{}, errors.New("Status was not 200")
+		return Status{}, ResponseMeta{}, errors.New("status was not 200")
 	}
 
 	status, err := NewStatus(resp.Body)
