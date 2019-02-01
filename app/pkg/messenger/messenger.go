@@ -57,6 +57,10 @@ func NewMessenger(host string, port int) (Messenger, error) {
 		return Messenger{}, errors.New("host cannot be blank")
 	}
 
+	if port == 0 {
+		return Messenger{}, errors.New("port cannot be zero")
+	}
+
 	natsURI := fmt.Sprintf("nats://%s:%d", host, port)
 
 	logging.WithField("uri", natsURI).Info("Connecting to nats")

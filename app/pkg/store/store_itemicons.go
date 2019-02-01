@@ -1,6 +1,7 @@
 package store
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/sotah-inc/server/app/pkg/util"
@@ -12,7 +13,7 @@ import (
 
 const storeItemIconURLFormat = "https://storage.googleapis.com/%s/%s"
 
-func (sto Store) getStoreItemIconURLFunc(obj *storage.ObjectHandle) (string, error) {
+func (sto Store) GetStoreItemIconURLFunc(obj *storage.ObjectHandle) (string, error) {
 	bktAttrs, err := sto.itemIconsBucket.Attrs(sto.Context)
 	if err != nil {
 		return "", err
@@ -59,6 +60,10 @@ func (sto Store) itemIconsBucketExists() (bool, error) {
 }
 
 func (sto Store) resolveItemIconsBucket() (*storage.BucketHandle, error) {
+	if sto.itemIconsBucket != nil {
+		return sto.itemIconsBucket, nil
+	}
+
 	exists, err := sto.itemIconsBucketExists()
 	if err != nil {
 		return nil, err
@@ -68,13 +73,36 @@ func (sto Store) resolveItemIconsBucket() (*storage.BucketHandle, error) {
 		return sto.createItemIconsBucket()
 	}
 
-	return sto.getItemIconsBucket(), nil
+	sto.itemIconsBucket = sto.getItemIconsBucket()
+	return sto.itemIconsBucket, nil
 }
 func (sto Store) getItemIconObjectName(iconName string) string {
 	return fmt.Sprintf("%s.jpg", iconName)
 }
 
-func (sto Store) writeItemIcon(bkt *storage.BucketHandle, iconName string, body []byte) (string, error) {
+func (sto Store) GetItemIconObject(iconName string) (*storage.ObjectHandle, error) {
+	exists, err := sto.ItemIconExists(iconName)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, errors.New("item icon object does not exist")
+	}
+
+	bkt, err := sto.resolveItemIconsBucket()
+	if err != nil {
+		return nil, err
+	}
+
+	return bkt.Object(sto.getItemIconObjectName(iconName)), nil
+}
+
+func (sto Store) WriteItemIcon(iconName string, body []byte) (string, error) {
+	bkt, err := sto.resolveItemIconsBucket()
+	if err != nil {
+		return "", err
+	}
+
 	logging.WithFields(logrus.Fields{
 		"icon":   iconName,
 		"length": len(body),
@@ -95,10 +123,10 @@ func (sto Store) writeItemIcon(bkt *storage.BucketHandle, iconName string, body 
 		return "", err
 	}
 
-	return sto.getStoreItemIconURLFunc(obj)
+	return sto.GetStoreItemIconURLFunc(obj)
 }
 
-func (sto Store) itemIconExists(iconName string) (bool, error) {
+func (sto Store) ItemIconExists(iconName string) (bool, error) {
 	_, err := sto.itemIconsBucket.Object(sto.getItemIconObjectName(iconName)).Attrs(sto.Context)
 	if err != nil {
 		if err != storage.ErrObjectNotExist {
@@ -122,20 +150,14 @@ type PersistItemIconsOutJob struct {
 	IconURL  string
 }
 
-func (sto Store) PersistItemIcons(in chan PersistItemIconsInJob) (chan PersistItemIconsOutJob, error) {
-	// resolving the bucket
-	bkt, err := sto.resolveItemIconsBucket()
-	if err != nil {
-		return nil, err
-	}
-
+func (sto Store) PersistItemIcons(in chan PersistItemIconsInJob) chan PersistItemIconsOutJob {
 	// forming channels
 	out := make(chan PersistItemIconsOutJob)
 
 	// spinning up the workers for fetching items
 	worker := func() {
 		for job := range in {
-			iconURL, err := sto.writeItemIcon(bkt, job.IconName, job.Data)
+			iconURL, err := sto.WriteItemIcon(job.IconName, job.Data)
 			out <- PersistItemIconsOutJob{err, job.IconName, iconURL}
 		}
 	}
@@ -144,5 +166,5 @@ func (sto Store) PersistItemIcons(in chan PersistItemIconsInJob) (chan PersistIt
 	}
 	util.Work(4, worker, postWork)
 
-	return out, nil
+	return out
 }
