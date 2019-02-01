@@ -84,7 +84,7 @@ func main() {
 			return command.Api(state.APIStateConfig{
 				SotahConfig:          c,
 				DiskStoreCacheDir:    *cacheDir,
-				ItemsDatabaseDir:     fmt.Sprintf("%s/databases/items", *cacheDir),
+				ItemsDatabaseDir:     fmt.Sprintf("%s/databases", *cacheDir),
 				BlizzardClientSecret: *clientSecret,
 				BlizzardClientId:     *clientID,
 				MessengerPort:        *natsPort,
@@ -99,12 +99,18 @@ func main() {
 				MessengerPort:           *natsPort,
 				DiskStoreCacheDir:       *cacheDir,
 				UseGCloud:               c.UseGCloud,
-				LiveAuctionsDatabaseDir: fmt.Sprintf("%s/databases/auctions", *cacheDir),
+				LiveAuctionsDatabaseDir: fmt.Sprintf("%s/databases", *cacheDir),
 			})
 		},
 		pricelistHistoriesCommand.FullCommand(): func() error {
-			// return pricelistHistories(c, mess, stor)
-			return nil
+			return command.PricelistHistories(state.PricelistHistoriesStateConfig{
+				UseGCloud:                     c.UseGCloud,
+				DiskStoreCacheDir:             *cacheDir,
+				MessengerPort:                 *natsPort,
+				MessengerHost:                 *natsHost,
+				GCloudProjectID:               *projectID,
+				PricelistHistoriesDatabaseDir: fmt.Sprintf("%s/databases", *cacheDir),
+			})
 		},
 	}
 
