@@ -13,7 +13,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/store"
 )
 
-func (sta State) StartCollector(stopChan sotah.WorkerStopChan) sotah.WorkerStopChan {
+func (sta APIState) StartCollector(stopChan sotah.WorkerStopChan) sotah.WorkerStopChan {
 	onStop := make(sotah.WorkerStopChan)
 	go func() {
 		ticker := time.NewTicker(20 * time.Minute)
@@ -46,7 +46,7 @@ func (sta State) StartCollector(stopChan sotah.WorkerStopChan) sotah.WorkerStopC
 	return onStop
 }
 
-func (sta State) collectRegions() {
+func (sta APIState) collectRegions() {
 	logging.Info("Collecting regions")
 
 	// for subsequently pushing to the live-auctions-intake listener
@@ -209,12 +209,7 @@ func (sta State) collectRegions() {
 
 				// starting channels for persisting item-icons
 				persistItemIconsInJobs := make(chan store.PersistItemIconsInJob)
-				persistItemIconsOutJobs, err := sta.IO.Store.PersistItemIcons(persistItemIconsInJobs)
-				if err != nil {
-					close(persistItemIconsInJobs)
-
-					return sotah.ItemsMap{}, false, err
-				}
+				persistItemIconsOutJobs := sta.IO.Store.PersistItemIcons(persistItemIconsInJobs)
 
 				// queueing up the jobs
 				go func() {
