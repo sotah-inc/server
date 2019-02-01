@@ -76,7 +76,7 @@ func NewPricelistHistoriesState(config PricelistHistoriesStateConfig) (Pricelist
 		phState.IO.DiskStore = diskstore.NewDiskStore(config.DiskStoreCacheDir)
 	}
 
-	// loading the live-auctions databases
+	// loading the pricelist-histories databases
 	phDatabases, err := database.NewPricelistHistoryDatabases(config.PricelistHistoriesDatabaseDir, phState.Statuses)
 	if err != nil {
 		return PricelistHistoriesState{}, err
