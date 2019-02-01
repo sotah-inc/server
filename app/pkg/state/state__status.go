@@ -28,7 +28,7 @@ type StatusRequest struct {
 	RegionName blizzard.RegionName `json:"region_name"`
 }
 
-func (sr StatusRequest) resolve(sta State) (sotah.Region, error) {
+func (sr StatusRequest) resolve(sta APIState) (sotah.Region, error) {
 	reg := func() sotah.Region {
 		for _, r := range sta.Regions {
 			if r.Name != sr.RegionName {
@@ -46,7 +46,7 @@ func (sr StatusRequest) resolve(sta State) (sotah.Region, error) {
 	return reg, nil
 }
 
-func (sta State) ListenForStatus(stop messenger.ListenStopChan) error {
+func (sta APIState) ListenForStatus(stop messenger.ListenStopChan) error {
 	err := sta.IO.Messenger.Subscribe(subjects.Status, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 

@@ -13,7 +13,7 @@ type sessionSecretData struct {
 	SessionSecret string `json:"session_secret"`
 }
 
-func (sta State) ListenForSessionSecret(stop messenger.ListenStopChan) error {
+func (sta APIState) ListenForSessionSecret(stop messenger.ListenStopChan) error {
 	err := sta.IO.Messenger.Subscribe(subjects.SessionSecret, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 

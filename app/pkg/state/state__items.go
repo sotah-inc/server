@@ -49,7 +49,7 @@ func (iResponse itemsResponse) encodeForMessage() (string, error) {
 	return base64.StdEncoding.EncodeToString(gzippedResult), nil
 }
 
-func (sta State) ListenForItems(stop messenger.ListenStopChan) error {
+func (sta APIState) ListenForItems(stop messenger.ListenStopChan) error {
 	err := sta.IO.Messenger.Subscribe(subjects.Items, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 

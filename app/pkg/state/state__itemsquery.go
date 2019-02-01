@@ -94,7 +94,7 @@ func (request itemsQueryRequest) resolve(sta State) (itemsQueryResult, error) {
 	return iqResult, nil
 }
 
-func (sta State) ListenForItemsQuery(stop messenger.ListenStopChan) error {
+func (sta APIState) ListenForItemsQuery(stop messenger.ListenStopChan) error {
 	err := sta.IO.Messenger.Subscribe(subjects.ItemsQuery, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
