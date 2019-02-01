@@ -19,6 +19,8 @@ import (
 	"github.com/twinj/uuid"
 )
 
+type ItemBlacklistMap map[blizzard.ItemID]struct{}
+
 type APIStateConfig struct {
 	sotahConfig sotah.Config
 
@@ -171,6 +173,12 @@ func NewAPIState(config APIStateConfig) (APIState, error) {
 
 type APIState struct {
 	state.State
+
+	SessionSecret uuid.UUID
+	ItemClasses   blizzard.ItemClasses
+	Expansions    []sotah.Expansion
+	Professions   []sotah.Profession
+	ItemBlacklist ItemBlacklistMap
 }
 
 func Api(config APIStateConfig) error {

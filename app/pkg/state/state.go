@@ -21,8 +21,6 @@ type requestError struct {
 	message string
 }
 
-type ItemBlacklistMap map[blizzard.ItemID]struct{}
-
 // databases
 type Databases struct {
 	PricelistHistoryDatabases database.PricelistHistoryDatabases
@@ -92,14 +90,8 @@ type State struct {
 
 	IO IO
 
-	SessionSecret uuid.UUID
-
-	Regions       sotah.RegionList
-	Statuses      sotah.Statuses
-	ItemClasses   blizzard.ItemClasses
-	Expansions    []sotah.Expansion
-	Professions   []sotah.Profession
-	ItemBlacklist ItemBlacklistMap
+	Regions  sotah.RegionList
+	Statuses sotah.Statuses
 }
 
 type RealmTimeTuple struct {
