@@ -8,8 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/sotah-inc/server/app/internal"
-
+	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -41,7 +40,7 @@ func ServeFile(relativePath string) (*httptest.Server, error) {
 	return ts, nil
 }
 
-func ValidateStatus(t *testing.T, reg internal.Region, s internal.Status) bool {
+func ValidateStatus(t *testing.T, reg sotah.Region, s sotah.Status) bool {
 	if !assert.NotEmpty(t, s.Realms) {
 		return false
 	}

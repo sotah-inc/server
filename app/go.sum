@@ -108,14 +108,6 @@ github.com/shurcooL/users v0.0.0-20180125191416-49c67e49c537/go.mod h1:QJTqeLYED
 github.com/shurcooL/webdavfs v0.0.0-20170829043945-18c3829fa133/go.mod h1:hKmq5kWdCj2z2KEozexVbfEZIWiTjhE0+UjmZgPqehw=
 github.com/sirupsen/logrus v1.3.0 h1:hI/7Q+DtNZ2kINb6qt/lS+IyXnHQe9e90POfeewL/ME=
 github.com/sirupsen/logrus v1.3.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
-github.com/sotah-inc/server v0.0.0-20190127015833-d377f6b3fae6 h1:4W8/wP5D09Y2RjxL5A7SUsyPc2PgHPFKQZDuUUmgzHI=
-github.com/sotah-inc/server v0.0.0-20190127191053-f87ef36b9cc0 h1:Zkx5L5aeZo5YA5K8fiYIlLn3TaZEukNAm7RNJPn0Icc=
-github.com/sotah-inc/server v0.0.0-20190129022556-f35ea5b270f7 h1:HjPEOxlLvwfqCqgvsN4SMyMCDKn4Tadee5CLnbnWrrw=
-github.com/sotah-inc/server v0.0.0-20190129133728-12acabc03f7b h1:qIjl531ZyEGja3ODjYVmGuIwUqUdEz0x3jnJEMZQeeo=
-github.com/sotah-inc/server v0.0.0-20190129185411-0fff7917297c h1:FfNSZyJAUxsej+NXoC6gnmYZ4Ux+fAQo05cU5Mxebeg=
-github.com/sotah-inc/server v0.0.0-20190130021740-17ec3f14f751 h1:mySZKQKYrLVZNZdDTfX7cl34Id1mDQTOkEEOSXsKc9E=
-github.com/sotah-inc/server v0.0.0-20190130180003-7f43737d8b4b h1:T9FYfHS+KwrbDS8phAR5qF9SaPpYUmAVxSJXzCF0dxQ=
-github.com/sotah-inc/server v0.0.0-20190131145605-8aa90123c81a h1:s8tezECt2UsZW0v5yunu4enbBoEiI4KX7Un4HgU5gVI=
 github.com/sourcegraph/annotate v0.0.0-20160123013949-f4cad6c6324d/go.mod h1:UdhH50NIW0fCiwBSr0co2m7BnFLdv4fQTgdqdJTHFeE=
 github.com/sourcegraph/syntaxhighlight v0.0.0-20170531221838-bd320f5d308e/go.mod h1:HuIsMU8RRBOtsCgI77wP899iHVBQpCmg4ErYMZB+2IA=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
@@ -129,8 +121,6 @@ github.com/twinj/uuid v1.0.0/go.mod h1:mMgcE1RHFUFqe5AfiwlINXisXfDGro23fWdPUfOMj
 go.opencensus.io v0.18.0 h1:Mk5rgZcggtbvtAun5aJzAtjKKN/t0R3jJPlWILlv938=
 go.opencensus.io v0.18.0/go.mod h1:vKdFvxhtzZ9onBp9VKHK8z/sRpBMnKAsufL7wlDrCOA=
 go4.org v0.0.0-20180809161055-417644f6feb5/go.mod h1:MkTOUMDaeVYJUOUsaDXIhWPZYa1yOyC1qaOBpL57BhE=
-golang.org/x/arch v0.0.0-20181203225421-5a4828bb7045 h1:Pn8fQdvx+z1avAi7fdM2kRYWQNxGlavNDSyzrQg2SsU=
-golang.org/x/arch v0.0.0-20181203225421-5a4828bb7045/go.mod h1:cYlCBUl1MsqxdiKgmc4uh7TxZfWSFLOGSRR090WDxt8=
 golang.org/x/build v0.0.0-20190111050920-041ab4dc3f9d/go.mod h1:OWs+y06UdEOHN4y+MfF/py+xQ/tYqIWW03b70/CG9Rw=
 golang.org/x/crypto v0.0.0-20180904163835-0709b304e793/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
 golang.org/x/crypto v0.0.0-20181030102418-4d3f4d9ffa16/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
