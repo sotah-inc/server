@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/sotah-inc/server/app/pkg/blizzard"
-	"github.com/sotah-inc/server/app/pkg/state/sortdirections"
-	"github.com/sotah-inc/server/app/pkg/state/sortkinds"
+	"github.com/sotah-inc/server/app/pkg/sotah/sortdirections"
+	"github.com/sotah-inc/server/app/pkg/sotah/sortkinds"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 

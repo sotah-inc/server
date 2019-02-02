@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/sotah-inc/server/app/pkg/state/sortdirections"
-	"github.com/sotah-inc/server/app/pkg/state/sortkinds"
+	"github.com/sotah-inc/server/app/pkg/sotah/sortdirections"
+	"github.com/sotah-inc/server/app/pkg/sotah/sortkinds"
 )
 
 type miniAuctionSortFn func(MiniAuctionList)
