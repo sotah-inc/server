@@ -31,7 +31,7 @@ func (sta State) NewRegions() (sotah.RegionList, error) {
 }
 
 type bootResponse struct {
-	Regions     sotah.RegionList     `json:"Regions"`
+	Regions     sotah.RegionList     `json:"regions"`
 	ItemClasses blizzard.ItemClasses `json:"item_classes"`
 	Expansions  []sotah.Expansion    `json:"expansions"`
 	Professions []sotah.Profession   `json:"professions"`
