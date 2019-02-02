@@ -1,4 +1,4 @@
-module github.com/sotah-inc/server/app
+module github.com/sotah-inc/server/app/cmd/app
 
 require (
 	cloud.google.com/go v0.35.1
@@ -18,3 +18,5 @@ require (
 	google.golang.org/grpc v1.18.0 // indirect
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 )
+
+replace github.com/sotah-inc/server/app/cmd/app/commands => ./cmd/app/commands
