@@ -6,10 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
-	"testing"
-
-	"github.com/sotah-inc/server/app/pkg/sotah"
-	"github.com/stretchr/testify/assert"
 )
 
 // ReadFile - reads a file from a relative path
@@ -38,18 +34,4 @@ func ServeFile(relativePath string) (*httptest.Server, error) {
 	}))
 
 	return ts, nil
-}
-
-func ValidateStatus(t *testing.T, reg sotah.Region, s sotah.Status) bool {
-	if !assert.NotEmpty(t, s.Realms) {
-		return false
-	}
-
-	for _, rea := range s.Realms {
-		if !assert.Equal(t, reg.Hostname, rea.Region.Hostname) {
-			return false
-		}
-	}
-
-	return true
 }
