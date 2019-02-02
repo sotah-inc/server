@@ -3,9 +3,11 @@ package state
 import (
 	"fmt"
 
+	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/database"
 	"github.com/sotah-inc/server/app/pkg/diskstore"
+	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/pkg/resolver"
@@ -97,6 +99,11 @@ func NewAPIState(config APIStateConfig) (APIState, error) {
 	// filling state with item-classes
 	primaryRegion, err := apiState.Regions.GetPrimaryRegion()
 	if err != nil {
+		logging.WithFields(logrus.Fields{
+			"error":   err.Error(),
+			"regions": apiState.Regions,
+		}).Error("Failed to retrieve primary region")
+
 		return APIState{}, err
 	}
 	uri, err := apiState.IO.Resolver.AppendAccessToken(apiState.IO.Resolver.GetItemClassesURL(primaryRegion.Hostname))
