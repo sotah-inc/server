@@ -15,6 +15,8 @@ func Api(config state.APIStateConfig) error {
 	// establishing a state
 	apiState, err := state.NewAPIState(config)
 	if err != nil {
+		logging.WithField("error", err.Error()).Error("Failed to establish api-state")
+
 		return err
 	}
 

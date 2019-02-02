@@ -15,7 +15,7 @@ func (rl RegionList) GetPrimaryRegion() (Region, error) {
 		}
 	}
 
-	return Region{}, errors.New("Could not find primary Region")
+	return Region{}, errors.New("could not find primary region")
 }
 
 func (rl RegionList) GetRegion(name blizzard.RegionName) Region {
