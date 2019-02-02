@@ -11,8 +11,8 @@ import (
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/pkg/sotah"
-	"github.com/sotah-inc/server/app/pkg/state/sortdirections"
-	"github.com/sotah-inc/server/app/pkg/state/sortkinds"
+	"github.com/sotah-inc/server/app/pkg/sotah/sortdirections"
+	"github.com/sotah-inc/server/app/pkg/sotah/sortkinds"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
