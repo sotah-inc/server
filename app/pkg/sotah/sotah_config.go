@@ -31,28 +31,19 @@ func newConfig(body []byte) (Config, error) {
 }
 
 type Config struct {
-	Regions       RegionList                              `json:"regions"`
-	Whitelist     map[blizzard.RegionName]*realmWhitelist `json:"whitelist"`
-	UseGCloud     bool                                    `json:"use_gcloud"`
-	Expansions    []Expansion                             `json:"expansions"`
-	Professions   []Profession                            `json:"professions"`
-	ItemBlacklist []blizzard.ItemID                       `json:"item_blacklist"`
-}
-
-func (c Config) GetRegionWhitelist(rName blizzard.RegionName) *realmWhitelist {
-	if _, ok := c.Whitelist[rName]; ok {
-		return c.Whitelist[rName]
-	}
-
-	return nil
+	Regions       RegionList                                   `json:"regions"`
+	Whitelist     map[blizzard.RegionName][]blizzard.RealmSlug `json:"whitelist"`
+	UseGCloud     bool                                         `json:"use_gcloud"`
+	Expansions    []Expansion                                  `json:"expansions"`
+	Professions   []Profession                                 `json:"professions"`
+	ItemBlacklist []blizzard.ItemID                            `json:"item_blacklist"`
 }
 
 func (c Config) FilterInRegions(regs RegionList) RegionList {
 	out := RegionList{}
 
 	for _, reg := range regs {
-		wList, ok := c.Whitelist[reg.Name]
-		if ok && wList != nil && len(*wList) == 0 {
+		if _, ok := c.Whitelist[reg.Name]; ok {
 			continue
 		}
 
@@ -63,11 +54,22 @@ func (c Config) FilterInRegions(regs RegionList) RegionList {
 }
 
 func (c Config) FilterInRealms(reg Region, reas Realms) Realms {
+	// returning nothing when region not found in whitelist
 	wList, ok := c.Whitelist[reg.Name]
 	if !ok {
+		return Realms{}
+	}
+
+	// returning all when whitelist is empty
+	if len(wList) == 0 {
 		return reas
 	}
-	wListValue := *wList
+
+	// gathering flags
+	wListValue := realmWhitelist{}
+	for _, realmSlug := range wList {
+		wListValue[realmSlug] = struct{}{}
+	}
 
 	out := Realms{}
 
