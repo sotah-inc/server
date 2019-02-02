@@ -22,17 +22,17 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
 
 
 # running
-# FROM debian as runtime-env
+FROM debian as runtime-env
 
 # # installing ssl libs
-# RUN apt-get update -y \
-#   && apt-get install -yq ca-certificates
+RUN apt-get update -y \
+  && apt-get install -yq ca-certificates
 
 # # runtime dir
-# RUN mkdir /srv/app
-# WORKDIR /srv/app
+RUN mkdir /srv/app
+WORKDIR /srv/app
 
 # # copying in built app
-# COPY --from=build-env /go/bin/app /go/bin/app
+COPY --from=build-env /go/bin/app /go/bin/app
 
-# ENTRYPOINT ["/go/bin/app"]
+ENTRYPOINT ["/go/bin/app"]
