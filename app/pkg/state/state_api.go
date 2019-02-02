@@ -86,7 +86,12 @@ func NewAPIState(config APIStateConfig) (APIState, error) {
 
 	// filling state with region statuses
 	for _, reg := range apiState.Regions {
-		status, _, err := blizzard.NewStatusFromHTTP(blizzard.DefaultGetStatusURL(reg.Hostname))
+		uri, err := apiState.IO.Resolver.AppendAccessToken(blizzard.DefaultGetStatusURL(reg.Hostname))
+		if err != nil {
+			return APIState{}, err
+		}
+
+		status, _, err := blizzard.NewStatusFromHTTP(uri)
 		if err != nil {
 			return APIState{}, err
 		}
