@@ -80,7 +80,7 @@ func (ls Listeners) Stop() {
 
 // state
 func NewState(runId uuid.UUID, useGCloud bool) State {
-	return State{RunID: runId, UseGCloud: useGCloud}
+	return State{RunID: runId, UseGCloud: useGCloud, Statuses: sotah.Statuses{}}
 }
 
 type State struct {
