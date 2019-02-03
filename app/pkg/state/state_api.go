@@ -157,11 +157,11 @@ func NewAPIState(config APIStateConfig) (APIState, error) {
 				return APIState{}, err
 			}
 
-			apiState.Professions[i].Icon = itemIconUrl
+			apiState.Professions[i].IconURL = itemIconUrl
 		}
 	} else {
 		for i, prof := range apiState.Professions {
-			apiState.Professions[i].Icon = blizzard.DefaultGetItemIconURL(prof.Icon)
+			apiState.Professions[i].IconURL = blizzard.DefaultGetItemIconURL(prof.Icon)
 		}
 	}
 
