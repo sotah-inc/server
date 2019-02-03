@@ -31,7 +31,7 @@ type StatusRequest struct {
 func (sr StatusRequest) resolve(sta APIState) (sotah.Region, error) {
 	reg := func() sotah.Region {
 		for _, r := range sta.Regions {
-			if r.Name != sr.RegionName {
+			if r.Name == sr.RegionName {
 				return r
 			}
 		}
