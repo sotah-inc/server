@@ -4,14 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/nats-io/go-nats"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
-	"github.com/sotah-inc/server/app/pkg/sotah"
-
 	"github.com/sotah-inc/server/app/pkg/messenger"
-
-	nats "github.com/nats-io/go-nats"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 )
 
 func newStatusRequest(payload []byte) (StatusRequest, error) {
