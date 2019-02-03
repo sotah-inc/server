@@ -24,7 +24,7 @@ func newItemsRequest(payload []byte) (itemsRequest, error) {
 }
 
 type itemsRequest struct {
-	ItemIds []blizzard.ItemID `json:"ItemIds"`
+	ItemIds []blizzard.ItemID `json:"itemIds"`
 }
 
 func (iRequest itemsRequest) resolve(sta APIState) (sotah.ItemsMap, error) {
