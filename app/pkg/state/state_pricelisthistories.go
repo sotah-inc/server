@@ -3,9 +3,7 @@ package state
 import (
 	"fmt"
 
-	"github.com/sotah-inc/server/app/pkg/database"
 	"github.com/sotah-inc/server/app/pkg/diskstore"
-	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
@@ -76,14 +74,6 @@ func NewPricelistHistoriesState(config PricelistHistoriesStateConfig) (Pricelist
 
 		phState.IO.DiskStore = diskstore.NewDiskStore(config.DiskStoreCacheDir)
 	}
-
-	// loading the pricelist-histories databases
-	logging.Info("Connecting to pricelist-histories databases")
-	phDatabases, err := database.NewPricelistHistoryDatabases(config.PricelistHistoriesDatabaseDir, phState.Statuses)
-	if err != nil {
-		return PricelistHistoriesState{}, err
-	}
-	phState.IO.Databases.PricelistHistoryDatabases = phDatabases
 
 	// establishing listeners
 	phState.Listeners = NewListeners(SubjectListeners{
