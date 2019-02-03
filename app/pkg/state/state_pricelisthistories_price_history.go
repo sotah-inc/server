@@ -58,7 +58,7 @@ func (plhRequest priceListHistoryRequest) resolve(sta PricelistHistoriesState) (
 	if !ok {
 		return sotah.Realm{},
 			database.PricelistHistoryDatabaseShards{},
-			requestError{codes.NotFound, "Invalid region (Statuses)"}
+			requestError{codes.NotFound, "Invalid region (statuses)"}
 	}
 	rea := func() *sotah.Realm {
 		for _, regionRealm := range regionStatuses.Realms {
@@ -72,7 +72,7 @@ func (plhRequest priceListHistoryRequest) resolve(sta PricelistHistoriesState) (
 	if rea == nil {
 		return sotah.Realm{},
 			database.PricelistHistoryDatabaseShards{},
-			requestError{codes.NotFound, "Invalid realm (Statuses)"}
+			requestError{codes.NotFound, "Invalid realm (statuses)"}
 	}
 
 	phdShards, reErr := func() (database.PricelistHistoryDatabaseShards, requestError) {
