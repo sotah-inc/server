@@ -47,8 +47,8 @@ type Realms []Realm
 
 type Realm struct {
 	blizzard.Realm
-	Region       Region
-	LastModified int64 `json:"last_modified"`
+	Region       Region `json:"region"`
+	LastModified int64  `json:"last_modified"`
 }
 
 func NewStatus(reg Region, stat blizzard.Status) Status {
