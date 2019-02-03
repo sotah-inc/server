@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"github.com/sotah-inc/server/app/pkg/logging"
 
 	"github.com/sotah-inc/server/app/pkg/database"
 	"github.com/sotah-inc/server/app/pkg/diskstore"
@@ -30,6 +31,7 @@ func NewLiveAuctionsState(config LiveAuctionsStateConfig) (LiveAuctionsState, er
 	}
 
 	// connecting to the messenger host
+	logging.Info("Connecting messenger")
 	mess, err := messenger.NewMessenger(config.MessengerHost, config.MessengerPort)
 	if err != nil {
 		return LiveAuctionsState{}, err
@@ -37,6 +39,7 @@ func NewLiveAuctionsState(config LiveAuctionsStateConfig) (LiveAuctionsState, er
 	laState.IO.Messenger = mess
 
 	// gathering regions
+	logging.Info("Gathering regions")
 	regions, err := laState.NewRegions()
 	if err != nil {
 		return LiveAuctionsState{}, err
@@ -44,6 +47,7 @@ func NewLiveAuctionsState(config LiveAuctionsStateConfig) (LiveAuctionsState, er
 	laState.Regions = regions
 
 	// gathering statuses
+	logging.Info("Gathering statuses")
 	for _, reg := range laState.Regions {
 		status, err := laState.NewStatus(reg)
 		if err != nil {
@@ -55,6 +59,7 @@ func NewLiveAuctionsState(config LiveAuctionsStateConfig) (LiveAuctionsState, er
 
 	// establishing a store (gcloud store or disk store)
 	if config.UseGCloud {
+		logging.Info("Connecting to gcloud store")
 		stor, err := store.NewStore(config.GCloudProjectID)
 		if err != nil {
 			return LiveAuctionsState{}, err
@@ -62,6 +67,7 @@ func NewLiveAuctionsState(config LiveAuctionsStateConfig) (LiveAuctionsState, er
 
 		laState.IO.Store = stor
 	} else {
+		logging.Info("Connecting to disk store")
 		cacheDirs := []string{
 			config.DiskStoreCacheDir,
 			fmt.Sprintf("%s/auctions", config.DiskStoreCacheDir),
@@ -77,6 +83,7 @@ func NewLiveAuctionsState(config LiveAuctionsStateConfig) (LiveAuctionsState, er
 	}
 
 	// loading the live-auctions databases
+	logging.Info("Connecting to live-auctions databases")
 	ladBases, err := database.NewLiveAuctionsDatabases(config.LiveAuctionsDatabaseDir, laState.Statuses)
 	if err != nil {
 		return LiveAuctionsState{}, err
