@@ -96,7 +96,7 @@ func (request ownersQueryRequest) resolve(sta LiveAuctionsState) (ownersQueryRes
 
 	ladBase, ok := regionLadBases[request.RealmSlug]
 	if !ok {
-		return ownersQueryResult{}, errors.New("invalid Realm slug")
+		return ownersQueryResult{}, errors.New("invalid realm slug")
 	}
 
 	maList, err := ladBase.GetMiniAuctionList()

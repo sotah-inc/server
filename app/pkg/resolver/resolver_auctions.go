@@ -25,7 +25,7 @@ func (r Resolver) GetAuctionsForRealm(rea sotah.Realm) (blizzard.Auctions, time.
 
 	// validating the list of files
 	if len(aInfo.Files) == 0 {
-		return blizzard.Auctions{}, time.Time{}, errors.New("cannot fetch Auctions with blank files")
+		return blizzard.Auctions{}, time.Time{}, errors.New("cannot fetch auctions with blank files")
 	}
 	aFile := aInfo.Files[0]
 
@@ -85,7 +85,7 @@ func (r Resolver) GetAuctionsForRealms(reas sotah.Realms) chan GetAuctionsJob {
 				logging.WithFields(logrus.Fields{
 					"region": rea.Region.Name,
 					"realm":  rea.Slug,
-				}).Info("No Auctions received")
+				}).Info("No auctions received")
 
 				continue
 			}
