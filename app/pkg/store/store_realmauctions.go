@@ -270,8 +270,8 @@ func (sto Store) GetAuctionsFromTimes(times RealmTimes) chan GetAuctionsFromTime
 	go func() {
 		for _, inJob := range times {
 			logging.WithFields(logrus.Fields{
-				"Region": inJob.Realm.Region.Name,
-				"Realm":  inJob.Realm.Slug,
+				"region": inJob.Realm.Region.Name,
+				"realm":  inJob.Realm.Slug,
 			}).Debug("Queueing up auction for loading")
 			in <- inJob
 		}

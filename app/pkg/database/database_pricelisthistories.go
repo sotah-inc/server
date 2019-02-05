@@ -124,7 +124,7 @@ func (phdBases PricelistHistoryDatabases) Load(in chan LoadInJob) chan pricelist
 				logging.WithFields(logrus.Fields{
 					"error":  err.Error(),
 					"region": job.Realm.Region.Name,
-					"Realm":  job.Realm.Slug,
+					"realm":  job.Realm.Slug,
 				}).Error("Could not resolve database from load job")
 
 				out <- pricelistHistoriesLoadOutJob{
