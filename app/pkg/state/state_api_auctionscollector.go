@@ -14,6 +14,8 @@ import (
 )
 
 func (sta APIState) StartCollector(stopChan sotah.WorkerStopChan) sotah.WorkerStopChan {
+	// sta.collectRegions()
+
 	onStop := make(sotah.WorkerStopChan)
 	go func() {
 		ticker := time.NewTicker(20 * time.Minute)
@@ -100,6 +102,11 @@ func (sta APIState) collectRegions() {
 
 				continue
 			}
+
+			if _, ok := regionRealmTimestamps[job.Realm.Region.Name]; !ok {
+				regionRealmTimestamps[job.Realm.Region.Name] = RealmTimestamps{}
+			}
+			regionRealmTimestamps[job.Realm.Region.Name][job.Realm.Slug] = job.TargetTime.Unix()
 
 			// updating the realm last-modified in statuses
 			for i, statusRealm := range status.Realms {
