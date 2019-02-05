@@ -3,8 +3,11 @@ package state
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"time"
 
 	nats "github.com/nats-io/go-nats"
+	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
@@ -13,7 +16,26 @@ import (
 )
 
 func (sta State) NewRegions() (sotah.RegionList, error) {
-	msg, err := sta.IO.Messenger.Request(subjects.Boot, []byte{})
+	msg, err := func() (messenger.Message, error) {
+		attempts := 0
+
+		for {
+			out, err := sta.IO.Messenger.Request(subjects.Boot, []byte{})
+			if err == nil {
+				return out, nil
+			}
+
+			attempts++
+
+			if attempts >= 20 {
+				return messenger.Message{}, fmt.Errorf("failed to fetch boot message after %d attempts", attempts)
+			}
+
+			logrus.WithField("attempt", attempts).Info("Requested boot, sleeping until next")
+
+			time.Sleep(250 * time.Millisecond)
+		}
+	}()
 	if err != nil {
 		return sotah.RegionList{}, err
 	}
