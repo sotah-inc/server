@@ -151,6 +151,22 @@ func (iRequest liveAuctionsIntakeRequest) handle(sta LiveAuctionsState) {
 		totalRemovedAuctions += loadOutJob.TotalRemovedAuctions
 	}
 
+	// publishing for pricelist-histories-intake
+	phiRequest := pricelistHistoriesIntakeRequest{RegionRealmTimestamps: iRequest.RegionRealmTimestamps}
+	err := func() error {
+		encodedRequest, err := json.Marshal(phiRequest)
+		if err != nil {
+			return err
+		}
+
+		return sta.IO.Messenger.Publish(subjects.PricelistHistoriesIntake, encodedRequest)
+	}()
+	if err != nil {
+		logging.WithField("error", err.Error()).Error("Failed to publish pricelist-histories-intake-request")
+
+		return
+	}
+
 	metric.ReportDuration(metric.LiveAuctionsIntakeDuration, metric.DurationMetrics{
 		Duration:       time.Now().Sub(startTime),
 		IncludedRealms: includedRealmCount,
