@@ -5,7 +5,6 @@ import (
 
 	"github.com/sotah-inc/server/app/pkg/diskstore"
 	"github.com/sotah-inc/server/app/pkg/messenger"
-	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
 	"github.com/sotah-inc/server/app/pkg/util"
 	"github.com/twinj/uuid"
@@ -74,13 +73,6 @@ func NewPricelistHistoriesState(config PricelistHistoriesStateConfig) (Pricelist
 
 		phState.IO.DiskStore = diskstore.NewDiskStore(config.DiskStoreCacheDir)
 	}
-
-	// establishing listeners
-	phState.Listeners = NewListeners(SubjectListeners{
-		subjects.PriceListHistory:         phState.ListenForPriceListHistory,
-		subjects.PriceList:                phState.ListenForPriceList,
-		subjects.PricelistHistoriesIntake: phState.ListenForPricelistHistoriesIntake,
-	})
 
 	return phState, nil
 }

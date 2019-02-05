@@ -8,6 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/database"
 	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state"
 )
@@ -60,11 +61,19 @@ func PricelistHistories(config state.PricelistHistoriesStateConfig) error {
 	}
 
 	// loading the pricelist-histories databases
+	logging.WithField("database-dir", config.PricelistHistoriesDatabaseDir).Info("Connecting to pricelist-histories databases")
 	phDatabases, err := database.NewPricelistHistoryDatabases(config.PricelistHistoriesDatabaseDir, phState.Statuses)
 	if err != nil {
 		return err
 	}
 	phState.IO.Databases.PricelistHistoryDatabases = phDatabases
+
+	// establishing listeners
+	phState.Listeners = state.NewListeners(state.SubjectListeners{
+		subjects.PriceListHistory:         phState.ListenForPriceListHistory,
+		subjects.PriceList:                phState.ListenForPriceList,
+		subjects.PricelistHistoriesIntake: phState.ListenForPricelistHistoriesIntake,
+	})
 
 	// starting up a pruner
 	logging.Info("Starting up the pricelist-histories file pruner")
