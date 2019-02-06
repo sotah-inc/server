@@ -8,6 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/database"
 	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state"
 )
@@ -70,6 +71,13 @@ func PricelistHistories(config state.PricelistHistoriesStateConfig) error {
 	logging.Info("Starting up the pricelist-histories file pruner")
 	prunerStop := make(sotah.WorkerStopChan)
 	onPrunerStop := phDatabases.StartPruner(prunerStop)
+
+	// establishing listeners
+	phState.Listeners = state.NewListeners(state.SubjectListeners{
+		subjects.PriceListHistory:         phState.ListenForPriceListHistory,
+		subjects.PriceList:                phState.ListenForPriceList,
+		subjects.PricelistHistoriesIntake: phState.ListenForPricelistHistoriesIntake,
+	})
 
 	// opening all listeners
 	logging.Info("Opening all listeners")
