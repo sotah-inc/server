@@ -38,7 +38,7 @@ func (plRequest priceListRequest) resolve(sta PricelistHistoriesState) (sotah.Mi
 
 	ladBase, ok := regionLadBases[plRequest.RealmSlug]
 	if !ok {
-		return sotah.MiniAuctionList{}, requestError{codes.NotFound, "Invalid Realm"}
+		return sotah.MiniAuctionList{}, requestError{codes.NotFound, "Invalid realm"}
 	}
 
 	maList, err := ladBase.GetMiniAuctionList()
