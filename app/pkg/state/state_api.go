@@ -86,19 +86,13 @@ func NewAPIState(config APIStateConfig) (APIState, error) {
 
 	// filling state with region statuses
 	for _, reg := range apiState.Regions {
-		uri, err := apiState.IO.Resolver.AppendAccessToken(blizzard.DefaultGetStatusURL(reg.Hostname))
+		status, err := apiState.IO.Resolver.NewStatus(reg)
 		if err != nil {
 			return APIState{}, err
 		}
 
-		status, _, err := blizzard.NewStatusFromHTTP(uri)
-		if err != nil {
-			return APIState{}, err
-		}
-
-		sotahStatus := sotah.NewStatus(reg, status)
-		sotahStatus.Realms = config.SotahConfig.FilterInRealms(reg, sotah.NewRealms(reg, status.Realms))
-		apiState.Statuses[reg.Name] = sotahStatus
+		status.Realms = config.SotahConfig.FilterInRealms(reg, status.Realms)
+		apiState.Statuses[reg.Name] = status
 	}
 
 	// filling state with item-classes
