@@ -75,7 +75,6 @@ func PricelistHistories(config state.PricelistHistoriesStateConfig) error {
 	// establishing listeners
 	phState.Listeners = state.NewListeners(state.SubjectListeners{
 		subjects.PriceListHistory:         phState.ListenForPriceListHistory,
-		subjects.PriceList:                phState.ListenForPriceList,
 		subjects.PricelistHistoriesIntake: phState.ListenForPricelistHistoriesIntake,
 	})
 
