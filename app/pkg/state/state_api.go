@@ -85,14 +85,13 @@ func NewAPIState(config APIStateConfig) (APIState, error) {
 	apiState.IO.Resolver = resolver.NewResolver(blizzardClient)
 
 	// filling state with region statuses
-	for _, reg := range apiState.Regions {
-		status, err := apiState.IO.Resolver.NewStatus(reg)
-		if err != nil {
-			return APIState{}, err
+	for job := range apiState.IO.Resolver.GetStatuses(apiState.Regions) {
+		if job.Err != nil {
+			return APIState{}, job.Err
 		}
 
-		status.Realms = config.SotahConfig.FilterInRealms(reg, status.Realms)
-		apiState.Statuses[reg.Name] = status
+		job.Status.Realms = config.SotahConfig.FilterInRealms(job.Region, job.Status.Realms)
+		apiState.Statuses[job.Region.Name] = job.Status
 	}
 
 	// filling state with item-classes
