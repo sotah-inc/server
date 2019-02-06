@@ -2,6 +2,7 @@ package database
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -39,6 +40,10 @@ func pricelistHistoryDatabaseFilePath(dirPath string, rea sotah.Realm, targetTim
 }
 
 func NewPricelistHistoryDatabases(dirPath string, statuses sotah.Statuses) (PricelistHistoryDatabases, error) {
+	if len(dirPath) == 0 {
+		return PricelistHistoryDatabases{}, errors.New("dir-path cannot be blank")
+	}
+
 	phdBases := PricelistHistoryDatabases{
 		databaseDir: dirPath,
 		Databases:   regionRealmDatabaseShards{},
