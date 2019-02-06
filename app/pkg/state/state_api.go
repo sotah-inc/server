@@ -177,5 +177,17 @@ type APIState struct {
 	ItemClasses   blizzard.ItemClasses
 	Expansions    []sotah.Expansion
 	Professions   []sotah.Profession
-	ItemBlacklist []blizzard.ItemID
+	ItemBlacklist ItemBlacklist
+}
+
+type ItemBlacklist []blizzard.ItemID
+
+func (ib ItemBlacklist) IsPresent(itemId blizzard.ItemID) bool {
+	for _, blacklistItemId := range ib {
+		if blacklistItemId == itemId {
+			return true
+		}
+	}
+
+	return false
 }

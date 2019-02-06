@@ -141,6 +141,10 @@ func (sta APIState) collectRegions() {
 				out := []blizzard.ItemID{}
 
 				for ID := range receivedItemIds {
+					if sta.ItemBlacklist.IsPresent(ID) {
+						continue
+					}
+
 					if _, ok := iMap[ID]; ok {
 						continue
 					}
