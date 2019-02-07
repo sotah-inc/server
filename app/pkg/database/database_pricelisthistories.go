@@ -174,7 +174,7 @@ func (phdBases PricelistHistoryDatabases) Load(in chan LoadInJob) chan pricelist
 }
 
 func (phdBases PricelistHistoryDatabases) pruneDatabases() error {
-	earliestUnixTimestamp := DatabaseRetentionLimit().Unix()
+	earliestUnixTimestamp := RetentionLimit().Unix()
 	logging.WithField("limit", earliestUnixTimestamp).Info("Checking for databases to prune")
 	for rName, realmDatabases := range phdBases.Databases {
 		for rSlug, databaseShards := range realmDatabases {

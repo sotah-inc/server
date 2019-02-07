@@ -23,7 +23,7 @@ func PricelistHistories(config state.PricelistHistoriesStateConfig) error {
 	}
 
 	// pruning old data
-	earliestTime := database.DatabaseRetentionLimit()
+	earliestTime := database.RetentionLimit()
 	for _, reg := range phState.Regions {
 		regionDatabaseDir := fmt.Sprintf("%s/%s", config.PricelistHistoriesDatabaseDir, reg.Name)
 

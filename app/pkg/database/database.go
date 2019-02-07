@@ -20,7 +20,7 @@ func normalizeTargetDate(targetDate time.Time) time.Time {
 	return time.Unix(targetDate.Unix()-int64(nearestWeekStartOffset), 0)
 }
 
-func DatabaseRetentionLimit() time.Time {
+func RetentionLimit() time.Time {
 	return time.Now().Add(-1 * time.Hour * 24 * 30)
 }
 
