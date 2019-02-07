@@ -139,7 +139,7 @@ func (sto Store) ExportItems() chan exportItemsJob {
 		it := sto.itemsBucket.Objects(sto.Context, nil)
 		for {
 			if i == 0 || i%5000 == 0 {
-				logging.WithField("count", i).Debug("Exported items from Store")
+				logging.WithField("count", i).Debug("Exported items from store")
 			}
 
 			objAttrs, err := it.Next()

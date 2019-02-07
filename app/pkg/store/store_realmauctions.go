@@ -311,7 +311,7 @@ func (sto Store) GetAuctions(rea sotah.Realm, targetTime time.Time) (blizzard.Au
 		logging.WithFields(logrus.Fields{
 			"region": rea.Region.Name,
 			"realm":  rea.Slug,
-		}).Error("Found no auctions in Store")
+		}).Error("Found no auctions in store")
 
 		return blizzard.Auctions{}, errors.New("found no auctions in store at specified time")
 	}
@@ -319,7 +319,7 @@ func (sto Store) GetAuctions(rea sotah.Realm, targetTime time.Time) (blizzard.Au
 	logging.WithFields(logrus.Fields{
 		"region": rea.Region.Name,
 		"realm":  rea.Slug,
-	}).Debug("Loading auctions from Store")
+	}).Debug("Loading auctions from store")
 
 	return sto.NewAuctions(obj)
 }
