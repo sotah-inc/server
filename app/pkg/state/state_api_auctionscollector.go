@@ -14,7 +14,7 @@ import (
 )
 
 func (sta APIState) StartCollector(stopChan sotah.WorkerStopChan) sotah.WorkerStopChan {
-	// sta.collectRegions()
+	sta.collectRegions()
 
 	onStop := make(sotah.WorkerStopChan)
 	go func() {
