@@ -10,6 +10,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
+	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/resolver"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/store"
@@ -35,6 +36,7 @@ type IO struct {
 	Messenger messenger.Messenger
 	Store     store.Store
 	DiskStore diskstore.DiskStore
+	Reporter  metric.Reporter
 }
 
 // listener functionality

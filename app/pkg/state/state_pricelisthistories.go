@@ -5,6 +5,7 @@ import (
 
 	"github.com/sotah-inc/server/app/pkg/diskstore"
 	"github.com/sotah-inc/server/app/pkg/messenger"
+	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/store"
 	"github.com/sotah-inc/server/app/pkg/util"
 	"github.com/twinj/uuid"
@@ -33,6 +34,9 @@ func NewPricelistHistoriesState(config PricelistHistoriesStateConfig) (Pricelist
 		return PricelistHistoriesState{}, err
 	}
 	phState.IO.Messenger = mess
+
+	// initializing a reporter
+	phState.IO.Reporter = metric.NewReporter(mess)
 
 	// gathering regions
 	regions, err := phState.NewRegions()

@@ -22,4 +22,5 @@ const (
 	RuntimeInfo              Subject = "runtimeInfo"
 	LiveAuctionsIntake       Subject = "liveAuctionsIntake"
 	PricelistHistoriesIntake Subject = "pricelistHistoriesIntake"
+	AppMetrics               Subject = "appMetrics"
 )
