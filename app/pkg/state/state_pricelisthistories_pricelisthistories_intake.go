@@ -120,12 +120,19 @@ func (pRequest pricelistHistoriesIntakeRequest) handle(sta PricelistHistoriesSta
 		}
 	}
 
+	duration := time.Now().Sub(startTime)
 	metric.ReportDuration(metric.PricelistHistoriesIntakeDuration, metric.DurationMetrics{
-		Duration:       time.Now().Sub(startTime),
+		Duration:       duration,
 		IncludedRealms: includedRealmCount,
 		ExcludedRealms: excludedRealmCount,
 		TotalRealms:    includedRealmCount + excludedRealmCount,
 	}, logrus.Fields{})
+	sta.IO.Reporter.Report(metric.Metrics{
+		"pricelisthistories_intake_duration": int(duration) / 1000 / 1000 / 1000,
+		"included_realms":                    includedRealmCount,
+		"excluded_realms":                    excludedRealmCount,
+		"total_realms":                       includedRealmCount + excludedRealmCount,
+	})
 
 	return
 }
