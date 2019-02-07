@@ -10,6 +10,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
+	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/resolver"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/store"
@@ -76,6 +77,9 @@ func NewAPIState(config APIStateConfig) (APIState, error) {
 		return APIState{}, err
 	}
 	apiState.IO.Messenger = mess
+
+	// initializing a reporter
+	apiState.IO.Reporter = metric.NewReporter(mess)
 
 	// connecting a new blizzard client
 	blizzardClient, err := blizzard.NewClient(config.BlizzardClientId, config.BlizzardClientSecret)

@@ -3,12 +3,12 @@ package state
 import (
 	"fmt"
 
-	"github.com/sotah-inc/server/app/pkg/logging"
-
 	"github.com/sotah-inc/server/app/pkg/database"
 	"github.com/sotah-inc/server/app/pkg/diskstore"
+	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
+	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/store"
 	"github.com/sotah-inc/server/app/pkg/util"
 	"github.com/twinj/uuid"
@@ -38,6 +38,9 @@ func NewLiveAuctionsState(config LiveAuctionsStateConfig) (LiveAuctionsState, er
 		return LiveAuctionsState{}, err
 	}
 	laState.IO.Messenger = mess
+
+	// initializing a reporter
+	laState.IO.Reporter = metric.NewReporter(mess)
 
 	// gathering regions
 	logging.Info("Gathering regions")
