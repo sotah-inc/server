@@ -80,6 +80,12 @@ func PricelistHistories(config state.PricelistHistoriesStateConfig) error {
 	prunerStop := make(sotah.WorkerStopChan)
 	onPrunerStop := phDatabases.StartPruner(prunerStop)
 
+	// establishing listeners
+	phState.Listeners = state.NewListeners(state.SubjectListeners{
+		subjects.PriceListHistory:         phState.ListenForPriceListHistory,
+		subjects.PricelistHistoriesIntake: phState.ListenForPricelistHistoriesIntake,
+	})
+
 	// opening all listeners
 	logging.Info("Opening all listeners")
 	if err := phState.Listeners.Listen(); err != nil {

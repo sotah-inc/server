@@ -85,8 +85,8 @@ func (sta State) GetAuctionsFromTimes(times RegionRealmTimes) chan GetAuctionsFr
 		for regionName, realmTimes := range times {
 			for realmSlug, timeTuple := range realmTimes {
 				logging.WithFields(logrus.Fields{
-					"Region": regionName,
-					"Realm":  realmSlug,
+					"region": regionName,
+					"realm":  realmSlug,
 				}).Debug("Queueing up auctions for loading")
 				in <- timeTuple
 			}

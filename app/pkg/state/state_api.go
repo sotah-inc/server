@@ -85,20 +85,13 @@ func NewAPIState(config APIStateConfig) (APIState, error) {
 	apiState.IO.Resolver = resolver.NewResolver(blizzardClient)
 
 	// filling state with region statuses
-	for _, reg := range apiState.Regions {
-		uri, err := apiState.IO.Resolver.AppendAccessToken(blizzard.DefaultGetStatusURL(reg.Hostname))
-		if err != nil {
-			return APIState{}, err
+	for job := range apiState.IO.Resolver.GetStatuses(apiState.Regions) {
+		if job.Err != nil {
+			return APIState{}, job.Err
 		}
 
-		status, _, err := blizzard.NewStatusFromHTTP(uri)
-		if err != nil {
-			return APIState{}, err
-		}
-
-		sotahStatus := sotah.NewStatus(reg, status)
-		sotahStatus.Realms = config.SotahConfig.FilterInRealms(reg, sotah.NewRealms(reg, status.Realms))
-		apiState.Statuses[reg.Name] = sotahStatus
+		job.Status.Realms = config.SotahConfig.FilterInRealms(job.Region, job.Status.Realms)
+		apiState.Statuses[job.Region.Name] = job.Status
 	}
 
 	// filling state with item-classes
@@ -184,5 +177,17 @@ type APIState struct {
 	ItemClasses   blizzard.ItemClasses
 	Expansions    []sotah.Expansion
 	Professions   []sotah.Profession
-	ItemBlacklist []blizzard.ItemID
+	ItemBlacklist ItemBlacklist
+}
+
+type ItemBlacklist []blizzard.ItemID
+
+func (ib ItemBlacklist) IsPresent(itemId blizzard.ItemID) bool {
+	for _, blacklistItemId := range ib {
+		if blacklistItemId == itemId {
+			return true
+		}
+	}
+
+	return false
 }

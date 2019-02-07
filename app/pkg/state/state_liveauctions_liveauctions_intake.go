@@ -113,29 +113,31 @@ func (iRequest liveAuctionsIntakeRequest) handle(sta LiveAuctionsState) {
 		}
 	}
 
-	// gathering auctions
-	for getAuctionsFromTimesJob := range sta.GetAuctionsFromTimes(included) {
-		if getAuctionsFromTimesJob.Err != nil {
-			logrus.WithFields(getAuctionsFromTimesJob.ToLogrusFields()).Error("Failed to fetch auctions")
+	// spinning up a goroutine for gathering auctions
+	go func() {
+		for getAuctionsFromTimesJob := range sta.GetAuctionsFromTimes(included) {
+			if getAuctionsFromTimesJob.Err != nil {
+				logrus.WithFields(getAuctionsFromTimesJob.ToLogrusFields()).Error("Failed to fetch auctions")
 
-			continue
+				continue
+			}
+
+			totalAuctions += len(getAuctionsFromTimesJob.Auctions.Auctions)
+			totalOwners += len(getAuctionsFromTimesJob.Auctions.OwnerNames())
+			for _, auc := range getAuctionsFromTimesJob.Auctions.Auctions {
+				itemIdsMap[auc.Item] = struct{}{}
+			}
+
+			loadInJobs <- database.LoadInJob{
+				Realm:      getAuctionsFromTimesJob.Realm,
+				TargetTime: getAuctionsFromTimesJob.TargetTime,
+				Auctions:   getAuctionsFromTimesJob.Auctions,
+			}
 		}
 
-		totalAuctions += len(getAuctionsFromTimesJob.Auctions.Auctions)
-		totalOwners += len(getAuctionsFromTimesJob.Auctions.OwnerNames())
-		for _, auc := range getAuctionsFromTimesJob.Auctions.Auctions {
-			itemIdsMap[auc.Item] = struct{}{}
-		}
-
-		loadInJobs <- database.LoadInJob{
-			Realm:      getAuctionsFromTimesJob.Realm,
-			TargetTime: getAuctionsFromTimesJob.TargetTime,
-			Auctions:   getAuctionsFromTimesJob.Auctions,
-		}
-	}
-
-	// closing the load-in channel
-	close(loadInJobs)
+		// closing the load-in channel
+		close(loadInJobs)
+	}()
 
 	// gathering load-out-jobs as they drain
 	totalNewAuctions := 0
@@ -149,6 +151,22 @@ func (iRequest liveAuctionsIntakeRequest) handle(sta LiveAuctionsState) {
 
 		totalNewAuctions += loadOutJob.TotalNewAuctions
 		totalRemovedAuctions += loadOutJob.TotalRemovedAuctions
+	}
+
+	// publishing for pricelist-histories-intake
+	phiRequest := pricelistHistoriesIntakeRequest{RegionRealmTimestamps: iRequest.RegionRealmTimestamps}
+	err := func() error {
+		encodedRequest, err := json.Marshal(phiRequest)
+		if err != nil {
+			return err
+		}
+
+		return sta.IO.Messenger.Publish(subjects.PricelistHistoriesIntake, encodedRequest)
+	}()
+	if err != nil {
+		logging.WithField("error", err.Error()).Error("Failed to publish pricelist-histories-intake-request")
+
+		return
 	}
 
 	metric.ReportDuration(metric.LiveAuctionsIntakeDuration, metric.DurationMetrics{

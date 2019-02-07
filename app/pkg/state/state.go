@@ -59,7 +59,7 @@ func NewListeners(sListeners SubjectListeners) Listeners {
 type Listeners map[subjects.Subject]listener
 
 func (ls Listeners) Listen() error {
-	logging.WithField("Listeners", len(ls)).Info("Starting Listeners")
+	logging.WithField("listeners", len(ls)).Info("Starting listeners")
 
 	for _, l := range ls {
 		if err := l.call(l.stopChan); err != nil {
@@ -71,7 +71,7 @@ func (ls Listeners) Listen() error {
 }
 
 func (ls Listeners) Stop() {
-	logging.Info("Stopping Listeners")
+	logging.Info("Stopping listeners")
 
 	for _, l := range ls {
 		l.stopChan <- struct{}{}

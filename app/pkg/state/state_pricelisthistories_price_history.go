@@ -83,7 +83,7 @@ func (plhRequest priceListHistoryRequest) resolve(sta PricelistHistoriesState) (
 
 		realmShards, ok := regionShards[plhRequest.RealmSlug]
 		if !ok {
-			return database.PricelistHistoryDatabaseShards{}, requestError{codes.NotFound, "Invalid Realm (pricelist-histories)"}
+			return database.PricelistHistoryDatabaseShards{}, requestError{codes.NotFound, "Invalid realm (pricelist-histories)"}
 		}
 
 		return realmShards, requestError{codes.Ok, ""}

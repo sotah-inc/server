@@ -91,23 +91,25 @@ func (pRequest pricelistHistoriesIntakeRequest) handle(sta PricelistHistoriesSta
 		return out
 	}()
 
-	// gathering auctions
-	for getAuctionsFromTimesJob := range sta.GetAuctionsFromTimes(included) {
-		if getAuctionsFromTimesJob.Err != nil {
-			logrus.WithFields(getAuctionsFromTimesJob.ToLogrusFields()).Error("Failed to fetch auctions")
+	// spinning up a goroutine for gathering auctions
+	go func() {
+		for getAuctionsFromTimesJob := range sta.GetAuctionsFromTimes(included) {
+			if getAuctionsFromTimesJob.Err != nil {
+				logrus.WithFields(getAuctionsFromTimesJob.ToLogrusFields()).Error("Failed to fetch auctions")
 
-			continue
+				continue
+			}
+
+			loadInJobs <- database.LoadInJob{
+				Realm:      getAuctionsFromTimesJob.Realm,
+				TargetTime: getAuctionsFromTimesJob.TargetTime,
+				Auctions:   getAuctionsFromTimesJob.Auctions,
+			}
 		}
 
-		loadInJobs <- database.LoadInJob{
-			Realm:      getAuctionsFromTimesJob.Realm,
-			TargetTime: getAuctionsFromTimesJob.TargetTime,
-			Auctions:   getAuctionsFromTimesJob.Auctions,
-		}
-	}
-
-	// closing the load-in channel
-	close(loadInJobs)
+		// closing the load-in channel
+		close(loadInJobs)
+	}()
 
 	// gathering load-out-jobs as they drain
 	for loadOutJob := range loadOutJobs {

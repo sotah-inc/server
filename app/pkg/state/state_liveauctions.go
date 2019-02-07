@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+
 	"github.com/sotah-inc/server/app/pkg/logging"
 
 	"github.com/sotah-inc/server/app/pkg/database"
@@ -94,6 +95,7 @@ func NewLiveAuctionsState(config LiveAuctionsStateConfig) (LiveAuctionsState, er
 	laState.Listeners = NewListeners(SubjectListeners{
 		subjects.Auctions:           laState.ListenForAuctions,
 		subjects.LiveAuctionsIntake: laState.ListenForLiveAuctionsIntake,
+		subjects.PriceList:          laState.ListenForPriceList,
 		subjects.Owners:             laState.ListenForOwners,
 		subjects.OwnersQuery:        laState.ListenForOwnersQuery,
 		subjects.OwnersQueryByItems: laState.ListenForOwnersQueryByItems,

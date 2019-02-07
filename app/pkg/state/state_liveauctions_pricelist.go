@@ -3,7 +3,6 @@ package state
 import (
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 
 	nats "github.com/nats-io/go-nats"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
@@ -30,7 +29,7 @@ type priceListRequest struct {
 	ItemIds    []blizzard.ItemID   `json:"item_ids"`
 }
 
-func (plRequest priceListRequest) resolve(sta PricelistHistoriesState) (sotah.MiniAuctionList, requestError) {
+func (plRequest priceListRequest) resolve(sta LiveAuctionsState) (sotah.MiniAuctionList, requestError) {
 	regionLadBases, ok := sta.IO.Databases.LiveAuctionsDatabases[plRequest.RegionName]
 	if !ok {
 		return sotah.MiniAuctionList{}, requestError{codes.NotFound, "Invalid region"}
@@ -38,7 +37,7 @@ func (plRequest priceListRequest) resolve(sta PricelistHistoriesState) (sotah.Mi
 
 	ladBase, ok := regionLadBases[plRequest.RealmSlug]
 	if !ok {
-		return sotah.MiniAuctionList{}, requestError{codes.NotFound, "Invalid Realm"}
+		return sotah.MiniAuctionList{}, requestError{codes.NotFound, "Invalid realm"}
 	}
 
 	maList, err := ladBase.GetMiniAuctionList()
@@ -47,33 +46,6 @@ func (plRequest priceListRequest) resolve(sta PricelistHistoriesState) (sotah.Mi
 	}
 
 	return maList, requestError{codes.Ok, ""}
-}
-
-func newPriceListResponseFromMessenger(plRequest priceListRequest, mess messenger.Messenger) (priceListResponse, error) {
-	encodedMessage, err := json.Marshal(plRequest)
-	if err != nil {
-		return priceListResponse{}, err
-	}
-
-	msg, err := mess.Request(subjects.PriceList, encodedMessage)
-	if err != nil {
-		return priceListResponse{}, err
-	}
-
-	if msg.Code != codes.Ok {
-		return priceListResponse{}, errors.New(msg.Err)
-	}
-
-	return newPriceListResponse([]byte(msg.Data))
-}
-
-func newPriceListResponse(body []byte) (priceListResponse, error) {
-	plResponse := &priceListResponse{}
-	if err := json.Unmarshal(body, &plResponse); err != nil {
-		return priceListResponse{}, err
-	}
-
-	return *plResponse, nil
 }
 
 type priceListResponse struct {
@@ -94,7 +66,7 @@ func (plResponse priceListResponse) encodeForMessage() (string, error) {
 	return base64.StdEncoding.EncodeToString(gzipEncodedMessage), nil
 }
 
-func (sta PricelistHistoriesState) ListenForPriceList(stop messenger.ListenStopChan) error {
+func (sta LiveAuctionsState) ListenForPriceList(stop messenger.ListenStopChan) error {
 	err := sta.IO.Messenger.Subscribe(subjects.PriceList, stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 

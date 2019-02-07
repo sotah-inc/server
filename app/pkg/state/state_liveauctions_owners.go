@@ -37,7 +37,7 @@ func (request OwnersRequest) resolve(sta LiveAuctionsState) (sotah.MiniAuctionLi
 
 	ladBase, ok := regionLadBases[request.RealmSlug]
 	if !ok {
-		return sotah.MiniAuctionList{}, errors.New("invalid Realm slug")
+		return sotah.MiniAuctionList{}, errors.New("invalid realm slug")
 	}
 
 	maList, err := ladBase.GetMiniAuctionList()

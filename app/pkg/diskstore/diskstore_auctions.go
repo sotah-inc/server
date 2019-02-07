@@ -96,8 +96,8 @@ func (ds DiskStore) GetAuctionsByRealms(reas sotah.Realms) chan GetAuctionsByRea
 			aucs, lastModified, err := ds.GetAuctionsByRealm(rea)
 			if lastModified.IsZero() {
 				logging.WithFields(logrus.Fields{
-					"Region": rea.Region.Name,
-					"Realm":  rea.Slug,
+					"region": rea.Region.Name,
+					"realm":  rea.Slug,
 				}).Error("Last-modified was blank when loading auctions from filecache")
 
 				continue
@@ -115,8 +115,8 @@ func (ds DiskStore) GetAuctionsByRealms(reas sotah.Realms) chan GetAuctionsByRea
 	go func() {
 		for _, rea := range reas {
 			logging.WithFields(logrus.Fields{
-				"Region": rea.Region.Name,
-				"Realm":  rea.Slug,
+				"region": rea.Region.Name,
+				"realm":  rea.Slug,
 			}).Debug("Queueing up auction for loading")
 			in <- rea
 		}

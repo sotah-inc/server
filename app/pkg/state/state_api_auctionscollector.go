@@ -14,6 +14,8 @@ import (
 )
 
 func (sta APIState) StartCollector(stopChan sotah.WorkerStopChan) sotah.WorkerStopChan {
+	// sta.collectRegions()
+
 	onStop := make(sotah.WorkerStopChan)
 	go func() {
 		ticker := time.NewTicker(20 * time.Minute)
@@ -101,6 +103,11 @@ func (sta APIState) collectRegions() {
 				continue
 			}
 
+			if _, ok := regionRealmTimestamps[job.Realm.Region.Name]; !ok {
+				regionRealmTimestamps[job.Realm.Region.Name] = RealmTimestamps{}
+			}
+			regionRealmTimestamps[job.Realm.Region.Name][job.Realm.Slug] = job.TargetTime.Unix()
+
 			// updating the realm last-modified in statuses
 			for i, statusRealm := range status.Realms {
 				if statusRealm.Slug != job.Realm.Slug {
@@ -134,6 +141,10 @@ func (sta APIState) collectRegions() {
 				out := []blizzard.ItemID{}
 
 				for ID := range receivedItemIds {
+					if sta.ItemBlacklist.IsPresent(ID) {
+						continue
+					}
+
 					if _, ok := iMap[ID]; ok {
 						continue
 					}
