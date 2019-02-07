@@ -288,6 +288,7 @@ func (sta APIState) collectRegions() {
 		return
 	}
 
+	duration := time.Now().Sub(startTime)
 	metric.ReportDuration(
 		metric.CollectorDuration,
 		metric.DurationMetrics{
@@ -298,5 +299,11 @@ func (sta APIState) collectRegions() {
 		},
 		logrus.Fields{},
 	)
+	sta.IO.Reporter.Report(metric.Metrics{
+		"auctionscollector_intake_duration": int(duration) / 1000 / 1000 / 1000,
+		"included_realms":                   includedRealmCount,
+		"excluded_realms":                   totalRealms - includedRealmCount,
+		"total_realms":                      totalRealms,
+	})
 	logging.Info("Finished collector")
 }
