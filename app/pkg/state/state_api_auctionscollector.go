@@ -14,8 +14,6 @@ import (
 )
 
 func (sta APIState) StartCollector(stopChan sotah.WorkerStopChan) sotah.WorkerStopChan {
-	sta.collectRegions()
-
 	onStop := make(sotah.WorkerStopChan)
 	go func() {
 		ticker := time.NewTicker(20 * time.Minute)
