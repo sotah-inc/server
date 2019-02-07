@@ -168,7 +168,7 @@ func (phdBases PricelistHistoryDatabases) Load(in chan LoadInJob) chan pricelist
 	postWork := func() {
 		close(out)
 	}
-	util.Work(4, worker, postWork)
+	util.Work(2, worker, postWork)
 
 	return out
 }
