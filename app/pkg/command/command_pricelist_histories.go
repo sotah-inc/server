@@ -61,19 +61,11 @@ func PricelistHistories(config state.PricelistHistoriesStateConfig) error {
 	}
 
 	// loading the pricelist-histories databases
-	logging.WithField("database-dir", config.PricelistHistoriesDatabaseDir).Info("Connecting to pricelist-histories databases")
 	phDatabases, err := database.NewPricelistHistoryDatabases(config.PricelistHistoriesDatabaseDir, phState.Statuses)
 	if err != nil {
 		return err
 	}
 	phState.IO.Databases.PricelistHistoryDatabases = phDatabases
-
-	// establishing listeners
-	phState.Listeners = state.NewListeners(state.SubjectListeners{
-		subjects.PriceListHistory:         phState.ListenForPriceListHistory,
-		subjects.PriceList:                phState.ListenForPriceList,
-		subjects.PricelistHistoriesIntake: phState.ListenForPricelistHistoriesIntake,
-	})
 
 	// starting up a pruner
 	logging.Info("Starting up the pricelist-histories file pruner")
