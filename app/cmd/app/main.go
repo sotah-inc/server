@@ -12,7 +12,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state"
 	"github.com/twinj/uuid"
-	"gopkg.in/alecthomas/kingpin.v2"
+	kingpin "gopkg.in/alecthomas/kingpin.v2"
 )
 
 type commandMap map[string]func() error
@@ -70,6 +70,8 @@ func main() {
 				"error":     err.Error(),
 				"projectID": projectID,
 			}).Fatal("Could not create new stackdriver logrus hook")
+
+			return
 		}
 
 		logging.AddHook(stackdriverHook)
