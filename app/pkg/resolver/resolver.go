@@ -2,11 +2,14 @@ package resolver
 
 import (
 	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/metric"
 )
 
-func NewResolver(bc blizzard.Client) Resolver {
+func NewResolver(bc blizzard.Client, re metric.Reporter) Resolver {
 	return Resolver{
-		BlizzardClient:    bc,
+		BlizzardClient: bc,
+		Reporter:       re,
+
 		GetStatusURL:      blizzard.DefaultGetStatusURL,
 		GetAuctionInfoURL: blizzard.DefaultGetAuctionInfoURL,
 		GetAuctionsURL:    blizzard.DefaultGetAuctionsURL,
@@ -17,7 +20,9 @@ func NewResolver(bc blizzard.Client) Resolver {
 }
 
 type Resolver struct {
-	BlizzardClient    blizzard.Client
+	BlizzardClient blizzard.Client
+	Reporter       metric.Reporter
+
 	GetStatusURL      blizzard.GetStatusURLFunc
 	GetAuctionInfoURL blizzard.GetAuctionInfoURLFunc
 	GetAuctionsURL    blizzard.GetAuctionsURLFunc

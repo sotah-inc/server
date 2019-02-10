@@ -7,18 +7,34 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
-func (r Resolver) GetAuctionsForRealm(rea sotah.Realm) (blizzard.Auctions, time.Time, error) {
-	uri, err := r.AppendAccessToken(r.GetAuctionInfoURL(rea.Region.Hostname, rea.Slug))
+func (r Resolver) NewAuctionInfoFromHTTP(uri string) (blizzard.AuctionInfo, error) {
+	uri, err := r.AppendAccessToken(uri)
 	if err != nil {
-		return blizzard.Auctions{}, time.Time{}, err
+		return blizzard.AuctionInfo{}, err
 	}
 
+	out, resp, err := blizzard.NewAuctionInfoFromHTTP(uri)
+	if resp.RequestDuration > 0 || resp.ConnectionDuration > 0 {
+		r.Reporter.Report(metric.Metrics{
+			"conn_duration":    int(resp.ConnectionDuration / 1000 / 1000),
+			"request_duration": int(resp.RequestDuration / 1000 / 1000),
+		})
+	}
+	if err != nil {
+		return blizzard.AuctionInfo{}, err
+	}
+
+	return out, nil
+}
+
+func (r Resolver) GetAuctionsForRealm(rea sotah.Realm) (blizzard.Auctions, time.Time, error) {
 	// resolving auction-info from the api
-	aInfo, _, err := blizzard.NewAuctionInfoFromHTTP(uri)
+	aInfo, err := r.NewAuctionInfoFromHTTP(r.GetAuctionInfoURL(rea.Region.Hostname, rea.Slug))
 	if err != nil {
 		return blizzard.Auctions{}, time.Time{}, err
 	}
