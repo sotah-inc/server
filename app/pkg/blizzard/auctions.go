@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/sotah-inc/server/app/pkg/util"
@@ -23,16 +24,16 @@ type GetAuctionInfoURLFunc func(string, RealmSlug) string
 func NewAuctionInfoFromHTTP(uri string) (AuctionInfo, ResponseMeta, error) {
 	resp, err := Download(uri)
 	if err != nil {
-		return AuctionInfo{}, ResponseMeta{}, err
+		return AuctionInfo{}, resp, err
 	}
 
-	if resp.Status != 200 {
-		return AuctionInfo{}, ResponseMeta{}, errors.New("Status was not 200")
+	if resp.Status != http.StatusOK {
+		return AuctionInfo{}, resp, errors.New("status was not 200")
 	}
 
 	aInfo, err := NewAuctionInfo(resp.Body)
 	if err != nil {
-		return AuctionInfo{}, ResponseMeta{}, err
+		return AuctionInfo{}, resp, err
 	}
 
 	return aInfo, resp, nil
@@ -64,9 +65,9 @@ type AuctionInfo struct {
 }
 
 // GetFirstAuctions returns the auctions from the first item in the files listing
-func (aInfo AuctionInfo) GetFirstAuctions() (Auctions, error) {
+func (aInfo AuctionInfo) GetFirstAuctions() (Auctions, ResponseMeta, error) {
 	if len(aInfo.Files) == 0 {
-		return Auctions{}, errors.New("Cannot fetch first auctions with blank files")
+		return Auctions{}, ResponseMeta{}, errors.New("cannot fetch first auctions with blank files")
 	}
 
 	return aInfo.Files[0].GetAuctions()
@@ -79,7 +80,7 @@ type AuctionFile struct {
 }
 
 // GetAuctions returns the auctions from a given file
-func (aFile AuctionFile) GetAuctions() (Auctions, error) {
+func (aFile AuctionFile) GetAuctions() (Auctions, ResponseMeta, error) {
 	return NewAuctionsFromHTTP(aFile.URL)
 }
 
@@ -95,13 +96,22 @@ func DefaultGetAuctionsURL(url string) string { return url }
 type GetAuctionsURLFunc func(url string) string
 
 // NewAuctionsFromHTTP fetches json from the http api for auctions
-func NewAuctionsFromHTTP(url string) (Auctions, error) {
+func NewAuctionsFromHTTP(url string) (Auctions, ResponseMeta, error) {
 	resp, err := Download(url)
 	if err != nil {
-		return Auctions{}, err
+		return Auctions{}, resp, err
 	}
 
-	return NewAuctions(resp.Body)
+	if resp.Status != http.StatusOK {
+		return Auctions{}, resp, errors.New("status was not 200")
+	}
+
+	out, err := NewAuctions(resp.Body)
+	if err != nil {
+		return Auctions{}, resp, err
+	}
+
+	return out, resp, nil
 }
 
 // NewAuctionsFromFilepath parses a json file for auctions

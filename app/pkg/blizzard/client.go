@@ -9,7 +9,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/logging"
-	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
@@ -89,16 +88,6 @@ func (c Client) RefreshFromHTTP(uri string) (Client, error) {
 
 		return out, isGzipped, nil
 	}()
-	if err != nil {
-		return Client{}, err
-	}
-
-	// logging network ingress
-	err = metric.ReportBlizzardAPIIngress(uri, metric.BlizzardAPIIngressMetrics{
-		ByteCount:          len(body),
-		ConnectionDuration: tp.ConnDuration(),
-		RequestDuration:    tp.ReqDuration(),
-	})
 	if err != nil {
 		return Client{}, err
 	}

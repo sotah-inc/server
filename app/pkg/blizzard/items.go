@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"regexp"
 	"strings"
 
@@ -25,16 +26,16 @@ type GetItemURLFunc func(string, ItemID) string
 func NewItemFromHTTP(uri string) (Item, ResponseMeta, error) {
 	resp, err := Download(uri)
 	if err != nil {
-		return Item{}, ResponseMeta{}, err
+		return Item{}, resp, err
 	}
 
-	if resp.Status != 200 {
-		return Item{}, ResponseMeta{}, errors.New("status was not 200")
+	if resp.Status != http.StatusOK {
+		return Item{}, resp, errors.New("status was not 200")
 	}
 
 	item, err := NewItem(resp.Body)
 	if err != nil {
-		return Item{}, ResponseMeta{}, err
+		return Item{}, resp, err
 	}
 
 	return item, resp, nil

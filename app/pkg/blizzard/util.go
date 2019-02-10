@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
@@ -62,9 +61,11 @@ func (tr *timedTransport) Duration() time.Duration {
 
 // ResponseMeta is a blizzard api response meta data
 type ResponseMeta struct {
-	ContentLength int
-	Body          []byte
-	Status        int
+	ContentLength      int
+	Body               []byte
+	Status             int
+	ConnectionDuration time.Duration
+	RequestDuration    time.Duration
 }
 
 // Download - performs HTTP GET request against url, including adding gzip header and ungzipping
@@ -84,6 +85,14 @@ func Download(url string) (ResponseMeta, error) {
 		return ResponseMeta{}, err
 	}
 
+	respMeta := ResponseMeta{
+		ContentLength:      0,
+		Body:               []byte{},
+		Status:             resp.StatusCode,
+		ConnectionDuration: tp.ConnDuration(),
+		RequestDuration:    tp.ReqDuration(),
+	}
+
 	// parsing the body
 	body, isGzipped, err := func() ([]byte, bool, error) {
 		defer resp.Body.Close()
@@ -97,19 +106,9 @@ func Download(url string) (ResponseMeta, error) {
 		return out, isGzipped, nil
 	}()
 	if err != nil {
-		return ResponseMeta{}, err
+		return respMeta, err
 	}
-
-	// logging network ingress
-	contentLength := len(body)
-	err = metric.ReportBlizzardAPIIngress(url, metric.BlizzardAPIIngressMetrics{
-		ByteCount:          contentLength,
-		ConnectionDuration: tp.ConnDuration(),
-		RequestDuration:    tp.ReqDuration(),
-	})
-	if err != nil {
-		return ResponseMeta{}, err
-	}
+	respMeta.ContentLength = len(body)
 
 	// optionally decoding the response body
 	decodedBody, err := func() ([]byte, error) {
@@ -120,16 +119,9 @@ func Download(url string) (ResponseMeta, error) {
 		return util.GzipDecode(body)
 	}()
 	if err != nil {
-		return ResponseMeta{}, err
+		return respMeta, err
 	}
+	respMeta.Body = decodedBody
 
-	if resp.StatusCode != 200 {
-		return ResponseMeta{Body: body, Status: resp.StatusCode}, nil
-	}
-
-	return ResponseMeta{
-		ContentLength: contentLength,
-		Body:          decodedBody,
-		Status:        resp.StatusCode,
-	}, nil
+	return respMeta, nil
 }

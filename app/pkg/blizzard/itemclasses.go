@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/sotah-inc/server/app/pkg/util"
 )
@@ -22,16 +23,16 @@ type GetItemClassesURLFunc func(string) string
 func NewItemClassesFromHTTP(uri string) (ItemClasses, ResponseMeta, error) {
 	resp, err := Download(uri)
 	if err != nil {
-		return ItemClasses{}, ResponseMeta{}, err
+		return ItemClasses{}, resp, err
 	}
 
-	if resp.Status != 200 {
-		return ItemClasses{}, ResponseMeta{}, errors.New("Status was not 200")
+	if resp.Status != http.StatusOK {
+		return ItemClasses{}, resp, errors.New("status was not 200")
 	}
 
 	iClasses, err := NewItemClasses(resp.Body)
 	if err != nil {
-		return ItemClasses{}, ResponseMeta{}, err
+		return ItemClasses{}, resp, err
 	}
 
 	return iClasses, resp, nil

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/sotah-inc/server/app/pkg/blizzard/realmpopulations"
 	"github.com/sotah-inc/server/app/pkg/blizzard/realmtypes"
@@ -60,16 +61,16 @@ func DefaultGetStatusURL(regionHostname string) string {
 func NewStatusFromHTTP(uri string) (Status, ResponseMeta, error) {
 	resp, err := Download(uri)
 	if err != nil {
-		return Status{}, ResponseMeta{}, err
+		return Status{}, resp, err
 	}
 
-	if resp.Status != 200 {
-		return Status{}, ResponseMeta{}, errors.New("status was not 200")
+	if resp.Status != http.StatusOK {
+		return Status{}, resp, errors.New("status was not 200")
 	}
 
 	status, err := NewStatus(resp.Body)
 	if err != nil {
-		return Status{}, ResponseMeta{}, err
+		return Status{}, resp, err
 	}
 
 	return status, resp, nil
