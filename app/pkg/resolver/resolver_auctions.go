@@ -2,34 +2,38 @@ package resolver
 
 import (
 	"errors"
+	"net/http"
 	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/logging"
-	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
 func (r Resolver) NewAuctionInfoFromHTTP(uri string) (blizzard.AuctionInfo, error) {
-	uri, err := r.AppendAccessToken(uri)
+	resp, err := r.Download(uri, true)
 	if err != nil {
 		return blizzard.AuctionInfo{}, err
 	}
-
-	out, resp, err := blizzard.NewAuctionInfoFromHTTP(uri)
-	if resp.RequestDuration > 0 || resp.ConnectionDuration > 0 {
-		r.Reporter.Report(metric.Metrics{
-			"conn_duration":    int(resp.ConnectionDuration / 1000 / 1000),
-			"request_duration": int(resp.RequestDuration / 1000 / 1000),
-		})
+	if resp.Status != http.StatusOK {
+		return blizzard.AuctionInfo{}, errors.New("response status was not 200")
 	}
+
+	return blizzard.NewAuctionInfo(resp.Body)
+}
+
+func (r Resolver) NewAuctionsFromHTTP(uri string) (blizzard.Auctions, error) {
+	resp, err := r.Download(uri, false)
 	if err != nil {
-		return blizzard.AuctionInfo{}, err
+		return blizzard.Auctions{}, err
+	}
+	if resp.Status != http.StatusOK {
+		return blizzard.Auctions{}, errors.New("response status was not 200")
 	}
 
-	return out, nil
+	return blizzard.NewAuctions(resp.Body)
 }
 
 func (r Resolver) GetAuctionsForRealm(rea sotah.Realm) (blizzard.Auctions, time.Time, error) {
@@ -47,7 +51,7 @@ func (r Resolver) GetAuctionsForRealm(rea sotah.Realm) (blizzard.Auctions, time.
 
 	// optionally downloading where the Realm has stale data
 	if rea.LastModified == 0 || time.Unix(rea.LastModified, 0).Before(aFile.LastModifiedAsTime()) {
-		aucs, _, err := blizzard.NewAuctionsFromHTTP(aFile.URL)
+		aucs, err := r.NewAuctionsFromHTTP(aFile.URL)
 		if err != nil {
 			return blizzard.Auctions{}, time.Time{}, err
 		}
