@@ -86,7 +86,7 @@ func NewAPIState(config APIStateConfig) (APIState, error) {
 	if err != nil {
 		return APIState{}, err
 	}
-	apiState.IO.Resolver = resolver.NewResolver(blizzardClient)
+	apiState.IO.Resolver = resolver.NewResolver(blizzardClient, apiState.IO.Reporter)
 
 	// filling state with region statuses
 	for job := range apiState.IO.Resolver.GetStatuses(apiState.Regions) {
