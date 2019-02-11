@@ -1,18 +1,24 @@
 package resolver
 
 import (
+	"errors"
+	"net/http"
+
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
 func (r Resolver) NewStatus(reg sotah.Region) (sotah.Status, error) {
-	uri, err := r.AppendAccessToken(r.GetStatusURL(reg.Hostname))
+	resp, err := r.Download(r.GetStatusURL(reg.Hostname), true)
 	if err != nil {
 		return sotah.Status{}, err
 	}
+	if resp.Status != http.StatusOK {
+		return sotah.Status{}, errors.New("status was not 200")
+	}
 
-	stat, _, err := blizzard.NewStatusFromHTTP(uri)
+	stat, err := blizzard.NewStatus(resp.Body)
 	if err != nil {
 		return sotah.Status{}, err
 	}

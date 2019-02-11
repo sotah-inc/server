@@ -3,18 +3,11 @@ package resolver
 import (
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
-	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
 func (r Resolver) GetItemIconData(uri string) ([]byte, error) {
-	resp, err := blizzard.Download(uri)
-	if resp.RequestDuration > 0 || resp.ConnectionDuration > 0 {
-		r.Reporter.Report(metric.Metrics{
-			"conn_duration":    int(resp.ConnectionDuration / 1000 / 1000),
-			"request_duration": int(resp.RequestDuration / 1000 / 1000),
-		})
-	}
+	resp, err := r.Download(uri, false)
 	if err != nil {
 		return []byte{}, err
 	}

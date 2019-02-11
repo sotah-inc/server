@@ -1,26 +1,23 @@
 package resolver
 
 import (
+	"net/http"
+
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
-func (r Resolver) GetItem(primaryRegion sotah.Region, ID blizzard.ItemID) (blizzard.Item, []byte, error) {
-	uri, err := r.AppendAccessToken(r.GetItemURL(primaryRegion.Hostname, ID))
+func (r Resolver) NewItem(primaryRegion sotah.Region, ID blizzard.ItemID) (blizzard.Item, error) {
+	resp, err := r.Download(r.GetItemURL(primaryRegion.Hostname, ID), true)
 	if err != nil {
-		return blizzard.Item{}, []byte{}, err
+		return blizzard.Item{}, err
+	}
+	if resp.Status == http.StatusNotFound {
+		return blizzard.Item{}, nil
 	}
 
-	item, resp, err := blizzard.NewItemFromHTTP(uri)
-	if resp.Status == 404 {
-		return blizzard.Item{}, []byte{}, nil
-	}
-	if err != nil {
-		return blizzard.Item{}, []byte{}, err
-	}
-
-	return item, resp.Body, nil
+	return blizzard.NewItem(resp.Body)
 }
 
 type GetItemsJob struct {
@@ -28,8 +25,6 @@ type GetItemsJob struct {
 	ItemId blizzard.ItemID
 	Item   blizzard.Item
 	Exists bool
-
-	GzipDecodedData []byte
 }
 
 func (r Resolver) GetItems(primaryRegion sotah.Region, IDs []blizzard.ItemID) chan GetItemsJob {
@@ -40,9 +35,24 @@ func (r Resolver) GetItems(primaryRegion sotah.Region, IDs []blizzard.ItemID) ch
 	// spinning up the workers for fetching items
 	worker := func() {
 		for itemId := range in {
-			itemValue, gzipDecodedData, err := r.GetItem(primaryRegion, itemId)
-			exists := itemValue.ID > 0
-			out <- GetItemsJob{err, itemId, itemValue, exists, gzipDecodedData}
+			item, err := r.NewItem(primaryRegion, itemId)
+			if err != nil {
+				out <- GetItemsJob{
+					Err:    err,
+					Item:   blizzard.Item{},
+					Exists: false,
+					ItemId: 0,
+				}
+
+				continue
+			}
+
+			out <- GetItemsJob{
+				ItemId: itemId,
+				Exists: item.ID > 0,
+				Item:   item,
+				Err:    nil,
+			}
 		}
 	}
 	postWork := func() {
