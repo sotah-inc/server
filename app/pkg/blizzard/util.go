@@ -84,6 +84,7 @@ func Download(url string) (ResponseMeta, error) {
 	if err != nil {
 		return ResponseMeta{}, err
 	}
+	defer resp.Body.Close()
 
 	respMeta := ResponseMeta{
 		ContentLength:      0,
@@ -95,8 +96,6 @@ func Download(url string) (ResponseMeta, error) {
 
 	// parsing the body
 	body, isGzipped, err := func() ([]byte, bool, error) {
-		defer resp.Body.Close()
-
 		isGzipped := resp.Header.Get("Content-Encoding") == "gzip"
 		out, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
