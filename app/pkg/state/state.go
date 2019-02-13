@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/database"
 	"github.com/sotah-inc/server/app/pkg/diskstore"
 	"github.com/sotah-inc/server/app/pkg/logging"
@@ -37,6 +38,7 @@ type IO struct {
 	Store     store.Store
 	DiskStore diskstore.DiskStore
 	Reporter  metric.Reporter
+	Bus       bus.Bus
 }
 
 // listener functionality
