@@ -62,3 +62,17 @@ func (sta State) ListenForRuntimeInfo(stop messenger.ListenStopChan) error {
 
 	return nil
 }
+
+func (sta State) ListenForGenericTestErrors(stop messenger.ListenStopChan) error {
+	err := sta.IO.Messenger.Subscribe(subjects.GenericTestErrors, stop, func(natsMsg nats.Msg) {
+		m := messenger.NewMessage()
+		m.Err = "Test error"
+		m.Code = codes.GenericError
+		sta.IO.Messenger.ReplyTo(natsMsg, m)
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
