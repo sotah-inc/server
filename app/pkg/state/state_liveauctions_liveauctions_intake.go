@@ -11,6 +11,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/pkg/metric"
+	"github.com/sotah-inc/server/app/pkg/metric/kinds"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 )
 
@@ -170,24 +171,17 @@ func (iRequest liveAuctionsIntakeRequest) handle(sta LiveAuctionsState) {
 	}
 
 	duration := time.Now().Sub(startTime)
-	metric.ReportDuration(metric.LiveAuctionsIntakeDuration, metric.DurationMetrics{
-		Duration:       duration,
-		IncludedRealms: includedRealmCount,
-		ExcludedRealms: excludedRealmCount,
-		TotalRealms:    includedRealmCount + excludedRealmCount,
-	}, logrus.Fields{
-		"total_auctions":          totalAuctions,
-		"total_previous_auctions": totalPreviousAuctions,
-		"total_owners":            totalOwners,
-		"total_items":             len(itemIdsMap),
-		"total_new_auctions":      totalNewAuctions,
-		"total_removed_auctions":  totalRemovedAuctions,
-	})
 	sta.IO.Reporter.Report(metric.Metrics{
 		"liveauctions_intake_duration": int(duration) / 1000 / 1000 / 1000,
 		"included_realms":              includedRealmCount,
 		"excluded_realms":              excludedRealmCount,
 		"total_realms":                 includedRealmCount + excludedRealmCount,
+		"total_auctions":               totalAuctions,
+		"total_previous_auctions":      totalPreviousAuctions,
+		"total_owners":                 totalOwners,
+		"total_items":                  len(itemIdsMap),
+		"total_new_auctions":           totalNewAuctions,
+		"total_removed_auctions":       totalRemovedAuctions,
 	})
 
 	return
@@ -206,7 +200,9 @@ func (sta LiveAuctionsState) ListenForLiveAuctionsIntake(stop messenger.ListenSt
 			return
 		}
 
-		metric.ReportIntakeBufferSize(metric.LiveAuctionsIntake, len(iRequest.RegionRealmTimestamps))
+		sta.IO.Reporter.ReportWithPrefix(metric.Metrics{
+			"buffer_size": len(iRequest.RegionRealmTimestamps),
+		}, kinds.LiveAuctionsIntake)
 		logging.WithField("capacity", len(in)).Info("Received live-auctions-intake-request, pushing onto handle channel")
 
 		in <- iRequest

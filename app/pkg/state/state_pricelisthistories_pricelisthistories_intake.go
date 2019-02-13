@@ -11,6 +11,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/pkg/metric"
+	"github.com/sotah-inc/server/app/pkg/metric/kinds"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 )
 
@@ -121,12 +122,6 @@ func (pRequest pricelistHistoriesIntakeRequest) handle(sta PricelistHistoriesSta
 	}
 
 	duration := time.Now().Sub(startTime)
-	metric.ReportDuration(metric.PricelistHistoriesIntakeDuration, metric.DurationMetrics{
-		Duration:       duration,
-		IncludedRealms: includedRealmCount,
-		ExcludedRealms: excludedRealmCount,
-		TotalRealms:    includedRealmCount + excludedRealmCount,
-	}, logrus.Fields{})
 	sta.IO.Reporter.Report(metric.Metrics{
 		"pricelisthistories_intake_duration": int(duration) / 1000 / 1000 / 1000,
 		"included_realms":                    includedRealmCount,
@@ -150,7 +145,9 @@ func (sta PricelistHistoriesState) ListenForPricelistHistoriesIntake(stop messen
 			return
 		}
 
-		metric.ReportIntakeBufferSize(metric.PricelistHistoriesIntake, len(pRequest.RegionRealmTimestamps))
+		sta.IO.Reporter.ReportWithPrefix(metric.Metrics{
+			"buffer_size": len(pRequest.RegionRealmTimestamps),
+		}, kinds.PricelistHistoriesIntake)
 		logging.WithField("capacity", len(in)).Info("Received pricelist-histories-intake-request, pushing onto handle channel")
 
 		in <- pRequest
