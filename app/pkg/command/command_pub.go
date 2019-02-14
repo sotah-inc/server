@@ -3,9 +3,11 @@ package command
 import (
 	"os"
 	"os/signal"
+	"time"
 
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/state"
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
 func Pub(config state.PubStateConfig) error {
@@ -21,6 +23,14 @@ func Pub(config state.PubStateConfig) error {
 	if err := pubState.Listeners.Listen(); err != nil {
 		return err
 	}
+
+	// sending a message
+	msg, err := pubState.IO.Bus.RequestFromTopic(string(subjects.Boot), "world", 5*time.Second)
+	if err != nil {
+		return err
+	}
+
+	logging.WithField("data", msg.Data).Info("Received data")
 
 	// catching SIGINT
 	logging.Info("Waiting for SIGINT")
