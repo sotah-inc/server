@@ -1,6 +1,8 @@
 package state
 
 import (
+	"fmt"
+
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/messenger"
@@ -62,7 +64,7 @@ func (tState PubState) ListenForBoot(stop ListenStopChan) error {
 		logging.WithField("subject", subjects.Boot).Info("Received message")
 
 		msg := bus.NewMessage()
-		msg.Data = "wew lad"
+		msg.Data = fmt.Sprintf("Hello, %s!", busMsg.Data)
 		if _, err := tState.IO.Bus.ReplyTo(busMsg, msg); err != nil {
 			logging.WithField("error", err.Error()).Error("Failed to reply to response message")
 
