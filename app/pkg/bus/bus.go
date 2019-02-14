@@ -103,7 +103,7 @@ func (b Bus) SubscribeToTopic(topicName string, stop chan interface{}, cb func(M
 }
 
 func (b Bus) Subscribe(topic *pubsub.Topic, stop chan interface{}, cb func(Message)) error {
-	subscriberName := fmt.Sprintf("subscriber-%s", b.subscriberId)
+	subscriberName := fmt.Sprintf("subscriber-%s-%s-%s", b.subscriberId, topic.ID(), uuid.NewV4().String())
 
 	entry := logging.WithFields(logrus.Fields{
 		"subscriber-name": subscriberName,
@@ -111,7 +111,9 @@ func (b Bus) Subscribe(topic *pubsub.Topic, stop chan interface{}, cb func(Messa
 	})
 
 	entry.Info("Subscribing to topic")
-	sub, err := b.client.CreateSubscription(b.context, subscriberName, pubsub.SubscriptionConfig{Topic: topic})
+	sub, err := b.client.CreateSubscription(b.context, subscriberName, pubsub.SubscriptionConfig{
+		Topic: topic,
+	})
 	if err != nil {
 		return err
 	}
@@ -197,6 +199,7 @@ func (b Bus) Request(recipientTopic *pubsub.Topic, payload string, timeout time.
 		go func() {
 			select {
 			case result := <-receiver:
+				entry.Debug("Received reply message on receiver, closing receiver")
 				close(receiver)
 
 				entry.Debug("Received reply message on receiver, sending to out channel")
@@ -206,6 +209,7 @@ func (b Bus) Request(recipientTopic *pubsub.Topic, payload string, timeout time.
 				entry.Debug("Sending stop signal to reply-to subscription and channel")
 				stop <- struct{}{}
 			case <-time.After(timeout):
+				entry.Debug("Timed out receiving message, closing receiver")
 				close(receiver)
 
 				entry.Debug("Did not receive reply on reply-to topic within timeout period, sending timed out error to out channel")
@@ -229,9 +233,9 @@ func (b Bus) Request(recipientTopic *pubsub.Topic, payload string, timeout time.
 			}
 		})
 		if err != nil {
-			entry.WithField("error", err.Error()).Error("Failed to subscribe to reply-to topic, dumping error to out channel")
-
+			entry.WithField("error", err.Error()).Error("Failed to subscribe to reply-to topic, closing receiver")
 			close(receiver)
+
 			out <- requestJob{
 				Err:     err,
 				Payload: Message{},
