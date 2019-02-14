@@ -1,7 +1,6 @@
 package state
 
 import (
-	"cloud.google.com/go/pubsub"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/messenger"
@@ -59,8 +58,16 @@ type PubState struct {
 }
 
 func (tState PubState) ListenForBoot(stop ListenStopChan) error {
-	err := tState.IO.Bus.Subscribe(string(subjects.Boot), stop, func(msg pubsub.Message) {
+	err := tState.IO.Bus.SubscribeToTopic(string(subjects.Boot), stop, func(busMsg bus.Message) {
 		logging.WithField("subject", subjects.Boot).Info("Received message")
+
+		msg := bus.NewMessage()
+		msg.Data = "wew lad"
+		if _, err := tState.IO.Bus.ReplyTo(busMsg, msg); err != nil {
+			logging.WithField("error", err.Error()).Error("Failed to reply to response message")
+
+			return
+		}
 
 		return
 	})
