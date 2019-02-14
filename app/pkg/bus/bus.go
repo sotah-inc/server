@@ -31,8 +31,25 @@ type Bus struct {
 	subscriberId string
 }
 
-func (b Bus) Subscribe(topicName string, stop chan interface{}, cb func(pubsub.Message)) error {
+func (b Bus) resolveTopic(topicName string) (*pubsub.Topic, error) {
 	topic := b.client.Topic(topicName)
+	exists, err := topic.Exists(b.context)
+	if err != nil {
+		return nil, err
+	}
+
+	if exists {
+		return topic, nil
+	}
+
+	return b.client.CreateTopic(b.context, topicName)
+}
+
+func (b Bus) Subscribe(topicName string, stop chan interface{}, cb func(pubsub.Message)) error {
+	topic, err := b.resolveTopic(topicName)
+	if err != nil {
+		return err
+	}
 
 	subscriberName := fmt.Sprintf("subscriber-%s", b.subscriberId)
 
