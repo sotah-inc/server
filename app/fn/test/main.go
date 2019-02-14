@@ -28,7 +28,7 @@ func init() {
 func HelloHTTP(w http.ResponseWriter, r *http.Request) {
 	msg, err := bu.RequestFromTopic(string(subjects.Boot), "world", 5*time.Second)
 	if err != nil {
-		http.Error(w, "Error sending boot request", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error sending boot request: %s", err.Error()), http.StatusInternalServerError)
 
 		return
 	}
