@@ -5,9 +5,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
-	"cloud.google.com/go/pubsub"
 	"github.com/sotah-inc/server/app/pkg/bus"
+	"github.com/sotah-inc/server/app/pkg/bus/codes"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
@@ -25,19 +26,18 @@ func init() {
 }
 
 func HelloHTTP(w http.ResponseWriter, r *http.Request) {
-	topic, err := bu.ResolveTopic(string(subjects.Boot))
+	msg, err := bu.RequestFromTopic(string(subjects.Boot), "world", 5*time.Second)
 	if err != nil {
-		http.Error(w, "Error getting topic", http.StatusInternalServerError)
+		http.Error(w, "Error sending boot request", http.StatusInternalServerError)
 
 		return
 	}
 
-	id, err := topic.Publish(r.Context(), &pubsub.Message{Data: []byte("wew")}).Get(r.Context())
-	if err != nil {
-		http.Error(w, "Error publishing to topic", http.StatusInternalServerError)
+	if msg.Code != codes.Ok {
+		http.Error(w, fmt.Sprintf("Response was not Ok: %s", msg.Err), http.StatusInternalServerError)
 
 		return
 	}
 
-	fmt.Fprintf(w, "Published msg: %v", id)
+	fmt.Fprintf(w, "Published msg: %v", msg.Data)
 }

@@ -97,11 +97,14 @@ github.com/shurcooL/users v0.0.0-20180125191416-49c67e49c537/go.mod h1:QJTqeLYED
 github.com/shurcooL/webdavfs v0.0.0-20170829043945-18c3829fa133/go.mod h1:hKmq5kWdCj2z2KEozexVbfEZIWiTjhE0+UjmZgPqehw=
 github.com/sirupsen/logrus v1.3.0 h1:hI/7Q+DtNZ2kINb6qt/lS+IyXnHQe9e90POfeewL/ME=
 github.com/sirupsen/logrus v1.3.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
-github.com/sotah-inc/server v0.0.0-20190214022842-a03dcb87c02b h1:bzZCr2mHDqQH+qNA3WGu/9U19E15z/eptF7mOOeHOcw=
-github.com/sotah-inc/server/app v0.0.0-20190214022308-0dd70993431c h1:cBpD0ESSx5eUy/qnlOVFdtHNErxyn5BqO21rZuGc3HA=
-github.com/sotah-inc/server/app v0.0.0-20190214022308-0dd70993431c/go.mod h1:bzmmfaItVp52fqGJ0CE7Ql5yry5H8TQ/hrGWE3tiqJ0=
+github.com/sotah-inc/server v0.0.0-20190214023940-b0a7ea2c43ae h1:Ckx9Q2iip3nwr4QfrHpfyyMdwLH5WrJXw8vblqB5tBM=
+github.com/sotah-inc/server v0.0.0-20190214194331-a90370281bcc h1:9o43Ep44U0LD1r83DIeD7Xyo5mX46u2E+SdFMpNERKo=
 github.com/sotah-inc/server/app v0.0.0-20190214022842-a03dcb87c02b h1:7IwAmNt04MTmNksriTLDp/pjL3TmL38VuPVl4LOyhic=
 github.com/sotah-inc/server/app v0.0.0-20190214022842-a03dcb87c02b/go.mod h1:bzmmfaItVp52fqGJ0CE7Ql5yry5H8TQ/hrGWE3tiqJ0=
+github.com/sotah-inc/server/app v0.0.0-20190214023940-b0a7ea2c43ae h1:PJQx5od065V1L70qmowjVrW6KfkUHy4QOVunZDYr2f8=
+github.com/sotah-inc/server/app v0.0.0-20190214023940-b0a7ea2c43ae/go.mod h1:bzmmfaItVp52fqGJ0CE7Ql5yry5H8TQ/hrGWE3tiqJ0=
+github.com/sotah-inc/server/app v0.0.0-20190214194331-a90370281bcc h1:wB7hg27F113v9Lz4xKYbmAsipeovv6RI60t6fezcGLU=
+github.com/sotah-inc/server/app v0.0.0-20190214194331-a90370281bcc/go.mod h1:bzmmfaItVp52fqGJ0CE7Ql5yry5H8TQ/hrGWE3tiqJ0=
 github.com/sourcegraph/annotate v0.0.0-20160123013949-f4cad6c6324d/go.mod h1:UdhH50NIW0fCiwBSr0co2m7BnFLdv4fQTgdqdJTHFeE=
 github.com/sourcegraph/syntaxhighlight v0.0.0-20170531221838-bd320f5d308e/go.mod h1:HuIsMU8RRBOtsCgI77wP899iHVBQpCmg4ErYMZB+2IA=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
@@ -110,6 +113,7 @@ github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXf
 github.com/stretchr/testify v1.3.0 h1:TivCn/peBQ7UY8ooIcPgZFpTNSz0Q2U6UrFlUfqbe0Q=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07/go.mod h1:kDXzergiv9cbyO7IOYJZWg1U88JhDg3PB6klq9Hg2pA=
+github.com/twinj/uuid v1.0.0 h1:fzz7COZnDrXGTAOHGuUGYd6sG+JMq+AoE7+Jlu0przk=
 github.com/twinj/uuid v1.0.0/go.mod h1:mMgcE1RHFUFqe5AfiwlINXisXfDGro23fWdPUfOMjRY=
 go.opencensus.io v0.18.0 h1:Mk5rgZcggtbvtAun5aJzAtjKKN/t0R3jJPlWILlv938=
 go.opencensus.io v0.18.0/go.mod h1:vKdFvxhtzZ9onBp9VKHK8z/sRpBMnKAsufL7wlDrCOA=
