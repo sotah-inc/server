@@ -2,13 +2,14 @@ package bus
 
 import (
 	"context"
+	"fmt"
 
 	"cloud.google.com/go/pubsub"
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/logging"
 )
 
-func NewBus(projectID string) (Bus, error) {
+func NewBus(projectID string, subscriberId string) (Bus, error) {
 	ctx := context.Background()
 	client, err := pubsub.NewClient(ctx, projectID)
 	if err != nil {
@@ -16,20 +17,24 @@ func NewBus(projectID string) (Bus, error) {
 	}
 
 	return Bus{
-		client:    client,
-		context:   ctx,
-		projectId: projectID,
+		client:       client,
+		context:      ctx,
+		projectId:    projectID,
+		subscriberId: subscriberId,
 	}, nil
 }
 
 type Bus struct {
-	context   context.Context
-	projectId string
-	client    *pubsub.Client
+	context      context.Context
+	projectId    string
+	client       *pubsub.Client
+	subscriberId string
 }
 
-func (b Bus) Subscribe(subscriberName string, topicName string, stop chan interface{}, cb func(pubsub.Message)) error {
+func (b Bus) Subscribe(topicName string, stop chan interface{}, cb func(pubsub.Message)) error {
 	topic := b.client.Topic(topicName)
+
+	subscriberName := fmt.Sprintf("subscriber-%s", b.subscriberId)
 
 	entry := logging.WithFields(logrus.Fields{
 		"subscriber-name": subscriberName,

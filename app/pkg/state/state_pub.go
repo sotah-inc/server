@@ -32,7 +32,7 @@ func NewPubState(config PubStateConfig) (PubState, error) {
 	tState.IO.Messenger = mess
 
 	// establishing a bus
-	bu, err := bus.NewBus(config.GCloudProjectID)
+	bu, err := bus.NewBus(config.GCloudProjectID, tState.RunID.String())
 	tState.IO.Bus = bu
 
 	// initializing a reporter
@@ -59,7 +59,7 @@ type PubState struct {
 }
 
 func (tState PubState) ListenForBoot(stop ListenStopChan) error {
-	err := tState.IO.Bus.Subscribe(tState.RunID.String(), string(subjects.Boot), stop, func(msg pubsub.Message) {
+	err := tState.IO.Bus.Subscribe(string(subjects.Boot), stop, func(msg pubsub.Message) {
 		logging.WithField("subject", subjects.Boot).Info("Received message")
 
 		return
