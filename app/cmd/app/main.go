@@ -39,6 +39,7 @@ func main() {
 		apiCommand                = app.Command(string(commands.API), "For running sotah-server.")
 		liveAuctionsCommand       = app.Command(string(commands.LiveAuctions), "For in-memory storage of current auctions.")
 		pricelistHistoriesCommand = app.Command(string(commands.PricelistHistories), "For on-disk storage of pricelist histories.")
+		pubCommand                = app.Command(string(commands.Pub), "For testing pubsub on gcloud.")
 	)
 	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
 
@@ -112,6 +113,13 @@ func main() {
 				MessengerHost:                 *natsHost,
 				GCloudProjectID:               *projectID,
 				PricelistHistoriesDatabaseDir: fmt.Sprintf("%s/databases", *cacheDir),
+			})
+		},
+		pubCommand.FullCommand(): func() error {
+			return command.Pub(state.PubStateConfig{
+				MessengerPort:   *natsPort,
+				MessengerHost:   *natsHost,
+				GCloudProjectID: *projectID,
 			})
 		},
 	}

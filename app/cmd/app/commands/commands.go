@@ -9,4 +9,5 @@ var (
 	API                command = "api"
 	LiveAuctions       command = "live-auctions"
 	PricelistHistories command = "pricelist-histories"
+	Pub                command = "pub"
 )

@@ -10,16 +10,16 @@ import (
 	"github.com/twinj/uuid"
 )
 
-type TestStateConfig struct {
+type PubStateConfig struct {
 	GCloudProjectID string
 
 	MessengerHost string
 	MessengerPort int
 }
 
-func NewTestState(config TestStateConfig) (TestState, error) {
+func NewPubState(config PubStateConfig) (PubState, error) {
 	// establishing an initial state
-	tState := TestState{
+	tState := PubState{
 		State: NewState(uuid.NewV4(), true),
 	}
 
@@ -27,7 +27,7 @@ func NewTestState(config TestStateConfig) (TestState, error) {
 	logging.Info("Connecting messenger")
 	mess, err := messenger.NewMessenger(config.MessengerHost, config.MessengerPort)
 	if err != nil {
-		return TestState{}, err
+		return PubState{}, err
 	}
 	tState.IO.Messenger = mess
 
@@ -42,7 +42,7 @@ func NewTestState(config TestStateConfig) (TestState, error) {
 	logging.Info("Gathering regions")
 	regions, err := tState.NewRegions()
 	if err != nil {
-		return TestState{}, err
+		return PubState{}, err
 	}
 	tState.Regions = regions
 
@@ -54,11 +54,11 @@ func NewTestState(config TestStateConfig) (TestState, error) {
 	return tState, nil
 }
 
-type TestState struct {
+type PubState struct {
 	State
 }
 
-func (tState TestState) ListenForBoot(stop ListenStopChan) error {
+func (tState PubState) ListenForBoot(stop ListenStopChan) error {
 	err := tState.IO.Bus.Subscribe(tState.RunID.String(), string(subjects.Boot), stop, func(msg pubsub.Message) {
 		logging.WithField("subject", subjects.Boot).Info("Received message")
 
