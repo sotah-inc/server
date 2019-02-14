@@ -59,7 +59,9 @@ type TestState struct {
 }
 
 func (tState TestState) ListenForBoot(stop ListenStopChan) error {
-	err := tState.IO.Bus.Subscribe(string(subjects.Boot), stop, func(msg pubsub.Message) {
+	err := tState.IO.Bus.Subscribe(tState.RunID.String(), string(subjects.Boot), stop, func(msg pubsub.Message) {
+		logging.WithField("subject", subjects.Boot).Info("Received message")
+
 		return
 	})
 	if err != nil {

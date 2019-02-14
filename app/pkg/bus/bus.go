@@ -27,11 +27,7 @@ type Bus struct {
 }
 
 func (b Bus) Subscribe(subscriberName string, topicName string, stop chan interface{}, cb func(pubsub.Message)) error {
-	topic, err := b.client.CreateTopic(b.context, topicName)
-	if err != nil {
-		return err
-	}
-
+	topic := b.client.Topic(topicName)
 	sub, err := b.client.CreateSubscription(b.context, subscriberName, pubsub.SubscriptionConfig{Topic: topic})
 	if err != nil {
 		return err
@@ -42,6 +38,7 @@ func (b Bus) Subscribe(subscriberName string, topicName string, stop chan interf
 		<-stop
 
 		cancel()
+		topic.Stop()
 	}()
 
 	err = sub.Receive(cctx, func(ctx context.Context, msg *pubsub.Message) {
