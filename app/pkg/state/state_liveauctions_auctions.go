@@ -9,10 +9,10 @@ import (
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
-	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/sotah/sortdirections"
 	"github.com/sotah-inc/server/app/pkg/sotah/sortkinds"
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
@@ -85,8 +85,8 @@ func (ar auctionsResponse) encodeForMessage() (string, error) {
 	return base64.StdEncoding.EncodeToString(gzipEncodedAuctions), nil
 }
 
-func (sta LiveAuctionsState) ListenForAuctions(stop messenger.ListenStopChan) error {
-	err := sta.IO.Messenger.Subscribe(subjects.Auctions, stop, func(natsMsg nats.Msg) {
+func (sta LiveAuctionsState) ListenForAuctions(stop ListenStopChan) error {
+	err := sta.IO.Messenger.Subscribe(string(subjects.Auctions), stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		// resolving the request
@@ -187,7 +187,7 @@ func (sta State) NewMiniAuctionsList(req AuctionsRequest) (sotah.MiniAuctionList
 		return sotah.MiniAuctionList{}, err
 	}
 
-	msg, err := sta.IO.Messenger.Request(subjects.Auctions, encodedMessage)
+	msg, err := sta.IO.Messenger.Request(string(subjects.Auctions), encodedMessage)
 	if err != nil {
 		return sotah.MiniAuctionList{}, err
 	}

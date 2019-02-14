@@ -10,8 +10,8 @@ import (
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
-	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
 type ownersQueryItem struct {
@@ -126,8 +126,8 @@ func (request ownersQueryRequest) resolve(sta LiveAuctionsState) (ownersQueryRes
 	return oqResult, nil
 }
 
-func (sta LiveAuctionsState) ListenForOwnersQuery(stop messenger.ListenStopChan) error {
-	err := sta.IO.Messenger.Subscribe(subjects.OwnersQuery, stop, func(natsMsg nats.Msg) {
+func (sta LiveAuctionsState) ListenForOwnersQuery(stop ListenStopChan) error {
+	err := sta.IO.Messenger.Subscribe(string(subjects.OwnersQuery), stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		// resolving the request

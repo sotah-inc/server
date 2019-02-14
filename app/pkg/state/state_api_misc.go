@@ -11,8 +11,8 @@ import (
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
-	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
 func (sta State) NewRegions() (sotah.RegionList, error) {
@@ -20,7 +20,7 @@ func (sta State) NewRegions() (sotah.RegionList, error) {
 		attempts := 0
 
 		for {
-			out, err := sta.IO.Messenger.Request(subjects.Boot, []byte{})
+			out, err := sta.IO.Messenger.Request(string(subjects.Boot), []byte{})
 			if err == nil {
 				return out, nil
 			}
@@ -59,8 +59,8 @@ type bootResponse struct {
 	Professions []sotah.Profession   `json:"professions"`
 }
 
-func (sta APIState) ListenForBoot(stop messenger.ListenStopChan) error {
-	err := sta.IO.Messenger.Subscribe(subjects.Boot, stop, func(natsMsg nats.Msg) {
+func (sta APIState) ListenForBoot(stop ListenStopChan) error {
+	err := sta.IO.Messenger.Subscribe(string(subjects.Boot), stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		encodedResponse, err := json.Marshal(bootResponse{

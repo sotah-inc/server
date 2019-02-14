@@ -7,9 +7,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/logging"
-	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
 )
 
@@ -280,7 +280,7 @@ func (sta APIState) collectRegions() {
 			return err
 		}
 
-		return sta.IO.Messenger.Publish(subjects.LiveAuctionsIntake, encodedRequest)
+		return sta.IO.Messenger.Publish(string(subjects.LiveAuctionsIntake), encodedRequest)
 	}()
 	if err != nil {
 		logging.WithField("error", err.Error()).Error("Failed to publish live-auctions-intake-request")

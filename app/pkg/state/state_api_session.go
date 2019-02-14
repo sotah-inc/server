@@ -6,15 +6,15 @@ import (
 	nats "github.com/nats-io/go-nats"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
-	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
 type sessionSecretData struct {
 	SessionSecret string `json:"session_secret"`
 }
 
-func (sta APIState) ListenForSessionSecret(stop messenger.ListenStopChan) error {
-	err := sta.IO.Messenger.Subscribe(subjects.SessionSecret, stop, func(natsMsg nats.Msg) {
+func (sta APIState) ListenForSessionSecret(stop ListenStopChan) error {
+	err := sta.IO.Messenger.Subscribe(string(subjects.SessionSecret), stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		encodedData, err := json.Marshal(sessionSecretData{sta.SessionSecret.String()})

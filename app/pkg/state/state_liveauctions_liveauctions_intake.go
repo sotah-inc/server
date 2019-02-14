@@ -8,11 +8,10 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/database"
 	"github.com/sotah-inc/server/app/pkg/logging"
-	"github.com/sotah-inc/server/app/pkg/messenger"
-	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/metric/kinds"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
 func newLiveAuctionsIntakeRequest(data []byte) (liveAuctionsIntakeRequest, error) {
@@ -162,7 +161,7 @@ func (iRequest liveAuctionsIntakeRequest) handle(sta LiveAuctionsState) {
 			return err
 		}
 
-		return sta.IO.Messenger.Publish(subjects.PricelistHistoriesIntake, encodedRequest)
+		return sta.IO.Messenger.Publish(string(subjects.PricelistHistoriesIntake), encodedRequest)
 	}()
 	if err != nil {
 		logging.WithField("error", err.Error()).Error("Failed to publish pricelist-histories-intake-request")
@@ -187,11 +186,11 @@ func (iRequest liveAuctionsIntakeRequest) handle(sta LiveAuctionsState) {
 	return
 }
 
-func (sta LiveAuctionsState) ListenForLiveAuctionsIntake(stop messenger.ListenStopChan) error {
+func (sta LiveAuctionsState) ListenForLiveAuctionsIntake(stop ListenStopChan) error {
 	in := make(chan liveAuctionsIntakeRequest, 30)
 
 	// starting up a listener for live-auctions-intake
-	err := sta.IO.Messenger.Subscribe(subjects.LiveAuctionsIntake, stop, func(natsMsg nats.Msg) {
+	err := sta.IO.Messenger.Subscribe(string(subjects.LiveAuctionsIntake), stop, func(natsMsg nats.Msg) {
 		// resolving the request
 		iRequest, err := newLiveAuctionsIntakeRequest(natsMsg.Data)
 		if err != nil {

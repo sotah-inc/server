@@ -8,8 +8,8 @@ import (
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
-	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
@@ -49,8 +49,8 @@ func (iResponse itemsResponse) encodeForMessage() (string, error) {
 	return base64.StdEncoding.EncodeToString(gzippedResult), nil
 }
 
-func (sta APIState) ListenForItems(stop messenger.ListenStopChan) error {
-	err := sta.IO.Messenger.Subscribe(subjects.Items, stop, func(natsMsg nats.Msg) {
+func (sta APIState) ListenForItems(stop ListenStopChan) error {
+	err := sta.IO.Messenger.Subscribe(string(subjects.Items), stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		// resolving the request

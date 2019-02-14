@@ -8,11 +8,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/nats-io/go-nats"
+	nats "github.com/nats-io/go-nats"
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
-	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 )
 
 type Messenger struct {
@@ -75,12 +74,10 @@ func NewMessenger(host string, port int) (Messenger, error) {
 	return mess, nil
 }
 
-type ListenStopChan chan interface{}
-
-func (mess Messenger) Subscribe(subject subjects.Subject, stop ListenStopChan, cb func(nats.Msg)) error {
+func (mess Messenger) Subscribe(subject string, stop chan interface{}, cb func(nats.Msg)) error {
 	logging.WithField("subject", subject).Debug("Subscribing to subject")
 
-	sub, err := mess.conn.Subscribe(string(subject), func(natsMsg *nats.Msg) {
+	sub, err := mess.conn.Subscribe(subject, func(natsMsg *nats.Msg) {
 		logging.WithField("subject", subject).Debug("Received Request")
 
 		cb(*natsMsg)
@@ -144,8 +141,8 @@ func (mess Messenger) ReplyTo(natsMsg nats.Msg, m Message) error {
 	return nil
 }
 
-func (mess Messenger) Request(subject subjects.Subject, data []byte) (Message, error) {
-	natsMsg, err := mess.conn.Request(string(subject), data, 5*time.Second)
+func (mess Messenger) Request(subject string, data []byte) (Message, error) {
+	natsMsg, err := mess.conn.Request(subject, data, 5*time.Second)
 	if err != nil {
 		return Message{}, err
 	}
@@ -159,6 +156,6 @@ func (mess Messenger) Request(subject subjects.Subject, data []byte) (Message, e
 	return *msg, nil
 }
 
-func (mess Messenger) Publish(subject subjects.Subject, data []byte) error {
-	return mess.conn.Publish(string(subject), data)
+func (mess Messenger) Publish(subject string, data []byte) error {
+	return mess.conn.Publish(subject, data)
 }

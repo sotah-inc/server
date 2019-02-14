@@ -9,8 +9,8 @@ import (
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
-	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
 func newOwnersRequest(payload []byte) (OwnersRequest, error) {
@@ -48,8 +48,8 @@ func (request OwnersRequest) resolve(sta LiveAuctionsState) (sotah.MiniAuctionLi
 	return maList, nil
 }
 
-func (sta LiveAuctionsState) ListenForOwners(stop messenger.ListenStopChan) error {
-	err := sta.IO.Messenger.Subscribe(subjects.Owners, stop, func(natsMsg nats.Msg) {
+func (sta LiveAuctionsState) ListenForOwners(stop ListenStopChan) error {
+	err := sta.IO.Messenger.Subscribe(string(subjects.Owners), stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		// resolving the request

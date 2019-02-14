@@ -8,11 +8,10 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/database"
 	"github.com/sotah-inc/server/app/pkg/logging"
-	"github.com/sotah-inc/server/app/pkg/messenger"
-	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/metric/kinds"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
 func newPricelistHistoriesIntakeRequest(data []byte) (pricelistHistoriesIntakeRequest, error) {
@@ -132,11 +131,11 @@ func (pRequest pricelistHistoriesIntakeRequest) handle(sta PricelistHistoriesSta
 	return
 }
 
-func (sta PricelistHistoriesState) ListenForPricelistHistoriesIntake(stop messenger.ListenStopChan) error {
+func (sta PricelistHistoriesState) ListenForPricelistHistoriesIntake(stop ListenStopChan) error {
 	in := make(chan pricelistHistoriesIntakeRequest, 30)
 
 	// starting up a listener for pricelist-histories-intake
-	err := sta.IO.Messenger.Subscribe(subjects.PricelistHistoriesIntake, stop, func(natsMsg nats.Msg) {
+	err := sta.IO.Messenger.Subscribe(string(subjects.PricelistHistoriesIntake), stop, func(natsMsg nats.Msg) {
 		// resolving the request
 		pRequest, err := newPricelistHistoriesIntakeRequest(natsMsg.Data)
 		if err != nil {

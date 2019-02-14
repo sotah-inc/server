@@ -13,7 +13,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
-	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
@@ -92,8 +92,8 @@ func (plhRequest priceListHistoryRequest) resolve(sta PricelistHistoriesState) (
 	return *rea, phdShards, reErr
 }
 
-func (sta PricelistHistoriesState) ListenForPriceListHistory(stop messenger.ListenStopChan) error {
-	err := sta.IO.Messenger.Subscribe(subjects.PriceListHistory, stop, func(natsMsg nats.Msg) {
+func (sta PricelistHistoriesState) ListenForPriceListHistory(stop ListenStopChan) error {
+	err := sta.IO.Messenger.Subscribe(string(subjects.PriceListHistory), stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		// resolving the request

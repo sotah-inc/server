@@ -6,9 +6,10 @@ import (
 
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/messenger"
-	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/pkg/metric/kinds"
 )
+
+const appMetricSubject = "appMetrics"
 
 func NewReporter(mess messenger.Messenger) Reporter {
 	return Reporter{mess}
@@ -28,7 +29,7 @@ func (re Reporter) Report(m Metrics) {
 		return
 	}
 
-	if err := re.Messenger.Publish(subjects.AppMetrics, data); err != nil {
+	if err := re.Messenger.Publish(appMetricSubject, data); err != nil {
 		logging.WithField("error", err.Error()).Error("Failed to publish to app-metrics subject")
 
 		return

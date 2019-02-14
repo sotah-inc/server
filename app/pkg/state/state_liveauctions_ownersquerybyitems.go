@@ -7,8 +7,8 @@ import (
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
-	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
 type ownerItemsOwnership struct {
@@ -57,8 +57,8 @@ func (request ownersQueryRequestByItems) resolve(sta LiveAuctionsState) (sotah.M
 	return maList, requestError{codes.Ok, ""}
 }
 
-func (sta LiveAuctionsState) ListenForOwnersQueryByItems(stop messenger.ListenStopChan) error {
-	err := sta.IO.Messenger.Subscribe(subjects.OwnersQueryByItems, stop, func(natsMsg nats.Msg) {
+func (sta LiveAuctionsState) ListenForOwnersQueryByItems(stop ListenStopChan) error {
+	err := sta.IO.Messenger.Subscribe(string(subjects.OwnersQueryByItems), stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		// resolving the request

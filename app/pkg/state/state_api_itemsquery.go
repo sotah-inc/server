@@ -8,8 +8,8 @@ import (
 	nats "github.com/nats-io/go-nats"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
-	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
 type itemsQueryItem struct {
@@ -94,8 +94,8 @@ func (request itemsQueryRequest) resolve(sta APIState) (itemsQueryResult, error)
 	return iqResult, nil
 }
 
-func (sta APIState) ListenForItemsQuery(stop messenger.ListenStopChan) error {
-	err := sta.IO.Messenger.Subscribe(subjects.ItemsQuery, stop, func(natsMsg nats.Msg) {
+func (sta APIState) ListenForItemsQuery(stop ListenStopChan) error {
+	err := sta.IO.Messenger.Subscribe(string(subjects.ItemsQuery), stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		// resolving the request

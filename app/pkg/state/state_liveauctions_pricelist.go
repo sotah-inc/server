@@ -8,8 +8,8 @@ import (
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
-	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
@@ -66,8 +66,8 @@ func (plResponse priceListResponse) encodeForMessage() (string, error) {
 	return base64.StdEncoding.EncodeToString(gzipEncodedMessage), nil
 }
 
-func (sta LiveAuctionsState) ListenForPriceList(stop messenger.ListenStopChan) error {
-	err := sta.IO.Messenger.Subscribe(subjects.PriceList, stop, func(natsMsg nats.Msg) {
+func (sta LiveAuctionsState) ListenForPriceList(stop ListenStopChan) error {
+	err := sta.IO.Messenger.Subscribe(string(subjects.PriceList), stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		// resolving the request

@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/nats-io/go-nats"
+	nats "github.com/nats-io/go-nats"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
-	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
 func newStatusRequest(payload []byte) (StatusRequest, error) {
@@ -44,8 +44,8 @@ func (sr StatusRequest) resolve(sta APIState) (sotah.Region, error) {
 	return reg, nil
 }
 
-func (sta APIState) ListenForStatus(stop messenger.ListenStopChan) error {
-	err := sta.IO.Messenger.Subscribe(subjects.Status, stop, func(natsMsg nats.Msg) {
+func (sta APIState) ListenForStatus(stop ListenStopChan) error {
+	err := sta.IO.Messenger.Subscribe(string(subjects.Status), stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		sr, err := newStatusRequest(natsMsg.Data)
@@ -101,7 +101,7 @@ func (sta State) NewStatus(reg sotah.Region) (sotah.Status, error) {
 		return sotah.Status{}, err
 	}
 
-	msg, err := sta.IO.Messenger.Request(subjects.Status, encodedMessage)
+	msg, err := sta.IO.Messenger.Request(string(subjects.Status), encodedMessage)
 	if err != nil {
 		return sotah.Status{}, err
 	}

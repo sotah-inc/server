@@ -10,10 +10,10 @@ import (
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
-	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
 	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/resolver"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
 	"github.com/twinj/uuid"
 )
@@ -42,19 +42,21 @@ type IO struct {
 }
 
 // listener functionality
+type ListenStopChan chan interface{}
+
 type listener struct {
 	call     listenFunc
-	stopChan messenger.ListenStopChan
+	stopChan ListenStopChan
 }
 
-type listenFunc func(stop messenger.ListenStopChan) error
+type listenFunc func(stop ListenStopChan) error
 
 type SubjectListeners map[subjects.Subject]listenFunc
 
 func NewListeners(sListeners SubjectListeners) Listeners {
 	ls := Listeners{}
 	for subj, l := range sListeners {
-		ls[subj] = listener{l, make(messenger.ListenStopChan)}
+		ls[subj] = listener{l, make(ListenStopChan)}
 	}
 
 	return ls

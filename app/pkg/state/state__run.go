@@ -7,11 +7,11 @@ import (
 	nats "github.com/nats-io/go-nats"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
-	"github.com/sotah-inc/server/app/pkg/messenger/subjects"
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
 func newRuntimeInfoDataFromMessenger(mess messenger.Messenger) (runtimeInfoData, error) {
-	msg, err := mess.Request(subjects.RuntimeInfo, []byte{})
+	msg, err := mess.Request(string(subjects.RuntimeInfo), []byte{})
 	if err != nil {
 		return runtimeInfoData{}, err
 	}
@@ -36,8 +36,8 @@ type runtimeInfoData struct {
 	runID string `json:"run_id"`
 }
 
-func (sta State) ListenForRuntimeInfo(stop messenger.ListenStopChan) error {
-	err := sta.IO.Messenger.Subscribe(subjects.RuntimeInfo, stop, func(natsMsg nats.Msg) {
+func (sta State) ListenForRuntimeInfo(stop ListenStopChan) error {
+	err := sta.IO.Messenger.Subscribe(string(subjects.RuntimeInfo), stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		out := runtimeInfoData{
@@ -63,8 +63,8 @@ func (sta State) ListenForRuntimeInfo(stop messenger.ListenStopChan) error {
 	return nil
 }
 
-func (sta State) ListenForGenericTestErrors(stop messenger.ListenStopChan) error {
-	err := sta.IO.Messenger.Subscribe(subjects.GenericTestErrors, stop, func(natsMsg nats.Msg) {
+func (sta State) ListenForGenericTestErrors(stop ListenStopChan) error {
+	err := sta.IO.Messenger.Subscribe(string(subjects.GenericTestErrors), stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 		m.Err = "Test error"
 		m.Code = codes.GenericError
