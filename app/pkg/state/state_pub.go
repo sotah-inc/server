@@ -20,7 +20,7 @@ type PubStateConfig struct {
 
 func NewPubState(config PubStateConfig) (PubState, error) {
 	// establishing an initial state
-	tState := PubState{
+	pubState := PubState{
 		State: NewState(uuid.NewV4(), true),
 	}
 
@@ -30,29 +30,29 @@ func NewPubState(config PubStateConfig) (PubState, error) {
 	if err != nil {
 		return PubState{}, err
 	}
-	tState.IO.Messenger = mess
+	pubState.IO.Messenger = mess
 
 	// establishing a bus
 	bu, err := bus.NewBus(config.GCloudProjectID, "pub")
-	tState.IO.Bus = bu
+	pubState.IO.Bus = bu
 
 	// initializing a reporter
-	tState.IO.Reporter = metric.NewReporter(mess)
+	pubState.IO.Reporter = metric.NewReporter(mess)
 
 	// gathering regions
 	logging.Info("Gathering regions")
-	regions, err := tState.NewRegions()
+	regions, err := pubState.NewRegions()
 	if err != nil {
 		return PubState{}, err
 	}
-	tState.Regions = regions
+	pubState.Regions = regions
 
 	// establishing listeners
-	tState.Listeners = NewListeners(SubjectListeners{
-		subjects.Boot: tState.ListenForBoot,
+	pubState.Listeners = NewListeners(SubjectListeners{
+		subjects.Boot: pubState.ListenForBoot,
 	})
 
-	return tState, nil
+	return pubState, nil
 }
 
 type PubState struct {

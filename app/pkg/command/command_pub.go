@@ -12,13 +12,13 @@ func Pub(config state.PubStateConfig) error {
 	logging.Info("Starting pub")
 
 	// establishing a state
-	laState, err := state.NewPubState(config)
+	pubState, err := state.NewPubState(config)
 	if err != nil {
 		return err
 	}
 
 	// opening all listeners
-	if err := laState.Listeners.Listen(); err != nil {
+	if err := pubState.Listeners.Listen(); err != nil {
 		return err
 	}
 
@@ -31,7 +31,7 @@ func Pub(config state.PubStateConfig) error {
 	logging.Info("Caught SIGINT, exiting")
 
 	// stopping listeners
-	laState.Listeners.Stop()
+	pubState.Listeners.Stop()
 
 	logging.Info("Exiting")
 	return nil
