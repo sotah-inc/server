@@ -2,4 +2,7 @@ module github.com/sotah-inc/server/app/fn/test
 
 replace github.com/sotah-inc/server/app/pkg/blizzard => ../../pkg/blizzard
 
-require github.com/sotah-inc/server/app v0.0.0-20190214022308-0dd70993431c
+require (
+	cloud.google.com/go v0.35.1
+	github.com/sotah-inc/server/app v0.0.0-20190214022842-a03dcb87c02b
+)
