@@ -99,6 +99,8 @@ github.com/sirupsen/logrus v1.3.0 h1:hI/7Q+DtNZ2kINb6qt/lS+IyXnHQe9e90POfeewL/ME
 github.com/sirupsen/logrus v1.3.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
 github.com/sotah-inc/server/app v0.0.0-20190214020241-c592c979837c h1:nlHHEzGbQ3TRZL8fpEumPeXbq/ujEeEqpv52FUUa0gc=
 github.com/sotah-inc/server/app v0.0.0-20190214020241-c592c979837c/go.mod h1:bzmmfaItVp52fqGJ0CE7Ql5yry5H8TQ/hrGWE3tiqJ0=
+github.com/sotah-inc/server/app v0.0.0-20190214022308-0dd70993431c h1:cBpD0ESSx5eUy/qnlOVFdtHNErxyn5BqO21rZuGc3HA=
+github.com/sotah-inc/server/app v0.0.0-20190214022308-0dd70993431c/go.mod h1:bzmmfaItVp52fqGJ0CE7Ql5yry5H8TQ/hrGWE3tiqJ0=
 github.com/sourcegraph/annotate v0.0.0-20160123013949-f4cad6c6324d/go.mod h1:UdhH50NIW0fCiwBSr0co2m7BnFLdv4fQTgdqdJTHFeE=
 github.com/sourcegraph/syntaxhighlight v0.0.0-20170531221838-bd320f5d308e/go.mod h1:HuIsMU8RRBOtsCgI77wP899iHVBQpCmg4ErYMZB+2IA=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=

@@ -60,7 +60,7 @@ func (b Bus) resolveSubscription(topic *pubsub.Topic, subscriberName string) (*p
 }
 
 func (b Bus) Subscribe(topicName string, stop chan interface{}, cb func(pubsub.Message)) error {
-	topic, err := b.resolveTopic(topicName)
+	topic, err := b.ResolveTopic(topicName)
 	if err != nil {
 		return err
 	}

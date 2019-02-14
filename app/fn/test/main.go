@@ -6,8 +6,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"cloud.google.com/go/pubsub"
 	"github.com/sotah-inc/server/app/pkg/bus"
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
 var projectId = os.Getenv("GCP_PROJECT")
@@ -24,5 +25,19 @@ func init() {
 }
 
 func HelloHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, fmt.Sprintf("Hello, %s!", blizzard.DefaultGetItemIconURL("wew")))
+	topic, err := bu.ResolveTopic(string(subjects.Boot))
+	if err != nil {
+		http.Error(w, "Error getting topic", http.StatusInternalServerError)
+
+		return
+	}
+
+	id, err := topic.Publish(r.Context(), &pubsub.Message{Data: []byte("wew")}).Get(r.Context())
+	if err != nil {
+		http.Error(w, "Error publishing to topic", http.StatusInternalServerError)
+
+		return
+	}
+
+	fmt.Fprintf(w, "Published msg: %v", id)
 }
