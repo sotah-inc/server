@@ -59,13 +59,13 @@ type PubState struct {
 	State
 }
 
-func (tState PubState) ListenForBoot(stop ListenStopChan) error {
-	err := tState.IO.Bus.SubscribeToTopic(string(subjects.Boot), stop, func(busMsg bus.Message) {
+func (pubState PubState) ListenForBoot(stop ListenStopChan) error {
+	err := pubState.IO.Bus.SubscribeToTopic(string(subjects.Boot), stop, func(busMsg bus.Message) {
 		logging.WithField("subject", subjects.Boot).Info("Received message")
 
 		msg := bus.NewMessage()
 		msg.Data = fmt.Sprintf("Hello, %s!", busMsg.Data)
-		if _, err := tState.IO.Bus.ReplyTo(busMsg, msg); err != nil {
+		if _, err := pubState.IO.Bus.ReplyTo(busMsg, msg); err != nil {
 			logging.WithField("error", err.Error()).Error("Failed to reply to response message")
 
 			return
