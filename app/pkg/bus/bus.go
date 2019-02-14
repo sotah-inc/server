@@ -31,7 +31,7 @@ type Bus struct {
 	subscriberId string
 }
 
-func (b Bus) resolveTopic(topicName string) (*pubsub.Topic, error) {
+func (b Bus) ResolveTopic(topicName string) (*pubsub.Topic, error) {
 	topic := b.client.Topic(topicName)
 	exists, err := topic.Exists(b.context)
 	if err != nil {
