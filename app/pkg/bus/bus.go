@@ -45,6 +45,20 @@ func (b Bus) resolveTopic(topicName string) (*pubsub.Topic, error) {
 	return b.client.CreateTopic(b.context, topicName)
 }
 
+func (b Bus) resolveSubscription(topic *pubsub.Topic, subscriberName string) (*pubsub.Subscription, error) {
+	subscription := b.client.Subscription(subscriberName)
+	exists, err := subscription.Exists(b.context)
+	if err != nil {
+		return nil, err
+	}
+
+	if exists {
+		return subscription, nil
+	}
+
+	return b.client.CreateSubscription(b.context, subscriberName, pubsub.SubscriptionConfig{Topic: topic})
+}
+
 func (b Bus) Subscribe(topicName string, stop chan interface{}, cb func(pubsub.Message)) error {
 	topic, err := b.resolveTopic(topicName)
 	if err != nil {

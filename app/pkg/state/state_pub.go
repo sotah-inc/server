@@ -32,7 +32,7 @@ func NewPubState(config PubStateConfig) (PubState, error) {
 	tState.IO.Messenger = mess
 
 	// establishing a bus
-	bu, err := bus.NewBus(config.GCloudProjectID, tState.RunID.String())
+	bu, err := bus.NewBus(config.GCloudProjectID, "pub")
 	tState.IO.Bus = bu
 
 	// initializing a reporter
