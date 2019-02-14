@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"cloud.google.com/go/pubsub"
+	"github.com/sirupsen/logrus"
+	"github.com/sotah-inc/server/app/pkg/logging"
 )
 
 func NewBus(projectID string) (Bus, error) {
@@ -28,6 +30,13 @@ type Bus struct {
 
 func (b Bus) Subscribe(subscriberName string, topicName string, stop chan interface{}, cb func(pubsub.Message)) error {
 	topic := b.client.Topic(topicName)
+
+	entry := logging.WithFields(logrus.Fields{
+		"subscriber-name": subscriberName,
+		"topic":           topicName,
+	})
+
+	entry.Info("Subscribing to topic")
 	sub, err := b.client.CreateSubscription(b.context, subscriberName, pubsub.SubscriptionConfig{Topic: topic})
 	if err != nil {
 		return err
@@ -37,10 +46,15 @@ func (b Bus) Subscribe(subscriberName string, topicName string, stop chan interf
 	go func() {
 		<-stop
 
+		entry.Info("Received stop signal, cancelling subscription")
+
 		cancel()
+
+		entry.Info("Stopping topic")
 		topic.Stop()
 	}()
 
+	entry.Info("Waiting for messages")
 	err = sub.Receive(cctx, func(ctx context.Context, msg *pubsub.Message) {
 		msg.Ack()
 
