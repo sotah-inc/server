@@ -97,6 +97,7 @@ github.com/sotah-inc/server v0.0.0-20190215155701-69d1221146ae h1:P9Wwsgr9YdGWhC
 github.com/sotah-inc/server v0.0.0-20190215161616-73a2e81dcc29 h1:ofbQbeaO+6wy+lCMoYE34ivQFoAeSyxMYCQ9zFU52rs=
 github.com/sotah-inc/server v0.0.0-20190215162848-1403d35b4b23 h1:HyeVEptUcpOrIM4se6uIX1+5Nuxd+OiFPLTYqxjUNsA=
 github.com/sotah-inc/server v0.0.0-20190215171147-80879bdc9af8 h1:/niRSqqfqCgxBdnlvkGC3atFd6fEOv/KctNZ4TId/4I=
+github.com/sotah-inc/server v0.0.0-20190215171926-5c25a0384932 h1:zcQj6q0dv+yPi2QPOq47ndXws4a10PupjAARk163ZaA=
 github.com/sotah-inc/server/app v0.0.0-20190215012957-b37c656be41c h1:nlrZTuPLoQQ9FbyUKC5tYrWAIuE1cOjCVJCkdd5fPbw=
 github.com/sotah-inc/server/app v0.0.0-20190215012957-b37c656be41c/go.mod h1:bzmmfaItVp52fqGJ0CE7Ql5yry5H8TQ/hrGWE3tiqJ0=
 github.com/sotah-inc/server/app v0.0.0-20190215014008-1a81e7755abf h1:oCf/wyXgRhkO3chCLs5vb5gqaJmY1dJZP+OGDhe/w5E=
@@ -109,6 +110,8 @@ github.com/sotah-inc/server/app v0.0.0-20190215162848-1403d35b4b23 h1:kWl5kTPW8R
 github.com/sotah-inc/server/app v0.0.0-20190215162848-1403d35b4b23/go.mod h1:bzmmfaItVp52fqGJ0CE7Ql5yry5H8TQ/hrGWE3tiqJ0=
 github.com/sotah-inc/server/app v0.0.0-20190215171147-80879bdc9af8 h1:pLmngQhhYWXoIjJ1CXS84OPJPj9n7Xw6eaI58zfH5wg=
 github.com/sotah-inc/server/app v0.0.0-20190215171147-80879bdc9af8/go.mod h1:bzmmfaItVp52fqGJ0CE7Ql5yry5H8TQ/hrGWE3tiqJ0=
+github.com/sotah-inc/server/app v0.0.0-20190215171926-5c25a0384932 h1:FKO1K/aTdTGBoEaGx5Uqq86AQRnpDsMKeexVjI+tmd4=
+github.com/sotah-inc/server/app v0.0.0-20190215171926-5c25a0384932/go.mod h1:bzmmfaItVp52fqGJ0CE7Ql5yry5H8TQ/hrGWE3tiqJ0=
 github.com/sourcegraph/annotate v0.0.0-20160123013949-f4cad6c6324d/go.mod h1:UdhH50NIW0fCiwBSr0co2m7BnFLdv4fQTgdqdJTHFeE=
 github.com/sourcegraph/syntaxhighlight v0.0.0-20170531221838-bd320f5d308e/go.mod h1:HuIsMU8RRBOtsCgI77wP899iHVBQpCmg4ErYMZB+2IA=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
