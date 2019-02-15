@@ -331,7 +331,7 @@ func (c Client) Request(recipientTopic *pubsub.Topic, payload string, timeout ti
 		}
 	}()
 
-	// publishing the payload to the reply-to topic
+	// publishing the payload to the recipient topic
 	msg := NewMessage()
 	msg.Data = payload
 	msg.ReplyTo = replyToTopic.ID()
