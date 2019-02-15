@@ -159,6 +159,8 @@ func (c Client) ReplyTo(target Message, payload Message) (string, error) {
 		return "", errors.New("cannot reply to blank reply-to topic name")
 	}
 
+	logging.WithField("reply-to-topic", target.ReplyTo).Info("Replying to topic")
+
 	return c.PublishToTopic(target.ReplyTo, payload)
 }
 
