@@ -13,11 +13,11 @@ import (
 )
 
 var projectId = os.Getenv("GCP_PROJECT")
-var bu bus.Bus
+var busClient bus.Client
 
 func init() {
 	var err error
-	bu, err = bus.NewBus(projectId, "fn-test")
+	busClient, err = bus.NewClient(projectId, "fn-test")
 	if err != nil {
 		log.Fatalf("Failed to create new bus: %s", err.Error())
 
@@ -26,7 +26,7 @@ func init() {
 }
 
 func HelloHTTP(w http.ResponseWriter, r *http.Request) {
-	msg, err := bu.RequestFromTopic(string(subjects.Boot), "world", 5*time.Second)
+	msg, err := busClient.RequestFromTopic(string(subjects.Boot), "world", 5*time.Second)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error sending boot request: %s", err.Error()), http.StatusInternalServerError)
 
