@@ -103,7 +103,7 @@ func (c Client) SubscribeToTopic(topicName string, stop chan interface{}, cb fun
 }
 
 func (c Client) Subscribe(topic *pubsub.Topic, stop chan interface{}, cb func(Message)) error {
-	subscriberName := fmt.Sprintf("subscriber-%s-%s-%s", b.subscriberId, topic.ID(), uuid.NewV4().String())
+	subscriberName := fmt.Sprintf("subscriber-%s-%s-%s", c.subscriberId, topic.ID(), uuid.NewV4().String())
 
 	entry := logging.WithFields(logrus.Fields{
 		"subscriber-name": subscriberName,
