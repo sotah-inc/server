@@ -207,16 +207,9 @@ func (c Client) Request(recipientTopic *pubsub.Topic, payload string, timeout ti
 		return Message{}, err
 	}
 
-	entry := logging.WithFields(logrus.Fields{
-		"recipient-topic":       recipientTopic.ID(),
-		"reply-to-topic":        replyToTopic.ID(),
-		"reply-to-subscription": replyToSub.ID(),
-	})
-
 	cctx, cancel := context.WithCancel(c.context)
 
 	// spawning a worker to wait for a response on the reply-to topic
-	entry.Info("Spawning worker to wait for response on reply-to topic")
 	out := make(chan requestJob)
 	go func() {
 		// spawning a receiver worker to receive the results and push them out
@@ -224,22 +217,18 @@ func (c Client) Request(recipientTopic *pubsub.Topic, payload string, timeout ti
 		go func() {
 			select {
 			case result := <-receiver:
-				entry.Info("Received reply message on receiver, closing receiver, cancelling subscription, stopping topic")
 				close(receiver)
 				cancel()
 				replyToTopic.Stop()
 
-				entry.Info("Received reply message on receiver, sending to out channel")
 				out <- result
 
 				return
 			case <-time.After(timeout):
-				entry.Info("Timed out receiving message, closing receiver, cancelling subscription, stopping topic")
 				close(receiver)
 				cancel()
 				replyToTopic.Stop()
 
-				entry.Info("Time out receiving message, sending to out channel")
 				out <- requestJob{
 					Err:     errors.New("timed out"),
 					Payload: Message{},
@@ -276,7 +265,6 @@ func (c Client) Request(recipientTopic *pubsub.Topic, payload string, timeout ti
 			return
 		}
 		if err != nil {
-			entry.WithField("error", err.Error()).Error("Failed to subscribe to reply-to topic, performing cleanup and sending error out")
 			close(receiver)
 			cancel()
 			replyToTopic.Stop()
@@ -301,7 +289,6 @@ func (c Client) Request(recipientTopic *pubsub.Topic, payload string, timeout ti
 		return Message{}, err
 	}
 
-	entry.Info("Sending message to recipient topic")
 	if _, err := recipientTopic.Publish(c.context, &pubsub.Message{Data: jsonEncodedMessage}).Get(c.context); err != nil {
 		close(out)
 
@@ -309,19 +296,13 @@ func (c Client) Request(recipientTopic *pubsub.Topic, payload string, timeout ti
 	}
 
 	// waiting for a result to come out
-	entry.Info("Waiting for result to come out of reply-to topic")
 	requestResult := <-out
 
-	entry.Info("Received response in reply-to topic, closing out channel")
 	close(out)
 
 	if requestResult.Err != nil {
-		entry.WithField("error", requestResult.Err.Error()).Error("Received error on out channel")
-
 		return Message{}, requestResult.Err
 	}
-
-	entry.Info("Successfully received response on reply-to topic")
 
 	return requestResult.Payload, nil
 }
