@@ -318,9 +318,6 @@ func (c Client) Request(recipientTopic *pubsub.Topic, payload string, timeout ti
 				return
 			}
 
-			return
-		}
-		if err != nil {
 			close(receiver)
 			cancel()
 			replyToTopic.Stop()
