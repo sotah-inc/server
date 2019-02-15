@@ -189,7 +189,7 @@ func (c Client) Request(recipientTopic *pubsub.Topic, payload string, timeout ti
 	})
 
 	// spawning a worker to wait for a response on the reply-to topic
-	entry.Debug("Spawning worker to wait for response on reply-to topic")
+	entry.Info("Spawning worker to wait for response on reply-to topic")
 	out := make(chan requestJob)
 	go func() {
 		stop := make(chan interface{})
@@ -199,33 +199,33 @@ func (c Client) Request(recipientTopic *pubsub.Topic, payload string, timeout ti
 		go func() {
 			select {
 			case result := <-receiver:
-				entry.Debug("Received reply message on receiver, closing receiver")
+				entry.Info("Received reply message on receiver, closing receiver")
 				close(receiver)
 
-				entry.Debug("Received reply message on receiver, sending to out channel")
+				entry.Info("Received reply message on receiver, sending to out channel")
 				out <- result
 
 				// sending a signal to close the subscriber
-				entry.Debug("Sending stop signal to reply-to subscription and channel")
+				entry.Info("Sending stop signal to reply-to subscription and channel")
 				stop <- struct{}{}
 			case <-time.After(timeout):
-				entry.Debug("Timed out receiving message, closing receiver")
+				entry.Info("Timed out receiving message, closing receiver")
 				close(receiver)
 
-				entry.Debug("Did not receive reply on reply-to topic within timeout period, sending timed out error to out channel")
+				entry.Info("Did not receive reply on reply-to topic within timeout period, sending timed out error to out channel")
 				out <- requestJob{
 					Err:     errors.New("timed out"),
 					Payload: Message{},
 				}
 
-				entry.Debug("Sending stop signal to reply-to subscription and channel")
+				entry.Info("Sending stop signal to reply-to subscription and channel")
 				stop <- struct{}{}
 			}
 		}()
 
 		// waiting for a message to come through
 		err := c.Subscribe(replyToTopic, stop, func(msg Message) {
-			entry.Debug("Received reply message on reply-to topic, forwarding to receiver")
+			entry.Info("Received reply message on reply-to topic, forwarding to receiver")
 
 			receiver <- requestJob{
 				Err:     nil,
@@ -256,7 +256,7 @@ func (c Client) Request(recipientTopic *pubsub.Topic, payload string, timeout ti
 		return Message{}, err
 	}
 
-	entry.Debug("Sending message to recipient topic")
+	entry.Info("Sending message to recipient topic")
 	if _, err := recipientTopic.Publish(c.context, &pubsub.Message{Data: jsonEncodedMessage}).Get(c.context); err != nil {
 		close(out)
 
@@ -264,10 +264,10 @@ func (c Client) Request(recipientTopic *pubsub.Topic, payload string, timeout ti
 	}
 
 	// waiting for a result to come out
-	entry.Debug("Waiting for result to come out of reply-to topic")
+	entry.Info("Waiting for result to come out of reply-to topic")
 	requestResult := <-out
 
-	entry.Debug("Received response in reply-to topic, closing out channel")
+	entry.Info("Received response in reply-to topic, closing out channel")
 	close(out)
 
 	if requestResult.Err != nil {
@@ -276,7 +276,7 @@ func (c Client) Request(recipientTopic *pubsub.Topic, payload string, timeout ti
 		return Message{}, requestResult.Err
 	}
 
-	entry.Debug("Successfully received response on reply-to topic")
+	entry.Info("Successfully received response on reply-to topic")
 
 	return requestResult.Payload, nil
 }
