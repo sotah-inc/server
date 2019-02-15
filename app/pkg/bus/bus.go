@@ -159,9 +159,19 @@ func (c Client) ReplyTo(target Message, payload Message) (string, error) {
 		return "", errors.New("cannot reply to blank reply-to topic name")
 	}
 
-	logging.WithField("reply-to-topic", target.ReplyTo).Info("Replying to topic")
+	// validating topic already exists
+	topic := c.client.Topic(target.ReplyTo)
+	exists, err := topic.Exists(c.context)
+	if err != nil {
+		return "", err
+	}
+	if !exists {
+		return "", errors.New("topic does not exist")
+	}
 
-	return c.PublishToTopic(target.ReplyTo, payload)
+	logging.WithField("reply-to-topic", topic.ID()).Info("Replying to topic")
+
+	return c.Publish(topic, payload)
 }
 
 func (c Client) RequestFromTopic(topicName string, payload string, timeout time.Duration) (Message, error) {
@@ -180,7 +190,7 @@ type requestJob struct {
 
 func (c Client) Request(recipientTopic *pubsub.Topic, payload string, timeout time.Duration) (Message, error) {
 	// producing a reply-to topic
-	replyToTopic, err := c.ResolveTopic(fmt.Sprintf("reply-to-%s", uuid.NewV4().String()))
+	replyToTopic, err := c.client.CreateTopic(c.context, fmt.Sprintf("reply-to-%s", uuid.NewV4().String()))
 	if err != nil {
 		return Message{}, err
 	}
@@ -193,7 +203,6 @@ func (c Client) Request(recipientTopic *pubsub.Topic, payload string, timeout ti
 	// spawning a worker to wait for a response on the reply-to topic
 	entry.Info("Spawning worker to wait for response on reply-to topic")
 	out := make(chan requestJob)
-	onReady := make(chan interface{})
 	go func() {
 		stop := make(chan interface{})
 
@@ -227,7 +236,6 @@ func (c Client) Request(recipientTopic *pubsub.Topic, payload string, timeout ti
 		}()
 
 		// waiting for a message to come through
-		onReady <- struct{}{}
 		err := c.Subscribe(replyToTopic, stop, func(msg Message) {
 			entry.Info("Received reply message on reply-to topic, forwarding to receiver")
 
@@ -260,8 +268,6 @@ func (c Client) Request(recipientTopic *pubsub.Topic, payload string, timeout ti
 		return Message{}, err
 	}
 
-	<-onReady
-	close(onReady)
 	entry.Info("Sending message to recipient topic")
 	if _, err := recipientTopic.Publish(c.context, &pubsub.Message{Data: jsonEncodedMessage}).Get(c.context); err != nil {
 		close(out)
