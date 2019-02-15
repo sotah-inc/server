@@ -218,13 +218,30 @@ func (c Client) Request(recipientTopic *pubsub.Topic, payload string, timeout ti
 			select {
 			case result := <-receiver:
 				close(receiver)
+
 				cancel()
+				if err := replyToSub.Delete(c.context); err != nil {
+					logging.WithFields(logrus.Fields{
+						"error":        err.Error(),
+						"subscription": replyToSub.ID(),
+					}).Error("Failed to delete reply-to subscription after receiving result")
+
+					out <- requestJob{
+						Err:     err,
+						Payload: Message{},
+					}
+
+					return
+				}
+
 				replyToTopic.Stop()
 				if err := replyToTopic.Delete(c.context); err != nil {
 					logging.WithFields(logrus.Fields{
 						"error": err.Error(),
 						"topic": replyToTopic.ID(),
 					}).Error("Failed to delete reply-to topic after receiving result")
+
+					return
 				}
 
 				out <- result
@@ -232,13 +249,35 @@ func (c Client) Request(recipientTopic *pubsub.Topic, payload string, timeout ti
 				return
 			case <-time.After(timeout):
 				close(receiver)
+
 				cancel()
+				if err := replyToSub.Delete(c.context); err != nil {
+					logging.WithFields(logrus.Fields{
+						"error":        err.Error(),
+						"subscription": replyToSub.ID(),
+					}).Error("Failed to delete reply-to subscription after timing out")
+
+					out <- requestJob{
+						Err:     err,
+						Payload: Message{},
+					}
+
+					return
+				}
+
 				replyToTopic.Stop()
 				if err := replyToTopic.Delete(c.context); err != nil {
 					logging.WithFields(logrus.Fields{
 						"error": err.Error(),
 						"topic": replyToTopic.ID(),
-					}).Error("Failed to delete reply-to topic after receiving result")
+					}).Error("Failed to delete reply-to topic after timing out")
+
+					out <- requestJob{
+						Err:     err,
+						Payload: Message{},
+					}
+
+					return
 				}
 
 				out <- requestJob{
