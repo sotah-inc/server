@@ -38,7 +38,7 @@ type IO struct {
 	Store     store.Store
 	DiskStore diskstore.DiskStore
 	Reporter  metric.Reporter
-	Bus       bus.Bus
+	BusClient bus.Client
 }
 
 // listener functionality

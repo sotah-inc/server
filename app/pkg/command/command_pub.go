@@ -25,7 +25,7 @@ func Pub(config state.PubStateConfig) error {
 	}
 
 	// sending a message
-	msg, err := pubState.IO.Bus.RequestFromTopic(string(subjects.Boot), "world", 5*time.Second)
+	msg, err := pubState.IO.BusClient.RequestFromTopic(string(subjects.Boot), "world", 5*time.Second)
 	if err != nil {
 		return err
 	}

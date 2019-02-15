@@ -25,14 +25,14 @@ type Message struct {
 	ReplyTo string     `json:"reply_to"`
 }
 
-func NewBus(projectID string, subscriberId string) (Bus, error) {
+func NewClient(projectID string, subscriberId string) (Client, error) {
 	ctx := context.Background()
 	client, err := pubsub.NewClient(ctx, projectID)
 	if err != nil {
-		return Bus{}, err
+		return Client{}, err
 	}
 
-	return Bus{
+	return Client{
 		client:       client,
 		context:      ctx,
 		projectId:    projectID,
@@ -40,16 +40,16 @@ func NewBus(projectID string, subscriberId string) (Bus, error) {
 	}, nil
 }
 
-type Bus struct {
+type Client struct {
 	context      context.Context
 	projectId    string
 	client       *pubsub.Client
 	subscriberId string
 }
 
-func (b Bus) ResolveTopic(topicName string) (*pubsub.Topic, error) {
-	topic := b.client.Topic(topicName)
-	exists, err := topic.Exists(b.context)
+func (c Client) ResolveTopic(topicName string) (*pubsub.Topic, error) {
+	topic := c.client.Topic(topicName)
+	exists, err := topic.Exists(c.context)
 	if err != nil {
 		return nil, err
 	}
@@ -58,12 +58,12 @@ func (b Bus) ResolveTopic(topicName string) (*pubsub.Topic, error) {
 		return topic, nil
 	}
 
-	return b.client.CreateTopic(b.context, topicName)
+	return c.client.CreateTopic(c.context, topicName)
 }
 
-func (b Bus) resolveSubscription(topic *pubsub.Topic, subscriberName string) (*pubsub.Subscription, error) {
-	subscription := b.client.Subscription(subscriberName)
-	exists, err := subscription.Exists(b.context)
+func (c Client) resolveSubscription(topic *pubsub.Topic, subscriberName string) (*pubsub.Subscription, error) {
+	subscription := c.client.Subscription(subscriberName)
+	exists, err := subscription.Exists(c.context)
 	if err != nil {
 		return nil, err
 	}
@@ -72,37 +72,37 @@ func (b Bus) resolveSubscription(topic *pubsub.Topic, subscriberName string) (*p
 		return subscription, nil
 	}
 
-	return b.client.CreateSubscription(b.context, subscriberName, pubsub.SubscriptionConfig{Topic: topic})
+	return c.client.CreateSubscription(c.context, subscriberName, pubsub.SubscriptionConfig{Topic: topic})
 }
 
-func (b Bus) PublishToTopic(topicName string, msg Message) (string, error) {
-	topic, err := b.ResolveTopic(topicName)
+func (c Client) PublishToTopic(topicName string, msg Message) (string, error) {
+	topic, err := c.ResolveTopic(topicName)
 	if err != nil {
 		return "", err
 	}
 
-	return b.Publish(topic, msg)
+	return c.Publish(topic, msg)
 }
 
-func (b Bus) Publish(topic *pubsub.Topic, msg Message) (string, error) {
+func (c Client) Publish(topic *pubsub.Topic, msg Message) (string, error) {
 	data, err := json.Marshal(msg)
 	if err != nil {
 		return "", err
 	}
 
-	return topic.Publish(b.context, &pubsub.Message{Data: data}).Get(b.context)
+	return topic.Publish(c.context, &pubsub.Message{Data: data}).Get(c.context)
 }
 
-func (b Bus) SubscribeToTopic(topicName string, stop chan interface{}, cb func(Message)) error {
-	topic, err := b.ResolveTopic(topicName)
+func (c Client) SubscribeToTopic(topicName string, stop chan interface{}, cb func(Message)) error {
+	topic, err := c.ResolveTopic(topicName)
 	if err != nil {
 		return err
 	}
 
-	return b.Subscribe(topic, stop, cb)
+	return c.Subscribe(topic, stop, cb)
 }
 
-func (b Bus) Subscribe(topic *pubsub.Topic, stop chan interface{}, cb func(Message)) error {
+func (c Client) Subscribe(topic *pubsub.Topic, stop chan interface{}, cb func(Message)) error {
 	subscriberName := fmt.Sprintf("subscriber-%s-%s-%s", b.subscriberId, topic.ID(), uuid.NewV4().String())
 
 	entry := logging.WithFields(logrus.Fields{
@@ -111,14 +111,14 @@ func (b Bus) Subscribe(topic *pubsub.Topic, stop chan interface{}, cb func(Messa
 	})
 
 	entry.Info("Subscribing to topic")
-	sub, err := b.client.CreateSubscription(b.context, subscriberName, pubsub.SubscriptionConfig{
+	sub, err := c.client.CreateSubscription(c.context, subscriberName, pubsub.SubscriptionConfig{
 		Topic: topic,
 	})
 	if err != nil {
 		return err
 	}
 
-	cctx, cancel := context.WithCancel(b.context)
+	cctx, cancel := context.WithCancel(c.context)
 	go func() {
 		<-stop
 
@@ -154,21 +154,21 @@ func (b Bus) Subscribe(topic *pubsub.Topic, stop chan interface{}, cb func(Messa
 	return nil
 }
 
-func (b Bus) ReplyTo(target Message, payload Message) (string, error) {
+func (c Client) ReplyTo(target Message, payload Message) (string, error) {
 	if target.ReplyTo == "" {
 		return "", errors.New("cannot reply to blank reply-to topic name")
 	}
 
-	return b.PublishToTopic(target.ReplyTo, payload)
+	return c.PublishToTopic(target.ReplyTo, payload)
 }
 
-func (b Bus) RequestFromTopic(topicName string, payload string, timeout time.Duration) (Message, error) {
-	topic, err := b.ResolveTopic(topicName)
+func (c Client) RequestFromTopic(topicName string, payload string, timeout time.Duration) (Message, error) {
+	topic, err := c.ResolveTopic(topicName)
 	if err != nil {
 		return Message{}, err
 	}
 
-	return b.Request(topic, payload, timeout)
+	return c.Request(topic, payload, timeout)
 }
 
 type requestJob struct {
@@ -176,9 +176,9 @@ type requestJob struct {
 	Payload Message
 }
 
-func (b Bus) Request(recipientTopic *pubsub.Topic, payload string, timeout time.Duration) (Message, error) {
+func (c Client) Request(recipientTopic *pubsub.Topic, payload string, timeout time.Duration) (Message, error) {
 	// producing a reply-to topic
-	replyToTopic, err := b.ResolveTopic(fmt.Sprintf("reply-to-%s", uuid.NewV4().String()))
+	replyToTopic, err := c.ResolveTopic(fmt.Sprintf("reply-to-%s", uuid.NewV4().String()))
 	if err != nil {
 		return Message{}, err
 	}
@@ -224,7 +224,7 @@ func (b Bus) Request(recipientTopic *pubsub.Topic, payload string, timeout time.
 		}()
 
 		// waiting for a message to come through
-		err := b.Subscribe(replyToTopic, stop, func(msg Message) {
+		err := c.Subscribe(replyToTopic, stop, func(msg Message) {
 			entry.Debug("Received reply message on reply-to topic, forwarding to receiver")
 
 			receiver <- requestJob{
@@ -257,7 +257,7 @@ func (b Bus) Request(recipientTopic *pubsub.Topic, payload string, timeout time.
 	}
 
 	entry.Debug("Sending message to recipient topic")
-	if _, err := recipientTopic.Publish(b.context, &pubsub.Message{Data: jsonEncodedMessage}).Get(b.context); err != nil {
+	if _, err := recipientTopic.Publish(c.context, &pubsub.Message{Data: jsonEncodedMessage}).Get(c.context); err != nil {
 		close(out)
 
 		return Message{}, err
