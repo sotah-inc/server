@@ -193,6 +193,7 @@ func (c Client) Request(recipientTopic *pubsub.Topic, payload string, timeout ti
 	// spawning a worker to wait for a response on the reply-to topic
 	entry.Info("Spawning worker to wait for response on reply-to topic")
 	out := make(chan requestJob)
+	onReady := make(chan interface{})
 	go func() {
 		stop := make(chan interface{})
 
@@ -226,6 +227,7 @@ func (c Client) Request(recipientTopic *pubsub.Topic, payload string, timeout ti
 		}()
 
 		// waiting for a message to come through
+		onReady <- struct{}{}
 		err := c.Subscribe(replyToTopic, stop, func(msg Message) {
 			entry.Info("Received reply message on reply-to topic, forwarding to receiver")
 
@@ -258,6 +260,8 @@ func (c Client) Request(recipientTopic *pubsub.Topic, payload string, timeout ti
 		return Message{}, err
 	}
 
+	<-onReady
+	close(onReady)
 	entry.Info("Sending message to recipient topic")
 	if _, err := recipientTopic.Publish(c.context, &pubsub.Message{Data: jsonEncodedMessage}).Get(c.context); err != nil {
 		close(out)
