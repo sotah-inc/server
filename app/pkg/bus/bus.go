@@ -102,8 +102,12 @@ func (c Client) SubscribeToTopic(topicName string, stop chan interface{}, cb fun
 	return c.Subscribe(topic, stop, cb)
 }
 
+func (c Client) SubscriberName(topic *pubsub.Topic) string {
+	return fmt.Sprintf("subscriber-%s-%s-%s", c.subscriberId, topic.ID(), uuid.NewV4().String())
+}
+
 func (c Client) Subscribe(topic *pubsub.Topic, stop chan interface{}, cb func(Message)) error {
-	subscriberName := fmt.Sprintf("subscriber-%s-%s-%s", c.subscriberId, topic.ID(), uuid.NewV4().String())
+	subscriberName := c.SubscriberName(topic)
 
 	entry := logging.WithFields(logrus.Fields{
 		"subscriber-name": subscriberName,
@@ -195,49 +199,69 @@ func (c Client) Request(recipientTopic *pubsub.Topic, payload string, timeout ti
 		return Message{}, err
 	}
 
-	entry := logging.WithFields(logrus.Fields{
-		"recipient-topic": recipientTopic.ID(),
-		"reply-to-topic":  replyToTopic.ID(),
+	// producing a reply-to subscription
+	replyToSub, err := c.client.CreateSubscription(c.context, c.SubscriberName(replyToTopic), pubsub.SubscriptionConfig{
+		Topic: replyToTopic,
 	})
+	if err != nil {
+		return Message{}, err
+	}
+
+	entry := logging.WithFields(logrus.Fields{
+		"recipient-topic":       recipientTopic.ID(),
+		"reply-to-topic":        replyToTopic.ID(),
+		"reply-to-subscription": replyToSub.ID(),
+	})
+
+	cctx, cancel := context.WithCancel(c.context)
 
 	// spawning a worker to wait for a response on the reply-to topic
 	entry.Info("Spawning worker to wait for response on reply-to topic")
 	out := make(chan requestJob)
 	go func() {
-		stop := make(chan interface{})
-
 		// spawning a receiver worker to receive the results and push them out
 		receiver := make(chan requestJob)
 		go func() {
 			select {
 			case result := <-receiver:
-				entry.Info("Received reply message on receiver, closing receiver")
+				entry.Info("Received reply message on receiver, closing receiver, cancelling subscription, stopping topic")
 				close(receiver)
+				cancel()
+				replyToTopic.Stop()
 
 				entry.Info("Received reply message on receiver, sending to out channel")
 				out <- result
 
-				// sending a signal to close the subscriber
-				entry.Info("Sending stop signal to reply-to subscription and channel")
-				stop <- struct{}{}
+				return
 			case <-time.After(timeout):
-				entry.Info("Timed out receiving message, closing receiver")
+				entry.Info("Timed out receiving message, closing receiver, cancelling subscription, stopping topic")
 				close(receiver)
+				cancel()
+				replyToTopic.Stop()
 
-				entry.Info("Did not receive reply on reply-to topic within timeout period, sending timed out error to out channel")
+				entry.Info("Time out receiving message, sending to out channel")
 				out <- requestJob{
 					Err:     errors.New("timed out"),
 					Payload: Message{},
 				}
 
-				entry.Info("Sending stop signal to reply-to subscription and channel")
-				stop <- struct{}{}
+				return
 			}
 		}()
 
 		// waiting for a message to come through
-		err := c.Subscribe(replyToTopic, stop, func(msg Message) {
-			entry.Info("Received reply message on reply-to topic, forwarding to receiver")
+		err = replyToSub.Receive(cctx, func(ctx context.Context, pubsubMsg *pubsub.Message) {
+			pubsubMsg.Ack()
+
+			var msg Message
+			if err := json.Unmarshal(pubsubMsg.Data, &msg); err != nil {
+				receiver <- requestJob{
+					Err:     err,
+					Payload: Message{},
+				}
+
+				return
+			}
 
 			receiver <- requestJob{
 				Err:     nil,
@@ -245,8 +269,17 @@ func (c Client) Request(recipientTopic *pubsub.Topic, payload string, timeout ti
 			}
 		})
 		if err != nil {
-			entry.WithField("error", err.Error()).Error("Failed to subscribe to reply-to topic, closing receiver")
+			if err == context.Canceled {
+				return
+			}
+
+			return
+		}
+		if err != nil {
+			entry.WithField("error", err.Error()).Error("Failed to subscribe to reply-to topic, performing cleanup and sending error out")
 			close(receiver)
+			cancel()
+			replyToTopic.Stop()
 
 			out <- requestJob{
 				Err:     err,
