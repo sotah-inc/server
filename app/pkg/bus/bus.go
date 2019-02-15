@@ -220,6 +220,12 @@ func (c Client) Request(recipientTopic *pubsub.Topic, payload string, timeout ti
 				close(receiver)
 				cancel()
 				replyToTopic.Stop()
+				if err := replyToTopic.Delete(c.context); err != nil {
+					logging.WithFields(logrus.Fields{
+						"error": err.Error(),
+						"topic": replyToTopic.ID(),
+					}).Error("Failed to delete reply-to topic after receiving result")
+				}
 
 				out <- result
 
@@ -228,6 +234,12 @@ func (c Client) Request(recipientTopic *pubsub.Topic, payload string, timeout ti
 				close(receiver)
 				cancel()
 				replyToTopic.Stop()
+				if err := replyToTopic.Delete(c.context); err != nil {
+					logging.WithFields(logrus.Fields{
+						"error": err.Error(),
+						"topic": replyToTopic.ID(),
+					}).Error("Failed to delete reply-to topic after receiving result")
+				}
 
 				out <- requestJob{
 					Err:     errors.New("timed out"),
