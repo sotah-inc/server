@@ -27,6 +27,12 @@ func NewStore(projectID string) (Store, error) {
 	}
 	s.itemIconsBucket = itemIconsBucket
 
+	testAuctionsBucket, err := s.resolveTestAuctionsBucket()
+	if err != nil {
+		return Store{}, err
+	}
+	s.testAuctionsBucket = testAuctionsBucket
+
 	return s, nil
 }
 
@@ -35,6 +41,7 @@ type Store struct {
 	projectID string
 	client    *storage.Client
 
-	itemsBucket     *storage.BucketHandle
-	itemIconsBucket *storage.BucketHandle
+	itemsBucket        *storage.BucketHandle
+	itemIconsBucket    *storage.BucketHandle
+	testAuctionsBucket *storage.BucketHandle
 }

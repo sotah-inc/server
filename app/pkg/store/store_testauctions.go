@@ -82,10 +82,7 @@ func (sto Store) testAuctionsObjectExists(bkt *storage.BucketHandle, rea sotah.R
 }
 
 func (sto Store) WriteTestAuctions(rea sotah.Realm, gzipEncodedBody []byte) error {
-	bkt, err := sto.resolveTestAuctionsBucket()
-	if err != nil {
-		return err
-	}
+	bkt := sto.testAuctionsBucket
 
 	logging.WithFields(logrus.Fields{
 		"region": rea.Region.Name,
@@ -228,7 +225,7 @@ func (sto Store) GetTestAuctionsFromRealms(realmMaps sotah.RegionRealmMap) chan 
 }
 
 func (sto Store) GetTestAuctions(realm sotah.Realm) (blizzard.Auctions, error) {
-	bkt := sto.GetTestAuctionsBucket()
+	bkt := sto.testAuctionsBucket
 
 	return sto.NewAuctions(sto.getTestAuctionsObject(bkt, realm))
 }
