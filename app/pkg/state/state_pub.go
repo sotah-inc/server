@@ -10,6 +10,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/resolver"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
+	"github.com/sotah-inc/server/app/pkg/store"
 	"github.com/twinj/uuid"
 )
 
@@ -70,8 +71,12 @@ func NewPubState(config PubStateConfig) (PubState, error) {
 	}
 	pubState.IO.Resolver = resolver.NewResolver(blizzardClient, pubState.IO.Reporter)
 
-	// establishing listeners
-	pubState.Listeners = NewListeners(SubjectListeners{})
+	// establishing a store
+	stor, err := store.NewStore(config.GCloudProjectID)
+	if err != nil {
+		return PubState{}, err
+	}
+	pubState.IO.Store = stor
 
 	return pubState, nil
 }
