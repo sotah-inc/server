@@ -117,9 +117,11 @@ func main() {
 		},
 		pubCommand.FullCommand(): func() error {
 			return command.Pub(state.PubStateConfig{
-				MessengerPort:   *natsPort,
-				MessengerHost:   *natsHost,
-				GCloudProjectID: *projectID,
+				GCloudProjectID:      *projectID,
+				MessengerPort:        *natsPort,
+				MessengerHost:        *natsHost,
+				BlizzardClientSecret: *clientSecret,
+				BlizzardClientId:     *clientID,
 			})
 		},
 	}
