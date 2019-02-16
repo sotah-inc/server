@@ -19,16 +19,13 @@ func Pub(config state.PubStateConfig) error {
 		return err
 	}
 
-	// opening all listeners
-	if err := pubState.Listeners.Listen(); err != nil {
-		return err
-	}
-
 	// starting channels for persisting auctions
+	logging.Info("Starting store LoadTestAuctions worker")
 	loadTestAuctionsIn := make(chan store.LoadAuctionsInJob)
 	loadTestAuctionsOut := pubState.IO.Store.LoadTestAuctions(loadTestAuctionsIn)
 
 	// gathering auctions
+	logging.Info("Spinning up worker goroutine for fetching auctions")
 	go func() {
 		for _, status := range pubState.Statuses {
 			getAuctionsForRealmsOut := pubState.IO.Resolver.GetAuctionsForRealms(status.Realms)
@@ -50,6 +47,7 @@ func Pub(config state.PubStateConfig) error {
 	}()
 
 	// waiting to the jobs to drain out
+	logging.Info("Waiting for store load test auctions to drain out")
 	for outJob := range loadTestAuctionsOut {
 		if outJob.Err != nil {
 			return err

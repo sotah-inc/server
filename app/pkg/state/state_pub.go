@@ -71,9 +71,7 @@ func NewPubState(config PubStateConfig) (PubState, error) {
 	pubState.IO.Resolver = resolver.NewResolver(blizzardClient, pubState.IO.Reporter)
 
 	// establishing listeners
-	pubState.Listeners = NewListeners(SubjectListeners{
-		subjects.Boot: pubState.ListenForBoot,
-	})
+	pubState.Listeners = NewListeners(SubjectListeners{})
 
 	return pubState, nil
 }
