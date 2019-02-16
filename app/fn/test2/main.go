@@ -15,7 +15,7 @@ var busClient bus.Client
 
 func init() {
 	var err error
-	busClient, err = bus.NewClient(projectId, "fn-test")
+	busClient, err = bus.NewClient(projectId, "fn-test2")
 	if err != nil {
 		log.Fatalf("Failed to create new bus: %s", err.Error())
 
@@ -34,7 +34,7 @@ func HelloPubSub(_ context.Context, m PubSubMessage) error {
 	}
 
 	response := bus.NewMessage()
-	response.Data = fmt.Sprintf("Hello, %s!", m.Data)
+	response.Data = fmt.Sprintf("Hello, %s!", in.Data)
 	_, err := busClient.ReplyTo(in, response)
 	if err != nil {
 		return err
