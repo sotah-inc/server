@@ -3,10 +3,12 @@ package state
 import (
 	"fmt"
 
+	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/metric"
+	"github.com/sotah-inc/server/app/pkg/resolver"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/twinj/uuid"
 )
@@ -16,6 +18,9 @@ type PubStateConfig struct {
 
 	MessengerHost string
 	MessengerPort int
+
+	BlizzardClientId     string
+	BlizzardClientSecret string
 }
 
 func NewPubState(config PubStateConfig) (PubState, error) {
@@ -46,6 +51,24 @@ func NewPubState(config PubStateConfig) (PubState, error) {
 		return PubState{}, err
 	}
 	pubState.Regions = regions
+
+	// gathering statuses
+	logging.Info("Gathering statuses")
+	for _, reg := range pubState.Regions {
+		status, err := pubState.NewStatus(reg)
+		if err != nil {
+			return PubState{}, err
+		}
+
+		pubState.Statuses[reg.Name] = status
+	}
+
+	// connecting a new blizzard client
+	blizzardClient, err := blizzard.NewClient(config.BlizzardClientId, config.BlizzardClientSecret)
+	if err != nil {
+		return PubState{}, err
+	}
+	pubState.IO.Resolver = resolver.NewResolver(blizzardClient, pubState.IO.Reporter)
 
 	// establishing listeners
 	pubState.Listeners = NewListeners(SubjectListeners{

@@ -4,8 +4,10 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/state"
+	"github.com/sotah-inc/server/app/pkg/store"
 )
 
 func Pub(config state.PubStateConfig) error {
@@ -20,6 +22,44 @@ func Pub(config state.PubStateConfig) error {
 	// opening all listeners
 	if err := pubState.Listeners.Listen(); err != nil {
 		return err
+	}
+
+	// starting channels for persisting auctions
+	loadTestAuctionsIn := make(chan store.LoadAuctionsInJob)
+	loadTestAuctionsOut := pubState.IO.Store.LoadTestAuctions(loadTestAuctionsIn)
+
+	// gathering auctions
+	go func() {
+		for _, status := range pubState.Statuses {
+			getAuctionsForRealmsOut := pubState.IO.Resolver.GetAuctionsForRealms(status.Realms)
+
+			for outJob := range getAuctionsForRealmsOut {
+				if outJob.Err != nil {
+					logging.WithFields(outJob.ToLogrusFields()).Error("Failed to get realms")
+
+					continue
+				}
+
+				loadTestAuctionsIn <- store.LoadAuctionsInJob{
+					Realm:      outJob.Realm,
+					Auctions:   outJob.Auctions,
+					TargetTime: outJob.LastModified,
+				}
+			}
+		}
+	}()
+
+	// waiting to the jobs to drain out
+	for outJob := range loadTestAuctionsOut {
+		if outJob.Err != nil {
+			return err
+		}
+
+		logging.WithFields(logrus.Fields{
+			"region":      outJob.Realm.Region.Name,
+			"realm":       outJob.Realm.Slug,
+			"target-time": outJob.TargetTime.Unix(),
+		}).Info("Wrote auctions to realm bucket")
 	}
 
 	// catching SIGINT
