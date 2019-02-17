@@ -33,7 +33,7 @@ func Pub(config state.PubStateConfig) error {
 	duration := time.Now().Sub(start)
 	logging.WithFields(logrus.Fields{
 		"auctions": totalAuctions,
-		"duration": duration / 1000 / 1000,
+		"duration": int(duration) / 1000 / 1000,
 	}).Info("Finished counting auctions")
 
 	// catching SIGINT
