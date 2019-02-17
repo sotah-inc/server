@@ -103,7 +103,7 @@ func (pubState PubState) ListenForAuctionCount(stop ListenStopChan, onReady chan
 				logging.WithFields(logrus.Fields{
 					"total_auctions": totalAuctions,
 					"duration":       int(duration) / 1000 / 1000,
-				}).Info("Counted auctions")
+				}).Info("Final count of auctions")
 
 				return
 			case msg := <-in:
