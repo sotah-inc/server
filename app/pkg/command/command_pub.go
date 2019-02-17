@@ -3,7 +3,9 @@ package command
 import (
 	"os"
 	"os/signal"
+	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/state"
 )
@@ -17,6 +19,7 @@ func Pub(config state.PubStateConfig) error {
 		return err
 	}
 
+	start := time.Now()
 	totalAuctions := 0
 	for _, status := range pubState.Statuses {
 		for job := range pubState.IO.Store.GetTestAuctionsFromRealms(status.Realms) {
@@ -27,7 +30,11 @@ func Pub(config state.PubStateConfig) error {
 			totalAuctions += len(job.Auctions.Auctions)
 		}
 	}
-	logging.WithField("auctions", totalAuctions).Info("Finished counting auctions")
+	duration := time.Now().Sub(start)
+	logging.WithFields(logrus.Fields{
+		"auctions": totalAuctions,
+		"duration": duration / 1000 / 1000,
+	}).Info("Finished counting auctions")
 
 	// catching SIGINT
 	logging.Info("Waiting for SIGINT")
