@@ -63,7 +63,7 @@ func Pub(config state.PubStateConfig) error {
 	postWork := func() {
 		return
 	}
-	util.Work(8, worker, postWork)
+	util.Work(16, worker, postWork)
 
 	// waiting for the listener to start
 	<-onReady
