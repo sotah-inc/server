@@ -134,8 +134,8 @@ func (pubState PubState) ListenForAuctionCount(stop ListenStopChan) error {
 	}()
 
 	logging.Info("Calling subscribeToTopic")
-	err := pubState.IO.BusClient.SubscribeToTopic(string(subjects.AuctionCount), stop, func(busMsg bus.Message) {
-		logging.WithField("subject", subjects.AuctionCount).Info("Received message")
+	err := pubState.IO.BusClient.SubscribeToTopic(string(subjects.AuctionCountReceive), stop, func(busMsg bus.Message) {
+		logging.WithField("subject", subjects.AuctionCountReceive).Info("Received message")
 
 		in <- busMsg
 
