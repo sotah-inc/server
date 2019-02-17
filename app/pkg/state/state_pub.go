@@ -1,6 +1,10 @@
 package state
 
 import (
+	"strconv"
+	"time"
+
+	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/logging"
@@ -89,8 +93,49 @@ type PubState struct {
 }
 
 func (pubState PubState) ListenForAuctionCount(stop ListenStopChan) error {
+	startTime := time.Now()
+	totalAuctions := 0
+	timeout := 5 * time.Second
+
+	in := make(chan bus.Message)
+	go func() {
+		for {
+			select {
+			case <-time.After(timeout):
+				duration := time.Now().Sub(startTime)
+
+				logging.WithFields(logrus.Fields{
+					"total_auctions": totalAuctions,
+					"duration":       int(duration) / 1000 / 1000,
+				}).Info("Counted auctions")
+
+				return
+			case msg := <-in:
+				count, err := strconv.Atoi(msg.Data)
+				if err != nil {
+					logging.WithFields(logrus.Fields{
+						"error": err.Error(),
+						"data":  msg.Data,
+					}).Error("Failed to parse data")
+
+					continue
+				}
+
+				duration := time.Now().Sub(startTime)
+				totalAuctions += count
+
+				logging.WithFields(logrus.Fields{
+					"total_auctions": totalAuctions,
+					"duration":       int(duration) / 1000 / 1000,
+				}).Info("Counted auctions")
+			}
+		}
+	}()
+
 	err := pubState.IO.BusClient.SubscribeToTopic(string(subjects.AuctionCount), stop, func(busMsg bus.Message) {
 		logging.WithField("subject", subjects.AuctionCount).Info("Received message")
+
+		in <- busMsg
 
 		return
 	})
