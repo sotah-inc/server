@@ -1,14 +1,11 @@
 package command
 
 import (
-	"encoding/json"
 	"os"
 	"os/signal"
 
-	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/state"
-	"github.com/sotah-inc/server/app/pkg/util"
 )
 
 func Pub(config state.PubStateConfig) error {
@@ -20,39 +17,17 @@ func Pub(config state.PubStateConfig) error {
 		return err
 	}
 
-	// checking which realms don't have auctions
-	bkt := pubState.IO.Store.GetTestAuctionsBucket()
+	totalAuctions := 0
 	for _, status := range pubState.Statuses {
-		for _, realm := range status.Realms {
-			exists, err := pubState.IO.Store.TestAuctionsObjectExists(bkt, realm)
-			if err != nil {
+		for job := range pubState.IO.Store.GetTestAuctionsFromRealms(status.Realms) {
+			if job.Err != nil {
 				return err
 			}
 
-			if exists {
-				continue
-			}
-
-			aucs, _, err := pubState.IO.Resolver.GetAuctionsForRealm(realm)
-			jsonEncoded, err := json.Marshal(aucs)
-			if err != nil {
-				return err
-			}
-			gzipEncoded, err := util.GzipEncode(jsonEncoded)
-			if err != nil {
-				return err
-			}
-
-			if err := pubState.IO.Store.WriteTestAuctions(realm, gzipEncoded); err != nil {
-				return err
-			}
-
-			logging.WithFields(logrus.Fields{
-				"region": realm.Region.Name,
-				"realm":  realm.Slug,
-			}).Warning("Realm does not have auctions obj")
+			totalAuctions += len(job.Auctions.Auctions)
 		}
 	}
+	logging.WithField("auctions", totalAuctions).Info("Finished counting auctions")
 
 	// catching SIGINT
 	logging.Info("Waiting for SIGINT")

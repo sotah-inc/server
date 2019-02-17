@@ -179,7 +179,7 @@ func (job GetTestAuctionsOutJob) ToLogrusFields() logrus.Fields {
 	}
 }
 
-func (sto Store) GetTestAuctionsFromRealms(realmMaps sotah.RegionRealmMap) chan GetTestAuctionsOutJob {
+func (sto Store) GetTestAuctionsFromRealms(realms sotah.Realms) chan GetTestAuctionsOutJob {
 	in := make(chan sotah.Realm)
 	out := make(chan GetTestAuctionsOutJob)
 
@@ -211,14 +211,12 @@ func (sto Store) GetTestAuctionsFromRealms(realmMaps sotah.RegionRealmMap) chan 
 
 	// queueing up the Realms
 	go func() {
-		for _, realmMap := range realmMaps {
-			for _, realm := range realmMap {
-				logging.WithFields(logrus.Fields{
-					"region": realm.Region.Name,
-					"realm":  realm.Slug,
-				}).Debug("Queueing up realm for loading")
-				in <- realm
-			}
+		for _, realm := range realms {
+			logging.WithFields(logrus.Fields{
+				"region": realm.Region.Name,
+				"realm":  realm.Slug,
+			}).Debug("Queueing up realm for loading")
+			in <- realm
 		}
 
 		close(in)
