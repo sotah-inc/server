@@ -47,8 +47,12 @@ type Client struct {
 	subscriberId string
 }
 
+func (c Client) Topic(topicName string) *pubsub.Topic {
+	return c.client.Topic(topicName)
+}
+
 func (c Client) ResolveTopic(topicName string) (*pubsub.Topic, error) {
-	topic := c.client.Topic(topicName)
+	topic := c.Topic(topicName)
 	exists, err := topic.Exists(c.context)
 	if err != nil {
 		return nil, err
@@ -164,7 +168,7 @@ func (c Client) ReplyTo(target Message, payload Message) (string, error) {
 	}
 
 	// validating topic already exists
-	topic := c.client.Topic(target.ReplyTo)
+	topic := c.Topic(target.ReplyTo)
 	exists, err := topic.Exists(c.context)
 	if err != nil {
 		return "", err
@@ -179,7 +183,7 @@ func (c Client) ReplyTo(target Message, payload Message) (string, error) {
 }
 
 func (c Client) RequestFromTopic(topicName string, payload string, timeout time.Duration) (Message, error) {
-	topic := c.client.Topic(topicName)
+	topic := c.Topic(topicName)
 	exists, err := topic.Exists(c.context)
 	if err != nil {
 		return Message{}, err
