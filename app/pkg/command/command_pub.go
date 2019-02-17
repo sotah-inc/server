@@ -25,9 +25,11 @@ func Pub(config state.PubStateConfig) error {
 	stop := make(chan interface{})
 	onReady := make(chan interface{})
 	onStopped := make(chan interface{})
-	if err := pubState.ListenForAuctionCount(stop, onReady, onStopped); err != nil {
-		return err
-	}
+	go func() {
+		if err := pubState.ListenForAuctionCount(stop, onReady, onStopped); err != nil {
+			logging.WithField("error", err.Error()).Fatal("Failed to start listener")
+		}
+	}()
 
 	// waiting for the listener to start
 	<-onReady
