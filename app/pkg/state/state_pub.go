@@ -95,7 +95,7 @@ type PubState struct {
 func (pubState PubState) ListenForAuctionCount(stop ListenStopChan) error {
 	startTime := time.Now()
 	totalAuctions := 0
-	timeout := 5 * time.Second
+	timeout := 5 * time.Minute
 
 	in := make(chan bus.Message)
 	go func() {

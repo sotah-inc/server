@@ -1,11 +1,14 @@
 package command
 
 import (
+	"encoding/json"
 	"os"
 	"os/signal"
 
+	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/state"
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
 func Pub(config state.PubStateConfig) error {
@@ -20,6 +23,23 @@ func Pub(config state.PubStateConfig) error {
 	// opening all listeners
 	if err := pubState.Listeners.Listen(); err != nil {
 		return err
+	}
+
+	// queueing up all realms
+	for _, status := range pubState.Statuses {
+		for _, realm := range status.Realms {
+			jsonEncoded, err := json.Marshal(realm)
+			if err != nil {
+				return err
+			}
+
+			msg := bus.NewMessage()
+			msg.Data = string(jsonEncoded)
+
+			if _, err := pubState.IO.BusClient.Publish(pubState.IO.BusClient.Topic(string(subjects.AuctionCount)), msg); err != nil {
+				return err
+			}
+		}
 	}
 
 	// catching SIGINT
