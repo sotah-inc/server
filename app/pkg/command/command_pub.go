@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"os"
 	"os/signal"
-	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/bus"
@@ -24,14 +23,13 @@ func Pub(config state.PubStateConfig) error {
 
 	// opening all listeners
 	go func() {
+		logging.Info("Calling Listeners.Listen()")
 		if err := pubState.Listeners.Listen(); err != nil {
 			logging.WithField("error", err.Error()).Fatal("Failed to open listeners")
 
 			return
 		}
 	}()
-
-	<-time.After(10 * time.Second)
 
 	// queueing up all realms
 	logging.Info("Queueing up realms")
