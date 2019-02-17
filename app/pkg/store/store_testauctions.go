@@ -64,12 +64,12 @@ func (sto Store) GetTestAuctionsObjectName(rea sotah.Realm) string {
 	return fmt.Sprintf("%s-%s.json.gz", rea.Region.Name, rea.Slug)
 }
 
-func (sto Store) getTestAuctionsObject(bkt *storage.BucketHandle, rea sotah.Realm) *storage.ObjectHandle {
+func (sto Store) GetTestAuctionsObject(bkt *storage.BucketHandle, rea sotah.Realm) *storage.ObjectHandle {
 	return bkt.Object(sto.GetTestAuctionsObjectName(rea))
 }
 
-func (sto Store) testAuctionsObjectExists(bkt *storage.BucketHandle, rea sotah.Realm) (bool, error) {
-	_, err := sto.getTestAuctionsObject(bkt, rea).Attrs(sto.Context)
+func (sto Store) TestAuctionsObjectExists(bkt *storage.BucketHandle, rea sotah.Realm) (bool, error) {
+	_, err := sto.GetTestAuctionsObject(bkt, rea).Attrs(sto.Context)
 	if err != nil {
 		if err != storage.ErrObjectNotExist {
 			return false, err
@@ -233,5 +233,5 @@ func (sto Store) GetTestAuctions(realm sotah.Realm) (blizzard.Auctions, error) {
 		return blizzard.Auctions{}, err
 	}
 
-	return sto.NewAuctions(sto.getTestAuctionsObject(bkt, realm))
+	return sto.NewAuctions(sto.GetTestAuctionsObject(bkt, realm))
 }

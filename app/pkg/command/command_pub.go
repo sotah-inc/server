@@ -7,7 +7,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/state"
-	"github.com/sotah-inc/server/app/pkg/store"
 )
 
 func Pub(config state.PubStateConfig) error {
@@ -19,45 +18,24 @@ func Pub(config state.PubStateConfig) error {
 		return err
 	}
 
-	// starting channels for persisting auctions
-	logging.Info("Starting store LoadTestAuctions worker")
-	loadTestAuctionsIn := make(chan store.LoadAuctionsInJob)
-	loadTestAuctionsOut := pubState.IO.Store.LoadTestAuctions(loadTestAuctionsIn)
-
-	// gathering auctions
-	logging.Info("Spinning up worker goroutine for fetching auctions")
-	go func() {
-		for _, status := range pubState.Statuses {
-			getAuctionsForRealmsOut := pubState.IO.Resolver.GetAuctionsForRealms(status.Realms)
-
-			for outJob := range getAuctionsForRealmsOut {
-				if outJob.Err != nil {
-					logging.WithFields(outJob.ToLogrusFields()).Error("Failed to get realms")
-
-					continue
-				}
-
-				loadTestAuctionsIn <- store.LoadAuctionsInJob{
-					Realm:      outJob.Realm,
-					Auctions:   outJob.Auctions,
-					TargetTime: outJob.LastModified,
-				}
+	// checking which realms don't have auctions
+	bkt := pubState.IO.Store.GetTestAuctionsBucket()
+	for _, status := range pubState.Statuses {
+		for _, realm := range status.Realms {
+			exists, err := pubState.IO.Store.TestAuctionsObjectExists(bkt, realm)
+			if err != nil {
+				return err
 			}
-		}
-	}()
 
-	// waiting to the jobs to drain out
-	logging.Info("Waiting for store load test auctions to drain out")
-	for outJob := range loadTestAuctionsOut {
-		if outJob.Err != nil {
-			return err
-		}
+			if exists {
+				continue
+			}
 
-		logging.WithFields(logrus.Fields{
-			"region":      outJob.Realm.Region.Name,
-			"realm":       outJob.Realm.Slug,
-			"target-time": outJob.TargetTime.Unix(),
-		}).Info("Wrote auctions to realm bucket")
+			logging.WithFields(logrus.Fields{
+				"region": realm.Region.Name,
+				"realm":  realm.Slug,
+			}).Warning("Realm does not have auctions obj")
+		}
 	}
 
 	// catching SIGINT
