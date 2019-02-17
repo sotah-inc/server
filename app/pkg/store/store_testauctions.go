@@ -13,15 +13,15 @@ import (
 	"github.com/sotah-inc/server/app/pkg/sotah"
 )
 
-func (sto Store) getTestAuctionsBucketName() string {
+func (sto Client) getTestAuctionsBucketName() string {
 	return "test-auctions"
 }
 
-func (sto Store) GetTestAuctionsBucket() *storage.BucketHandle {
+func (sto Client) GetTestAuctionsBucket() *storage.BucketHandle {
 	return sto.client.Bucket(sto.getTestAuctionsBucketName())
 }
 
-func (sto Store) createTestAuctionsBucket() (*storage.BucketHandle, error) {
+func (sto Client) createTestAuctionsBucket() (*storage.BucketHandle, error) {
 	bkt := sto.GetTestAuctionsBucket()
 	err := bkt.Create(sto.Context, sto.projectID, &storage.BucketAttrs{
 		StorageClass: "REGIONAL",
@@ -34,7 +34,7 @@ func (sto Store) createTestAuctionsBucket() (*storage.BucketHandle, error) {
 	return bkt, nil
 }
 
-func (sto Store) TestAuctionsBucketExists() (bool, error) {
+func (sto Client) TestAuctionsBucketExists() (bool, error) {
 	_, err := sto.GetTestAuctionsBucket().Attrs(sto.Context)
 	if err != nil {
 		if err != storage.ErrBucketNotExist {
@@ -47,7 +47,7 @@ func (sto Store) TestAuctionsBucketExists() (bool, error) {
 	return true, nil
 }
 
-func (sto Store) resolveTestAuctionsBucket() (*storage.BucketHandle, error) {
+func (sto Client) resolveTestAuctionsBucket() (*storage.BucketHandle, error) {
 	exists, err := sto.TestAuctionsBucketExists()
 	if err != nil {
 		return nil, err
@@ -60,15 +60,15 @@ func (sto Store) resolveTestAuctionsBucket() (*storage.BucketHandle, error) {
 	return sto.GetTestAuctionsBucket(), nil
 }
 
-func (sto Store) GetTestAuctionsObjectName(rea sotah.Realm) string {
+func (sto Client) GetTestAuctionsObjectName(rea sotah.Realm) string {
 	return fmt.Sprintf("%s-%s.json.gz", rea.Region.Name, rea.Slug)
 }
 
-func (sto Store) GetTestAuctionsObject(bkt *storage.BucketHandle, rea sotah.Realm) *storage.ObjectHandle {
+func (sto Client) GetTestAuctionsObject(bkt *storage.BucketHandle, rea sotah.Realm) *storage.ObjectHandle {
 	return bkt.Object(sto.GetTestAuctionsObjectName(rea))
 }
 
-func (sto Store) TestAuctionsObjectExists(bkt *storage.BucketHandle, rea sotah.Realm) (bool, error) {
+func (sto Client) TestAuctionsObjectExists(bkt *storage.BucketHandle, rea sotah.Realm) (bool, error) {
 	_, err := sto.GetTestAuctionsObject(bkt, rea).Attrs(sto.Context)
 	if err != nil {
 		if err != storage.ErrObjectNotExist {
@@ -81,7 +81,7 @@ func (sto Store) TestAuctionsObjectExists(bkt *storage.BucketHandle, rea sotah.R
 	return true, nil
 }
 
-func (sto Store) WriteTestAuctions(rea sotah.Realm, gzipEncodedBody []byte) error {
+func (sto Client) WriteTestAuctions(rea sotah.Realm, gzipEncodedBody []byte) error {
 	bkt, err := sto.resolveTestAuctionsBucket()
 	if err != nil {
 		return err
@@ -104,7 +104,7 @@ func (sto Store) WriteTestAuctions(rea sotah.Realm, gzipEncodedBody []byte) erro
 	return wc.Close()
 }
 
-func (sto Store) LoadTestAuctions(in chan LoadAuctionsInJob) chan LoadAuctionsOutJob {
+func (sto Client) LoadTestAuctions(in chan LoadAuctionsInJob) chan LoadAuctionsOutJob {
 	out := make(chan LoadAuctionsOutJob)
 
 	// spinning up the workers for fetching Auctions
@@ -179,7 +179,7 @@ func (job GetTestAuctionsOutJob) ToLogrusFields() logrus.Fields {
 	}
 }
 
-func (sto Store) GetTestAuctionsFromRealms(realms sotah.Realms) chan GetTestAuctionsOutJob {
+func (sto Client) GetTestAuctionsFromRealms(realms sotah.Realms) chan GetTestAuctionsOutJob {
 	in := make(chan sotah.Realm)
 	out := make(chan GetTestAuctionsOutJob)
 
@@ -225,7 +225,7 @@ func (sto Store) GetTestAuctionsFromRealms(realms sotah.Realms) chan GetTestAuct
 	return out
 }
 
-func (sto Store) GetTestAuctions(realm sotah.Realm) (blizzard.Auctions, error) {
+func (sto Client) GetTestAuctions(realm sotah.Realm) (blizzard.Auctions, error) {
 	bkt, err := sto.resolveTestAuctionsBucket()
 	if err != nil {
 		return blizzard.Auctions{}, err

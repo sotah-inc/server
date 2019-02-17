@@ -64,12 +64,12 @@ func NewLiveAuctionsState(config LiveAuctionsStateConfig) (LiveAuctionsState, er
 	// establishing a store (gcloud store or disk store)
 	if config.UseGCloud {
 		logging.Info("Connecting to gcloud store")
-		stor, err := store.NewStore(config.GCloudProjectID)
+		stor, err := store.NewClient(config.GCloudProjectID)
 		if err != nil {
 			return LiveAuctionsState{}, err
 		}
 
-		laState.IO.Store = stor
+		laState.IO.StoreClient = stor
 	} else {
 		logging.Info("Connecting to disk store")
 		cacheDirs := []string{

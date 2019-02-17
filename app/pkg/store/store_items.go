@@ -16,11 +16,11 @@ import (
 
 const itemsBucketName = "sotah-items"
 
-func (sto Store) getItemsBucket() *storage.BucketHandle {
+func (sto Client) getItemsBucket() *storage.BucketHandle {
 	return sto.client.Bucket(itemsBucketName)
 }
 
-func (sto Store) createItemsBucket() (*storage.BucketHandle, error) {
+func (sto Client) createItemsBucket() (*storage.BucketHandle, error) {
 	bkt := sto.getItemsBucket()
 	err := bkt.Create(sto.Context, sto.projectID, &storage.BucketAttrs{
 		StorageClass: "REGIONAL",
@@ -33,7 +33,7 @@ func (sto Store) createItemsBucket() (*storage.BucketHandle, error) {
 	return bkt, nil
 }
 
-func (sto Store) itemsBucketExists() (bool, error) {
+func (sto Client) itemsBucketExists() (bool, error) {
 	_, err := sto.getItemsBucket().Attrs(sto.Context)
 	if err != nil {
 		if err != storage.ErrBucketNotExist {
@@ -46,7 +46,7 @@ func (sto Store) itemsBucketExists() (bool, error) {
 	return true, nil
 }
 
-func (sto Store) resolveItemsBucket() (*storage.BucketHandle, error) {
+func (sto Client) resolveItemsBucket() (*storage.BucketHandle, error) {
 	exists, err := sto.itemsBucketExists()
 	if err != nil {
 		return nil, err
@@ -58,11 +58,11 @@ func (sto Store) resolveItemsBucket() (*storage.BucketHandle, error) {
 
 	return sto.getItemsBucket(), nil
 }
-func (sto Store) getItemObjectName(ID blizzard.ItemID) string {
+func (sto Client) getItemObjectName(ID blizzard.ItemID) string {
 	return fmt.Sprintf("%d.json.gz", ID)
 }
 
-func (sto Store) WriteItem(ID blizzard.ItemID, body []byte) error {
+func (sto Client) WriteItem(ID blizzard.ItemID, body []byte) error {
 	logging.WithFields(logrus.Fields{
 		"ID":     ID,
 		"length": len(body),
@@ -83,7 +83,7 @@ func (sto Store) WriteItem(ID blizzard.ItemID, body []byte) error {
 	return nil
 }
 
-func (sto Store) ItemExists(ID blizzard.ItemID) (bool, error) {
+func (sto Client) ItemExists(ID blizzard.ItemID) (bool, error) {
 	_, err := sto.itemsBucket.Object(sto.getItemObjectName(ID)).Attrs(sto.Context)
 	if err != nil {
 		if err != storage.ErrObjectNotExist {
@@ -96,11 +96,11 @@ func (sto Store) ItemExists(ID blizzard.ItemID) (bool, error) {
 	return true, nil
 }
 
-func (sto Store) GetItemObject(ID blizzard.ItemID) *storage.ObjectHandle {
+func (sto Client) GetItemObject(ID blizzard.ItemID) *storage.ObjectHandle {
 	return sto.itemsBucket.Object(sto.getItemObjectName(ID))
 }
 
-func (sto Store) exportItem(ID blizzard.ItemID) ([]byte, error) {
+func (sto Client) exportItem(ID blizzard.ItemID) ([]byte, error) {
 	reader, err := sto.itemsBucket.Object(sto.getItemObjectName(ID)).NewReader(sto.Context)
 	if err != nil {
 		return []byte{}, err
@@ -116,7 +116,7 @@ type exportItemsJob struct {
 	Data []byte
 }
 
-func (sto Store) ExportItems() chan exportItemsJob {
+func (sto Client) ExportItems() chan exportItemsJob {
 	// establishing channels
 	out := make(chan exportItemsJob)
 	in := make(chan blizzard.ItemID)
@@ -174,7 +174,7 @@ func (sto Store) ExportItems() chan exportItemsJob {
 	return out
 }
 
-func (sto Store) NewItem(obj *storage.ObjectHandle) (blizzard.Item, error) {
+func (sto Client) NewItem(obj *storage.ObjectHandle) (blizzard.Item, error) {
 	reader, err := obj.NewReader(sto.Context)
 	if err != nil {
 		return blizzard.Item{}, err
@@ -189,7 +189,7 @@ func (sto Store) NewItem(obj *storage.ObjectHandle) (blizzard.Item, error) {
 	return blizzard.NewItem(body)
 }
 
-func (sto Store) GetItem(ID blizzard.ItemID) (blizzard.Item, error) {
+func (sto Client) GetItem(ID blizzard.ItemID) (blizzard.Item, error) {
 	exists, err := sto.ItemExists(ID)
 	if err != nil {
 		return blizzard.Item{}, err
@@ -209,7 +209,7 @@ type GetItemsJob struct {
 	Exists bool
 }
 
-func (sto Store) GetItems(IDs []blizzard.ItemID) chan GetItemsJob {
+func (sto Client) GetItems(IDs []blizzard.ItemID) chan GetItemsJob {
 	// establishing channels
 	out := make(chan GetItemsJob)
 	in := make(chan blizzard.ItemID)

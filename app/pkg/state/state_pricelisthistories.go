@@ -57,12 +57,12 @@ func NewPricelistHistoriesState(config PricelistHistoriesStateConfig) (Pricelist
 
 	// establishing a store (gcloud store or disk store)
 	if config.UseGCloud {
-		stor, err := store.NewStore(config.GCloudProjectID)
+		stor, err := store.NewClient(config.GCloudProjectID)
 		if err != nil {
 			return PricelistHistoriesState{}, err
 		}
 
-		phState.IO.Store = stor
+		phState.IO.StoreClient = stor
 	} else {
 		cacheDirs := []string{
 			config.DiskStoreCacheDir,

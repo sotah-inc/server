@@ -218,7 +218,7 @@ func (sta APIState) collectRegions() {
 
 				// starting channels for persisting item-icons
 				persistItemIconsInJobs := make(chan store.PersistItemIconsInJob)
-				persistItemIconsOutJobs := sta.IO.Store.PersistItemIcons(persistItemIconsInJobs)
+				persistItemIconsOutJobs := sta.IO.StoreClient.PersistItemIcons(persistItemIconsInJobs)
 
 				// queueing up the jobs
 				go func() {

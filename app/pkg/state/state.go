@@ -32,13 +32,13 @@ type Databases struct {
 
 // io bundle
 type IO struct {
-	Resolver  resolver.Resolver
-	Databases Databases
-	Messenger messenger.Messenger
-	Store     store.Store
-	DiskStore diskstore.DiskStore
-	Reporter  metric.Reporter
-	BusClient bus.Client
+	Resolver    resolver.Resolver
+	Databases   Databases
+	Messenger   messenger.Messenger
+	StoreClient store.Client
+	DiskStore   diskstore.DiskStore
+	Reporter    metric.Reporter
+	BusClient   bus.Client
 }
 
 // listener functionality

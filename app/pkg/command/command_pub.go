@@ -22,7 +22,7 @@ func Pub(config state.PubStateConfig) error {
 	start := time.Now()
 	totalAuctions := 0
 	for _, status := range pubState.Statuses {
-		for job := range pubState.IO.Store.GetTestAuctionsFromRealms(status.Realms) {
+		for job := range pubState.IO.StoreClient.GetTestAuctionsFromRealms(status.Realms) {
 			if job.Err != nil {
 				return err
 			}

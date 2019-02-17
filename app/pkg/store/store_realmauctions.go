@@ -16,15 +16,15 @@ import (
 	"github.com/sotah-inc/server/app/pkg/sotah"
 )
 
-func (sto Store) getRealmAuctionsBucketName(rea sotah.Realm) string {
+func (sto Client) getRealmAuctionsBucketName(rea sotah.Realm) string {
 	return fmt.Sprintf("raw-auctions_%s_%s", rea.Region.Name, rea.Slug)
 }
 
-func (sto Store) GetRealmAuctionsBucket(rea sotah.Realm) *storage.BucketHandle {
+func (sto Client) GetRealmAuctionsBucket(rea sotah.Realm) *storage.BucketHandle {
 	return sto.client.Bucket(sto.getRealmAuctionsBucketName(rea))
 }
 
-func (sto Store) createRealmAuctionsBucket(rea sotah.Realm) (*storage.BucketHandle, error) {
+func (sto Client) createRealmAuctionsBucket(rea sotah.Realm) (*storage.BucketHandle, error) {
 	bkt := sto.GetRealmAuctionsBucket(rea)
 	err := bkt.Create(sto.Context, sto.projectID, &storage.BucketAttrs{
 		StorageClass: "REGIONAL",
@@ -37,7 +37,7 @@ func (sto Store) createRealmAuctionsBucket(rea sotah.Realm) (*storage.BucketHand
 	return bkt, nil
 }
 
-func (sto Store) RealmAuctionsBucketExists(rea sotah.Realm) (bool, error) {
+func (sto Client) RealmAuctionsBucketExists(rea sotah.Realm) (bool, error) {
 	_, err := sto.GetRealmAuctionsBucket(rea).Attrs(sto.Context)
 	if err != nil {
 		if err != storage.ErrBucketNotExist {
@@ -50,7 +50,7 @@ func (sto Store) RealmAuctionsBucketExists(rea sotah.Realm) (bool, error) {
 	return true, nil
 }
 
-func (sto Store) resolveRealmAuctionsBucket(rea sotah.Realm) (*storage.BucketHandle, error) {
+func (sto Client) resolveRealmAuctionsBucket(rea sotah.Realm) (*storage.BucketHandle, error) {
 	exists, err := sto.RealmAuctionsBucketExists(rea)
 	if err != nil {
 		return nil, err
@@ -63,15 +63,15 @@ func (sto Store) resolveRealmAuctionsBucket(rea sotah.Realm) (*storage.BucketHan
 	return sto.GetRealmAuctionsBucket(rea), nil
 }
 
-func (sto Store) GetRealmAuctionsObjectName(lastModified time.Time) string {
+func (sto Client) GetRealmAuctionsObjectName(lastModified time.Time) string {
 	return fmt.Sprintf("%d.json.gz", lastModified.Unix())
 }
 
-func (sto Store) getRealmAuctionsObject(bkt *storage.BucketHandle, lastModified time.Time) *storage.ObjectHandle {
+func (sto Client) getRealmAuctionsObject(bkt *storage.BucketHandle, lastModified time.Time) *storage.ObjectHandle {
 	return bkt.Object(sto.GetRealmAuctionsObjectName(lastModified))
 }
 
-func (sto Store) realmAuctionsObjectExists(bkt *storage.BucketHandle, lastModified time.Time) (bool, error) {
+func (sto Client) realmAuctionsObjectExists(bkt *storage.BucketHandle, lastModified time.Time) (bool, error) {
 	_, err := sto.getRealmAuctionsObject(bkt, lastModified).Attrs(sto.Context)
 	if err != nil {
 		if err != storage.ErrObjectNotExist {
@@ -84,7 +84,7 @@ func (sto Store) realmAuctionsObjectExists(bkt *storage.BucketHandle, lastModifi
 	return true, nil
 }
 
-func (sto Store) getRealmAuctionsObjectAtTime(bkt *storage.BucketHandle, targetTime time.Time) (*storage.ObjectHandle, error) {
+func (sto Client) getRealmAuctionsObjectAtTime(bkt *storage.BucketHandle, targetTime time.Time) (*storage.ObjectHandle, error) {
 	logging.WithField("targetTime", targetTime.Unix()).Debug("Fetching realm-auctions object at time")
 
 	exists, err := sto.realmAuctionsObjectExists(bkt, targetTime)
@@ -99,7 +99,7 @@ func (sto Store) getRealmAuctionsObjectAtTime(bkt *storage.BucketHandle, targetT
 	return sto.getRealmAuctionsObject(bkt, targetTime), nil
 }
 
-func (sto Store) WriteRealmAuctions(rea sotah.Realm, lastModified time.Time, gzipEncodedBody []byte) error {
+func (sto Client) WriteRealmAuctions(rea sotah.Realm, lastModified time.Time, gzipEncodedBody []byte) error {
 	bkt, err := sto.resolveRealmAuctionsBucket(rea)
 	if err != nil {
 		return err
@@ -144,7 +144,7 @@ func (job LoadAuctionsOutJob) ToLogrusFields() logrus.Fields {
 	}
 }
 
-func (sto Store) LoadAuctions(in chan LoadAuctionsInJob) chan LoadAuctionsOutJob {
+func (sto Client) LoadAuctions(in chan LoadAuctionsInJob) chan LoadAuctionsOutJob {
 	out := make(chan LoadAuctionsOutJob)
 
 	// spinning up the workers for fetching Auctions
@@ -239,7 +239,7 @@ func (job GetAuctionsFromTimesOutJob) ToLogrusFields() logrus.Fields {
 	}
 }
 
-func (sto Store) GetAuctionsFromTimes(times RealmTimes) chan GetAuctionsFromTimesOutJob {
+func (sto Client) GetAuctionsFromTimes(times RealmTimes) chan GetAuctionsFromTimesOutJob {
 	in := make(chan GetAuctionsFromTimesInJob)
 	out := make(chan GetAuctionsFromTimesOutJob)
 
@@ -282,7 +282,7 @@ func (sto Store) GetAuctionsFromTimes(times RealmTimes) chan GetAuctionsFromTime
 	return out
 }
 
-func (sto Store) GetAuctions(rea sotah.Realm, targetTime time.Time) (blizzard.Auctions, error) {
+func (sto Client) GetAuctions(rea sotah.Realm, targetTime time.Time) (blizzard.Auctions, error) {
 	hasBucket, err := sto.RealmAuctionsBucketExists(rea)
 	if err != nil {
 		return blizzard.Auctions{}, err
@@ -324,7 +324,7 @@ func (sto Store) GetAuctions(rea sotah.Realm, targetTime time.Time) (blizzard.Au
 	return sto.NewAuctions(obj)
 }
 
-func (sto Store) NewAuctions(obj *storage.ObjectHandle) (blizzard.Auctions, error) {
+func (sto Client) NewAuctions(obj *storage.ObjectHandle) (blizzard.Auctions, error) {
 	reader, err := obj.NewReader(sto.Context)
 	if err != nil {
 		return blizzard.Auctions{}, err

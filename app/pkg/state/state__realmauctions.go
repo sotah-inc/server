@@ -55,7 +55,7 @@ func (sta State) GetAuctionsFromTimes(times RegionRealmTimes) chan GetAuctionsFr
 				continue
 			}
 
-			aucs, err := sta.IO.Store.GetAuctions(timeTuple.Realm, timeTuple.TargetTime)
+			aucs, err := sta.IO.StoreClient.GetAuctions(timeTuple.Realm, timeTuple.TargetTime)
 			if err != nil {
 				out <- GetAuctionsFromTimesOutJob{
 					Err:        err,
@@ -152,7 +152,7 @@ func (sta State) StoreAuctions(in chan StoreAuctionsInJob) chan StoreAuctionsOut
 
 			err = func() error {
 				if sta.UseGCloud {
-					return sta.IO.Store.WriteRealmAuctions(inJob.Realm, inJob.TargetTime, gzipEncodedData)
+					return sta.IO.StoreClient.WriteRealmAuctions(inJob.Realm, inJob.TargetTime, gzipEncodedData)
 				}
 
 				return sta.IO.DiskStore.WriteAuctions(inJob.Realm, gzipEncodedData)

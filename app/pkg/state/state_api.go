@@ -49,12 +49,12 @@ func NewAPIState(config APIStateConfig) (APIState, error) {
 
 	// establishing a store (gcloud store or disk store)
 	if config.SotahConfig.UseGCloud {
-		stor, err := store.NewStore(config.GCloudProjectID)
+		stor, err := store.NewClient(config.GCloudProjectID)
 		if err != nil {
 			return APIState{}, err
 		}
 
-		apiState.IO.Store = stor
+		apiState.IO.StoreClient = stor
 	} else {
 		cacheDirs := []string{
 			config.DiskStoreCacheDir,
@@ -129,18 +129,18 @@ func NewAPIState(config APIStateConfig) (APIState, error) {
 	if apiState.UseGCloud {
 		for i, prof := range apiState.Professions {
 			itemIconUrl, err := func() (string, error) {
-				exists, err := apiState.IO.Store.ItemIconExists(prof.Icon)
+				exists, err := apiState.IO.StoreClient.ItemIconExists(prof.Icon)
 				if err != nil {
 					return "", err
 				}
 
 				if exists {
-					obj, err := apiState.IO.Store.GetItemIconObject(prof.Icon)
+					obj, err := apiState.IO.StoreClient.GetItemIconObject(prof.Icon)
 					if err != nil {
 						return "", err
 					}
 
-					return apiState.IO.Store.GetStoreItemIconURLFunc(obj)
+					return apiState.IO.StoreClient.GetStoreItemIconURLFunc(obj)
 				}
 
 				body, err := util.Download(blizzard.DefaultGetItemIconURL(prof.Icon))
@@ -148,7 +148,7 @@ func NewAPIState(config APIStateConfig) (APIState, error) {
 					return "", err
 				}
 
-				return apiState.IO.Store.WriteItemIcon(prof.Icon, body)
+				return apiState.IO.StoreClient.WriteItemIcon(prof.Icon, body)
 			}()
 			if err != nil {
 				return APIState{}, err

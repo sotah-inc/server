@@ -72,11 +72,11 @@ func NewPubState(config PubStateConfig) (PubState, error) {
 	pubState.IO.Resolver = resolver.NewResolver(blizzardClient, pubState.IO.Reporter)
 
 	// establishing a store
-	stor, err := store.NewStore(config.GCloudProjectID)
+	stor, err := store.NewClient(config.GCloudProjectID)
 	if err != nil {
 		return PubState{}, err
 	}
-	pubState.IO.Store = stor
+	pubState.IO.StoreClient = stor
 
 	return pubState, nil
 }
