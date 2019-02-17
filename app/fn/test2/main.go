@@ -7,8 +7,9 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+
+	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
 )
@@ -58,7 +59,7 @@ func HelloPubSub(_ context.Context, m PubSubMessage) error {
 
 	msg := bus.NewMessage()
 	msg.Data = strconv.Itoa(len(aucs.Auctions))
-	if _, err := busClient.Publish(busClient.Topic(string(subjects.AuctionCount)), msg); err != nil {
+	if _, err := busClient.Publish(busClient.Topic(string(subjects.AuctionCountReceive)), msg); err != nil {
 		return err
 	}
 
