@@ -8,8 +8,10 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
+	"github.com/sotah-inc/server/app/pkg/util"
 )
 
 func Pub(config state.PubStateConfig) error {
@@ -31,16 +33,17 @@ func Pub(config state.PubStateConfig) error {
 		}
 	}()
 
-	// waiting for the listener to start
-	<-onReady
+	// establishing channels for intake
+	in := make(chan sotah.Realm)
 
-	// queueing up all realms
-	logging.Info("Queueing up realms")
-	for _, status := range pubState.Statuses {
-		for _, realm := range status.Realms {
+	// spinning up the workers
+	worker := func() {
+		for realm := range in {
 			jsonEncoded, err := json.Marshal(realm)
 			if err != nil {
-				return err
+				logging.WithField("error", err.Error()).Fatal("Failed to encode realm")
+
+				return
 			}
 
 			msg := bus.NewMessage()
@@ -51,12 +54,33 @@ func Pub(config state.PubStateConfig) error {
 				"realm":  realm.Slug,
 			}).Info("Queueing up realm")
 			if _, err := pubState.IO.BusClient.Publish(pubState.IO.BusClient.Topic(string(subjects.AuctionCount)), msg); err != nil {
-				return err
+				logging.WithField("error", err.Error()).Fatal("Failed to publish message")
+
+				return
 			}
 		}
-
-		break
 	}
+	postWork := func() {
+		return
+	}
+	util.Work(4, worker, postWork)
+
+	// waiting for the listener to start
+	<-onReady
+
+	// queueing up the realms
+	go func() {
+		logging.Info("Queueing up realms")
+		for _, status := range pubState.Statuses {
+			for _, realm := range status.Realms {
+				in <- realm
+			}
+
+			break
+		}
+
+		close(in)
+	}()
 
 	// catching SIGINT
 	logging.Info("Waiting for SIGINT")
