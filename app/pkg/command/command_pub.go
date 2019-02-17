@@ -50,7 +50,11 @@ func Pub(config state.PubStateConfig) error {
 			if _, err := pubState.IO.BusClient.Publish(pubState.IO.BusClient.Topic(string(subjects.AuctionCount)), msg); err != nil {
 				return err
 			}
+
+			break
 		}
+
+		break
 	}
 
 	// catching SIGINT
