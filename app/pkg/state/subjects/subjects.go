@@ -23,4 +23,5 @@ const (
 	LiveAuctionsIntake       Subject = "liveAuctionsIntake"
 	PricelistHistoriesIntake Subject = "pricelistHistoriesIntake"
 	AppMetrics               Subject = "appMetrics"
+	AuctionCount             Subject = "auctionCount"
 )

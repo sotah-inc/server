@@ -1,8 +1,6 @@
 package state
 
 import (
-	"fmt"
-
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/logging"
@@ -38,10 +36,6 @@ func NewPubState(config PubStateConfig) (PubState, error) {
 	}
 	pubState.IO.Messenger = mess
 
-	// establishing a bus
-	bu, err := bus.NewClient(config.GCloudProjectID, "pub")
-	pubState.IO.BusClient = bu
-
 	// initializing a reporter
 	pubState.IO.Reporter = metric.NewReporter(mess)
 
@@ -71,12 +65,21 @@ func NewPubState(config PubStateConfig) (PubState, error) {
 	}
 	pubState.IO.Resolver = resolver.NewResolver(blizzardClient, pubState.IO.Reporter)
 
+	// establishing a bus
+	bu, err := bus.NewClient(config.GCloudProjectID, "pub")
+	pubState.IO.BusClient = bu
+
 	// establishing a store
 	stor, err := store.NewClient(config.GCloudProjectID)
 	if err != nil {
 		return PubState{}, err
 	}
 	pubState.IO.StoreClient = stor
+
+	// establishing listeners
+	pubState.Listeners = NewListeners(SubjectListeners{
+		subjects.AuctionCount: pubState.ListenForAuctionCount,
+	})
 
 	return pubState, nil
 }
@@ -85,17 +88,9 @@ type PubState struct {
 	State
 }
 
-func (pubState PubState) ListenForBoot(stop ListenStopChan) error {
-	err := pubState.IO.BusClient.SubscribeToTopic(string(subjects.Boot), stop, func(busMsg bus.Message) {
-		logging.WithField("subject", subjects.Boot).Info("Received message")
-
-		msg := bus.NewMessage()
-		msg.Data = fmt.Sprintf("Hello, %s!", busMsg.Data)
-		if _, err := pubState.IO.BusClient.ReplyTo(busMsg, msg); err != nil {
-			logging.WithField("error", err.Error()).Error("Failed to reply to response message")
-
-			return
-		}
+func (pubState PubState) ListenForAuctionCount(stop ListenStopChan) error {
+	err := pubState.IO.BusClient.SubscribeToTopic(string(subjects.AuctionCount), stop, func(busMsg bus.Message) {
+		logging.WithField("subject", subjects.AuctionCount).Info("Received message")
 
 		return
 	})
