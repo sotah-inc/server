@@ -1,12 +1,14 @@
 package command
 
 import (
+	"encoding/json"
 	"os"
 	"os/signal"
 
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/state"
+	"github.com/sotah-inc/server/app/pkg/util"
 )
 
 func Pub(config state.PubStateConfig) error {
@@ -29,6 +31,20 @@ func Pub(config state.PubStateConfig) error {
 
 			if exists {
 				continue
+			}
+
+			aucs, _, err := pubState.IO.Resolver.GetAuctionsForRealm(realm)
+			jsonEncoded, err := json.Marshal(aucs)
+			if err != nil {
+				return err
+			}
+			gzipEncoded, err := util.GzipEncode(jsonEncoded)
+			if err != nil {
+				return err
+			}
+
+			if err := pubState.IO.Store.WriteTestAuctions(realm, gzipEncoded); err != nil {
+				return err
 			}
 
 			logging.WithFields(logrus.Fields{
