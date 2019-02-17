@@ -21,15 +21,16 @@ func Pub(config state.PubStateConfig) error {
 		return err
 	}
 
-	// opening all listeners
-	go func() {
-		logging.Info("Calling Listeners.Listen()")
-		if err := pubState.Listeners.Listen(); err != nil {
-			logging.WithField("error", err.Error()).Fatal("Failed to open listeners")
+	// starting a listener
+	stop := make(chan interface{})
+	onReady := make(chan interface{})
+	onStopped := make(chan interface{})
+	if err := pubState.ListenForAuctionCount(stop, onReady, onStopped); err != nil {
+		return err
+	}
 
-			return
-		}
-	}()
+	// waiting for the listener to start
+	<-onReady
 
 	// queueing up all realms
 	logging.Info("Queueing up realms")
@@ -66,7 +67,8 @@ func Pub(config state.PubStateConfig) error {
 	logging.Info("Caught SIGINT, exiting")
 
 	// stopping listeners
-	pubState.Listeners.Stop()
+	stop <- struct{}{}
+	<-onStopped
 
 	logging.Info("Exiting")
 	return nil

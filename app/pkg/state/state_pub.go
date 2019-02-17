@@ -80,11 +80,6 @@ func NewPubState(config PubStateConfig) (PubState, error) {
 	}
 	pubState.IO.StoreClient = stor
 
-	// establishing listeners
-	pubState.Listeners = NewListeners(SubjectListeners{
-		subjects.AuctionCount: pubState.ListenForAuctionCount,
-	})
-
 	return pubState, nil
 }
 
@@ -92,7 +87,7 @@ type PubState struct {
 	State
 }
 
-func (pubState PubState) ListenForAuctionCount(stop ListenStopChan) error {
+func (pubState PubState) ListenForAuctionCount(stop ListenStopChan, onReady chan interface{}, onStopped chan interface{}) error {
 	startTime := time.Now()
 	totalAuctions := 0
 	timeout := 5 * time.Minute
@@ -134,13 +129,21 @@ func (pubState PubState) ListenForAuctionCount(stop ListenStopChan) error {
 	}()
 
 	logging.Info("Calling subscribeToTopic")
-	err := pubState.IO.BusClient.SubscribeToTopic(string(subjects.AuctionCountReceive), stop, func(busMsg bus.Message) {
-		logging.WithField("subject", subjects.AuctionCountReceive).Info("Received message")
+	err := pubState.IO.BusClient.SubscribeToTopic(
+		string(subjects.AuctionCountReceive),
+		bus.SubscribeConfig{
+			Stop:      stop,
+			OnReady:   onReady,
+			OnStopped: onStopped,
+			Callback: func(busMsg bus.Message) {
+				logging.WithField("subject", subjects.AuctionCountReceive).Info("Received message")
 
-		in <- busMsg
+				in <- busMsg
 
-		return
-	})
+				return
+			},
+		},
+	)
 	if err != nil {
 		return err
 	}

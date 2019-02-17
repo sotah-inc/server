@@ -47,45 +47,31 @@ type Client struct {
 	subscriberId string
 }
 
+func (c Client) CreateTopic(id string) (*pubsub.Topic, error) {
+	return c.client.CreateTopic(c.context, id)
+}
+
 func (c Client) Topic(topicName string) *pubsub.Topic {
 	return c.client.Topic(topicName)
 }
 
-func (c Client) ResolveTopic(topicName string) (*pubsub.Topic, error) {
-	topic := c.Topic(topicName)
+func (c Client) ResolveTopic(id string) (*pubsub.Topic, error) {
+	topic := c.Topic(id)
 	exists, err := topic.Exists(c.context)
 	if err != nil {
 		return nil, err
 	}
-
 	if exists {
 		return topic, nil
 	}
 
-	return c.client.CreateTopic(c.context, topicName)
+	return c.CreateTopic(id)
 }
 
-func (c Client) resolveSubscription(topic *pubsub.Topic, subscriberName string) (*pubsub.Subscription, error) {
-	subscription := c.client.Subscription(subscriberName)
-	exists, err := subscription.Exists(c.context)
-	if err != nil {
-		return nil, err
-	}
-
-	if exists {
-		return subscription, nil
-	}
-
-	return c.client.CreateSubscription(c.context, subscriberName, pubsub.SubscriptionConfig{Topic: topic})
-}
-
-func (c Client) PublishToTopic(topicName string, msg Message) (string, error) {
-	topic, err := c.ResolveTopic(topicName)
-	if err != nil {
-		return "", err
-	}
-
-	return c.Publish(topic, msg)
+func (c Client) CreateSubscription(topic *pubsub.Topic) (*pubsub.Subscription, error) {
+	return c.client.CreateSubscription(c.context, c.subscriberName(topic), pubsub.SubscriptionConfig{
+		Topic: topic,
+	})
 }
 
 func (c Client) Publish(topic *pubsub.Topic, msg Message) (string, error) {
@@ -97,45 +83,49 @@ func (c Client) Publish(topic *pubsub.Topic, msg Message) (string, error) {
 	return topic.Publish(c.context, &pubsub.Message{Data: data}).Get(c.context)
 }
 
-func (c Client) SubscribeToTopic(topicName string, stop chan interface{}, cb func(Message)) error {
-	topic, err := c.ResolveTopic(topicName)
-	if err != nil {
-		return err
-	}
-
-	return c.Subscribe(topic, stop, cb)
-}
-
-func (c Client) SubscriberName(topic *pubsub.Topic) string {
+func (c Client) subscriberName(topic *pubsub.Topic) string {
 	return fmt.Sprintf("subscriber-%s-%s-%s", c.subscriberId, topic.ID(), uuid.NewV4().String())
 }
 
-func (c Client) Subscribe(topic *pubsub.Topic, stop chan interface{}, cb func(Message)) error {
-	subscriberName := c.SubscriberName(topic)
+func (c Client) SubscribeToTopic(id string, config SubscribeConfig) error {
+	topic, err := c.ResolveTopic(id)
+	if err != nil {
+		return err
+	}
+	config.Topic = topic
 
-	entry := logging.WithFields(logrus.Fields{
-		"subscriber-name": subscriberName,
-		"topic":           topic.ID(),
-	})
+	return c.Subscribe(config)
+}
 
-	entry.Info("Subscribing to topic")
-	sub, err := c.client.CreateSubscription(c.context, subscriberName, pubsub.SubscriptionConfig{
-		Topic: topic,
-	})
+type SubscribeConfig struct {
+	Topic     *pubsub.Topic
+	Stop      chan interface{}
+	OnReady   chan interface{}
+	OnStopped chan interface{}
+	Callback  func(Message)
+}
+
+func (c Client) Subscribe(config SubscribeConfig) error {
+	sub, err := c.CreateSubscription(config.Topic)
 	if err != nil {
 		return err
 	}
 
+	config.OnReady <- struct{}{}
+
+	entry := logging.WithFields(logrus.Fields{
+		"subscriber-name": sub.ID(),
+		"topic":           config.Topic.ID(),
+	})
+
 	cctx, cancel := context.WithCancel(c.context)
 	go func() {
-		<-stop
-
-		entry.Info("Received stop signal, cancelling subscription")
+		<-config.Stop
 
 		cancel()
+		config.Topic.Stop()
 
-		entry.Info("Stopping topic")
-		topic.Stop()
+		config.OnStopped <- struct{}{}
 	}()
 
 	entry.Info("Waiting for messages")
@@ -149,7 +139,7 @@ func (c Client) Subscribe(topic *pubsub.Topic, stop chan interface{}, cb func(Me
 			return
 		}
 
-		cb(msg)
+		config.Callback(msg)
 	})
 	if err != nil {
 		if err == context.Canceled {
@@ -209,7 +199,7 @@ func (c Client) Request(recipientTopic *pubsub.Topic, payload string, timeout ti
 	}
 
 	// producing a reply-to subscription
-	replyToSub, err := c.client.CreateSubscription(c.context, c.SubscriberName(replyToTopic), pubsub.SubscriptionConfig{
+	replyToSub, err := c.client.CreateSubscription(c.context, c.subscriberName(replyToTopic), pubsub.SubscriptionConfig{
 		Topic: replyToTopic,
 	})
 	if err != nil {
