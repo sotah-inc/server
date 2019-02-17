@@ -98,6 +98,7 @@ func (pubState PubState) ListenForAuctionCount(stop ListenStopChan) error {
 	timeout := 5 * time.Minute
 
 	in := make(chan bus.Message)
+	logging.Info("Spawning channel for receiving responses")
 	go func() {
 		for {
 			select {
@@ -132,6 +133,7 @@ func (pubState PubState) ListenForAuctionCount(stop ListenStopChan) error {
 		}
 	}()
 
+	logging.Info("Calling subscribeToTopic")
 	err := pubState.IO.BusClient.SubscribeToTopic(string(subjects.AuctionCount), stop, func(busMsg bus.Message) {
 		logging.WithField("subject", subjects.AuctionCount).Info("Received message")
 

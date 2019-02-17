@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/state"
@@ -26,6 +27,7 @@ func Pub(config state.PubStateConfig) error {
 	}
 
 	// queueing up all realms
+	logging.Info("Queueing up realms")
 	for _, status := range pubState.Statuses {
 		for _, realm := range status.Realms {
 			jsonEncoded, err := json.Marshal(realm)
@@ -36,6 +38,10 @@ func Pub(config state.PubStateConfig) error {
 			msg := bus.NewMessage()
 			msg.Data = string(jsonEncoded)
 
+			logging.WithFields(logrus.Fields{
+				"region": realm.Region.Name,
+				"realm":  realm.Slug,
+			}).Info("Queueing up realm")
 			if _, err := pubState.IO.BusClient.Publish(pubState.IO.BusClient.Topic(string(subjects.AuctionCount)), msg); err != nil {
 				return err
 			}
