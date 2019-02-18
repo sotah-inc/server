@@ -25,7 +25,7 @@ steps:
 
 images: [
     'gcr.io/$PROJECT_ID/server',
-    'gcr.io/$PROJECT_ID/server:latest'
+    'gcr.io/$PROJECT_ID/server:latest',
     'gcr.io/$PROJECT_ID/server-build-env',
     'gcr.io/$PROJECT_ID/server-build-env:latest'
 ]
