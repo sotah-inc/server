@@ -1,17 +1,12 @@
 package command
 
 import (
-	"encoding/json"
 	"os"
 	"os/signal"
 
-	"github.com/sirupsen/logrus"
-	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state"
-	"github.com/sotah-inc/server/app/pkg/state/subjects"
-	"github.com/sotah-inc/server/app/pkg/util"
 )
 
 func Pub(config state.PubStateConfig) error {
@@ -23,62 +18,16 @@ func Pub(config state.PubStateConfig) error {
 		return err
 	}
 
-	// starting a listener
-	stop := make(chan interface{})
-	onReady := make(chan interface{})
-	onStopped := make(chan interface{})
-	go func() {
-		if err := pubState.ListenForAuctionCount(stop, onReady, onStopped); err != nil {
-			logging.WithField("error", err.Error()).Fatal("Failed to start listener")
-		}
-	}()
+	// starting up a pruner
+	logging.Info("Starting up the pricelist-histories file pruner")
+	prunerStop := make(sotah.WorkerStopChan)
+	onPrunerStop := pubState.IO.Databases.PricelistHistoryDatabasesV2.StartPruner(prunerStop)
 
-	// establishing channels for intake
-	in := make(chan sotah.Realm)
-
-	// spinning up the workers
-	worker := func() {
-		for realm := range in {
-			jsonEncoded, err := json.Marshal(realm)
-			if err != nil {
-				logging.WithField("error", err.Error()).Fatal("Failed to encode realm")
-
-				return
-			}
-
-			msg := bus.NewMessage()
-			msg.Data = string(jsonEncoded)
-
-			logging.WithFields(logrus.Fields{
-				"region": realm.Region.Name,
-				"realm":  realm.Slug,
-			}).Info("Queueing up realm")
-			if _, err := pubState.IO.BusClient.Publish(pubState.IO.BusClient.Topic(string(subjects.AuctionCount)), msg); err != nil {
-				logging.WithField("error", err.Error()).Fatal("Failed to publish message")
-
-				return
-			}
-		}
+	// opening all listeners
+	logging.Info("Opening all listeners")
+	if err := pubState.Listeners.Listen(); err != nil {
+		return err
 	}
-	postWork := func() {
-		return
-	}
-	util.Work(16, worker, postWork)
-
-	// waiting for the listener to start
-	<-onReady
-
-	// queueing up the realms
-	go func() {
-		logging.Info("Queueing up realms")
-		for _, status := range pubState.Statuses {
-			for _, realm := range status.Realms {
-				in <- realm
-			}
-		}
-
-		close(in)
-	}()
 
 	// catching SIGINT
 	logging.Info("Waiting for SIGINT")
@@ -89,8 +38,14 @@ func Pub(config state.PubStateConfig) error {
 	logging.Info("Caught SIGINT, exiting")
 
 	// stopping listeners
-	stop <- struct{}{}
-	<-onStopped
+	pubState.Listeners.Stop()
+
+	// stopping pruner
+	logging.Info("Stopping pruner")
+	prunerStop <- struct{}{}
+
+	logging.Info("Waiting for pruner to stop")
+	<-onPrunerStop
 
 	logging.Info("Exiting")
 	return nil
