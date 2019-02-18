@@ -2,7 +2,7 @@
 FROM golang:1.11-alpine
 
 # installing deps
-RUN apk update && apk upgrade \
+RUN apk update --upgrade \
   && apk add --no-cache bash git openssh
 
 # misc

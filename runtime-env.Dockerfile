@@ -1,9 +1,10 @@
 # running
-FROM debian as runtime-env
+FROM alpine as runtime-env
 
-# # installing ssl libs
-RUN apt-get update -y \
-  && apt-get install -yq ca-certificates
+# installing deps
+RUN apk update --upgrade \
+  && apk add --no-cache curl ca-certificates \
+  && update-ca-certificates
 
 # # runtime dir
 RUN mkdir /srv/app
