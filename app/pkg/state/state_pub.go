@@ -134,6 +134,11 @@ func NewPubState(config PubStateConfig) (PubState, error) {
 	}
 	pubState.IO = io
 
+	// establishing listeners
+	pubState.Listeners = NewListeners(SubjectListeners{
+		subjects.PricelistHistoriesIntakeV2: pubState.ListenForPricelistHistoriesIntakeV2,
+	})
+
 	return pubState, nil
 }
 
