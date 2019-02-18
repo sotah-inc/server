@@ -32,17 +32,6 @@ type PubStateConfig struct {
 func NewPubStateIO(config PubStateConfig, statuses sotah.Statuses) (IO, error) {
 	out := IO{}
 
-	// connecting to the messenger host
-	logging.Info("Connecting messenger")
-	mess, err := messenger.NewMessenger(config.MessengerHost, config.MessengerPort)
-	if err != nil {
-		return IO{}, err
-	}
-	out.Messenger = mess
-
-	// initializing a reporter
-	out.Reporter = metric.NewReporter(mess)
-
 	// establishing a bus
 	busClient, err := bus.NewClient(config.GCloudProjectID, "pub")
 	out.BusClient = busClient
@@ -69,6 +58,17 @@ func NewPubState(config PubStateConfig) (PubState, error) {
 	pubState := PubState{
 		State: NewState(uuid.NewV4(), true),
 	}
+
+	// connecting to the messenger host
+	logging.Info("Connecting messenger")
+	mess, err := messenger.NewMessenger(config.MessengerHost, config.MessengerPort)
+	if err != nil {
+		return PubState{}, err
+	}
+	pubState.IO.Messenger = mess
+
+	// initializing a reporter
+	pubState.IO.Reporter = metric.NewReporter(mess)
 
 	// gathering regions
 	logging.Info("Gathering regions")
