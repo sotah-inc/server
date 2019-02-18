@@ -4,25 +4,25 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: [
             'build',
+            '-f', './build-env.Dockerfile',
             '-t', 'gcr.io/$PROJECT_ID/server-build-env',
             # '--cache-from', 'gcr.io/$PROJECT_ID/server-build-env:latest',
-            '-f ./build-env.Dockerfile',
             '.'
         ]
 - name: 'gcr.io/cloud-builders/docker'
   args: [
             'build',
+            '-f', './build-env.Dockerfile',
             '-t', 'ihsw/sotah-server/build',
             # '--cache-from', 'gcr.io/$PROJECT_ID/server-build-env:latest',
-            '-f ./build-env.Dockerfile',
             '.'
         ]
 
 - name: 'gcr.io/cloud-builders/docker'
   args: [
             'build',
+            '-f', './runtime-env.Dockerfile',
             '-t', 'gcr.io/$PROJECT_ID/server',
-            '-f ./runtime-env.Dockerfile',
             '.'
         ]
 
