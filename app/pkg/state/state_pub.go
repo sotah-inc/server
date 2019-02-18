@@ -90,6 +90,7 @@ func NewPubState(config PubStateConfig) (PubState, error) {
 	}
 
 	// pruning old data
+	logging.Info("Checking for expired pricelist-histories-v2 databases")
 	earliestTime := database.RetentionLimit()
 	for regionName, status := range pubState.Statuses {
 		regionDatabaseDir := fmt.Sprintf("%s/%s", config.PricelistHistoriesDatabaseV2Dir, regionName)
@@ -128,6 +129,7 @@ func NewPubState(config PubStateConfig) (PubState, error) {
 	}
 
 	// connecting IO
+	logging.Info("Connecting IO")
 	io, err := NewPubStateIO(config, pubState.Statuses)
 	if err != nil {
 		return PubState{}, err
@@ -135,6 +137,7 @@ func NewPubState(config PubStateConfig) (PubState, error) {
 	pubState.IO = io
 
 	// establishing listeners
+	logging.Info("Establishing listeners")
 	pubState.Listeners = NewListeners(SubjectListeners{
 		subjects.PricelistHistoriesIntakeV2: pubState.ListenForPricelistHistoriesIntakeV2,
 	})
