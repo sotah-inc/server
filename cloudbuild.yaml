@@ -1,11 +1,31 @@
 steps:
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['pull', 'gcr.io/$PROJECT_ID/server:latest']
+  args: ['pull', 'gcr.io/$PROJECT_ID/server-build-env:latest']
+- name: 'gcr.io/cloud-builders/docker'
+  args: [
+            'build',
+            '-t', 'gcr.io/$PROJECT_ID/server-build-env',
+            '--cache-from', 'gcr.io/$PROJECT_ID/server-build-env:latest',
+            './build-env.Dockerfile'
+        ]
+- name: 'gcr.io/cloud-builders/docker'
+  args: [
+            'build',
+            '-t', 'ihsw/sotah-server/build',
+            '--cache-from', 'gcr.io/$PROJECT_ID/server-build-env:latest',
+            './build-env.Dockerfile'
+        ]
+
 - name: 'gcr.io/cloud-builders/docker'
   args: [
             'build',
             '-t', 'gcr.io/$PROJECT_ID/server',
-            '--cache-from', 'gcr.io/$PROJECT_ID/server:latest',
-            '.'
+            './runtime-env.Dockerfile'
         ]
-images: ['gcr.io/$PROJECT_ID/server', 'gcr.io/$PROJECT_ID/server:latest']
+
+images: [
+    'gcr.io/$PROJECT_ID/server',
+    'gcr.io/$PROJECT_ID/server:latest'
+    'gcr.io/$PROJECT_ID/server-build-env',
+    'gcr.io/$PROJECT_ID/server-build-env:latest'
+]
