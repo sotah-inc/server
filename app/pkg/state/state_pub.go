@@ -33,10 +33,12 @@ func NewPubStateIO(config PubStateConfig, statuses sotah.Statuses) (IO, error) {
 	out := IO{}
 
 	// establishing a bus
+	logging.Info("Connecting bus-client")
 	busClient, err := bus.NewClient(config.GCloudProjectID, "pub")
 	out.BusClient = busClient
 
 	// establishing a store
+	logging.Info("Connecting store-client")
 	stor, err := store.NewClient(config.GCloudProjectID)
 	if err != nil {
 		return IO{}, err
@@ -44,6 +46,7 @@ func NewPubStateIO(config PubStateConfig, statuses sotah.Statuses) (IO, error) {
 	out.StoreClient = stor
 
 	// loading the pricelist-histories-v2 databases
+	logging.Info("Loading pricelist-history-databases-v2")
 	phDatabases, err := database.NewPricelistHistoryDatabasesV2(config.PricelistHistoriesDatabaseV2Dir, statuses)
 	if err != nil {
 		return IO{}, err
