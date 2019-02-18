@@ -5,12 +5,11 @@ import (
 	"encoding/json"
 	"log"
 	"os"
-	"strconv"
 
-	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sirupsen/logrus"
+	"github.com/sotah-inc/server/app/pkg/logging"
 
 	"github.com/sotah-inc/server/app/pkg/bus"
-	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
 )
 
@@ -39,29 +38,34 @@ type PubSubMessage struct {
 	Data []byte `json:"data"`
 }
 
-// 22314166
-
 func HelloPubSub(_ context.Context, m PubSubMessage) error {
 	var in bus.Message
 	if err := json.Unmarshal(m.Data, &in); err != nil {
 		return err
 	}
 
-	var realm sotah.Realm
-	if err := json.Unmarshal([]byte(in.Data), &realm); err != nil {
+	var job bus.LoadRegionRealmTimestampsInJob
+	if err := json.Unmarshal([]byte(in.Data), &job); err != nil {
 		return err
 	}
 
-	aucs, err := storeClient.GetTestAuctions(realm)
-	if err != nil {
-		return err
-	}
+	logging.WithFields(logrus.Fields{
+		"region":      job.RegionName,
+		"realm":       job.RealmSlug,
+		"target-time": job.TargetTimestamp,
+	}).Info("Received request to process auctions")
 
-	msg := bus.NewMessage()
-	msg.Data = strconv.Itoa(len(aucs.Auctions))
-	if _, err := busClient.Publish(busClient.Topic(string(subjects.AuctionCountReceive)), msg); err != nil {
-		return err
-	}
+	//region := sotah.Region{Name: blizzard.RegionName(job.RegionName)}
+	//realm := sotah.Realm{
+	//	Realm:  blizzard.Realm{Slug: blizzard.RealmSlug(job.RealmSlug)},
+	//	Region: region,
+	//}
+	//targetTime := time.Unix(int64(job.TargetTimestamp), 0)
+
+	//aucs, err := storeClient.GetAuctions(realm, targetTime)
+	//if err != nil {
+	//	return err
+	//}
 
 	return nil
 }
