@@ -2,7 +2,8 @@
 FROM alpine as runtime-env
 
 # installing deps
-RUN apk update --upgrade \
+RUN apk update \
+  && apk upgrade \
   && apk add --no-cache curl ca-certificates \
   && update-ca-certificates
 
