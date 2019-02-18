@@ -15,7 +15,6 @@ steps:
             ,'gcr.io/$PROJECT_ID/server-build-env',
             'ihsw/sotah-server/build'
         ]
-
 - name: 'gcr.io/cloud-builders/docker'
   args: [
             'build',
@@ -23,7 +22,6 @@ steps:
             '-t', 'gcr.io/$PROJECT_ID/server',
             '.'
         ]
-
 images: [
     'gcr.io/$PROJECT_ID/server',
     'gcr.io/$PROJECT_ID/server:latest',
