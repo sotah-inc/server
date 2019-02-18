@@ -120,6 +120,22 @@ func (pRequest pricelistHistoriesIntakeRequest) handle(sta PricelistHistoriesSta
 		}
 	}
 
+	// publishing for pricelist-histories-intake
+	phiRequest := pricelistHistoriesIntakeV2Request{RegionRealmTimestamps: pRequest.RegionRealmTimestamps}
+	err := func() error {
+		encodedRequest, err := json.Marshal(phiRequest)
+		if err != nil {
+			return err
+		}
+
+		return sta.IO.Messenger.Publish(string(subjects.PricelistHistoriesIntakeV2), encodedRequest)
+	}()
+	if err != nil {
+		logging.WithField("error", err.Error()).Error("Failed to publish pricelist-histories-intake-v2-request")
+
+		return
+	}
+
 	duration := time.Now().Sub(startTime)
 	sta.IO.Reporter.Report(metric.Metrics{
 		"pricelisthistories_intake_duration": int(duration) / 1000 / 1000 / 1000,
