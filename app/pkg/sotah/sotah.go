@@ -93,3 +93,7 @@ func (rMap RealmMap) ToRealms() Realms {
 type UnixTimestamp int64
 
 type WorkerStopChan chan struct{}
+
+type RealmTimestamps map[blizzard.RealmSlug]int64
+
+type RegionRealmTimestamps map[blizzard.RegionName]RealmTimestamps

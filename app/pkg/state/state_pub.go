@@ -157,7 +157,7 @@ func newPricelistHistoriesIntakeV2Request(data []byte) (pricelistHistoriesIntake
 }
 
 type pricelistHistoriesIntakeV2Request struct {
-	RegionRealmTimestamps RegionRealmTimestamps `json:"realm_timestamps"`
+	RegionRealmTimestamps sotah.RegionRealmTimestamps `json:"realm_timestamps"`
 }
 
 func (pRequest pricelistHistoriesIntakeV2Request) resolve(statuses sotah.Statuses) (RegionRealmTimes, sotah.RegionRealmMap) {

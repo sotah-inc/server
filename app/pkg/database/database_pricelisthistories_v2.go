@@ -95,30 +95,12 @@ func (phdBases PricelistHistoryDatabasesV2) Load(in chan LoadInJob) chan priceli
 	// spinning up workers for receiving auctions and persisting them
 	worker := func() {
 		for job := range in {
-			phdBase, err := phdBases.resolveDatabaseFromLoadInJob(job)
-			if err != nil {
+			if _, err := phdBases.resolveDatabaseFromLoadInJob(job); err != nil {
 				logging.WithFields(logrus.Fields{
 					"error":  err.Error(),
 					"region": job.Realm.Region.Name,
 					"realm":  job.Realm.Slug,
 				}).Error("Could not resolve database from load job")
-
-				out <- pricelistHistoriesLoadOutJob{
-					Err:          err,
-					Realm:        job.Realm,
-					LastModified: job.TargetTime,
-				}
-
-				continue
-			}
-
-			iPrices := sotah.NewItemPrices(sotah.NewMiniAuctionListFromMiniAuctions(sotah.NewMiniAuctions(job.Auctions)))
-			if err := phdBase.persistItemPrices(job.TargetTime, iPrices); err != nil {
-				logging.WithFields(logrus.Fields{
-					"error":  err.Error(),
-					"region": job.Realm.Region.Name,
-					"realm":  job.Realm.Slug,
-				}).Error("Failed to persist pricelists")
 
 				out <- pricelistHistoriesLoadOutJob{
 					Err:          err,

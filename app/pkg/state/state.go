@@ -109,7 +109,3 @@ type RealmTimeTuple struct {
 type RealmTimes map[blizzard.RealmSlug]RealmTimeTuple
 
 type RegionRealmTimes map[blizzard.RegionName]RealmTimes
-
-type RealmTimestamps map[blizzard.RealmSlug]int64
-
-type RegionRealmTimestamps map[blizzard.RegionName]RealmTimestamps

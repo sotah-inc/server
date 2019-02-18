@@ -5,7 +5,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/logging"
-	"github.com/sotah-inc/server/app/pkg/state"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
@@ -16,7 +16,7 @@ type LoadRegionRealmTimestampsInJob struct {
 	TargetTimestamp int    `json:"target_timestamp"`
 }
 
-func (c Client) LoadRegionRealmTimestamps(rTimestamps state.RegionRealmTimestamps) {
+func (c Client) LoadRegionRealmTimestamps(rTimestamps sotah.RegionRealmTimestamps) {
 	// establishing channels for intake
 	in := make(chan LoadRegionRealmTimestampsInJob)
 
