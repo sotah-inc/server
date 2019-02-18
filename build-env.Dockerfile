@@ -1,5 +1,5 @@
 # building
-FROM golang:1.11
+FROM golang:1.11-alpine
 
 # misc
 ENV APP_PROJECT github.com/ihsw/sotah-server/app
