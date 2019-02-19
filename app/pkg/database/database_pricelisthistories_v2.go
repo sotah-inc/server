@@ -41,7 +41,7 @@ func NewPricelistHistoryDatabasesV2(dirPath string, statuses sotah.Statuses) (Pr
 		for _, rea := range regionStatuses.Realms {
 			phdBases.Databases[regionName][rea.Slug] = PricelistHistoryDatabaseV2Shards{}
 
-			dbPathPairs, err := DatabasePaths(fmt.Sprintf("%s/%s/%s", dirPath, regionName, rea.Slug))
+			dbPathPairs, err := DatabaseV2Paths(fmt.Sprintf("%s/%s/%s", dirPath, regionName, rea.Slug))
 			if err != nil {
 				return PricelistHistoryDatabasesV2{}, err
 			}
