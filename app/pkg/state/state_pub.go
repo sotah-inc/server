@@ -225,7 +225,8 @@ func (pRequest pricelistHistoriesIntakeV2Request) handle(sta PubState) {
 	}()
 
 	// loading region-realm-timestamps from request into the bus
-	sta.IO.BusClient.LoadRegionRealmTimestamps(pRequest.RegionRealmTimestamps)
+	// sta.IO.BusClient.LoadRegionRealmTimestamps(pRequest.RegionRealmTimestamps)
+	time.Sleep(10 * time.Second)
 
 	duration := time.Now().Sub(startTime)
 	durationKind := fmt.Sprintf("%s_duration", kinds.PricelistHistoriesIntakeV2)
