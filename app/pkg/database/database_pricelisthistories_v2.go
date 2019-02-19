@@ -241,6 +241,8 @@ func (phdShards PricelistHistoryDatabaseV2Shards) GetPriceHistory(
 }
 
 func newPricelistHistoryDatabaseV2(dbFilepath string, targetDate time.Time) (PricelistHistoryDatabaseV2, error) {
+	logging.WithField("db-filepath", dbFilepath).Info("Opening database")
+
 	db, err := bolt.Open(dbFilepath, 0600, nil)
 	if err != nil {
 		return PricelistHistoryDatabaseV2{}, err
