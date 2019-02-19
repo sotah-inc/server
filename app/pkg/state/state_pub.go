@@ -70,9 +70,6 @@ func NewPubState(config PubStateConfig) (PubState, error) {
 	}
 	pubState.IO.Messenger = mess
 
-	// initializing a reporter
-	pubState.IO.Reporter = metric.NewReporter(mess)
-
 	// gathering regions
 	logging.Info("Gathering regions")
 	regions, err := pubState.NewRegions()
@@ -137,6 +134,8 @@ func NewPubState(config PubStateConfig) (PubState, error) {
 	if err != nil {
 		return PubState{}, err
 	}
+	io.Messenger = mess
+	io.Reporter = metric.NewReporter(mess)
 	pubState.IO = io
 
 	// establishing listeners
