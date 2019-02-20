@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"log"
 	"os"
+	"time"
 
 	"github.com/sirupsen/logrus"
-	"github.com/sotah-inc/server/app/pkg/logging"
-
+	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
+	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/store"
 )
 
@@ -49,23 +51,25 @@ func HelloPubSub(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
+	region := sotah.Region{Name: blizzard.RegionName(job.RegionName)}
+	realm := sotah.Realm{
+		Realm:  blizzard.Realm{Slug: blizzard.RealmSlug(job.RealmSlug)},
+		Region: region,
+	}
+	targetTime := time.Unix(int64(job.TargetTimestamp), 0)
+
+	aucs, err := storeClient.GetAuctions(realm, targetTime)
+	if err != nil {
+		return err
+	}
+
 	logging.WithFields(logrus.Fields{
-		"region":      job.RegionName,
-		"realm":       job.RealmSlug,
-		"target-time": job.TargetTimestamp,
+		"region":      region.Name,
+		"realm":       realm.Slug,
+		"target-time": targetTime.Unix(),
+		"auctions":    len(aucs.Auctions),
+		"owners":      len(aucs.OwnerNames()),
 	}).Info("Received request to process auctions")
-
-	//region := sotah.Region{Name: blizzard.RegionName(job.RegionName)}
-	//realm := sotah.Realm{
-	//	Realm:  blizzard.Realm{Slug: blizzard.RealmSlug(job.RealmSlug)},
-	//	Region: region,
-	//}
-	//targetTime := time.Unix(int64(job.TargetTimestamp), 0)
-
-	//aucs, err := storeClient.GetAuctions(realm, targetTime)
-	//if err != nil {
-	//	return err
-	//}
 
 	return nil
 }
