@@ -5,9 +5,6 @@ import (
 	"io/ioutil"
 	"time"
 
-	"github.com/sirupsen/logrus"
-	"github.com/sotah-inc/server/app/pkg/logging"
-
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/sotah"
@@ -44,13 +41,6 @@ func (b PricelistHistoriesBase) getObject(targetTime time.Time, bkt *storage.Buc
 func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.Time, rea sotah.Realm) error {
 	normalizedTargetDate := sotah.NormalizeTargetDate(targetTime)
 
-	entry := logging.WithFields(logrus.Fields{
-		"region":                 rea.Region.Name,
-		"realm":                  rea.Slug,
-		"normalized-target-date": normalizedTargetDate,
-	})
-	entry.Info("Handling, resolving bucket")
-
 	// gathering the bucket
 	bkt, err := b.resolveBucket(rea)
 	if err != nil {
@@ -59,8 +49,6 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 
 	// gathering an object
 	obj := b.getObject(normalizedTargetDate, bkt)
-
-	entry.Info("Resolved bucket, resolving item-price-histories")
 
 	// resolving item-price-histories
 	ipHistories, err := func() (sotah.ItemPriceHistories, error) {
@@ -90,12 +78,8 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 	// resolving unix-timestamp of target-time
 	targetTimestamp := sotah.UnixTimestamp(targetTime.Unix())
 
-	entry.WithField("item-price-histories", len(ipHistories)).Info("Resolved item-price-histories, resolving item-prices from auctions")
-
 	// gathering new item-prices from the input
 	iPrices := sotah.NewItemPrices(sotah.NewMiniAuctionListFromMiniAuctions(sotah.NewMiniAuctions(aucs)))
-
-	entry.WithField("items", len(iPrices)).Info("Resolved item-prices from auctions, merging item-prices in")
 
 	// merging item-prices into the item-price-histories
 	for itemId, prices := range iPrices {
@@ -112,15 +96,11 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 		ipHistories[itemId] = pHistory
 	}
 
-	entry.WithField("target-timestamp", targetTimestamp).Info("Merged item-prices in, encoding item-price-histories for persistence")
-
 	// encoding the item-price-histories for persistence
 	gzipEncodedBody, err := ipHistories.EncodeForPersistence()
 	if err != nil {
 		return err
 	}
-
-	entry.Info("Encoded item-price-histories, writing to gcloud obj")
 
 	// writing it out to the gcloud object
 	wc := obj.NewWriter(b.client.Context)
@@ -129,8 +109,6 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 	if _, err := wc.Write(gzipEncodedBody); err != nil {
 		return err
 	}
-
-	entry.Info("Written to gcloud obj, closing")
 
 	return wc.Close()
 }
