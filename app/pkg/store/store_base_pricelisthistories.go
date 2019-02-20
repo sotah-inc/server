@@ -56,7 +56,7 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 	}
 
 	// gathering an object
-	obj := b.getObject(targetTime, bkt)
+	obj := b.getObject(sotah.NormalizeTargetDate(targetTime), bkt)
 
 	entry.Info("Resolved bucket, resolving item-price-histories")
 
