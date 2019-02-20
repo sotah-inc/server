@@ -72,6 +72,8 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 			return sotah.ItemPriceHistories{}, nil
 		}
 
+		entry.Info("Fetching existing item-price-histories")
+
 		reader, err := obj.NewReader(b.client.Context)
 		if err != nil {
 			return sotah.ItemPriceHistories{}, err
