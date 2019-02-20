@@ -42,10 +42,12 @@ func (b PricelistHistoriesBase) getObject(targetTime time.Time, bkt *storage.Buc
 }
 
 func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.Time, rea sotah.Realm) error {
+	normalizedTargetDate := sotah.NormalizeTargetDate(targetTime)
+
 	entry := logging.WithFields(logrus.Fields{
-		"region":      rea.Region.Name,
-		"realm":       rea.Slug,
-		"target-time": targetTime.Unix(),
+		"region":                 rea.Region.Name,
+		"realm":                  rea.Slug,
+		"normalized-target-date": normalizedTargetDate,
 	})
 	entry.Info("Handling, resolving bucket")
 
@@ -56,7 +58,7 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 	}
 
 	// gathering an object
-	obj := b.getObject(sotah.NormalizeTargetDate(targetTime), bkt)
+	obj := b.getObject(normalizedTargetDate, bkt)
 
 	entry.Info("Resolved bucket, resolving item-price-histories")
 
@@ -110,7 +112,7 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 		ipHistories[itemId] = pHistory
 	}
 
-	entry.Info("Merged item-prices in, encoding item-price-histories for persistence")
+	entry.WithField("target-timestamp", targetTimestamp).Info("Merged item-prices in, encoding item-price-histories for persistence")
 
 	// encoding the item-price-histories for persistence
 	gzipEncodedBody, err := ipHistories.EncodeForPersistence()
