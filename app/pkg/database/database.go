@@ -8,17 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sotah-inc/server/app/pkg/blizzard"
-	"github.com/sotah-inc/server/app/pkg/sotah"
-
 	"github.com/sirupsen/logrus"
+	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 )
-
-func normalizeTargetDate(targetDate time.Time) time.Time {
-	nearestWeekStartOffset := targetDate.Second() + targetDate.Minute()*60 + targetDate.Hour()*60*60
-	return time.Unix(targetDate.Unix()-int64(nearestWeekStartOffset), 0)
-}
 
 func RetentionLimit() time.Time {
 	return time.Now().Add(-1 * time.Hour * 24 * 30)

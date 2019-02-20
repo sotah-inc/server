@@ -84,7 +84,7 @@ type PricelistHistoryDatabases struct {
 }
 
 func (phdBases PricelistHistoryDatabases) resolveDatabaseFromLoadInJob(job LoadInJob) (PricelistHistoryDatabase, error) {
-	normalizedTargetDate := normalizeTargetDate(job.TargetTime)
+	normalizedTargetDate := sotah.NormalizeTargetDate(job.TargetTime)
 	normalizedTargetTimestamp := sotah.UnixTimestamp(normalizedTargetDate.Unix())
 
 	phdBase, ok := phdBases.Databases[job.Realm.Region.Name][job.Realm.Slug][normalizedTargetTimestamp]
