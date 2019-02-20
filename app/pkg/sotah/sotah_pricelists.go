@@ -130,7 +130,35 @@ func (p Prices) EncodeForPersistence() ([]byte, error) {
 }
 
 // item-price-histories
+func NewItemPriceHistoriesFromGzipped(data []byte) (ItemPriceHistories, error) {
+	gzipDecoded, err := util.GzipDecode(data)
+	if err != nil {
+		return ItemPriceHistories{}, err
+	}
+
+	out := ItemPriceHistories{}
+	if err := json.Unmarshal(gzipDecoded, &out); err != nil {
+		return ItemPriceHistories{}, err
+	}
+
+	return out, nil
+}
+
 type ItemPriceHistories map[blizzard.ItemID]PriceHistory
+
+func (ipHistories ItemPriceHistories) EncodeForPersistence() ([]byte, error) {
+	jsonEncoded, err := json.Marshal(ipHistories)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	gzipEncoded, err := util.GzipEncode(jsonEncoded)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return gzipEncoded, nil
+}
 
 // price-history
 func NewPriceHistoryFromBytes(data []byte) (PriceHistory, error) {
