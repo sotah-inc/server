@@ -34,7 +34,7 @@ func (b PricelistHistoriesBase) getObject(targetTime time.Time, bkt *storage.Buc
 	return b.base.getObject(b.getObjectName(targetTime), bkt)
 }
 
-func (b PricelistHistoriesBase) handle(aucs blizzard.Auctions, targetTime time.Time, rea sotah.Realm) error {
+func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.Time, rea sotah.Realm) error {
 	// gathering the bucket
 	bkt, err := b.resolveBucket(rea)
 	if err != nil {
