@@ -110,6 +110,10 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 		}()
 		pHistory[targetTimestamp] = prices
 
+		if len(pHistory) > 1 {
+			entry.WithField("item-id", itemId).Info("Found with longer than 1 entry")
+		}
+
 		ipHistories[itemId] = pHistory
 	}
 
