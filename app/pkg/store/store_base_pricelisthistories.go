@@ -10,6 +10,10 @@ import (
 	"github.com/sotah-inc/server/app/pkg/sotah"
 )
 
+func NewPricelistHistoriesBase(c Client) PricelistHistoriesBase {
+	return PricelistHistoriesBase{base{client: c}}
+}
+
 type PricelistHistoriesBase struct {
 	base
 }
