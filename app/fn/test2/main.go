@@ -7,10 +7,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
-	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/store"
 )
@@ -18,6 +16,7 @@ import (
 var projectId = os.Getenv("GCP_PROJECT")
 var busClient bus.Client
 var storeClient store.Client
+var pricelistHistoriesStoreBase store.PricelistHistoriesBase
 
 func init() {
 	var err error
@@ -34,6 +33,8 @@ func init() {
 
 		return
 	}
+
+	pricelistHistoriesStoreBase = store.NewPricelistHistoriesBase(storeClient)
 }
 
 type PubSubMessage struct {
@@ -63,13 +64,5 @@ func HelloPubSub(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
-	logging.WithFields(logrus.Fields{
-		"region":      region.Name,
-		"realm":       realm.Slug,
-		"target-time": targetTime.Unix(),
-		"auctions":    len(aucs.Auctions),
-		"owners":      len(aucs.OwnerNames()),
-	}).Info("Received request to process auctions")
-
-	return nil
+	return pricelistHistoriesStoreBase.Handle(aucs, targetTime, realm)
 }
