@@ -256,7 +256,7 @@ func (pubState PubState) ListenForPricelistHistoriesIntakeV2(stop ListenStopChan
 		}, kinds.PricelistHistoriesIntakeV2)
 		logging.WithField("capacity", len(in)).Info("Received pricelist-histories-intake-v2-request, pushing onto handle channel")
 
-		//in <- pRequest
+		in <- pRequest
 	})
 	if err != nil {
 		return err
