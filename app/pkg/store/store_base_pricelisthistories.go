@@ -1,6 +1,7 @@
 package store
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"time"
@@ -82,6 +83,9 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 
 		return sotah.NewItemPriceHistoriesFromGzipped(body)
 	}()
+	if len(ipHistories) == 0 {
+		return errors.New("item-price-histories was blank")
+	}
 
 	// resolving unix-timestamp of target-time
 	targetTimestamp := sotah.UnixTimestamp(targetTime.Unix())
