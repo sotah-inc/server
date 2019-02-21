@@ -86,7 +86,7 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 			return sotah.ItemPriceHistories{}, err
 		}
 
-		return sotah.NewItemPriceHistoriesFromGzipped(body)
+		return sotah.NewItemPriceHistories(body)
 	}()
 	if err != nil {
 		return err

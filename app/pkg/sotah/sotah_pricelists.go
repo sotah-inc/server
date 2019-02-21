@@ -2,7 +2,6 @@ package sotah
 
 import (
 	"encoding/json"
-	"github.com/sotah-inc/server/app/pkg/logging"
 	"math"
 	"sort"
 
@@ -131,22 +130,11 @@ func (p Prices) EncodeForPersistence() ([]byte, error) {
 }
 
 // item-price-histories
-func NewItemPriceHistoriesFromGzipped(data []byte) (ItemPriceHistories, error) {
-	logging.WithField("data", len(data)).Info("Gzip-decoding data")
-
-	gzipDecoded, err := util.GzipDecode(data)
-	if err != nil {
-		return ItemPriceHistories{}, err
-	}
-
-	logging.WithField("data", len(gzipDecoded)).Info("Json-decoding data")
-
+func NewItemPriceHistories(data []byte) (ItemPriceHistories, error) {
 	out := ItemPriceHistories{}
-	if err := json.Unmarshal(gzipDecoded, &out); err != nil {
+	if err := json.Unmarshal(data, &out); err != nil {
 		return ItemPriceHistories{}, err
 	}
-
-	logging.WithField("item-price-histories", len(out)).Info("Decoded item-price-histories from json")
 
 	return out, nil
 }
