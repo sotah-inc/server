@@ -1,8 +1,14 @@
 package command
 
 import (
+	"errors"
+	"github.com/sotah-inc/server/app/pkg/store"
+	"google.golang.org/api/iterator"
 	"os"
 	"os/signal"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
@@ -27,6 +33,77 @@ func Pub(config state.PubStateConfig) error {
 	logging.Info("Opening all listeners")
 	if err := pubState.Listeners.Listen(); err != nil {
 		return err
+	}
+
+	// resolving the pricelist-histories store-base
+	pricelistHistoriesBase := store.NewPricelistHistoriesBase(pubState.IO.StoreClient)
+
+	// gathering a realm
+	realm := func() sotah.Realm {
+		for regionName, status := range pubState.Statuses {
+			if regionName != "us" {
+				continue
+			}
+
+			for realmSlug, rea := range status.Realms {
+				if string(realmSlug) != "earthen-ring" {
+					continue
+				}
+
+				return rea
+			}
+		}
+
+		return sotah.Realm{}
+	}()
+	if realm.Slug == "" {
+		return errors.New("could not resolve realm")
+	}
+
+	// going over all auctions in a realm
+	bkt := pubState.IO.StoreClient.GetRealmAuctionsBucket(realm)
+	it := bkt.Objects(pubState.IO.StoreClient.Context, nil)
+	i := 0
+	for {
+		objAttrs, err := it.Next()
+		if err != nil {
+			if err == iterator.Done {
+				break
+			}
+
+			return err
+		}
+
+		obj := bkt.Object(objAttrs.Name)
+		targetTime, err := func() (time.Time, error) {
+			s := strings.Split(objAttrs.Name, ".")
+			targetTimestamp, err := strconv.Atoi(s[0])
+			if err != nil {
+				return time.Time{}, err
+			}
+
+			targetTime := time.Unix(int64(targetTimestamp), 0)
+
+			return targetTime, nil
+		}()
+		if err != nil {
+			return err
+		}
+
+		aucs, err := pubState.IO.StoreClient.NewAuctions(obj)
+		if err != nil {
+			return err
+		}
+
+		if err := pricelistHistoriesBase.Handle(aucs, targetTime, realm); err != nil {
+			return err
+		}
+
+		i++
+
+		if i > 5 {
+			break
+		}
 	}
 
 	// catching SIGINT
