@@ -88,6 +88,9 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 
 		return sotah.NewItemPriceHistoriesFromGzipped(body)
 	}()
+	if err != nil {
+		return err
+	}
 	if len(ipHistories) == 0 {
 		entry.Error("Item-price-histories was blank")
 
