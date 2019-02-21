@@ -1,15 +1,12 @@
 package store
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"time"
 
 	"cloud.google.com/go/storage"
-	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
-	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 )
 
@@ -44,16 +41,8 @@ func (b PricelistHistoriesBase) getObject(targetTime time.Time, bkt *storage.Buc
 func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.Time, rea sotah.Realm) error {
 	normalizedTargetDate := sotah.NormalizeTargetDate(targetTime)
 
-	entry := logging.WithFields(logrus.Fields{
-		"region":                 rea.Region.Name,
-		"realm":                  rea.Slug,
-		"normalized-target-date": normalizedTargetDate.Unix(),
-	})
-
 	// resolving unix-timestamp of target-time
 	targetTimestamp := sotah.UnixTimestamp(targetTime.Unix())
-
-	entry.WithField("target-date", targetTimestamp).Info("Handling, resolving bucket")
 
 	// gathering the bucket
 	bkt, err := b.resolveBucket(rea)
@@ -90,11 +79,6 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 	}()
 	if err != nil {
 		return err
-	}
-	if len(ipHistories) == 0 {
-		entry.Error("Item-price-histories was blank")
-
-		return errors.New("item-price-histories was blank")
 	}
 
 	// gathering new item-prices from the input
