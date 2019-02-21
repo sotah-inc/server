@@ -2,13 +2,14 @@ package command
 
 import (
 	"errors"
-	"github.com/sotah-inc/server/app/pkg/store"
-	"google.golang.org/api/iterator"
 	"os"
 	"os/signal"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/sotah-inc/server/app/pkg/store"
+	"google.golang.org/api/iterator"
 
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
@@ -100,10 +101,6 @@ func Pub(config state.PubStateConfig) error {
 		}
 
 		i++
-
-		if i > 10 {
-			break
-		}
 	}
 
 	// catching SIGINT
