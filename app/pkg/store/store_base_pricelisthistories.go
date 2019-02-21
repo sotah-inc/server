@@ -59,8 +59,6 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 	// gathering an object
 	obj := b.getObject(normalizedTargetDate, bkt)
 
-	entry.Info("Resolved bucket, resolving item-price-histories")
-
 	// resolving item-price-histories
 	ipHistories, err := func() (sotah.ItemPriceHistories, error) {
 		exists, err := b.objectExists(obj)
@@ -83,20 +81,14 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 			return sotah.ItemPriceHistories{}, err
 		}
 
-		entry.WithField("length", len(body)).Info("Decoding item-price-histories")
-
 		return sotah.NewItemPriceHistoriesFromGzipped(body)
 	}()
 
 	// resolving unix-timestamp of target-time
 	targetTimestamp := sotah.UnixTimestamp(targetTime.Unix())
 
-	entry.WithField("item-price-histories", len(ipHistories)).Info("Resolved item-price-histories, resolving item-prices from auctions")
-
 	// gathering new item-prices from the input
 	iPrices := sotah.NewItemPrices(sotah.NewMiniAuctionListFromMiniAuctions(sotah.NewMiniAuctions(aucs)))
-
-	entry.WithField("items", len(iPrices)).Info("Resolved item-prices from auctions, merging item-prices in")
 
 	// merging item-prices into the item-price-histories
 	for itemId, prices := range iPrices {
@@ -110,22 +102,14 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 		}()
 		pHistory[targetTimestamp] = prices
 
-		if len(pHistory) > 1 {
-			entry.WithField("item-id", itemId).Info("Found with longer than 1 entry")
-		}
-
 		ipHistories[itemId] = pHistory
 	}
-
-	entry.WithField("target-timestamp", targetTimestamp).Info("Merged item-prices in, encoding item-price-histories for persistence")
 
 	// encoding the item-price-histories for persistence
 	gzipEncodedBody, err := ipHistories.EncodeForPersistence()
 	if err != nil {
 		return err
 	}
-
-	entry.Info("Encoded item-price-histories, writing to gcloud obj")
 
 	// writing it out to the gcloud object
 	wc := obj.NewWriter(b.client.Context)
@@ -134,8 +118,6 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 	if _, err := wc.Write(gzipEncodedBody); err != nil {
 		return err
 	}
-
-	entry.Info("Written to gcloud obj, closing")
 
 	return wc.Close()
 }
