@@ -45,8 +45,8 @@ func Pub(config state.PubStateConfig) error {
 				continue
 			}
 
-			for realmSlug, rea := range status.Realms {
-				if string(realmSlug) != "earthen-ring" {
+			for _, rea := range status.Realms {
+				if rea.Slug != "earthen-ring" {
 					continue
 				}
 
