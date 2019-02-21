@@ -84,7 +84,7 @@ func (sto Client) realmAuctionsObjectExists(bkt *storage.BucketHandle, lastModif
 	return true, nil
 }
 
-func (sto Client) getRealmAuctionsObjectAtTime(bkt *storage.BucketHandle, targetTime time.Time) (*storage.ObjectHandle, error) {
+func (sto Client) GetRealmAuctionsObjectAtTime(bkt *storage.BucketHandle, targetTime time.Time) (*storage.ObjectHandle, error) {
 	logging.WithField("targetTime", targetTime.Unix()).Debug("Fetching realm-auctions object at time")
 
 	exists, err := sto.realmAuctionsObjectExists(bkt, targetTime)
@@ -302,7 +302,7 @@ func (sto Client) GetAuctions(rea sotah.Realm, targetTime time.Time) (blizzard.A
 		return blizzard.Auctions{}, err
 	}
 
-	obj, err := sto.getRealmAuctionsObjectAtTime(bkt, targetTime)
+	obj, err := sto.GetRealmAuctionsObjectAtTime(bkt, targetTime)
 	if err != nil {
 		return blizzard.Auctions{}, err
 	}

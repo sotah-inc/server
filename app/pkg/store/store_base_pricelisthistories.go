@@ -24,7 +24,7 @@ func (b PricelistHistoriesBase) getBucketName(rea sotah.Realm) string {
 	return fmt.Sprintf("pricelist-histories_%s_%s", rea.Region.Name, rea.Slug)
 }
 
-func (b PricelistHistoriesBase) getBucket(rea sotah.Realm) *storage.BucketHandle {
+func (b PricelistHistoriesBase) GetBucket(rea sotah.Realm) *storage.BucketHandle {
 	return b.base.getBucket(b.getBucketName(rea))
 }
 
