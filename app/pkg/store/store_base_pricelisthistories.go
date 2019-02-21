@@ -50,6 +50,11 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 		"normalized-target-date": normalizedTargetDate.Unix(),
 	})
 
+	// resolving unix-timestamp of target-time
+	targetTimestamp := sotah.UnixTimestamp(targetTime.Unix())
+
+	entry.WithField("target-date", targetTimestamp).Info("Handling, resolving bucket")
+
 	// gathering the bucket
 	bkt, err := b.resolveBucket(rea)
 	if err != nil {
@@ -84,13 +89,10 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 		return sotah.NewItemPriceHistoriesFromGzipped(body)
 	}()
 	if len(ipHistories) == 0 {
+		entry.Error("Item-price-histories was blank")
+
 		return errors.New("item-price-histories was blank")
 	}
-
-	// resolving unix-timestamp of target-time
-	targetTimestamp := sotah.UnixTimestamp(targetTime.Unix())
-
-	entry.WithField("target-date", targetTimestamp).Info("Handling, resolving bucket")
 
 	// gathering new item-prices from the input
 	iPrices := sotah.NewItemPrices(sotah.NewMiniAuctionListFromMiniAuctions(sotah.NewMiniAuctions(aucs)))
