@@ -48,7 +48,6 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 		"realm":                  rea.Slug,
 		"normalized-target-date": normalizedTargetDate.Unix(),
 	})
-	entry.Info("Handling, resolving bucket")
 
 	// gathering the bucket
 	bkt, err := b.resolveBucket(rea)
@@ -86,6 +85,8 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 
 	// resolving unix-timestamp of target-time
 	targetTimestamp := sotah.UnixTimestamp(targetTime.Unix())
+
+	entry.WithField("target-date", targetTimestamp).Info("Handling, resolving bucket")
 
 	// gathering new item-prices from the input
 	iPrices := sotah.NewItemPrices(sotah.NewMiniAuctionListFromMiniAuctions(sotah.NewMiniAuctions(aucs)))
