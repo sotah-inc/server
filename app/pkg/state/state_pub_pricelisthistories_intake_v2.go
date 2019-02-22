@@ -114,7 +114,7 @@ func (pubState PubState) ListenForPricelistHistoriesIntakeV2(stop ListenStopChan
 		}
 
 		pubState.IO.Reporter.ReportWithPrefix(metric.Metrics{
-			"buffer_size": len(pRequest.RegionRealmTimestamps),
+			"buffer_size": len(in),
 		}, kinds.PricelistHistoriesIntakeV2)
 		logging.WithField("capacity", len(in)).Info("Received pricelist-histories-intake-v2-request, pushing onto handle channel")
 
