@@ -30,13 +30,12 @@ func Pub(config state.PubStateConfig) error {
 	}
 
 	// listening for pricelist-histories-compute-intake
+	logging.Info("Opening listener for pricelist-histories-compute-intake")
 	computeIntakeStop := make(chan interface{})
-	computeIntakeOnReady := make(chan interface{})
 	computeIntakeOnStopped := make(chan interface{})
-	if err := pubState.ListenForPricelistHistoriesComputeIntake(computeIntakeStop, computeIntakeOnReady, computeIntakeOnStopped); err != nil {
+	if err := pubState.ListenForPricelistHistoriesComputeIntake(computeIntakeStop, computeIntakeOnStopped); err != nil {
 		return err
 	}
-	<-computeIntakeOnReady
 
 	// catching SIGINT
 	logging.Info("Waiting for SIGINT")
