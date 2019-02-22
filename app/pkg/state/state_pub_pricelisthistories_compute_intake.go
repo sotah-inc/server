@@ -3,6 +3,7 @@ package state
 import (
 	"encoding/json"
 
+	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/metric"
@@ -27,6 +28,12 @@ type pricelistHistoriesComputeIntakeRequest struct {
 }
 
 func (pRequest pricelistHistoriesComputeIntakeRequest) handle(pubState PubState) {
+	logging.WithFields(logrus.Fields{
+		"region_name":                 pRequest.RegionName,
+		"realm_slug":                  pRequest.RealmSlug,
+		"normalized_target_timestamp": pRequest.NormalizedTargetTimestamp,
+	}).Info("Handling request")
+
 	return
 }
 
