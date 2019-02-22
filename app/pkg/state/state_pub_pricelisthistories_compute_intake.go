@@ -3,7 +3,7 @@ package state
 import (
 	"encoding/json"
 
-	nats "github.com/nats-io/go-nats"
+	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/metric/kinds"
@@ -26,30 +26,45 @@ type pricelistHistoriesComputeIntakeRequest struct {
 	NormalizedTargetTimestamp int    `json:"normalized_target_timestamp"`
 }
 
-func (pubState PubState) ListenForPricelistHistoriesComputeIntake(stop ListenStopChan) error {
-	in := make(chan pricelistHistoriesIntakeV2Request, 30)
+func (pRequest pricelistHistoriesComputeIntakeRequest) handle(pubState PubState) {
+	return
+}
 
-	err := pubState.IO.Messenger.Subscribe(string(subjects.PricelistHistoriesIntakeV2), stop, func(natsMsg nats.Msg) {
-		// resolving the request
-		pRequest, err := newPricelistHistoriesIntakeV2Request(natsMsg.Data)
-		if err != nil {
-			logging.WithField("error", err.Error()).Error("Failed to parse pricelist-histories-intake-request")
+func (pubState PubState) ListenForPricelistHistoriesComputeIntake(stop ListenStopChan, onReady chan interface{}, onStopped chan interface{}) error {
+	in := make(chan pricelistHistoriesComputeIntakeRequest, 30)
 
-			return
-		}
-
-		pubState.IO.Reporter.ReportWithPrefix(metric.Metrics{
-			"buffer_size": len(pRequest.RegionRealmTimestamps),
-		}, kinds.PricelistHistoriesIntakeV2)
-		logging.WithField("capacity", len(in)).Info("Received pricelist-histories-intake-v2-request, pushing onto handle channel")
-
-		in <- pRequest
-	})
+	topic, err := pubState.IO.BusClient.ResolveTopic(string(subjects.PricelistHistoriesComputeIntake))
 	if err != nil {
 		return err
 	}
 
-	// starting up a worker to handle pricelist-histories-intake-v2 requests
+	config := bus.SubscribeConfig{
+		Stop:  stop,
+		Topic: topic,
+		Callback: func(busMsg bus.Message) {
+			// resolving the request
+			pRequest, err := newPricelistHistoriesComputeIntakeRequest([]byte(busMsg.Data))
+			if err != nil {
+				logging.WithField("error", err.Error()).Error("Failed to parse pricelist-histories-compute-intake-request")
+
+				return
+			}
+
+			pubState.IO.Reporter.ReportWithPrefix(metric.Metrics{
+				"buffer_size": len(in),
+			}, kinds.PricelistHistoriesComputeIntake)
+			logging.WithField("capacity", len(in)).Info("Received pricelist-histories-compute-intake-request, pushing onto handle channel")
+
+			in <- pRequest
+		},
+		OnReady:   onReady,
+		OnStopped: onStopped,
+	}
+	if err := pubState.IO.BusClient.Subscribe(config); err != nil {
+		return err
+	}
+
+	// starting up a worker to handle pricelist-histories-compute-intake requests
 	go func() {
 		for pRequest := range in {
 			pRequest.handle(pubState)
