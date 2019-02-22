@@ -10,6 +10,8 @@ import (
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/state"
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
 )
 
@@ -64,5 +66,26 @@ func HelloPubSub(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
-	return pricelistHistoriesStoreBase.Handle(aucs, targetTime, realm)
+	normalizedTargetTimestamp, err := pricelistHistoriesStoreBase.Handle(aucs, targetTime, realm)
+	if err != nil {
+		return err
+	}
+
+	req := state.PricelistHistoriesComputeIntakeRequest{}
+	req.RegionName = string(region.Name)
+	req.RealmSlug = string(realm.Slug)
+	req.NormalizedTargetTimestamp = int(normalizedTargetTimestamp)
+	jsonEncodedRequest, err := json.Marshal(req)
+	if err != nil {
+		return err
+	}
+
+	topic := busClient.Topic(string(subjects.PricelistHistoriesComputeIntake))
+	msg := bus.NewMessage()
+	msg.Data = string(jsonEncodedRequest)
+	if _, err := busClient.Publish(topic, msg); err != nil {
+		return err
+	}
+
+	return nil
 }

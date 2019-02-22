@@ -29,6 +29,15 @@ func Pub(config state.PubStateConfig) error {
 		return err
 	}
 
+	// listening for pricelist-histories-compute-intake
+	computeIntakeStop := make(chan interface{})
+	computeIntakeOnReady := make(chan interface{})
+	computeIntakeOnStopped := make(chan interface{})
+	if err := pubState.ListenForPricelistHistoriesComputeIntake(computeIntakeStop, computeIntakeOnReady, computeIntakeOnStopped); err != nil {
+		return err
+	}
+	<-computeIntakeOnReady
+
 	// catching SIGINT
 	logging.Info("Waiting for SIGINT")
 	sigIn := make(chan os.Signal, 1)
@@ -39,6 +48,8 @@ func Pub(config state.PubStateConfig) error {
 
 	// stopping listeners
 	pubState.Listeners.Stop()
+	computeIntakeStop <- struct{}{}
+	<-computeIntakeOnStopped
 
 	// stopping pruner
 	logging.Info("Stopping pruner")
