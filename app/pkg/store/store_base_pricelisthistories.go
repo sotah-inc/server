@@ -38,7 +38,7 @@ func (b PricelistHistoriesBase) getObject(targetTime time.Time, bkt *storage.Buc
 	return b.base.getObject(b.getObjectName(targetTime), bkt)
 }
 
-func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.Time, rea sotah.Realm) error {
+func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.Time, rea sotah.Realm) (sotah.UnixTimestamp, error) {
 	normalizedTargetDate := sotah.NormalizeTargetDate(targetTime)
 
 	// resolving unix-timestamp of target-time
@@ -47,7 +47,7 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 	// gathering the bucket
 	bkt, err := b.resolveBucket(rea)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	// gathering an object
@@ -78,7 +78,7 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 		return sotah.NewItemPriceHistories(body)
 	}()
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	// gathering new item-prices from the input
@@ -102,7 +102,7 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 	// encoding the item-price-histories for persistence
 	gzipEncodedBody, err := ipHistories.EncodeForPersistence()
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	// writing it out to the gcloud object
@@ -110,8 +110,8 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 	wc.ContentType = "application/json"
 	wc.ContentEncoding = "gzip"
 	if _, err := wc.Write(gzipEncodedBody); err != nil {
-		return err
+		return 0, err
 	}
 
-	return wc.Close()
+	return sotah.UnixTimestamp(normalizedTargetDate.Unix()), wc.Close()
 }
