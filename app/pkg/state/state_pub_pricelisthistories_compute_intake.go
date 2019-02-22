@@ -11,23 +11,23 @@ import (
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
-func newPricelistHistoriesComputeIntakeRequest(data []byte) (pricelistHistoriesComputeIntakeRequest, error) {
-	pRequest := &pricelistHistoriesComputeIntakeRequest{}
+func newPricelistHistoriesComputeIntakeRequest(data []byte) (PricelistHistoriesComputeIntakeRequest, error) {
+	pRequest := &PricelistHistoriesComputeIntakeRequest{}
 	err := json.Unmarshal(data, &pRequest)
 	if err != nil {
-		return pricelistHistoriesComputeIntakeRequest{}, err
+		return PricelistHistoriesComputeIntakeRequest{}, err
 	}
 
 	return *pRequest, nil
 }
 
-type pricelistHistoriesComputeIntakeRequest struct {
+type PricelistHistoriesComputeIntakeRequest struct {
 	RegionName                string `json:"region_name"`
 	RealmSlug                 string `json:"realm_slug"`
 	NormalizedTargetTimestamp int    `json:"normalized_target_timestamp"`
 }
 
-func (pRequest pricelistHistoriesComputeIntakeRequest) handle(pubState PubState) {
+func (pRequest PricelistHistoriesComputeIntakeRequest) handle(pubState PubState) {
 	logging.WithFields(logrus.Fields{
 		"region_name":                 pRequest.RegionName,
 		"realm_slug":                  pRequest.RealmSlug,
@@ -38,7 +38,7 @@ func (pRequest pricelistHistoriesComputeIntakeRequest) handle(pubState PubState)
 }
 
 func (pubState PubState) ListenForPricelistHistoriesComputeIntake(stop ListenStopChan, onReady chan interface{}, onStopped chan interface{}) error {
-	in := make(chan pricelistHistoriesComputeIntakeRequest, 30)
+	in := make(chan PricelistHistoriesComputeIntakeRequest, 30)
 
 	topic, err := pubState.IO.BusClient.ResolveTopic(string(subjects.PricelistHistoriesComputeIntake))
 	if err != nil {
