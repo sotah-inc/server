@@ -151,6 +151,8 @@ func (pubState PubState) ListenForPricelistHistoriesComputeIntake(onReady chan i
 
 				continue
 			}
+
+			logging.WithFields(job.ToLogrusFields()).Error("Loaded job")
 		}
 	}()
 
