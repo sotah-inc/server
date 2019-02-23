@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/sotah-inc/server/app/pkg/util"
+
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
@@ -160,7 +162,7 @@ func (pubState PubState) ListenForPricelistHistoriesComputeIntake(onReady chan i
 		}
 	}()
 
-	// starting up a worker to handle pricelist-histories-compute-intake requests
+	// starting up workers to handle pricelist-histories-compute-intake requests
 	total := func() int {
 		out := 0
 		for _, status := range pubState.Statuses {
@@ -170,7 +172,7 @@ func (pubState PubState) ListenForPricelistHistoriesComputeIntake(onReady chan i
 		return out
 	}()
 	in := make(chan PricelistHistoriesComputeIntakeRequest, total)
-	go func() {
+	worker := func() {
 		for pRequest := range in {
 			if err := pRequest.handle(pubState, loadInJobs); err != nil {
 				logging.WithField(
@@ -180,7 +182,11 @@ func (pubState PubState) ListenForPricelistHistoriesComputeIntake(onReady chan i
 				).Error("Failed to handle pricelisthistories-compute-intake request")
 			}
 		}
-	}()
+	}
+	postWork := func() {
+		close(loadInJobs)
+	}
+	util.Work(4, worker, postWork)
 
 	// establishing subscriber config
 	config := bus.SubscribeConfig{
