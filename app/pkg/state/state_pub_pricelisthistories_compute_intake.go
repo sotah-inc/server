@@ -37,11 +37,16 @@ func (pRequest PricelistHistoriesComputeIntakeRequest) handle(pubState PubState)
 	return
 }
 
-func (pubState PubState) ListenForPricelistHistoriesComputeIntake(stop ListenStopChan, onStopped chan interface{}) error {
+func (pubState PubState) ListenForPricelistHistoriesComputeIntake(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {
+	// starting up a worker to handle pricelist-histories-compute-intake requests
 	in := make(chan PricelistHistoriesComputeIntakeRequest, 30)
+	go func() {
+		for pRequest := range in {
+			pRequest.handle(pubState)
+		}
+	}()
 
-	onReady := make(chan interface{})
-
+	// establishing subscriber config
 	config := bus.SubscribeConfig{
 		Stop: stop,
 		Callback: func(busMsg bus.Message) {
@@ -63,19 +68,11 @@ func (pubState PubState) ListenForPricelistHistoriesComputeIntake(stop ListenSto
 		OnReady:   onReady,
 		OnStopped: onStopped,
 	}
+
+	// starting up worker for the subscription
 	go func() {
 		if err := pubState.IO.BusClient.SubscribeToTopic(string(subjects.PricelistHistoriesComputeIntake), config); err != nil {
 			logging.WithField("error", err.Error()).Fatal("Failed to subscribe to topic")
 		}
 	}()
-	<-onReady
-
-	// starting up a worker to handle pricelist-histories-compute-intake requests
-	go func() {
-		for pRequest := range in {
-			pRequest.handle(pubState)
-		}
-	}()
-
-	return nil
 }

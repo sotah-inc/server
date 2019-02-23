@@ -42,15 +42,61 @@ type IO struct {
 	BusClient   bus.Client
 }
 
+// bus-listener functionality
+type busListenFunc func(onReady chan interface{}, stop chan interface{}, onStopped chan interface{})
+
+type busListener struct {
+	call      busListenFunc
+	onReady   chan interface{}
+	stop      chan interface{}
+	onStopped chan interface{}
+}
+
+type SubjectBusListeners map[subjects.Subject]busListenFunc
+
+func NewBusListeners(sListeners SubjectBusListeners) BusListeners {
+	out := BusListeners{}
+	for subj, l := range sListeners {
+		out[subj] = busListener{
+			call:      l,
+			onStopped: make(chan interface{}),
+			onReady:   make(chan interface{}),
+			stop:      make(chan interface{}),
+		}
+	}
+
+	return out
+}
+
+type BusListeners map[subjects.Subject]busListener
+
+func (ls BusListeners) Listen() {
+	logging.WithField("count", len(ls)).Info("Starting bus-listeners")
+
+	for _, l := range ls {
+		l.call(l.onReady, l.stop, l.onStopped)
+		<-l.onReady
+	}
+}
+
+func (ls BusListeners) Stop() {
+	logging.WithField("count", len(ls)).Info("Stopping bus-listeners")
+
+	for _, l := range ls {
+		l.stop <- struct{}{}
+		<-l.onStopped
+	}
+}
+
 // listener functionality
 type ListenStopChan chan interface{}
+
+type listenFunc func(stop ListenStopChan) error
 
 type listener struct {
 	call     listenFunc
 	stopChan ListenStopChan
 }
-
-type listenFunc func(stop ListenStopChan) error
 
 type SubjectListeners map[subjects.Subject]listenFunc
 
@@ -91,9 +137,10 @@ func NewState(runId uuid.UUID, useGCloud bool) State {
 }
 
 type State struct {
-	RunID     uuid.UUID
-	Listeners Listeners
-	UseGCloud bool
+	RunID        uuid.UUID
+	Listeners    Listeners
+	BusListeners BusListeners
+	UseGCloud    bool
 
 	IO IO
 

@@ -140,6 +140,11 @@ func NewPubState(config PubStateConfig) (PubState, error) {
 		subjects.PricelistHistoriesIntakeV2: pubState.ListenForPricelistHistoriesIntakeV2,
 	})
 
+	// establishing bus-listeners
+	pubState.BusListeners = NewBusListeners(SubjectBusListeners{
+		subjects.PricelistHistoriesComputeIntake: pubState.ListenForPricelistHistoriesComputeIntake,
+	})
+
 	return pubState, nil
 }
 
