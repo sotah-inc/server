@@ -152,7 +152,11 @@ func (pubState PubState) ListenForPricelistHistoriesComputeIntake(onReady chan i
 				continue
 			}
 
-			logging.WithFields(job.ToLogrusFields()).Error("Loaded job")
+			logging.WithFields(logrus.Fields{
+				"region":                      job.RegionName,
+				"realm":                       job.RealmSlug,
+				"normalized-target-timestamp": job.NormalizedTargetTimestamp,
+			}).Info("Loaded job")
 		}
 	}()
 
