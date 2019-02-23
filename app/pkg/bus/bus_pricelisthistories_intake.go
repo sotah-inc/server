@@ -53,15 +53,7 @@ func (c Client) LoadRegionRealmTimestamps(rTimestamps sotah.RegionRealmTimestamp
 	go func() {
 		logging.Info("Queueing up realms")
 		for regionName, realmTimestamps := range rTimestamps {
-			if string(regionName) != "kr" {
-				continue
-			}
-
 			for realmSlug, targetTime := range realmTimestamps {
-				if string(realmSlug) != "zuljin" {
-					continue
-				}
-
 				in <- LoadRegionRealmTimestampsInJob{
 					RegionName:      string(regionName),
 					RealmSlug:       string(realmSlug),
