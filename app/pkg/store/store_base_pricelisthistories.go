@@ -1,7 +1,9 @@
 package store
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"time"
 
 	"cloud.google.com/go/storage"
@@ -9,6 +11,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/util"
 )
 
 func NewPricelistHistoriesBase(c Client) PricelistHistoriesBase {
@@ -32,7 +35,7 @@ func (b PricelistHistoriesBase) resolveBucket(rea sotah.Realm) (*storage.BucketH
 }
 
 func (b PricelistHistoriesBase) getObjectName(targetTime time.Time) string {
-	return fmt.Sprintf("%d.txt", targetTime.Unix())
+	return fmt.Sprintf("%d.txt.gz", targetTime.Unix())
 }
 
 func (b PricelistHistoriesBase) getObject(targetTime time.Time, bkt *storage.BucketHandle) *storage.ObjectHandle {
@@ -78,7 +81,17 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 		}
 		defer reader.Close()
 
-		return sotah.NewItemPriceHistoriesFromMinimized(reader)
+		data, err := ioutil.ReadAll(reader)
+		if err != nil {
+			return sotah.ItemPriceHistories{}, err
+		}
+
+		gzipDecoded, err := util.GzipDecode(data)
+		if err != nil {
+			return sotah.ItemPriceHistories{}, err
+		}
+
+		return sotah.NewItemPriceHistoriesFromMinimized(bytes.NewReader(gzipDecoded))
 	}()
 	if err != nil {
 		return 0, err
@@ -111,6 +124,7 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 	// writing it out to the gcloud object
 	wc := obj.NewWriter(b.client.Context)
 	wc.ContentType = "text/plain"
+	wc.ContentEncoding = "gzip"
 	if _, err := wc.Write(gzipEncodedBody); err != nil {
 		return 0, err
 	}

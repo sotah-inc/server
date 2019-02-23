@@ -6,6 +6,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"io"
+	"io/ioutil"
 	"math"
 	"sort"
 	"strconv"
@@ -207,7 +208,17 @@ func (ipHistories ItemPriceHistories) EncodeForPersistence() ([]byte, error) {
 		return []byte{}, err
 	}
 
-	return buf.Bytes(), nil
+	// encoding the data
+	data, err := ioutil.ReadAll(buf)
+	if err != nil {
+		return []byte{}, err
+	}
+	gzipEncodedData, err := util.GzipEncode(data)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return gzipEncodedData, nil
 }
 
 // price-history
