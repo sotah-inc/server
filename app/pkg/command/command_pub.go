@@ -43,8 +43,9 @@ func Pub(config state.PubStateConfig) error {
 
 	// stopping listeners
 	pubState.Listeners.Stop()
-	computeIntakeStop <- struct{}{}
-	<-computeIntakeOnStopped
+
+	// stopping bus-listeners
+	pubState.BusListeners.Stop()
 
 	// stopping pruner
 	logging.Info("Stopping pruner")
