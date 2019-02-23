@@ -127,6 +127,8 @@ func (pRequest PricelistHistoriesComputeIntakeRequest) handle(pubState PubState,
 		data[itemId] = base64DecodedPriceHistory
 	}
 
+	entry.Info("Handled request and passing into loader")
+
 	// loading the request information and data into the pricelisthistory-database-v2
 	loadInJobs <- database.PricelistHistoryDatabaseV2LoadInJob{
 		RegionName:                blizzard.RegionName(pRequest.RegionName),

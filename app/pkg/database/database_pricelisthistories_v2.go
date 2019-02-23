@@ -367,6 +367,8 @@ func (phdBase PricelistHistoryDatabaseV2) getItemPriceHistory(itemID blizzard.It
 }
 
 func (phdBase PricelistHistoryDatabaseV2) persistItemPrices(data map[blizzard.ItemID][]byte) error {
+	logging.WithField("items", len(data)).Info("Persisting item-prices")
+
 	err := phdBase.db.Batch(func(tx *bolt.Tx) error {
 		for itemId, payload := range data {
 			bkt, err := tx.CreateBucketIfNotExists(pricelistHistoryBucketName(itemId))
