@@ -4,12 +4,9 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state"
-	"github.com/sotah-inc/server/app/pkg/store"
-	"google.golang.org/api/iterator"
 )
 
 func Pub(config state.PubStateConfig) error {
@@ -35,35 +32,6 @@ func Pub(config state.PubStateConfig) error {
 	// opening all bus-listeners
 	logging.Info("Opening all bus-listeners")
 	pubState.BusListeners.Listen()
-
-	// going over all pricelist-history-base objects and clearing them out
-	phBase := store.NewPricelistHistoriesBase(pubState.IO.StoreClient)
-	for _, status := range pubState.Statuses {
-		for _, realm := range status.Realms {
-			logging.WithFields(logrus.Fields{
-				"region": realm.Region.Name,
-				"realm":  realm.Slug,
-			}).Info("Clearing bucket")
-
-			bkt := phBase.GetBucket(realm)
-			it := bkt.Objects(pubState.IO.StoreClient.Context, nil)
-			for {
-				objAttrs, err := it.Next()
-				if err != nil {
-					if err == iterator.Done {
-						break
-					}
-
-					return err
-				}
-
-				obj := bkt.Object(objAttrs.Name)
-				if err := obj.Delete(pubState.IO.StoreClient.Context); err != nil {
-					return err
-				}
-			}
-		}
-	}
 
 	// catching SIGINT
 	logging.Info("Waiting for SIGINT")
