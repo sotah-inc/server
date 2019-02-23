@@ -4,6 +4,9 @@ import (
 	"errors"
 	"os"
 	"os/signal"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
@@ -59,27 +62,9 @@ func Pub(config state.PubStateConfig) error {
 	}
 
 	phBase := store.NewPricelistHistoriesBase(pubState.IO.StoreClient)
-	bkt := phBase.GetBucket(realm)
-	it := bkt.Objects(pubState.IO.StoreClient.Context, nil)
-	for {
-		objAttrs, err := it.Next()
-		if err != nil {
-			if err == iterator.Done {
-				break
-			}
 
-			return err
-		}
-
-		obj := bkt.Object(objAttrs.Name)
-		if err := obj.Delete(pubState.IO.StoreClient.Context); err != nil {
-			return err
-		}
-	}
-
-	//bkt := pubState.IO.StoreClient.GetRealmAuctionsBucket(realm)
+	//bkt := phBase.GetBucket(realm)
 	//it := bkt.Objects(pubState.IO.StoreClient.Context, nil)
-	//i := 0
 	//for {
 	//	objAttrs, err := it.Next()
 	//	if err != nil {
@@ -91,28 +76,47 @@ func Pub(config state.PubStateConfig) error {
 	//	}
 	//
 	//	obj := bkt.Object(objAttrs.Name)
-	//
-	//	s := strings.Split(objAttrs.Name, ".")
-	//	targetTimestamp, err := strconv.Atoi(s[0])
-	//	if err != nil {
+	//	if err := obj.Delete(pubState.IO.StoreClient.Context); err != nil {
 	//		return err
-	//	}
-	//	targetTime := time.Unix(int64(targetTimestamp), 0)
-	//
-	//	aucs, err := pubState.IO.StoreClient.NewAuctions(obj)
-	//	if err != nil {
-	//		return err
-	//	}
-	//
-	//	if _, err := phBase.Handle(aucs, targetTime, realm); err != nil {
-	//		return err
-	//	}
-	//
-	//	i++
-	//	if i > 5 {
-	//		break
 	//	}
 	//}
+
+	bkt := pubState.IO.StoreClient.GetRealmAuctionsBucket(realm)
+	it := bkt.Objects(pubState.IO.StoreClient.Context, nil)
+	i := 0
+	for {
+		objAttrs, err := it.Next()
+		if err != nil {
+			if err == iterator.Done {
+				break
+			}
+
+			return err
+		}
+
+		obj := bkt.Object(objAttrs.Name)
+
+		s := strings.Split(objAttrs.Name, ".")
+		targetTimestamp, err := strconv.Atoi(s[0])
+		if err != nil {
+			return err
+		}
+		targetTime := time.Unix(int64(targetTimestamp), 0)
+
+		aucs, err := pubState.IO.StoreClient.NewAuctions(obj)
+		if err != nil {
+			return err
+		}
+
+		if _, err := phBase.Handle(aucs, targetTime, realm); err != nil {
+			return err
+		}
+
+		i++
+		if i > 10 {
+			break
+		}
+	}
 
 	// catching SIGINT
 	logging.Info("Waiting for SIGINT")
