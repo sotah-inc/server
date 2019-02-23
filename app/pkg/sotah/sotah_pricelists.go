@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/csv"
 	"encoding/json"
+	"io"
 	"math"
 	"sort"
 	"strconv"
@@ -134,10 +135,41 @@ func (p Prices) EncodeForPersistence() ([]byte, error) {
 }
 
 // item-price-histories
-func NewItemPriceHistoriesFromMinimized(data []byte) (ItemPriceHistories, error) {
+func NewItemPriceHistoriesFromMinimized(reader io.Reader) (ItemPriceHistories, error) {
 	out := ItemPriceHistories{}
-	if err := json.Unmarshal(data, &out); err != nil {
-		return ItemPriceHistories{}, err
+
+	r := csv.NewReader(reader)
+	for {
+		record, err := r.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return ItemPriceHistories{}, err
+		}
+
+		itemIdInt, err := strconv.Atoi(record[0])
+		if err != nil {
+			return ItemPriceHistories{}, err
+		}
+		itemId := blizzard.ItemID(itemIdInt)
+
+		base64DecodedPriceHistory, err := base64.StdEncoding.DecodeString(record[1])
+		if err != nil {
+			return ItemPriceHistories{}, err
+		}
+
+		gzipDecodedPriceHistory, err := util.GzipDecode(base64DecodedPriceHistory)
+		if err != nil {
+			return ItemPriceHistories{}, err
+		}
+
+		var pHistory PriceHistory
+		if err := json.Unmarshal(gzipDecodedPriceHistory, &pHistory); err != nil {
+			return ItemPriceHistories{}, err
+		}
+
+		out[itemId] = pHistory
 	}
 
 	return out, nil

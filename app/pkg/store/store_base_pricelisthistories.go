@@ -2,7 +2,6 @@ package store
 
 import (
 	"fmt"
-	"io/ioutil"
 	"time"
 
 	"cloud.google.com/go/storage"
@@ -79,12 +78,7 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 		}
 		defer reader.Close()
 
-		body, err := ioutil.ReadAll(reader)
-		if err != nil {
-			return sotah.ItemPriceHistories{}, err
-		}
-
-		return sotah.NewItemPriceHistoriesFromMinimized(body)
+		return sotah.NewItemPriceHistoriesFromMinimized(reader)
 	}()
 	if err != nil {
 		return 0, err
