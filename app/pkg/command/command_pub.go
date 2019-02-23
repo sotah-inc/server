@@ -113,7 +113,7 @@ func Pub(config state.PubStateConfig) error {
 		}
 
 		i++
-		if i > 10 {
+		if i > 50 {
 			break
 		}
 	}
