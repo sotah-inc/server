@@ -6,7 +6,9 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
+	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 )
 
@@ -31,7 +33,7 @@ func (b PricelistHistoriesBase) resolveBucket(rea sotah.Realm) (*storage.BucketH
 }
 
 func (b PricelistHistoriesBase) getObjectName(targetTime time.Time) string {
-	return fmt.Sprintf("%d.json.gz", targetTime.Unix())
+	return fmt.Sprintf("%d.txt.gz", targetTime.Unix())
 }
 
 func (b PricelistHistoriesBase) getObject(targetTime time.Time, bkt *storage.BucketHandle) *storage.ObjectHandle {
@@ -40,6 +42,13 @@ func (b PricelistHistoriesBase) getObject(targetTime time.Time, bkt *storage.Buc
 
 func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.Time, rea sotah.Realm) (sotah.UnixTimestamp, error) {
 	normalizedTargetDate := sotah.NormalizeTargetDate(targetTime)
+
+	logging.WithFields(logrus.Fields{
+		"region":                 rea.Region.Name,
+		"realm":                  rea.Slug,
+		"target-time":            targetTime.Unix(),
+		"normalized-target-date": normalizedTargetDate.Unix(),
+	}).Info("Processing")
 
 	// resolving unix-timestamp of target-time
 	targetTimestamp := sotah.UnixTimestamp(targetTime.Unix())
@@ -75,7 +84,7 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 			return sotah.ItemPriceHistories{}, err
 		}
 
-		return sotah.NewItemPriceHistories(body)
+		return sotah.NewItemPriceHistoriesFromMinimized(body)
 	}()
 	if err != nil {
 		return 0, err
@@ -107,8 +116,7 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 
 	// writing it out to the gcloud object
 	wc := obj.NewWriter(b.client.Context)
-	wc.ContentType = "application/json"
-	wc.ContentEncoding = "gzip"
+	wc.ContentType = "text/plain"
 	if _, err := wc.Write(gzipEncodedBody); err != nil {
 		return 0, err
 	}

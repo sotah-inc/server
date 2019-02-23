@@ -1,9 +1,13 @@
 package sotah
 
 import (
+	"bytes"
+	"encoding/base64"
+	"encoding/csv"
 	"encoding/json"
 	"math"
 	"sort"
+	"strconv"
 
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/util"
@@ -130,7 +134,7 @@ func (p Prices) EncodeForPersistence() ([]byte, error) {
 }
 
 // item-price-histories
-func NewItemPriceHistories(data []byte) (ItemPriceHistories, error) {
+func NewItemPriceHistoriesFromMinimized(data []byte) (ItemPriceHistories, error) {
 	out := ItemPriceHistories{}
 	if err := json.Unmarshal(data, &out); err != nil {
 		return ItemPriceHistories{}, err
@@ -142,17 +146,36 @@ func NewItemPriceHistories(data []byte) (ItemPriceHistories, error) {
 type ItemPriceHistories map[blizzard.ItemID]PriceHistory
 
 func (ipHistories ItemPriceHistories) EncodeForPersistence() ([]byte, error) {
-	jsonEncoded, err := json.Marshal(ipHistories)
-	if err != nil {
+	// formatting ip-histories into csv format
+	csvData := [][]string{}
+	for itemId, pHistory := range ipHistories {
+		jsonEncodedPriceHistory, err := json.Marshal(pHistory)
+		if err != nil {
+			return []byte{}, err
+		}
+
+		gzipEncodedPriceHistory, err := util.GzipEncode(jsonEncodedPriceHistory)
+		if err != nil {
+			return []byte{}, err
+		}
+
+		csvData = append(csvData, []string{
+			strconv.Itoa(int(itemId)),
+			base64.StdEncoding.EncodeToString(gzipEncodedPriceHistory),
+		})
+	}
+
+	// producing a receiver
+	buf := bytes.NewBuffer([]byte{})
+	w := csv.NewWriter(buf)
+	if err := w.WriteAll(csvData); err != nil {
+		return []byte{}, err
+	}
+	if err := w.Error(); err != nil {
 		return []byte{}, err
 	}
 
-	gzipEncoded, err := util.GzipEncode(jsonEncoded)
-	if err != nil {
-		return []byte{}, err
-	}
-
-	return gzipEncoded, nil
+	return buf.Bytes(), nil
 }
 
 // price-history
