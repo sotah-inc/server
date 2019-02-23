@@ -1,9 +1,7 @@
 package store
 
 import (
-	"bytes"
 	"fmt"
-	"io/ioutil"
 	"time"
 
 	"cloud.google.com/go/storage"
@@ -11,7 +9,6 @@ import (
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
-	"github.com/sotah-inc/server/app/pkg/util"
 )
 
 func NewPricelistHistoriesBase(c Client) PricelistHistoriesBase {
@@ -81,17 +78,7 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 		}
 		defer reader.Close()
 
-		data, err := ioutil.ReadAll(reader)
-		if err != nil {
-			return sotah.ItemPriceHistories{}, err
-		}
-
-		gzipDecoded, err := util.GzipDecode(data)
-		if err != nil {
-			return sotah.ItemPriceHistories{}, err
-		}
-
-		return sotah.NewItemPriceHistoriesFromMinimized(bytes.NewReader(gzipDecoded))
+		return sotah.NewItemPriceHistoriesFromMinimized(reader)
 	}()
 	if err != nil {
 		return 0, err
