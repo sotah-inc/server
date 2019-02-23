@@ -33,7 +33,7 @@ func (b PricelistHistoriesBase) resolveBucket(rea sotah.Realm) (*storage.BucketH
 }
 
 func (b PricelistHistoriesBase) getObjectName(targetTime time.Time) string {
-	return fmt.Sprintf("%d.txt.gz", targetTime.Unix())
+	return fmt.Sprintf("%d.txt", targetTime.Unix())
 }
 
 func (b PricelistHistoriesBase) getObject(targetTime time.Time, bkt *storage.BucketHandle) *storage.ObjectHandle {
