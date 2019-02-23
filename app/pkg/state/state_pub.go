@@ -133,6 +133,7 @@ func NewPubState(config PubStateConfig) (PubState, error) {
 	io.Messenger = mess
 	io.Reporter = metric.NewReporter(mess)
 	pubState.IO = io
+	pubState.PricelistHistoriesBase = store.NewPricelistHistoriesBase(io.StoreClient)
 
 	// establishing listeners
 	logging.Info("Establishing listeners")
@@ -150,4 +151,6 @@ func NewPubState(config PubStateConfig) (PubState, error) {
 
 type PubState struct {
 	State
+
+	PricelistHistoriesBase store.PricelistHistoriesBase
 }

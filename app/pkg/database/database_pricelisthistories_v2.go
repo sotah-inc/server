@@ -101,6 +101,7 @@ type PricelistHistoryDatabaseV2LoadInJob struct {
 	RegionName                blizzard.RegionName
 	RealmSlug                 blizzard.RealmSlug
 	NormalizedTargetTimestamp sotah.UnixTimestamp
+	Data                      map[blizzard.ItemID][]byte
 }
 
 type PricelistHistoryDatabaseV2LoadOutJob struct {
@@ -126,12 +127,30 @@ func (phdBases PricelistHistoryDatabasesV2) Load(in chan PricelistHistoryDatabas
 	// spinning up workers for receiving auctions and persisting them
 	worker := func() {
 		for job := range in {
-			if _, err := phdBases.resolveDatabaseFromLoadInJob(job); err != nil {
+			phdBase, err := phdBases.resolveDatabaseFromLoadInJob(job)
+			if err != nil {
 				logging.WithFields(logrus.Fields{
 					"error":  err.Error(),
 					"region": job.RegionName,
 					"realm":  job.RealmSlug,
 				}).Error("Could not resolve database from load job")
+
+				out <- PricelistHistoryDatabaseV2LoadOutJob{
+					Err:                       err,
+					RegionName:                job.RegionName,
+					RealmSlug:                 job.RealmSlug,
+					NormalizedTargetTimestamp: job.NormalizedTargetTimestamp,
+				}
+
+				continue
+			}
+
+			if err := phdBase.persistItemPrices(job.Data); err != nil {
+				logging.WithFields(logrus.Fields{
+					"error":  err.Error(),
+					"region": job.RegionName,
+					"realm":  job.RealmSlug,
+				}).Error("Could not persist item-prices from job")
 
 				out <- PricelistHistoryDatabaseV2LoadOutJob{
 					Err:                       err,
@@ -345,4 +364,26 @@ func (phdBase PricelistHistoryDatabaseV2) getItemPriceHistory(itemID blizzard.It
 	}
 
 	return out, nil
+}
+
+func (phdBase PricelistHistoryDatabaseV2) persistItemPrices(data map[blizzard.ItemID][]byte) error {
+	err := phdBase.db.Batch(func(tx *bolt.Tx) error {
+		for itemId, payload := range data {
+			bkt, err := tx.CreateBucketIfNotExists(pricelistHistoryBucketName(itemId))
+			if err != nil {
+				return err
+			}
+
+			if err := bkt.Put(pricelistHistoryKeyName(), payload); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

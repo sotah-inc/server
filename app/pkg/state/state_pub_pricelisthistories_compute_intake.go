@@ -1,7 +1,13 @@
 package state
 
 import (
+	"encoding/base64"
+	"encoding/csv"
 	"encoding/json"
+	"errors"
+	"io"
+	"strconv"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
@@ -30,18 +36,106 @@ type PricelistHistoriesComputeIntakeRequest struct {
 	NormalizedTargetTimestamp int    `json:"normalized_target_timestamp"`
 }
 
-func (pRequest PricelistHistoriesComputeIntakeRequest) handle(pubState PubState, loadInJobs chan database.PricelistHistoryDatabaseV2LoadInJob) {
-	logging.WithFields(logrus.Fields{
+func (pRequest PricelistHistoriesComputeIntakeRequest) ToLogrusFields() logrus.Fields {
+	return logrus.Fields{
+		"region":                      pRequest.RegionName,
+		"realm":                       pRequest.RealmSlug,
+		"normalized-target-timestamp": pRequest.NormalizedTargetTimestamp,
+	}
+}
+
+func (pRequest PricelistHistoriesComputeIntakeRequest) handle(pubState PubState, loadInJobs chan database.PricelistHistoryDatabaseV2LoadInJob) error {
+	entry := logging.WithFields(logrus.Fields{
 		"region_name":                 pRequest.RegionName,
 		"realm_slug":                  pRequest.RealmSlug,
 		"normalized_target_timestamp": pRequest.NormalizedTargetTimestamp,
-	}).Info("Handling request")
+	})
 
+	entry.Info("Handling request")
+
+	// resolving the realm from the request
+	realm, err := func() (sotah.Realm, error) {
+		for regionName, status := range pubState.Statuses {
+			if regionName != blizzard.RegionName(pRequest.RegionName) {
+				continue
+			}
+
+			for _, realm := range status.Realms {
+				if realm.Slug != blizzard.RealmSlug(pRequest.RealmSlug) {
+					continue
+				}
+
+				return realm, nil
+			}
+		}
+
+		return sotah.Realm{}, errors.New("realm not found")
+	}()
+	if err != nil {
+		return err
+	}
+
+	// resolving the bucket
+	bkt := pubState.PricelistHistoriesBase.GetBucket(realm)
+	exists, err := pubState.PricelistHistoriesBase.BucketExists(bkt)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return errors.New("bucket does not exist")
+	}
+
+	// resolving the object
+	obj := pubState.PricelistHistoriesBase.GetObject(time.Unix(int64(pRequest.NormalizedTargetTimestamp), 0), bkt)
+	exists, err = pubState.PricelistHistoriesBase.ObjectExists(obj)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return errors.New("obj does not exist")
+	}
+
+	// gathering the data from the object
+	reader, err := obj.NewReader(pubState.IO.StoreClient.Context)
+	if err != nil {
+		return err
+	}
+	defer reader.Close()
+
+	data := map[blizzard.ItemID][]byte{}
+	r := csv.NewReader(reader)
+	for {
+		record, err := r.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+
+		itemIdInt, err := strconv.Atoi(record[0])
+		if err != nil {
+			return err
+		}
+		itemId := blizzard.ItemID(itemIdInt)
+
+		base64DecodedPriceHistory, err := base64.StdEncoding.DecodeString(record[1])
+		if err != nil {
+			return err
+		}
+
+		data[itemId] = base64DecodedPriceHistory
+	}
+
+	// loading the request information and data into the pricelisthistory-database-v2
 	loadInJobs <- database.PricelistHistoryDatabaseV2LoadInJob{
 		RegionName:                blizzard.RegionName(pRequest.RegionName),
 		RealmSlug:                 blizzard.RealmSlug(pRequest.RealmSlug),
 		NormalizedTargetTimestamp: sotah.UnixTimestamp(pRequest.NormalizedTargetTimestamp),
+		Data:                      data,
 	}
+
+	return nil
 }
 
 func (pubState PubState) ListenForPricelistHistoriesComputeIntake(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {
@@ -70,7 +164,13 @@ func (pubState PubState) ListenForPricelistHistoriesComputeIntake(onReady chan i
 	in := make(chan PricelistHistoriesComputeIntakeRequest, total)
 	go func() {
 		for pRequest := range in {
-			pRequest.handle(pubState, loadInJobs)
+			if err := pRequest.handle(pubState, loadInJobs); err != nil {
+				logging.WithField(
+					"error", err.Error(),
+				).WithFields(
+					pRequest.ToLogrusFields(),
+				).Error("Failed to handle pricelisthistories-compute-intake request")
+			}
 		}
 	}()
 

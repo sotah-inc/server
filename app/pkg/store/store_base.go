@@ -17,7 +17,7 @@ func (b base) createBucket(bkt *storage.BucketHandle) error {
 	})
 }
 
-func (b base) bucketExists(bkt *storage.BucketHandle) (bool, error) {
+func (b base) BucketExists(bkt *storage.BucketHandle) (bool, error) {
 	_, err := bkt.Attrs(b.client.Context)
 	if err != nil {
 		if err != storage.ErrBucketNotExist {
@@ -33,7 +33,7 @@ func (b base) bucketExists(bkt *storage.BucketHandle) (bool, error) {
 func (b base) resolveBucket(name string) (*storage.BucketHandle, error) {
 	bkt := b.getBucket(name)
 
-	exists, err := b.bucketExists(bkt)
+	exists, err := b.BucketExists(bkt)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func (b base) getObject(name string, bkt *storage.BucketHandle) *storage.ObjectH
 	return bkt.Object(name)
 }
 
-func (b base) objectExists(obj *storage.ObjectHandle) (bool, error) {
+func (b base) ObjectExists(obj *storage.ObjectHandle) (bool, error) {
 	_, err := obj.Attrs(b.client.Context)
 	if err != nil {
 		if err != storage.ErrObjectNotExist {

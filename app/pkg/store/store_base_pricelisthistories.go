@@ -35,7 +35,7 @@ func (b PricelistHistoriesBase) getObjectName(targetTime time.Time) string {
 	return fmt.Sprintf("%d.txt.gz", targetTime.Unix())
 }
 
-func (b PricelistHistoriesBase) getObject(targetTime time.Time, bkt *storage.BucketHandle) *storage.ObjectHandle {
+func (b PricelistHistoriesBase) GetObject(targetTime time.Time, bkt *storage.BucketHandle) *storage.ObjectHandle {
 	return b.base.getObject(b.getObjectName(targetTime), bkt)
 }
 
@@ -59,11 +59,11 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 	}
 
 	// gathering an object
-	obj := b.getObject(normalizedTargetDate, bkt)
+	obj := b.GetObject(normalizedTargetDate, bkt)
 
 	// resolving item-price-histories
 	ipHistories, err := func() (sotah.ItemPriceHistories, error) {
-		exists, err := b.objectExists(obj)
+		exists, err := b.ObjectExists(obj)
 		if err != nil {
 			return sotah.ItemPriceHistories{}, err
 		}
