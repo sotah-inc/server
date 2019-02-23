@@ -15,13 +15,18 @@ import (
 )
 
 // db
-func pricelistHistoryDatabaseV2FilePath(dirPath string, rea sotah.Realm, targetTime time.Time) string {
+func pricelistHistoryDatabaseV2FilePath(
+	dirPath string,
+	regionName blizzard.RegionName,
+	realmSlug blizzard.RealmSlug,
+	normalizedTargetTimestamp sotah.UnixTimestamp,
+) string {
 	return fmt.Sprintf(
 		"%s/%s/%s/pricelist-histories-v2-%d.db",
 		dirPath,
-		rea.Region.Name,
-		rea.Slug,
-		targetTime.Unix(),
+		regionName,
+		realmSlug,
+		normalizedTargetTimestamp,
 	)
 }
 
@@ -69,28 +74,54 @@ type PricelistHistoryDatabasesV2 struct {
 	Databases   regionRealmDatabaseShardsV2
 }
 
-func (phdBases PricelistHistoryDatabasesV2) resolveDatabaseFromLoadInJob(job LoadInJob) (PricelistHistoryDatabaseV2, error) {
-	normalizedTargetDate := sotah.NormalizeTargetDate(job.TargetTime)
-	normalizedTargetTimestamp := sotah.UnixTimestamp(normalizedTargetDate.Unix())
-
-	phdBase, ok := phdBases.Databases[job.Realm.Region.Name][job.Realm.Slug][normalizedTargetTimestamp]
+func (phdBases PricelistHistoryDatabasesV2) resolveDatabaseFromLoadInJob(job PricelistHistoryDatabaseV2LoadInJob) (PricelistHistoryDatabaseV2, error) {
+	phdBase, ok := phdBases.Databases[job.RegionName][job.RealmSlug][job.NormalizedTargetTimestamp]
 	if ok {
 		return phdBase, nil
 	}
 
-	dbPath := pricelistHistoryDatabaseFilePath(phdBases.databaseDir, job.Realm, normalizedTargetDate)
+	normalizedTargetDate := time.Unix(int64(job.NormalizedTargetTimestamp), 0)
+
+	dbPath := pricelistHistoryDatabaseV2FilePath(
+		phdBases.databaseDir,
+		job.RegionName,
+		job.RealmSlug,
+		job.NormalizedTargetTimestamp,
+	)
 	phdBase, err := newPricelistHistoryDatabaseV2(dbPath, normalizedTargetDate)
 	if err != nil {
 		return PricelistHistoryDatabaseV2{}, err
 	}
-	phdBases.Databases[job.Realm.Region.Name][job.Realm.Slug][normalizedTargetTimestamp] = phdBase
+	phdBases.Databases[job.RegionName][job.RealmSlug][job.NormalizedTargetTimestamp] = phdBase
 
 	return phdBase, nil
 }
 
-func (phdBases PricelistHistoryDatabasesV2) Load(in chan LoadInJob) chan pricelistHistoriesLoadOutJob {
+type PricelistHistoryDatabaseV2LoadInJob struct {
+	RegionName                blizzard.RegionName
+	RealmSlug                 blizzard.RealmSlug
+	NormalizedTargetTimestamp sotah.UnixTimestamp
+}
+
+type PricelistHistoryDatabaseV2LoadOutJob struct {
+	Err                       error
+	RegionName                blizzard.RegionName
+	RealmSlug                 blizzard.RealmSlug
+	NormalizedTargetTimestamp sotah.UnixTimestamp
+}
+
+func (job PricelistHistoryDatabaseV2LoadOutJob) ToLogrusFields() logrus.Fields {
+	return logrus.Fields{
+		"error":                       job.Err.Error(),
+		"region":                      job.RegionName,
+		"realm":                       job.RealmSlug,
+		"normalized-target-timestamp": job.NormalizedTargetTimestamp,
+	}
+}
+
+func (phdBases PricelistHistoryDatabasesV2) Load(in chan PricelistHistoryDatabaseV2LoadInJob) chan PricelistHistoryDatabaseV2LoadOutJob {
 	// establishing channels
-	out := make(chan pricelistHistoriesLoadOutJob)
+	out := make(chan PricelistHistoryDatabaseV2LoadOutJob)
 
 	// spinning up workers for receiving auctions and persisting them
 	worker := func() {
@@ -98,23 +129,25 @@ func (phdBases PricelistHistoryDatabasesV2) Load(in chan LoadInJob) chan priceli
 			if _, err := phdBases.resolveDatabaseFromLoadInJob(job); err != nil {
 				logging.WithFields(logrus.Fields{
 					"error":  err.Error(),
-					"region": job.Realm.Region.Name,
-					"realm":  job.Realm.Slug,
+					"region": job.RegionName,
+					"realm":  job.RealmSlug,
 				}).Error("Could not resolve database from load job")
 
-				out <- pricelistHistoriesLoadOutJob{
-					Err:          err,
-					Realm:        job.Realm,
-					LastModified: job.TargetTime,
+				out <- PricelistHistoryDatabaseV2LoadOutJob{
+					Err:                       err,
+					RegionName:                job.RegionName,
+					RealmSlug:                 job.RealmSlug,
+					NormalizedTargetTimestamp: job.NormalizedTargetTimestamp,
 				}
 
 				continue
 			}
 
-			out <- pricelistHistoriesLoadOutJob{
-				Err:          nil,
-				Realm:        job.Realm,
-				LastModified: job.TargetTime,
+			out <- PricelistHistoryDatabaseV2LoadOutJob{
+				Err:                       nil,
+				RegionName:                job.RegionName,
+				RealmSlug:                 job.RealmSlug,
+				NormalizedTargetTimestamp: job.NormalizedTargetTimestamp,
 			}
 		}
 	}
