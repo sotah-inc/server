@@ -1,15 +1,10 @@
 package command
 
 import (
-	"errors"
 	"os"
 	"os/signal"
-	"strconv"
-	"strings"
-	"time"
 
 	"github.com/sirupsen/logrus"
-	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state"
@@ -41,118 +36,34 @@ func Pub(config state.PubStateConfig) error {
 	logging.Info("Opening all bus-listeners")
 	pubState.BusListeners.Listen()
 
-	// gathering a realm
-	realm, err := func() (sotah.Realm, error) {
-		for regionName, status := range pubState.Statuses {
-			if regionName != "us" {
-				continue
-			}
+	// going over all pricelist-history-base objects and clearing them out
+	phBase := store.NewPricelistHistoriesBase(pubState.IO.StoreClient)
+	for _, status := range pubState.Statuses {
+		for _, realm := range status.Realms {
+			logging.WithFields(logrus.Fields{
+				"region": realm.Region.Name,
+				"realm":  realm.Slug,
+			}).Info("Clearing bucket")
 
-			for _, realm := range status.Realms {
-				if realm.Slug != "earthen-ring" {
-					continue
+			bkt := phBase.GetBucket(realm)
+			it := bkt.Objects(pubState.IO.StoreClient.Context, nil)
+			for {
+				objAttrs, err := it.Next()
+				if err != nil {
+					if err == iterator.Done {
+						break
+					}
+
+					return err
 				}
 
-				return realm, nil
+				obj := bkt.Object(objAttrs.Name)
+				if err := obj.Delete(pubState.IO.StoreClient.Context); err != nil {
+					return err
+				}
 			}
 		}
-
-		return sotah.Realm{}, errors.New("could not find realm")
-	}()
-	if err != nil {
-		return err
 	}
-
-	phBase := store.NewPricelistHistoriesBase(pubState.IO.StoreClient)
-
-	bkt := phBase.GetBucket(realm)
-	it := bkt.Objects(pubState.IO.StoreClient.Context, nil)
-	for {
-		objAttrs, err := it.Next()
-		if err != nil {
-			if err == iterator.Done {
-				break
-			}
-
-			return err
-		}
-
-		obj := bkt.Object(objAttrs.Name)
-
-		s := strings.Split(objAttrs.Name, ".")
-		normalizedTargetTimestamp, err := strconv.Atoi(s[0])
-		if err != nil {
-			return err
-		}
-		normalizedTargetTime := time.Unix(int64(normalizedTargetTimestamp), 0)
-
-		reader, err := obj.NewReader(pubState.IO.StoreClient.Context)
-		if err != nil {
-			return err
-		}
-		defer reader.Close()
-
-		pHistories, err := sotah.NewItemPriceHistoriesFromMinimized(reader)
-		if err != nil {
-			return err
-		}
-
-		pHistory, ok := pHistories[blizzard.ItemID(163223)]
-		if !ok {
-			logging.WithFields(logrus.Fields{
-				"item":                        163223,
-				"normalized-target-timestamp": normalizedTargetTime.Unix(),
-			}).Info("No history found for item")
-
-			continue
-		}
-
-		for targetTimestamp, prices := range pHistory {
-			logging.WithFields(logrus.Fields{
-				"item":                        163223,
-				"normalized-target-timestamp": normalizedTargetTime.Unix(),
-				"target-timestamp":            targetTimestamp,
-				"min-price":                   prices.MinBuyoutPer,
-			}).Info("Found for item")
-		}
-	}
-
-	//bkt := pubState.IO.StoreClient.GetRealmAuctionsBucket(realm)
-	//it := bkt.Objects(pubState.IO.StoreClient.Context, nil)
-	//i := 0
-	//for {
-	//	objAttrs, err := it.Next()
-	//	if err != nil {
-	//		if err == iterator.Done {
-	//			break
-	//		}
-	//
-	//		return err
-	//	}
-	//
-	//	obj := bkt.Object(objAttrs.Name)
-	//
-	//	s := strings.Split(objAttrs.Name, ".")
-	//	targetTimestamp, err := strconv.Atoi(s[0])
-	//	if err != nil {
-	//		return err
-	//	}
-	//	targetTime := time.Unix(int64(targetTimestamp), 0)
-	//
-	//	aucs, err := pubState.IO.StoreClient.NewAuctions(obj)
-	//	if err != nil {
-	//		return err
-	//	}
-	//
-	//	if _, err := phBase.Handle(aucs, targetTime, realm); err != nil {
-	//		return err
-	//	}
-	//
-	//	i++
-	//	if i > 50 {
-	//		break
-	//	}
-	//}
 
 	// catching SIGINT
 	logging.Info("Waiting for SIGINT")
