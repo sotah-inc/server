@@ -42,26 +42,31 @@ func (b PricelistHistoriesBase) GetObject(targetTime time.Time, bkt *storage.Buc
 func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.Time, rea sotah.Realm) (sotah.UnixTimestamp, error) {
 	normalizedTargetDate := sotah.NormalizeTargetDate(targetTime)
 
-	logging.WithFields(logrus.Fields{
+	entry := logging.WithFields(logrus.Fields{
 		"region":                 rea.Region.Name,
 		"realm":                  rea.Slug,
 		"target-time":            targetTime.Unix(),
 		"normalized-target-date": normalizedTargetDate.Unix(),
-	}).Info("Processing")
+	})
+
+	entry.Info("Processing")
 
 	// resolving unix-timestamp of target-time
 	targetTimestamp := sotah.UnixTimestamp(targetTime.Unix())
 
 	// gathering the bucket
+	entry.Info("Resolving bucket")
 	bkt, err := b.resolveBucket(rea)
 	if err != nil {
 		return 0, err
 	}
 
 	// gathering an object
+	entry.Info("Gathering object")
 	obj := b.GetObject(normalizedTargetDate, bkt)
 
 	// resolving item-price-histories
+	entry.Info("Resolving item-price-histories")
 	ipHistories, err := func() (sotah.ItemPriceHistories, error) {
 		exists, err := b.ObjectExists(obj)
 		if err != nil {
@@ -85,9 +90,11 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 	}
 
 	// gathering new item-prices from the input
+	entry.Info("Gathering item-prices from auctions")
 	iPrices := sotah.NewItemPrices(sotah.NewMiniAuctionListFromMiniAuctions(sotah.NewMiniAuctions(aucs)))
 
 	// merging item-prices into the item-price-histories
+	entry.Info("Merging item-prices from auctions into item-price-histories")
 	for itemId, prices := range iPrices {
 		pHistory := func() sotah.PriceHistory {
 			result, ok := ipHistories[itemId]
@@ -103,18 +110,22 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 	}
 
 	// encoding the item-price-histories for persistence
+	entry.Info("Encoding item-price-histories")
 	gzipEncodedBody, err := ipHistories.EncodeForPersistence()
 	if err != nil {
 		return 0, err
 	}
 
 	// writing it out to the gcloud object
+	entry.Info("Writing encoded item-price-histories to gcloud storage")
 	wc := obj.NewWriter(b.client.Context)
 	wc.ContentType = "text/plain"
 	wc.ContentEncoding = "gzip"
 	if _, err := wc.Write(gzipEncodedBody); err != nil {
 		return 0, err
 	}
+
+	entry.Info("Done")
 
 	return sotah.UnixTimestamp(normalizedTargetDate.Unix()), wc.Close()
 }
