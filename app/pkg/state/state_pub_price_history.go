@@ -73,8 +73,6 @@ func (plhRequest priceListHistoryV2Request) resolve(pubState PubState) (sotah.Re
 }
 
 func (pubState PubState) ListenForPriceListHistory(stop ListenStopChan) error {
-	logging.WithField("subject", subjects.PriceListHistoryV2).Info("Listening for messages")
-
 	err := pubState.IO.Messenger.Subscribe(string(subjects.PriceListHistoryV2), stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
