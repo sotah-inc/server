@@ -11,4 +11,5 @@ gcloud functions deploy HelloPubSub \
     --trigger-topic pricelistHistoriesCompute \
     --source $FN_DIR \
     --region us-central1 \
-    --memory 512MB
+    --memory 512MB \
+    --timeout 120s
