@@ -216,7 +216,7 @@ func (ipHistories ItemPriceHistories) EncodeForPersistence() ([]byte, error) {
 	postWork := func() {
 		close(out)
 	}
-	util.Work(4, worker, postWork)
+	util.Work(8, worker, postWork)
 
 	// queueing up the price-histories for encoding
 	go func() {
