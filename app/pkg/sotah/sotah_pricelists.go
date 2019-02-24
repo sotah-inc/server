@@ -178,23 +178,68 @@ func NewItemPriceHistoriesFromMinimized(reader io.Reader) (ItemPriceHistories, e
 
 type ItemPriceHistories map[blizzard.ItemID]PriceHistory
 
+type EncodeForPersistenceInJob struct {
+	itemId       blizzard.ItemID
+	priceHistory PriceHistory
+}
+
+type EncodeForPersistenceOutJob struct {
+	Err    error
+	ItemId blizzard.ItemID
+	Data   string
+}
+
 func (ipHistories ItemPriceHistories) EncodeForPersistence() ([]byte, error) {
-	// formatting ip-histories into csv format
-	csvData := [][]string{}
-	for itemId, pHistory := range ipHistories {
-		jsonEncodedPriceHistory, err := json.Marshal(pHistory)
-		if err != nil {
-			return []byte{}, err
+	in := make(chan EncodeForPersistenceInJob)
+	out := make(chan EncodeForPersistenceOutJob)
+
+	// spinning up the workers for encoding in parallel
+	worker := func() {
+		for inJob := range in {
+			jsonEncodedPriceHistory, err := json.Marshal(inJob.priceHistory)
+			if err != nil {
+				continue
+			}
+
+			gzipEncodedPriceHistory, err := util.GzipEncode(jsonEncodedPriceHistory)
+			if err != nil {
+				continue
+			}
+
+			out <- EncodeForPersistenceOutJob{
+				Err:    nil,
+				Data:   base64.StdEncoding.EncodeToString(gzipEncodedPriceHistory),
+				ItemId: inJob.itemId,
+			}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(4, worker, postWork)
+
+	// queueing up the price-histories for encoding
+	go func() {
+		for itemId, priceHistory := range ipHistories {
+			in <- EncodeForPersistenceInJob{
+				itemId:       itemId,
+				priceHistory: priceHistory,
+			}
 		}
 
-		gzipEncodedPriceHistory, err := util.GzipEncode(jsonEncodedPriceHistory)
-		if err != nil {
-			return []byte{}, err
+		close(in)
+	}()
+
+	// waiting for them to drain out
+	csvData := [][]string{}
+	for outJob := range out {
+		if outJob.Err != nil {
+			return []byte{}, outJob.Err
 		}
 
 		csvData = append(csvData, []string{
-			strconv.Itoa(int(itemId)),
-			base64.StdEncoding.EncodeToString(gzipEncodedPriceHistory),
+			strconv.Itoa(int(outJob.ItemId)),
+			outJob.Data,
 		})
 	}
 
