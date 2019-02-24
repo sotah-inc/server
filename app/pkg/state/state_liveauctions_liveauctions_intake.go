@@ -154,25 +154,21 @@ func (iRequest liveAuctionsIntakeRequest) handle(sta LiveAuctionsState) {
 	}
 
 	// publishing for pricelist-histories-intake
-	if sta.UseGCloud {
-		// publishing for pricelist-histories-intake
-		phiRequest := pricelistHistoriesIntakeV2Request{RegionRealmTimestamps: iRequest.RegionRealmTimestamps}
-		err := func() error {
-			encodedRequest, err := json.Marshal(phiRequest)
-			if err != nil {
-				return err
-			}
+	err := func() error {
+		if sta.UseGCloud {
+			phiRequest := pricelistHistoriesIntakeV2Request{RegionRealmTimestamps: iRequest.RegionRealmTimestamps}
+			return func() error {
+				encodedRequest, err := json.Marshal(phiRequest)
+				if err != nil {
+					return err
+				}
 
-			return sta.IO.Messenger.Publish(string(subjects.PricelistHistoriesIntakeV2), encodedRequest)
-		}()
-		if err != nil {
-			logging.WithField("error", err.Error()).Error("Failed to publish pricelist-histories-intake-v2-request")
-
-			return
+				return sta.IO.Messenger.Publish(string(subjects.PricelistHistoriesIntakeV2), encodedRequest)
+			}()
 		}
-	} else {
+
 		phiRequest := pricelistHistoriesIntakeRequest{RegionRealmTimestamps: iRequest.RegionRealmTimestamps}
-		err := func() error {
+		return func() error {
 			encodedRequest, err := json.Marshal(phiRequest)
 			if err != nil {
 				return err
@@ -180,11 +176,11 @@ func (iRequest liveAuctionsIntakeRequest) handle(sta LiveAuctionsState) {
 
 			return sta.IO.Messenger.Publish(string(subjects.PricelistHistoriesIntake), encodedRequest)
 		}()
-		if err != nil {
-			logging.WithField("error", err.Error()).Error("Failed to publish pricelist-histories-intake-request")
+	}()
+	if err != nil {
+		logging.WithField("error", err.Error()).Error("Failed to publish pricelist-histories-intake request")
 
-			return
-		}
+		return
 	}
 
 	duration := time.Now().Sub(startTime)
