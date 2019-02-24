@@ -16,6 +16,7 @@ const (
 	ItemsQuery                      Subject = "itemsQuery"
 	PriceList                       Subject = "priceList"
 	PriceListHistory                Subject = "priceListHistory"
+	PriceListHistoryV2              Subject = "priceListHistoryV2"
 	Items                           Subject = "items"
 	Boot                            Subject = "boot"
 	SessionSecret                   Subject = "sessionSecret"

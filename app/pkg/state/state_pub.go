@@ -139,6 +139,7 @@ func NewPubState(config PubStateConfig) (PubState, error) {
 	logging.Info("Establishing listeners")
 	pubState.Listeners = NewListeners(SubjectListeners{
 		subjects.PricelistHistoriesIntakeV2: pubState.ListenForPricelistHistoriesIntakeV2,
+		subjects.PriceListHistoryV2:         pubState.ListenForPriceListHistory,
 	})
 
 	// establishing bus-listeners
