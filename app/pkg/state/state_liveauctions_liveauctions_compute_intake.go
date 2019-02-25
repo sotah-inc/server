@@ -32,17 +32,17 @@ type LiveAuctionsComputeIntakeRequest struct {
 	RealmSlug  string `json:"realm_slug"`
 }
 
-func (pRequest LiveAuctionsComputeIntakeRequest) ToLogrusFields() logrus.Fields {
+func (cRequest LiveAuctionsComputeIntakeRequest) ToLogrusFields() logrus.Fields {
 	return logrus.Fields{
-		"region": pRequest.RegionName,
-		"realm":  pRequest.RealmSlug,
+		"region": cRequest.RegionName,
+		"realm":  cRequest.RealmSlug,
 	}
 }
 
-func (pRequest LiveAuctionsComputeIntakeRequest) handle(laState LiveAuctionsState, loadInJobs chan database.LiveAuctionsLoadEncodedDataInJob) error {
+func (cRequest LiveAuctionsComputeIntakeRequest) handle(laState LiveAuctionsState, loadInJobs chan database.LiveAuctionsLoadEncodedDataInJob) error {
 	entry := logging.WithFields(logrus.Fields{
-		"region_name": pRequest.RegionName,
-		"realm_slug":  pRequest.RealmSlug,
+		"region_name": cRequest.RegionName,
+		"realm_slug":  cRequest.RealmSlug,
 	})
 
 	entry.Info("Handling request")
@@ -50,12 +50,12 @@ func (pRequest LiveAuctionsComputeIntakeRequest) handle(laState LiveAuctionsStat
 	// resolving the realm from the request
 	realm, err := func() (sotah.Realm, error) {
 		for regionName, status := range laState.Statuses {
-			if regionName != blizzard.RegionName(pRequest.RegionName) {
+			if regionName != blizzard.RegionName(cRequest.RegionName) {
 				continue
 			}
 
 			for _, realm := range status.Realms {
-				if realm.Slug != blizzard.RealmSlug(pRequest.RealmSlug) {
+				if realm.Slug != blizzard.RealmSlug(cRequest.RealmSlug) {
 					continue
 				}
 
@@ -110,8 +110,8 @@ func (pRequest LiveAuctionsComputeIntakeRequest) handle(laState LiveAuctionsStat
 
 	// loading the request information and data into the live-auctions-database
 	loadInJobs <- database.LiveAuctionsLoadEncodedDataInJob{
-		RegionName:  blizzard.RegionName(pRequest.RegionName),
-		RealmSlug:   blizzard.RealmSlug(pRequest.RealmSlug),
+		RegionName:  blizzard.RegionName(cRequest.RegionName),
+		RealmSlug:   blizzard.RealmSlug(cRequest.RealmSlug),
 		EncodedData: encodedData,
 	}
 
