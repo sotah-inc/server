@@ -1,7 +1,6 @@
 package store
 
 import (
-	"errors"
 	"fmt"
 
 	"cloud.google.com/go/storage"
@@ -38,5 +37,26 @@ func (b LiveAuctionsBase) GetObject(realm sotah.Realm, bkt *storage.BucketHandle
 }
 
 func (b LiveAuctionsBase) Handle(aucs blizzard.Auctions, realm sotah.Realm) error {
-	return errors.New("wew lad")
+	bkt, err := b.resolveBucket()
+	if err != nil {
+		return err
+	}
+
+	obj := b.GetObject(realm, bkt)
+
+	// encoding auctions in the appropriate format
+	gzipEncodedBody, err := sotah.NewMiniAuctionListFromMiniAuctions(sotah.NewMiniAuctions(aucs)).EncodeForDatabase()
+	if err != nil {
+		return err
+	}
+
+	// writing it out to the gcloud object
+	wc := obj.NewWriter(b.client.Context)
+	wc.ContentType = "application/json"
+	wc.ContentEncoding = "gzip"
+	if _, err := wc.Write(gzipEncodedBody); err != nil {
+		return err
+	}
+
+	return nil
 }
