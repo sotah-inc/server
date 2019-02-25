@@ -70,16 +70,15 @@ func LiveAuctionsComputeIntake(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
-	req := state.PricelistHistoriesComputeIntakeRequest{}
+	req := state.LiveAuctionsComputeIntakeRequest{}
 	req.RegionName = string(region.Name)
 	req.RealmSlug = string(realm.Slug)
-	req.NormalizedTargetTimestamp = int(normalizedTargetTimestamp)
 	jsonEncodedRequest, err := json.Marshal(req)
 	if err != nil {
 		return err
 	}
 
-	topic := busClient.Topic(string(subjects.PricelistHistoriesComputeIntake))
+	topic := busClient.Topic(string(subjects.LiveAuctionsComputeIntake))
 	msg := bus.NewMessage()
 	msg.Data = string(jsonEncodedRequest)
 	if _, err := busClient.Publish(topic, msg); err != nil {
