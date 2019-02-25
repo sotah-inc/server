@@ -95,14 +95,28 @@ func NewLiveAuctionsState(config LiveAuctionsStateConfig) (LiveAuctionsState, er
 	laState.IO.Databases.LiveAuctionsDatabases = ladBases
 
 	// establishing listeners
-	laState.Listeners = NewListeners(SubjectListeners{
-		subjects.Auctions:           laState.ListenForAuctions,
-		subjects.LiveAuctionsIntake: laState.ListenForLiveAuctionsIntake,
-		subjects.PriceList:          laState.ListenForPriceList,
-		subjects.Owners:             laState.ListenForOwners,
-		subjects.OwnersQuery:        laState.ListenForOwnersQuery,
-		subjects.OwnersQueryByItems: laState.ListenForOwnersQueryByItems,
-	})
+	listeners := func() SubjectListeners {
+		if laState.UseGCloud {
+			return SubjectListeners{
+				subjects.Auctions:             laState.ListenForAuctions,
+				subjects.LiveAuctionsIntakeV2: laState.ListenForLiveAuctionsIntakeV2,
+				subjects.PriceList:            laState.ListenForPriceList,
+				subjects.Owners:               laState.ListenForOwners,
+				subjects.OwnersQuery:          laState.ListenForOwnersQuery,
+				subjects.OwnersQueryByItems:   laState.ListenForOwnersQueryByItems,
+			}
+		}
+
+		return SubjectListeners{
+			subjects.Auctions:           laState.ListenForAuctions,
+			subjects.LiveAuctionsIntake: laState.ListenForLiveAuctionsIntake,
+			subjects.PriceList:          laState.ListenForPriceList,
+			subjects.Owners:             laState.ListenForOwners,
+			subjects.OwnersQuery:        laState.ListenForOwnersQuery,
+			subjects.OwnersQueryByItems: laState.ListenForOwnersQueryByItems,
+		}
+	}()
+	laState.Listeners = NewListeners(listeners)
 
 	return laState, nil
 }
