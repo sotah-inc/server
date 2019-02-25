@@ -16,7 +16,7 @@ type LoadRegionRealmTimestampsInJob struct {
 	TargetTimestamp int    `json:"target_timestamp"`
 }
 
-func (c Client) LoadRegionRealmTimestamps(rTimestamps sotah.RegionRealmTimestamps) {
+func (c Client) LoadRegionRealmTimestamps(rTimestamps sotah.RegionRealmTimestamps, recipientSubject subjects.Subject) {
 	// establishing channels for intake
 	in := make(chan LoadRegionRealmTimestampsInJob)
 
@@ -37,7 +37,7 @@ func (c Client) LoadRegionRealmTimestamps(rTimestamps sotah.RegionRealmTimestamp
 				"region": inJob.RegionName,
 				"realm":  inJob.RealmSlug,
 			}).Info("Queueing up realm")
-			if _, err := c.Publish(c.Topic(string(subjects.PricelistHistoriesCompute)), msg); err != nil {
+			if _, err := c.Publish(c.Topic(string(recipientSubject)), msg); err != nil {
 				logging.WithField("error", err.Error()).Fatal("Failed to publish message")
 
 				return
