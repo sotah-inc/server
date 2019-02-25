@@ -69,6 +69,31 @@ func (ladBase liveAuctionsDatabase) persistMiniAuctionList(maList sotah.MiniAuct
 	return nil
 }
 
+func (ladBase liveAuctionsDatabase) persistEncodedData(encodedData []byte) error {
+	logging.WithFields(logrus.Fields{
+		"db":           ladBase.db.Path(),
+		"encoded-data": len(encodedData),
+	}).Debug("Persisting mini-auction-list via encoded-data")
+
+	err := ladBase.db.Update(func(tx *bolt.Tx) error {
+		bkt, err := tx.CreateBucketIfNotExists(liveAuctionsBucketName())
+		if err != nil {
+			return err
+		}
+
+		if err := bkt.Put(liveAuctionsKeyName(), encodedData); err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (ladBase liveAuctionsDatabase) GetMiniAuctionList() (sotah.MiniAuctionList, error) {
 	out := sotah.MiniAuctionList{}
 
@@ -246,6 +271,67 @@ func (ladBases LiveAuctionsDatabases) Load(in chan LoadInJob) chan liveAuctionsL
 		close(out)
 	}
 	util.Work(2, worker, postWork)
+
+	return out
+}
+
+type LiveAuctionsLoadEncodedDataInJob struct {
+	RegionName  blizzard.RegionName
+	RealmSlug   blizzard.RealmSlug
+	EncodedData []byte
+}
+
+type LiveAuctionsLoadEncodedDataOutJob struct {
+	Err        error
+	RegionName blizzard.RegionName
+	RealmSlug  blizzard.RealmSlug
+}
+
+func (job LiveAuctionsLoadEncodedDataOutJob) ToLogrusFields() logrus.Fields {
+	return logrus.Fields{
+		"error":  job.Err.Error(),
+		"region": job.RegionName,
+		"realm":  job.RealmSlug,
+	}
+}
+
+func (ladBases LiveAuctionsDatabases) LoadEncodedData(in chan LiveAuctionsLoadEncodedDataInJob) chan LiveAuctionsLoadEncodedDataOutJob {
+	// establishing channels
+	out := make(chan LiveAuctionsLoadEncodedDataOutJob)
+
+	// spinning up workers for receiving encoded-data and persisting it
+	worker := func() {
+		for job := range in {
+			// resolving the live-auctions database and gathering current Stats
+			ladBase := ladBases[job.RegionName][job.RealmSlug]
+
+			if err := ladBase.persistEncodedData(job.EncodedData); err != nil {
+				logging.WithFields(logrus.Fields{
+					"error":  err.Error(),
+					"region": job.RegionName,
+					"realm":  job.RealmSlug,
+				}).Error("Failed to persist encoded-data")
+
+				out <- LiveAuctionsLoadEncodedDataOutJob{
+					Err:        err,
+					RegionName: job.RegionName,
+					RealmSlug:  job.RealmSlug,
+				}
+
+				continue
+			}
+
+			out <- LiveAuctionsLoadEncodedDataOutJob{
+				Err:        nil,
+				RegionName: job.RegionName,
+				RealmSlug:  job.RealmSlug,
+			}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(4, worker, postWork)
 
 	return out
 }

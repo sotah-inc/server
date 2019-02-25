@@ -70,6 +70,7 @@ func NewLiveAuctionsState(config LiveAuctionsStateConfig) (LiveAuctionsState, er
 		}
 
 		laState.IO.StoreClient = stor
+		laState.LiveAuctionsBase = store.NewLiveAuctionsBase(stor)
 	} else {
 		logging.Info("Connecting to disk store")
 		cacheDirs := []string{
@@ -118,9 +119,18 @@ func NewLiveAuctionsState(config LiveAuctionsStateConfig) (LiveAuctionsState, er
 	}()
 	laState.Listeners = NewListeners(listeners)
 
+	// optionally establishing bus-listeners
+	if config.UseGCloud {
+		laState.BusListeners = NewBusListeners(SubjectBusListeners{
+			subjects.LiveAuctionsComputeIntake: laState.ListenForLiveAuctionsComputeIntake,
+		})
+	}
+
 	return laState, nil
 }
 
 type LiveAuctionsState struct {
 	State
+
+	LiveAuctionsBase store.LiveAuctionsBase
 }

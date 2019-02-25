@@ -22,6 +22,12 @@ func LiveAuctions(config state.LiveAuctionsStateConfig) error {
 		return err
 	}
 
+	// optionally opening all bus-listeners
+	if config.UseGCloud {
+		logging.Info("Opening all bus-listeners")
+		laState.BusListeners.Listen()
+	}
+
 	// catching SIGINT
 	logging.Info("Waiting for SIGINT")
 	sigIn := make(chan os.Signal, 1)
