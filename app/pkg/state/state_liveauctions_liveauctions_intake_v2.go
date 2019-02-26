@@ -90,10 +90,10 @@ func (iRequest liveAuctionsIntakeV2Request) handle(sta LiveAuctionsState) {
 
 	duration := time.Now().Sub(startTime)
 	sta.IO.Reporter.Report(metric.Metrics{
-		"liveauctions_intake_duration": int(duration) / 1000 / 1000 / 1000,
-		"included_realms":              includedRealmCount,
-		"excluded_realms":              excludedRealmCount,
-		"total_realms":                 includedRealmCount + excludedRealmCount,
+		"liveauctions_intake_v2_duration": int(duration) / 1000 / 1000 / 1000,
+		"included_realms":                 includedRealmCount,
+		"excluded_realms":                 excludedRealmCount,
+		"total_realms":                    includedRealmCount + excludedRealmCount,
 	})
 
 	return
