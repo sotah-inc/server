@@ -10,8 +10,6 @@ import (
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/sotah"
-	"github.com/sotah-inc/server/app/pkg/state"
-	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
 )
 
@@ -70,20 +68,20 @@ func LiveAuctionsComputeIntake(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
-	req := state.LiveAuctionsComputeIntakeRequest{}
-	req.RegionName = string(region.Name)
-	req.RealmSlug = string(realm.Slug)
-	jsonEncodedRequest, err := json.Marshal(req)
-	if err != nil {
-		return err
-	}
-
-	topic := busClient.Topic(string(subjects.LiveAuctionsComputeIntake))
-	msg := bus.NewMessage()
-	msg.Data = string(jsonEncodedRequest)
-	if _, err := busClient.Publish(topic, msg); err != nil {
-		return err
-	}
+	// req := state.LiveAuctionsComputeIntakeRequest{}
+	// req.RegionName = string(region.Name)
+	// req.RealmSlug = string(realm.Slug)
+	// jsonEncodedRequest, err := json.Marshal(req)
+	// if err != nil {
+	// 	return err
+	// }
+	//
+	// topic := busClient.Topic(string(subjects.LiveAuctionsComputeIntake))
+	// msg := bus.NewMessage()
+	// msg.Data = string(jsonEncodedRequest)
+	// if _, err := busClient.Publish(topic, msg); err != nil {
+	// 	return err
+	// }
 
 	return nil
 }
