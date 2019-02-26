@@ -3,6 +3,7 @@ package state
 import (
 	"fmt"
 
+	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/database"
 	"github.com/sotah-inc/server/app/pkg/diskstore"
 	"github.com/sotah-inc/server/app/pkg/logging"
@@ -71,6 +72,11 @@ func NewLiveAuctionsState(config LiveAuctionsStateConfig) (LiveAuctionsState, er
 
 		laState.IO.StoreClient = stor
 		laState.LiveAuctionsBase = store.NewLiveAuctionsBase(stor)
+
+		// establishing a bus
+		logging.Info("Connecting bus-client")
+		busClient, err := bus.NewClient(config.GCloudProjectID, "live-auctions")
+		laState.IO.BusClient = busClient
 	} else {
 		logging.Info("Connecting to disk store")
 		cacheDirs := []string{
