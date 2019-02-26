@@ -100,6 +100,7 @@ func NewLiveAuctionsState(config LiveAuctionsStateConfig) (LiveAuctionsState, er
 		if laState.UseGCloud {
 			return SubjectListeners{
 				subjects.Auctions:             laState.ListenForAuctions,
+				subjects.LiveAuctionsIntake:   laState.ListenForLiveAuctionsIntake,
 				subjects.LiveAuctionsIntakeV2: laState.ListenForLiveAuctionsIntakeV2,
 				subjects.PriceList:            laState.ListenForPriceList,
 				subjects.Owners:               laState.ListenForOwners,

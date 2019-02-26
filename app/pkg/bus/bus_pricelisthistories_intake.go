@@ -59,7 +59,11 @@ func (c Client) LoadRegionRealmTimestamps(rTimestamps sotah.RegionRealmTimestamp
 					RealmSlug:       string(realmSlug),
 					TargetTimestamp: int(targetTime),
 				}
+
+				break
 			}
+
+			break
 		}
 
 		close(in)
