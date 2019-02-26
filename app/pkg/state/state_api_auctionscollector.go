@@ -280,7 +280,12 @@ func (sta APIState) collectRegions() {
 			return err
 		}
 
-		return sta.IO.Messenger.Publish(string(subjects.LiveAuctionsIntake), encodedRequest)
+		subject := subjects.LiveAuctionsIntake
+		if sta.UseGCloud {
+			subject = subjects.LiveAuctionsIntakeV2
+		}
+
+		return sta.IO.Messenger.Publish(string(subject), encodedRequest)
 	}()
 	if err != nil {
 		logging.WithField("error", err.Error()).Error("Failed to publish live-auctions-intake-request")
