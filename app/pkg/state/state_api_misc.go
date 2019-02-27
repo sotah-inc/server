@@ -9,9 +9,6 @@ import (
 	nats "github.com/nats-io/go-nats"
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
-	"github.com/sotah-inc/server/app/pkg/bus"
-	busCodes "github.com/sotah-inc/server/app/pkg/bus/codes"
-	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/sotah"
@@ -88,40 +85,4 @@ func (sta APIState) ListenForBoot(stop ListenStopChan) error {
 	}
 
 	return nil
-}
-
-func (sta APIState) ListenForBusBoot(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {
-	// establishing subscriber config
-	config := bus.SubscribeConfig{
-		Stop: stop,
-		Callback: func(busMsg bus.Message) {
-			reply := bus.NewMessage()
-
-			encodedResponse, err := json.Marshal(BootResponse{
-				Regions:     sta.Regions,
-				ItemClasses: sta.ItemClasses,
-				Expansions:  sta.Expansions,
-				Professions: sta.Professions,
-			})
-			if err != nil {
-				reply.Err = err.Error()
-				reply.Code = busCodes.MsgJSONParseError
-				sta.IO.BusClient.ReplyTo(busMsg, reply)
-
-				return
-			}
-
-			reply.Data = string(encodedResponse)
-			sta.IO.BusClient.ReplyTo(busMsg, reply)
-		},
-		OnReady:   onReady,
-		OnStopped: onStopped,
-	}
-
-	// starting up worker for the subscription
-	go func() {
-		if err := sta.IO.BusClient.SubscribeToTopic(string(subjects.Boot), config); err != nil {
-			logging.WithField("error", err.Error()).Fatal("Failed to subscribe to topic")
-		}
-	}()
 }
