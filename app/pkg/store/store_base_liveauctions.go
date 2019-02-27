@@ -4,7 +4,9 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/storage"
+	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 )
 
@@ -37,10 +39,17 @@ func (b LiveAuctionsBase) GetObject(realm sotah.Realm, bkt *storage.BucketHandle
 }
 
 func (b LiveAuctionsBase) Handle(aucs blizzard.Auctions, realm sotah.Realm) error {
+	logging.WithField("bucket", b.getBucketName()).Info("Resolving bucket")
+
 	bkt, err := b.resolveBucket()
 	if err != nil {
 		return err
 	}
+
+	logging.WithFields(logrus.Fields{
+		"bucket": b.getBucketName(),
+		"object": b.getObjectName(realm),
+	}).Info("Resolved bucket, gathering object and encoding auctions to mini-auctions")
 
 	obj := b.GetObject(realm, bkt)
 
@@ -50,6 +59,12 @@ func (b LiveAuctionsBase) Handle(aucs blizzard.Auctions, realm sotah.Realm) erro
 		return err
 	}
 
+	logging.WithFields(logrus.Fields{
+		"bucket":        b.getBucketName(),
+		"object":        b.getObjectName(realm),
+		"mini-auctions": len(gzipEncodedBody),
+	}).Info("Encoded mini-auctions, writing to storage")
+
 	// writing it out to the gcloud object
 	wc := obj.NewWriter(b.client.Context)
 	wc.ContentType = "application/json"
@@ -57,6 +72,12 @@ func (b LiveAuctionsBase) Handle(aucs blizzard.Auctions, realm sotah.Realm) erro
 	if _, err := wc.Write(gzipEncodedBody); err != nil {
 		return err
 	}
+
+	logging.WithFields(logrus.Fields{
+		"bucket":        b.getBucketName(),
+		"object":        b.getObjectName(realm),
+		"mini-auctions": len(gzipEncodedBody),
+	}).Info("Written to storage")
 
 	return nil
 }
