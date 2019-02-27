@@ -44,7 +44,7 @@ func (sta State) NewRegions() (sotah.RegionList, error) {
 		return nil, errors.New(msg.Err)
 	}
 
-	boot := bootResponse{}
+	boot := BootResponse{}
 	if err := json.Unmarshal([]byte(msg.Data), &boot); err != nil {
 		return sotah.RegionList{}, err
 	}
@@ -52,7 +52,7 @@ func (sta State) NewRegions() (sotah.RegionList, error) {
 	return boot.Regions, nil
 }
 
-type bootResponse struct {
+type BootResponse struct {
 	Regions     sotah.RegionList     `json:"regions"`
 	ItemClasses blizzard.ItemClasses `json:"item_classes"`
 	Expansions  []sotah.Expansion    `json:"expansions"`
@@ -63,7 +63,7 @@ func (sta APIState) ListenForBoot(stop ListenStopChan) error {
 	err := sta.IO.Messenger.Subscribe(string(subjects.Boot), stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
-		encodedResponse, err := json.Marshal(bootResponse{
+		encodedResponse, err := json.Marshal(BootResponse{
 			Regions:     sta.Regions,
 			ItemClasses: sta.ItemClasses,
 			Expansions:  sta.Expansions,
