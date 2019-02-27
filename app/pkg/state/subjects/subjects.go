@@ -9,7 +9,7 @@ Status - subject name for returning current status
 const (
 	Status                          Subject = "status"
 	Auctions                        Subject = "auctions"
-	CollectAuctions                 Subject = "collectAuctions"
+	AuctionsCollectorCompute        Subject = "auctionsCollectorCompute"
 	GenericTestErrors               Subject = "genericTestErrors"
 	Owners                          Subject = "owners"
 	OwnersQueryByItems              Subject = "ownersQueryByItems"
