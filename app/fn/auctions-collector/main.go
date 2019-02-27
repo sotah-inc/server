@@ -7,13 +7,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/sotah-inc/server/app/pkg/logging"
-
-	"github.com/sotah-inc/server/app/pkg/state"
-
-	"github.com/sotah-inc/server/app/pkg/state/subjects"
-
 	"github.com/sotah-inc/server/app/pkg/bus"
+	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/state"
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
 var projectId = os.Getenv("GCP_PROJECT")
@@ -47,7 +44,7 @@ type PubSubMessage struct {
 	Data []byte `json:"data"`
 }
 
-func LiveAuctionsComputeIntake(_ context.Context, m PubSubMessage) error {
+func AuctionsCollector(_ context.Context, m PubSubMessage) error {
 	logging.WithField("regions", len(bootResponse.Regions)).Info("Received request")
 
 	return nil
