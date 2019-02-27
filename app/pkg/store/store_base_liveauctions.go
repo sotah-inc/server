@@ -2,6 +2,7 @@ package store
 
 import (
 	"fmt"
+	"io/ioutil"
 
 	"cloud.google.com/go/storage"
 	"github.com/sirupsen/logrus"
@@ -77,7 +78,29 @@ func (b LiveAuctionsBase) Handle(aucs blizzard.Auctions, realm sotah.Realm) erro
 		"bucket":        b.getBucketName(),
 		"object":        b.getObjectName(realm),
 		"mini-auctions": len(gzipEncodedBody),
-	}).Info("Written to storage")
+	}).Info("Written to storage, getting reader")
+
+	nextObj := b.GetObject(realm, bkt)
+	reader, err := nextObj.NewReader(b.client.Context)
+	if err != nil {
+		return err
+	}
+
+	logging.WithFields(logrus.Fields{
+		"bucket": b.getBucketName(),
+		"object": b.getObjectName(realm),
+	}).Info("Reader received, reading")
+
+	data, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return err
+	}
+
+	logging.WithFields(logrus.Fields{
+		"bucket": b.getBucketName(),
+		"object": b.getObjectName(realm),
+		"data":   len(data),
+	}).Info("Data received")
 
 	return nil
 }
