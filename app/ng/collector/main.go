@@ -38,7 +38,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	topic, err := busClient.ResolveTopic(string(subjects.CollectAuctions))
+	topic, err := busClient.ResolveTopic(string(subjects.AuctionsCollectorCompute))
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		fmt.Fprint(w, "Failed to resolve collect-auctions topic")
