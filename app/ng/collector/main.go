@@ -14,6 +14,14 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	cronHeader := r.Header.Get("X-Appengine-Cron")
+	if cronHeader != "true" {
+		w.WriteHeader(http.StatusUnauthorized)
+		fmt.Fprint(w, "Unauthorized")
+
+		return
+	}
+
 	fmt.Fprint(w, "Hello, World!")
 }
 

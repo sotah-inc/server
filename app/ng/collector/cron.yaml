@@ -1,0 +1,5 @@
+cron:
+- description: "auctions collector"
+  url: /
+  schedule: every 20 minutes
+  target: collector
