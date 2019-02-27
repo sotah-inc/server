@@ -22,7 +22,7 @@ var bootResponse state.BootResponse
 
 func init() {
 	var err error
-	busClient, err = bus.NewClient(projectId, "fn-live-auctions-compute-intake")
+	busClient, err = bus.NewClient(projectId, "fn-auctions-collector")
 	if err != nil {
 		log.Fatalf("Failed to create new bus client: %s", err.Error())
 
