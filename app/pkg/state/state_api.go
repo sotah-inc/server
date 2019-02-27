@@ -5,6 +5,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/database"
 	"github.com/sotah-inc/server/app/pkg/diskstore"
 	"github.com/sotah-inc/server/app/pkg/logging"
@@ -55,6 +56,11 @@ func NewAPIState(config APIStateConfig) (APIState, error) {
 		}
 
 		apiState.IO.StoreClient = stor
+
+		// establishing a bus
+		logging.Info("Connecting bus-client")
+		busClient, err := bus.NewClient(config.GCloudProjectID, "api")
+		apiState.IO.BusClient = busClient
 	} else {
 		cacheDirs := []string{
 			config.DiskStoreCacheDir,
@@ -170,6 +176,13 @@ func NewAPIState(config APIStateConfig) (APIState, error) {
 		subjects.Items:         apiState.ListenForItems,
 		subjects.ItemsQuery:    apiState.ListenForItemsQuery,
 	})
+
+	// optionally establishing bus-listeners
+	if config.SotahConfig.UseGCloud {
+		apiState.BusListeners = NewBusListeners(SubjectBusListeners{
+			subjects.Boot: apiState.ListenForBusBoot,
+		})
+	}
 
 	return apiState, nil
 }
