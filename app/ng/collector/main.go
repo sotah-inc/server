@@ -5,7 +5,23 @@ import (
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/sotah-inc/server/app/pkg/bus"
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
+
+var projectId = os.Getenv("GCP_PROJECT")
+var busClient bus.Client
+
+func init() {
+	var err error
+	busClient, err = bus.NewClient(projectId, "fn-auctions-collector")
+	if err != nil {
+		log.Fatalf("Failed to create new bus client: %s", err.Error())
+
+		return
+	}
+}
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
@@ -18,6 +34,22 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	if cronHeader != "true" {
 		w.WriteHeader(http.StatusUnauthorized)
 		fmt.Fprint(w, "Unauthorized")
+
+		return
+	}
+
+	topic, err := busClient.ResolveTopic(string(subjects.CollectAuctions))
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		fmt.Fprint(w, "Failed to resolve collect-auctions topic")
+
+		return
+	}
+
+	msg := bus.NewMessage()
+	if _, err := busClient.Publish(topic, msg); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, "Failed to publish message to collect-auctions topic")
 
 		return
 	}
