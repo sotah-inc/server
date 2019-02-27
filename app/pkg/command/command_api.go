@@ -27,7 +27,10 @@ func Api(config state.APIStateConfig) error {
 
 	// starting up a collector
 	collectorStop := make(sotah.WorkerStopChan)
-	onCollectorStop := apiState.StartCollector(collectorStop)
+	onCollectorStop := make(sotah.WorkerStopChan)
+	if !config.SotahConfig.UseGCloud {
+		onCollectorStop = apiState.StartCollector(collectorStop)
+	}
 
 	// catching SIGINT
 	logging.Info("Waiting for SIGINT")
@@ -40,11 +43,13 @@ func Api(config state.APIStateConfig) error {
 	// stopping listeners
 	apiState.Listeners.Stop()
 
-	logging.Info("Stopping collector")
-	collectorStop <- struct{}{}
+	if !config.SotahConfig.UseGCloud {
+		logging.Info("Stopping collector")
+		collectorStop <- struct{}{}
 
-	logging.Info("Waiting for collector to stop")
-	<-onCollectorStop
+		logging.Info("Waiting for collector to stop")
+		<-onCollectorStop
+	}
 
 	logging.Info("Exiting")
 	return nil
