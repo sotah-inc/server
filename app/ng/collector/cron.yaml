@@ -1,5 +1,5 @@
 cron:
 - description: "auctions collector"
   url: /
-  schedule: every 20 minutes
+  schedule: every 30 minutes
   target: collector
