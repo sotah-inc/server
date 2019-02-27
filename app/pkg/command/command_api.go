@@ -25,6 +25,12 @@ func Api(config state.APIStateConfig) error {
 		return err
 	}
 
+	// optionally opening all bus-listeners
+	if config.SotahConfig.UseGCloud {
+		logging.Info("Opening all bus-listeners")
+		apiState.BusListeners.Listen()
+	}
+
 	// starting up a collector
 	collectorStop := make(sotah.WorkerStopChan)
 	onCollectorStop := make(sotah.WorkerStopChan)
