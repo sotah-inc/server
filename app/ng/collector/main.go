@@ -30,18 +30,18 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cronHeader := r.Header.Get("X-Appengine-Cron")
-	if cronHeader != "true" {
-		w.WriteHeader(http.StatusUnauthorized)
-		fmt.Fprint(w, "Unauthorized")
-
-		return
-	}
+	// cronHeader := r.Header.Get("X-Appengine-Cron")
+	// if cronHeader != "true" {
+	// 	w.WriteHeader(http.StatusUnauthorized)
+	// 	fmt.Fprint(w, "Unauthorized")
+	//
+	// 	return
+	// }
 
 	topic, err := busClient.ResolveTopic(string(subjects.AuctionsCollectorCompute))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, "Failed to resolve collect-auctions topic")
+		fmt.Fprint(w, fmt.Sprintf("Failed to resolve collect-auctions topic: %s", err.Error()))
 
 		return
 	}
@@ -49,7 +49,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	msg := bus.NewMessage()
 	if _, err := busClient.Publish(topic, msg); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, "Failed to publish message to collect-auctions topic")
+		fmt.Fprint(w, fmt.Sprintf("Failed to publish message to collect-auctions topic: %s", err.Error()))
 
 		return
 	}
