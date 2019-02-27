@@ -10,7 +10,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
-var projectId = os.Getenv("GCP_PROJECT")
+var projectId = os.Getenv("GOOGLE_CLOUD_PROJECT")
 var busClient bus.Client
 
 func init() {
