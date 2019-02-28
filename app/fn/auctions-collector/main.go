@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"cloud.google.com/go/pubsub"
-
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/sotah"
