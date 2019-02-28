@@ -8,9 +8,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/util"
 
 	"cloud.google.com/go/storage"
-	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
-	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 )
 
@@ -42,19 +40,7 @@ func (b AuctionsBase) GetObject(lastModified time.Time, bkt *storage.BucketHandl
 	return b.base.getObject(b.getObjectName(lastModified), bkt)
 }
 
-func (b AuctionsBase) Handle(aucs blizzard.Auctions, lastModified time.Time, realm sotah.Realm) error {
-	logging.WithField("bucket", b.getBucketName(realm)).Info("Resolving bucket")
-
-	bkt, err := b.ResolveBucket(realm)
-	if err != nil {
-		return err
-	}
-
-	logging.WithFields(logrus.Fields{
-		"bucket": b.getBucketName(realm),
-		"object": b.getObjectName(lastModified),
-	}).Info("Resolved bucket, gathering object and encoding auctions")
-
+func (b AuctionsBase) Handle(aucs blizzard.Auctions, lastModified time.Time, bkt *storage.BucketHandle) error {
 	jsonEncodedBody, err := json.Marshal(aucs)
 	if err != nil {
 		return err
@@ -64,12 +50,6 @@ func (b AuctionsBase) Handle(aucs blizzard.Auctions, lastModified time.Time, rea
 	if err != nil {
 		return err
 	}
-
-	logging.WithFields(logrus.Fields{
-		"bucket":   b.getBucketName(realm),
-		"object":   b.getObjectName(lastModified),
-		"auctions": len(gzipEncodedBody),
-	}).Info("Encoded auctions, writing to storage")
 
 	// writing it out to the gcloud object
 	wc := b.GetObject(lastModified, bkt).NewWriter(b.client.Context)
@@ -81,24 +61,6 @@ func (b AuctionsBase) Handle(aucs blizzard.Auctions, lastModified time.Time, rea
 	if err := wc.Close(); err != nil {
 		return err
 	}
-
-	logging.WithFields(logrus.Fields{
-		"bucket":   b.getBucketName(realm),
-		"object":   b.getObjectName(lastModified),
-		"auctions": len(gzipEncodedBody),
-	}).Info("Written to storage")
-
-	obj := b.GetObject(lastModified, bkt)
-	objAttrs, err := obj.Attrs(b.client.Context)
-	if err != nil {
-		return err
-	}
-
-	logging.WithFields(logrus.Fields{
-		"bucket": b.getBucketName(realm),
-		"object": b.getObjectName(lastModified),
-		"link":   objAttrs.MediaLink,
-	}).Info("Reporting")
 
 	return nil
 }
