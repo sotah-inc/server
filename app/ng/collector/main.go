@@ -39,14 +39,6 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	// 	return
 	// }
 
-	topic, err := busClient.ResolveTopic(string(subjects.AuctionsCollectorCompute))
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, fmt.Sprintf("Failed to resolve collect-auctions topic: %s", err.Error()))
-
-		return
-	}
-
 	reply, err := busClient.RequestFromTopic(string(subjects.AuctionsCollectorCompute), "", 5*time.Second)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
