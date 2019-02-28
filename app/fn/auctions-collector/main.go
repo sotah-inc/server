@@ -75,8 +75,16 @@ func AuctionsCollector(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
-	for _, realms := range regionRealms {
+	for regionName, realms := range regionRealms {
+		if regionName != "us" {
+			continue
+		}
+
 		for _, realm := range realms {
+			if realm.Slug != "earthen-ring" {
+				continue
+			}
+
 			job := bus.CollectAuctionsJob{
 				RegionName: string(realm.Region.Name),
 				RealmSlug:  string(realm.Slug),
@@ -91,11 +99,7 @@ func AuctionsCollector(_ context.Context, m PubSubMessage) error {
 			if _, err := busClient.Publish(collectAuctionsTopic, msg); err != nil {
 				return err
 			}
-
-			break
 		}
-
-		break
 	}
 
 	return nil
