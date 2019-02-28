@@ -55,6 +55,10 @@ func (c Client) Topic(topicName string) *pubsub.Topic {
 	return c.client.Topic(topicName)
 }
 
+func (c Client) TopicExists(topic *pubsub.Topic) (bool, error) {
+	return topic.Exists(c.context)
+}
+
 func (c Client) ResolveTopic(id string) (*pubsub.Topic, error) {
 	topic := c.Topic(id)
 	exists, err := topic.Exists(c.context)
