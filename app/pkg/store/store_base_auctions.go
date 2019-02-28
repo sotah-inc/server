@@ -30,7 +30,7 @@ func (b AuctionsBase) GetBucket(realm sotah.Realm) *storage.BucketHandle {
 	return b.base.getBucket(b.getBucketName(realm))
 }
 
-func (b AuctionsBase) resolveBucket(realm sotah.Realm) (*storage.BucketHandle, error) {
+func (b AuctionsBase) ResolveBucket(realm sotah.Realm) (*storage.BucketHandle, error) {
 	return b.base.resolveBucket(b.getBucketName(realm))
 }
 
@@ -45,7 +45,7 @@ func (b AuctionsBase) GetObject(lastModified time.Time, bkt *storage.BucketHandl
 func (b AuctionsBase) Handle(aucs blizzard.Auctions, lastModified time.Time, realm sotah.Realm) error {
 	logging.WithField("bucket", b.getBucketName(realm)).Info("Resolving bucket")
 
-	bkt, err := b.resolveBucket(realm)
+	bkt, err := b.ResolveBucket(realm)
 	if err != nil {
 		return err
 	}
