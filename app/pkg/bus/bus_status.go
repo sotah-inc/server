@@ -73,7 +73,7 @@ func (c Client) LoadStatuses(regions sotah.RegionList) chan LoadStatusesJob {
 		}
 	}
 	postWork := func() {
-		return
+		close(out)
 	}
 	util.Work(4, worker, postWork)
 

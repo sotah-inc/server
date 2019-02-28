@@ -173,13 +173,9 @@ func (c Client) ReplyTo(target Message, payload Message) (string, error) {
 	}
 
 	// validating topic already exists
-	topic := c.Topic(target.ReplyTo)
-	exists, err := topic.Exists(c.context)
+	topic, err := c.FirmTopic(target.ReplyTo)
 	if err != nil {
 		return "", err
-	}
-	if !exists {
-		return "", errors.New("topic does not exist")
 	}
 
 	logging.WithField("reply-to-topic", topic.ID()).Info("Replying to topic")
