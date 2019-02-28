@@ -9,8 +9,11 @@ import (
 	"os"
 	"time"
 
+	"cloud.google.com/go/pubsub"
+	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
+	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
@@ -24,12 +27,20 @@ var busClient bus.Client
 var blizzardClient blizzard.Client
 var storeClient store.Client
 var auctionsStoreBase store.AuctionsBase
+var liveAuctionsComputeTopic *pubsub.Topic
 
 func init() {
 	var err error
 	busClient, err = bus.NewClient(projectId, "fn-live-auctions-compute-intake")
 	if err != nil {
 		log.Fatalf("Failed to create new bus client: %s", err.Error())
+
+		return
+	}
+
+	liveAuctionsComputeTopic, err = busClient.FirmTopic(string(subjects.LiveAuctionsComputeIntake))
+	if err != nil {
+		log.Fatalf("Failed to get firm live-auctions-compute topic: %s", err.Error())
 
 		return
 	}
@@ -141,6 +152,28 @@ func CollectAuctions(_ context.Context, m PubSubMessage) error {
 	}
 
 	if err := auctionsStoreBase.Handle(aucs, aucInfoFile.LastModifiedAsTime(), bkt); err != nil {
+		return err
+	}
+
+	logging.WithFields(logrus.Fields{
+		"region":        region.Name,
+		"realm":         realm.Slug,
+		"last-modified": aucInfoFile.LastModifiedAsTime().Unix(),
+	}).Info("Handled, pushing into live-auctions-compute")
+
+	liveAuctionsComputeJob := bus.LoadRegionRealmTimestampsInJob{
+		RegionName:      string(region.Name),
+		RealmSlug:       string(realm.Slug),
+		TargetTimestamp: int(aucInfoFile.LastModifiedAsTime().Unix()),
+	}
+	jsonEncoded, err := json.Marshal(liveAuctionsComputeJob)
+	if err != nil {
+		return err
+	}
+
+	msg := bus.NewMessage()
+	msg.Data = string(jsonEncoded)
+	if _, err := busClient.Publish(liveAuctionsComputeTopic, msg); err != nil {
 		return err
 	}
 
