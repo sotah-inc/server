@@ -9,16 +9,14 @@ import (
 	"os"
 	"time"
 
-	"github.com/sotah-inc/server/app/pkg/sotah"
-
+	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
-	"github.com/sotah-inc/server/app/pkg/state/subjects"
-
-	"github.com/sotah-inc/server/app/pkg/state"
-
-	"github.com/sotah-inc/server/app/pkg/store"
-
 	"github.com/sotah-inc/server/app/pkg/bus"
+	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/state"
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
+	"github.com/sotah-inc/server/app/pkg/store"
 )
 
 var projectId = os.Getenv("GCP_PROJECT")
@@ -103,6 +101,11 @@ func CollectAuctions(_ context.Context, m PubSubMessage) error {
 		Realm:  blizzard.Realm{Slug: blizzard.RealmSlug(job.RealmSlug)},
 		Region: region,
 	}
+
+	logging.WithFields(logrus.Fields{
+		"region": region.Name,
+		"realm":  realm.Slug,
+	}).Info("Handling")
 
 	uri, err := blizzardClient.AppendAccessToken(blizzard.DefaultGetAuctionInfoURL(region.Hostname, blizzard.RealmSlug(job.RealmSlug)))
 	if err != nil {
