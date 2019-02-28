@@ -38,7 +38,7 @@ func init() {
 		return
 	}
 
-	liveAuctionsComputeTopic, err = busClient.FirmTopic(string(subjects.LiveAuctionsComputeIntake))
+	liveAuctionsComputeTopic, err = busClient.FirmTopic(string(subjects.LiveAuctionsCompute))
 	if err != nil {
 		log.Fatalf("Failed to get firm live-auctions-compute topic: %s", err.Error())
 
