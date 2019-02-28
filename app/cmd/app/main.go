@@ -37,6 +37,7 @@ func main() {
 		projectID      = app.Flag("project-id", "GCloud Storage Project ID").Default("").Envar("PROJECT_ID").String()
 
 		apiCommand                = app.Command(string(commands.API), "For running sotah-server.")
+		prodApiCommand            = app.Command(string(commands.ProdApi), "For running sotah-server in prod-mode.")
 		liveAuctionsCommand       = app.Command(string(commands.LiveAuctions), "For in-memory storage of current auctions.")
 		pricelistHistoriesCommand = app.Command(string(commands.PricelistHistories), "For on-disk storage of pricelist histories.")
 		pubCommand                = app.Command(string(commands.Pub), "For testing pubsub on gcloud.")
@@ -87,6 +88,17 @@ func main() {
 			return command.Api(state.APIStateConfig{
 				SotahConfig:          c,
 				DiskStoreCacheDir:    *cacheDir,
+				ItemsDatabaseDir:     fmt.Sprintf("%s/databases", *cacheDir),
+				BlizzardClientSecret: *clientSecret,
+				BlizzardClientId:     *clientID,
+				MessengerPort:        *natsPort,
+				MessengerHost:        *natsHost,
+				GCloudProjectID:      *projectID,
+			})
+		},
+		prodApiCommand.FullCommand(): func() error {
+			return command.ProdApi(state.ProdApiStateConfig{
+				SotahConfig:          c,
 				ItemsDatabaseDir:     fmt.Sprintf("%s/databases", *cacheDir),
 				BlizzardClientSecret: *clientSecret,
 				BlizzardClientId:     *clientID,
