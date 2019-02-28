@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"log"
 	"os"
-	"strconv"
 	"time"
+
+	"cloud.google.com/go/pubsub"
 
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
-	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
@@ -20,12 +20,20 @@ var projectId = os.Getenv("GCP_PROJECT")
 var busClient bus.Client
 var regions sotah.RegionList
 var regionRealms map[blizzard.RegionName]sotah.Realms
+var collectAuctionsTopic *pubsub.Topic
 
 func init() {
 	var err error
 	busClient, err = bus.NewClient(projectId, "fn-auctions-collector")
 	if err != nil {
 		log.Fatalf("Failed to create new bus client: %s", err.Error())
+
+		return
+	}
+
+	collectAuctionsTopic, err = busClient.FirmTopic(string(subjects.CollectAuctionsCompute))
+	if err != nil {
+		log.Fatalf("Failed to get firm topic: %s", err.Error())
 
 		return
 	}
@@ -67,19 +75,28 @@ func AuctionsCollector(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
-	realmCount := 0
 	for _, realms := range regionRealms {
-		realmCount += len(realms)
-	}
-	logging.WithField("realms", realmCount).Info("Received request, sending response")
+		for _, realm := range realms {
+			job := bus.CollectAuctionsJob{
+				RegionName: string(realm.Region.Name),
+				RealmSlug:  string(realm.Slug),
+			}
+			encodedJob, err := json.Marshal(job)
+			if err != nil {
+				return err
+			}
 
-	reply := bus.NewMessage()
-	reply.Data = strconv.Itoa(realmCount)
-	if _, err := busClient.ReplyTo(in, reply); err != nil {
-		return err
-	}
+			msg := bus.NewMessage()
+			msg.Data = string(encodedJob)
+			if _, err := busClient.Publish(collectAuctionsTopic, msg); err != nil {
+				return err
+			}
 
-	logging.Info("Response sent")
+			break
+		}
+
+		break
+	}
 
 	return nil
 }
