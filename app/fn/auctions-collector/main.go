@@ -7,6 +7,10 @@ import (
 	"os"
 	"time"
 
+	"github.com/sotah-inc/server/app/pkg/blizzard"
+
+	"github.com/sotah-inc/server/app/pkg/sotah"
+
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/state"
@@ -15,7 +19,8 @@ import (
 
 var projectId = os.Getenv("GCP_PROJECT")
 var busClient bus.Client
-var bootResponse state.BootResponse
+var regions sotah.RegionList
+var regionRealms map[blizzard.RegionName]sotah.Realms
 
 func init() {
 	var err error
@@ -33,10 +38,24 @@ func init() {
 		return
 	}
 
+	var bootResponse state.BootResponse
 	if err := json.Unmarshal([]byte(msg.Data), &bootResponse); err != nil {
 		log.Fatalf("Failed to unmarshal boot data: %s", err.Error())
 
 		return
+	}
+	regions = bootResponse.Regions
+
+	regionRealms = map[blizzard.RegionName]sotah.Realms{}
+	for _, reg := range regions {
+		status, err := busClient.NewStatus(reg)
+		if err != nil {
+			log.Fatalf("Failed to fetch status: %s", err.Error())
+
+			return
+		}
+
+		regionRealms[reg.Name] = status.Realms
 	}
 }
 
@@ -45,7 +64,11 @@ type PubSubMessage struct {
 }
 
 func AuctionsCollector(_ context.Context, m PubSubMessage) error {
-	logging.WithField("regions", len(bootResponse.Regions)).Info("Received request")
+	realmCount := 0
+	for _, realms := range regionRealms {
+		realmCount += len(realms)
+	}
+	logging.WithField("realms", realmCount).Info("Received request")
 
 	return nil
 }
