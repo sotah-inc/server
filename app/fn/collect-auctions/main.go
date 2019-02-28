@@ -3,6 +3,7 @@ package collectauctions
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"os"
 	"time"
@@ -21,6 +22,7 @@ import (
 
 var projectId = os.Getenv("GCP_PROJECT")
 
+var regions sotah.RegionList
 var busClient bus.Client
 var blizzardClient blizzard.Client
 var storeClient store.Client
@@ -55,6 +57,9 @@ func init() {
 
 		return
 	}
+
+	regions = bootResponse.Regions
+
 	blizzardClient, err = blizzard.NewClient(bootResponse.BlizzardClientId, bootResponse.BlizzardClientSecret)
 	if err != nil {
 		log.Fatalf("Failed to create blizzard client: %s", err.Error())
@@ -80,13 +85,20 @@ func AuctionsCollector(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
-	region := sotah.Region{Name: blizzard.RegionName(job.RegionName)}
-	realm := sotah.Realm{
-		Realm:  blizzard.Realm{Slug: blizzard.RealmSlug(job.RealmSlug)},
-		Region: region,
+	region, err := func() (sotah.Region, error) {
+		for _, reg := range regions {
+			if reg.Name == blizzard.RegionName(job.RegionName) {
+				return reg, nil
+			}
+		}
+
+		return sotah.Region{}, errors.New("region not found")
+	}()
+	if err != nil {
+		return err
 	}
 
-	uri := blizzard.DefaultGetAuctionInfoURL()
+	uri := blizzard.DefaultGetAuctionInfoURL(region.Hostname, blizzard.RealmSlug(job.RealmSlug))
 
 	return nil
 }
