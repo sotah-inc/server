@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
@@ -46,15 +47,15 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	msg := bus.NewMessage()
-	if _, err := busClient.Publish(topic, msg); err != nil {
+	reply, err := busClient.RequestFromTopic(string(subjects.AuctionsCollectorCompute), "", 5*time.Second)
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, fmt.Sprintf("Failed to publish message to collect-auctions topic: %s", err.Error()))
 
 		return
 	}
 
-	fmt.Fprint(w, "Hello, World!")
+	fmt.Fprint(w, reply.Data)
 }
 
 func main() {
