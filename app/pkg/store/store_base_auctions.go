@@ -55,8 +55,6 @@ func (b AuctionsBase) Handle(aucs blizzard.Auctions, lastModified time.Time, rea
 		"object": b.getObjectName(lastModified),
 	}).Info("Resolved bucket, gathering object and encoding auctions")
 
-	obj := b.GetObject(lastModified, bkt)
-
 	jsonEncodedBody, err := json.Marshal(aucs)
 	if err != nil {
 		return err
@@ -74,7 +72,7 @@ func (b AuctionsBase) Handle(aucs blizzard.Auctions, lastModified time.Time, rea
 	}).Info("Encoded auctions, writing to storage")
 
 	// writing it out to the gcloud object
-	wc := obj.NewWriter(b.client.Context)
+	wc := b.GetObject(lastModified, bkt).NewWriter(b.client.Context)
 	wc.ContentType = "application/json"
 	wc.ContentEncoding = "gzip"
 	if _, err := wc.Write(gzipEncodedBody); err != nil {
@@ -87,6 +85,7 @@ func (b AuctionsBase) Handle(aucs blizzard.Auctions, lastModified time.Time, rea
 		"auctions": len(gzipEncodedBody),
 	}).Info("Written to storage")
 
+	obj := b.GetObject(lastModified, bkt)
 	objAttrs, err := obj.Attrs(b.client.Context)
 	if err != nil {
 		return err
