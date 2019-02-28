@@ -55,8 +55,19 @@ func (c Client) Topic(topicName string) *pubsub.Topic {
 	return c.client.Topic(topicName)
 }
 
-func (c Client) TopicExists(topic *pubsub.Topic) (bool, error) {
-	return topic.Exists(c.context)
+func (c Client) FirmTopic(topicName string) (*pubsub.Topic, error) {
+	topic := c.Topic(topicName)
+
+	exists, err := topic.Exists(c.context)
+	if err != nil {
+		return nil, err
+	}
+
+	if !exists {
+		return nil, errors.New("topic does not exist")
+	}
+
+	return topic, nil
 }
 
 func (c Client) ResolveTopic(id string) (*pubsub.Topic, error) {
