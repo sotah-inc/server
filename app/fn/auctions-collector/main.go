@@ -7,6 +7,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/sirupsen/logrus"
+	"github.com/sotah-inc/server/app/pkg/logging"
+
 	"cloud.google.com/go/pubsub"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
@@ -74,7 +77,17 @@ func AuctionsCollector(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
-	busClient.LoadRegionRealms(collectAuctionsTopic, regionRealms)
+	for job := range busClient.LoadRegionRealms(collectAuctionsTopic, regionRealms) {
+		if job.Err != nil {
+			logging.WithFields(logrus.Fields{
+				"error":  job.Err.Error(),
+				"region": job.Realm.Region.Name,
+				"realm":  job.Realm.Slug,
+			}).Error("Failed to queue message")
+
+			continue
+		}
+	}
 
 	return nil
 }
