@@ -7,8 +7,10 @@ import (
 	"os"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
+	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/store"
 )
@@ -67,6 +69,12 @@ func LiveAuctionsComputeIntake(_ context.Context, m PubSubMessage) error {
 	if err := liveAuctionsStoreBase.Handle(aucs, realm); err != nil {
 		return err
 	}
+
+	logging.WithFields(logrus.Fields{
+		"region":        region.Name,
+		"realm":         realm.Slug,
+		"last-modified": targetTime.Unix(),
+	}).Info("Handled")
 
 	// req := state.LiveAuctionsComputeIntakeRequest{}
 	// req.RegionName = string(region.Name)
