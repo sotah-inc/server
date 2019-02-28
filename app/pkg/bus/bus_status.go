@@ -8,12 +8,15 @@ import (
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus/codes"
 	"github.com/sotah-inc/server/app/pkg/sotah"
-	"github.com/sotah-inc/server/app/pkg/state"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
+type StatusRequest struct {
+	RegionName blizzard.RegionName `json:"region_name"`
+}
+
 func (c Client) NewStatus(reg sotah.Region) (sotah.Status, error) {
-	lm := state.StatusRequest{RegionName: reg.Name}
+	lm := StatusRequest{RegionName: reg.Name}
 	encodedMessage, err := json.Marshal(lm)
 	if err != nil {
 		return sotah.Status{}, err
