@@ -85,7 +85,7 @@ func (b AuctionsBase) Handle(aucs blizzard.Auctions, lastModified time.Time, rea
 		"bucket":   b.getBucketName(realm),
 		"object":   b.getObjectName(lastModified),
 		"auctions": len(gzipEncodedBody),
-	}).Info("Written to storage, getting reader")
+	}).Info("Written to storage")
 
 	return nil
 }
