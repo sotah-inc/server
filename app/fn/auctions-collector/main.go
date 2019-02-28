@@ -74,16 +74,8 @@ func AuctionsCollector(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
-	for regionName, realms := range regionRealms {
-		if regionName != "us" {
-			continue
-		}
-
+	for _, realms := range regionRealms {
 		for _, realm := range realms {
-			if realm.Slug != "earthen-ring" {
-				continue
-			}
-
 			job := bus.CollectAuctionsJob{
 				RegionName: string(realm.Region.Name),
 				RealmSlug:  string(realm.Slug),
