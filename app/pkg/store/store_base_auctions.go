@@ -87,5 +87,16 @@ func (b AuctionsBase) Handle(aucs blizzard.Auctions, lastModified time.Time, rea
 		"auctions": len(gzipEncodedBody),
 	}).Info("Written to storage")
 
+	objAttrs, err := obj.Attrs(b.client.Context)
+	if err != nil {
+		return err
+	}
+
+	logging.WithFields(logrus.Fields{
+		"bucket": b.getBucketName(realm),
+		"object": b.getObjectName(lastModified),
+		"link":   objAttrs.MediaLink,
+	}).Info("Reporting")
+
 	return nil
 }
