@@ -74,24 +74,7 @@ func AuctionsCollector(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
-	for _, realms := range regionRealms {
-		for _, realm := range realms {
-			job := bus.CollectAuctionsJob{
-				RegionName: string(realm.Region.Name),
-				RealmSlug:  string(realm.Slug),
-			}
-			encodedJob, err := json.Marshal(job)
-			if err != nil {
-				return err
-			}
-
-			msg := bus.NewMessage()
-			msg.Data = string(encodedJob)
-			if _, err := busClient.Publish(collectAuctionsTopic, msg); err != nil {
-				return err
-			}
-		}
-	}
+	busClient.LoadRegionRealms(collectAuctionsTopic, regionRealms)
 
 	return nil
 }
