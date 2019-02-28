@@ -140,6 +140,12 @@ func CollectAuctions(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 	if exists {
+		logging.WithFields(logrus.Fields{
+			"region":        region.Name,
+			"realm":         realm.Slug,
+			"last-modified": aucInfoFile.LastModifiedAsTime().Unix(),
+		}).Info("Object exists for region/ realm/ last-modified tuple, skipping")
+
 		return nil
 	}
 
