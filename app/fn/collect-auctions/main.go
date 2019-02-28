@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"net/http"
 	"os"
 	"time"
 
@@ -92,13 +93,46 @@ func AuctionsCollector(_ context.Context, m PubSubMessage) error {
 			}
 		}
 
-		return sotah.Region{}, errors.New("region not found")
+		return sotah.Region{}, errors.New("could not resolve region from job")
 	}()
 	if err != nil {
 		return err
 	}
 
-	uri := blizzard.DefaultGetAuctionInfoURL(region.Hostname, blizzard.RealmSlug(job.RealmSlug))
+	realm := sotah.Realm{
+		Realm:  blizzard.Realm{Slug: blizzard.RealmSlug(job.RealmSlug)},
+		Region: region,
+	}
+
+	uri, err := blizzardClient.AppendAccessToken(blizzard.DefaultGetAuctionInfoURL(region.Hostname, blizzard.RealmSlug(job.RealmSlug)))
+	if err != nil {
+		return err
+	}
+
+	aucInfo, respMeta, err := blizzard.NewAuctionInfoFromHTTP(uri)
+	if err != nil {
+		return err
+	}
+	if respMeta.Status != http.StatusOK {
+		return errors.New("response status for auc-info was not OK")
+	}
+
+	if len(aucInfo.Files) == 0 {
+		return errors.New("auc-info files was blank")
+	}
+	aucInfoFile := aucInfo.Files[0]
+
+	aucs, respMeta, err := aucInfoFile.GetAuctions()
+	if err != nil {
+		return err
+	}
+	if respMeta.Status != http.StatusOK {
+		return errors.New("response status for aucs was not OK")
+	}
+
+	if err := auctionsStoreBase.Handle(aucs, aucInfoFile.LastModifiedAsTime(), realm); err != nil {
+		return err
+	}
 
 	return nil
 }
