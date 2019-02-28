@@ -9,10 +9,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
-	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
@@ -102,10 +100,10 @@ func CollectAuctions(_ context.Context, m PubSubMessage) error {
 		Region: region,
 	}
 
-	logging.WithFields(logrus.Fields{
-		"region": region.Name,
-		"realm":  realm.Slug,
-	}).Info("Handling")
+	bkt, err := auctionsStoreBase.ResolveBucket(realm)
+	if err != nil {
+		return err
+	}
 
 	uri, err := blizzardClient.AppendAccessToken(blizzard.DefaultGetAuctionInfoURL(region.Hostname, blizzard.RealmSlug(job.RealmSlug)))
 	if err != nil {
@@ -125,6 +123,15 @@ func CollectAuctions(_ context.Context, m PubSubMessage) error {
 	}
 	aucInfoFile := aucInfo.Files[0]
 
+	obj := auctionsStoreBase.GetObject(aucInfoFile.LastModifiedAsTime(), bkt)
+	exists, err := auctionsStoreBase.ObjectExists(obj)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return nil
+	}
+
 	aucs, respMeta, err := aucInfoFile.GetAuctions()
 	if err != nil {
 		return err
@@ -133,7 +140,7 @@ func CollectAuctions(_ context.Context, m PubSubMessage) error {
 		return errors.New("response status for aucs was not OK")
 	}
 
-	if err := auctionsStoreBase.Handle(aucs, aucInfoFile.LastModifiedAsTime(), realm); err != nil {
+	if err := auctionsStoreBase.Handle(aucs, aucInfoFile.LastModifiedAsTime(), bkt); err != nil {
 		return err
 	}
 
