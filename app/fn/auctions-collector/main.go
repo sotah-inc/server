@@ -46,15 +46,14 @@ func init() {
 	regions = bootResponse.Regions
 
 	regionRealms = map[blizzard.RegionName]sotah.Realms{}
-	for _, reg := range regions {
-		status, err := busClient.NewStatus(reg)
-		if err != nil {
-			log.Fatalf("Failed to fetch status: %s", err.Error())
+	for job := range busClient.LoadStatuses(regions) {
+		if job.Err != nil {
+			log.Fatalf("Failed to fetch status: %s", job.Err.Error())
 
 			return
 		}
 
-		regionRealms[reg.Name] = status.Realms
+		regionRealms[job.Region.Name] = job.Status.Realms
 	}
 }
 
