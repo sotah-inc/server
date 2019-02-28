@@ -177,13 +177,6 @@ func NewAPIState(config APIStateConfig) (APIState, error) {
 		subjects.ItemsQuery:    apiState.ListenForItemsQuery,
 	})
 
-	// optionally establishing bus-listeners
-	if config.SotahConfig.UseGCloud {
-		apiState.BusListeners = NewBusListeners(SubjectBusListeners{
-			subjects.Boot: apiState.ListenForBusBoot,
-		})
-	}
-
 	return apiState, nil
 }
 
