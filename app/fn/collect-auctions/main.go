@@ -75,7 +75,7 @@ type PubSubMessage struct {
 	Data []byte `json:"data"`
 }
 
-func AuctionsCollector(_ context.Context, m PubSubMessage) error {
+func CollectAuctions(_ context.Context, m PubSubMessage) error {
 	var in bus.Message
 	if err := json.Unmarshal(m.Data, &in); err != nil {
 		return err
