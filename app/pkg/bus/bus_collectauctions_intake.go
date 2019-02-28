@@ -10,9 +10,15 @@ import (
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
-func (c Client) LoadRegionRealms(recipientTopic *pubsub.Topic, regionRealms map[blizzard.RegionName]sotah.Realms) {
+type LoadRegionRealmsOutJob struct {
+	Err   error
+	Realm sotah.Realm
+}
+
+func (c Client) LoadRegionRealms(recipientTopic *pubsub.Topic, regionRealms map[blizzard.RegionName]sotah.Realms) chan LoadRegionRealmsOutJob {
 	// establishing channels for intake
 	in := make(chan sotah.Realm)
+	out := make(chan LoadRegionRealmsOutJob)
 
 	// spinning up the workers
 	worker := func() {
@@ -23,7 +29,10 @@ func (c Client) LoadRegionRealms(recipientTopic *pubsub.Topic, regionRealms map[
 			}
 			jsonEncoded, err := json.Marshal(job)
 			if err != nil {
-				logging.WithField("error", err.Error()).Error("Failed to encode collect-auctions job")
+				out <- LoadRegionRealmsOutJob{
+					Err:   err,
+					Realm: realm,
+				}
 
 				return
 			}
@@ -31,14 +40,22 @@ func (c Client) LoadRegionRealms(recipientTopic *pubsub.Topic, regionRealms map[
 			msg := NewMessage()
 			msg.Data = string(jsonEncoded)
 			if _, err := c.Publish(recipientTopic, msg); err != nil {
-				logging.WithField("error", err.Error()).Error("Failed to publish message")
+				out <- LoadRegionRealmsOutJob{
+					Err:   err,
+					Realm: realm,
+				}
 
 				return
+			}
+
+			out <- LoadRegionRealmsOutJob{
+				Err:   nil,
+				Realm: realm,
 			}
 		}
 	}
 	postWork := func() {
-		return
+		close(out)
 	}
 	util.Work(16, worker, postWork)
 
@@ -53,4 +70,6 @@ func (c Client) LoadRegionRealms(recipientTopic *pubsub.Topic, regionRealms map[
 
 		close(in)
 	}()
+
+	return out
 }
