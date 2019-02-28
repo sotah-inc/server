@@ -3,6 +3,7 @@ package subjects
 // Subject - typehint for these enums
 type Subject string
 
+// collectAuctionsCompute
 /*
 Status - subject name for returning current status
 */
@@ -10,6 +11,7 @@ const (
 	Status                          Subject = "status"
 	Auctions                        Subject = "auctions"
 	AuctionsCollectorCompute        Subject = "auctionsCollectorCompute"
+	CollectAuctionsCompute          Subject = "collectAuctionsCompute"
 	GenericTestErrors               Subject = "genericTestErrors"
 	Owners                          Subject = "owners"
 	OwnersQueryByItems              Subject = "ownersQueryByItems"

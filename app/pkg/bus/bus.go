@@ -188,14 +188,9 @@ func (c Client) ReplyTo(target Message, payload Message) (string, error) {
 }
 
 func (c Client) RequestFromTopic(topicName string, payload string, timeout time.Duration) (Message, error) {
-	topic := c.Topic(topicName)
-	exists, err := topic.Exists(c.context)
+	topic, err := c.FirmTopic(topicName)
 	if err != nil {
 		return Message{}, err
-	}
-
-	if !exists {
-		return Message{}, errors.New("requested topic does not exist")
 	}
 
 	return c.Request(topic, payload, timeout)
