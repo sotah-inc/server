@@ -353,3 +353,8 @@ func (c Client) Request(recipientTopic *pubsub.Topic, payload string, timeout ti
 
 	return requestResult.Payload, nil
 }
+
+type CollectAuctionsJob struct {
+	RegionName string `json:"region_name"`
+	RealmSlug  string `json:"realm_slug"`
+}
