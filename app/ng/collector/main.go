@@ -39,13 +39,13 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// cronHeader := r.Header.Get("X-Appengine-Cron")
-	// if cronHeader != "true" {
-	// 	w.WriteHeader(http.StatusUnauthorized)
-	// 	fmt.Fprint(w, "Unauthorized")
-	//
-	// 	return
-	// }
+	cronHeader := r.Header.Get("X-Appengine-Cron")
+	if cronHeader != "true" {
+		w.WriteHeader(http.StatusUnauthorized)
+		fmt.Fprint(w, "Unauthorized")
+
+		return
+	}
 
 	msg := bus.NewMessage()
 	if _, err := busClient.Publish(recipientTopic, msg); err != nil {
