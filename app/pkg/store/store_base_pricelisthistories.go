@@ -106,6 +106,9 @@ func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.T
 	if _, err := wc.Write(gzipEncodedBody); err != nil {
 		return 0, err
 	}
+	if err := wc.Close(); err != nil {
+		return 0, err
+	}
 
 	return sotah.UnixTimestamp(normalizedTargetDate.Unix()), wc.Close()
 }

@@ -73,6 +73,9 @@ func (b LiveAuctionsBase) Handle(aucs blizzard.Auctions, realm sotah.Realm) erro
 	if _, err := wc.Write(gzipEncodedBody); err != nil {
 		return err
 	}
+	if err := wc.Close(); err != nil {
+		return err
+	}
 
 	logging.WithFields(logrus.Fields{
 		"bucket":        b.getBucketName(),
