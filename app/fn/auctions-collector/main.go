@@ -5,14 +5,13 @@ import (
 	"encoding/json"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/sotah-inc/server/app/pkg/blizzard"
-
-	"github.com/sotah-inc/server/app/pkg/sotah"
-
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
@@ -64,11 +63,24 @@ type PubSubMessage struct {
 }
 
 func AuctionsCollector(_ context.Context, m PubSubMessage) error {
+	var in bus.Message
+	if err := json.Unmarshal(m.Data, &in); err != nil {
+		return err
+	}
+
 	realmCount := 0
 	for _, realms := range regionRealms {
 		realmCount += len(realms)
 	}
-	logging.WithField("realms", realmCount).Info("Received request")
+	logging.WithField("realms", realmCount).Info("Received request, sending response")
+
+	reply := bus.NewMessage()
+	reply.Data = strconv.Itoa(realmCount)
+	if _, err := busClient.ReplyTo(in, reply); err != nil {
+		return err
+	}
+
+	logging.Info("Response sent")
 
 	return nil
 }
