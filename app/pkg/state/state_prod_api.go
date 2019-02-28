@@ -42,6 +42,8 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 	apiState.Expansions = config.SotahConfig.Expansions
 	apiState.Professions = config.SotahConfig.Professions
 	apiState.ItemBlacklist = config.SotahConfig.ItemBlacklist
+	apiState.BlizzardClientId = config.BlizzardClientId
+	apiState.BlizzardClientSecret = config.BlizzardClientSecret
 
 	// establishing a store
 	stor, err := store.NewClient(config.GCloudProjectID)
@@ -166,4 +168,7 @@ type ProdApiState struct {
 	Expansions    []sotah.Expansion
 	Professions   []sotah.Profession
 	ItemBlacklist ItemBlacklist
+
+	BlizzardClientId     string
+	BlizzardClientSecret string
 }

@@ -11,6 +11,13 @@ import (
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
+type AuthenticatedBootResponse struct {
+	BootResponse
+
+	BlizzardClientId     string `json:"blizzard_client_id"`
+	BlizzardClientSecret string `json:"blizzard_client_secret"`
+}
+
 func (sta ProdApiState) ListenForBoot(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {
 	// establishing subscriber config
 	config := bus.SubscribeConfig{
@@ -18,11 +25,15 @@ func (sta ProdApiState) ListenForBoot(onReady chan interface{}, stop chan interf
 		Callback: func(busMsg bus.Message) {
 			reply := bus.NewMessage()
 
-			encodedResponse, err := json.Marshal(BootResponse{
-				Regions:     sta.Regions,
-				ItemClasses: sta.ItemClasses,
-				Expansions:  sta.Expansions,
-				Professions: sta.Professions,
+			encodedResponse, err := json.Marshal(AuthenticatedBootResponse{
+				BootResponse: BootResponse{
+					Regions:     sta.Regions,
+					ItemClasses: sta.ItemClasses,
+					Expansions:  sta.Expansions,
+					Professions: sta.Professions,
+				},
+				BlizzardClientId:     sta.BlizzardClientId,
+				BlizzardClientSecret: sta.BlizzardClientSecret,
 			})
 			if err != nil {
 				reply.Err = err.Error()
