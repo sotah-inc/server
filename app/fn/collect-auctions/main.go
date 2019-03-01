@@ -218,9 +218,9 @@ func CollectAuctions(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
-	if err := auctionManifestStoreBase.Handle(sotah.UnixTimestamp(aucInfoFile.LastModifiedAsTime().Unix()), realm); err != nil {
-		return err
-	}
+	// if err := auctionManifestStoreBase.Handle(sotah.UnixTimestamp(aucInfoFile.LastModifiedAsTime().Unix()), realm); err != nil {
+	// 	return err
+	// }
 
 	return nil
 }
