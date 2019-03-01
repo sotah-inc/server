@@ -1,7 +1,11 @@
 package store
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+
+	"github.com/sotah-inc/server/app/pkg/util"
 
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/sotah"
@@ -33,4 +37,66 @@ func (b AuctionManifestBase) getObjectName(targetTimestamp sotah.UnixTimestamp) 
 
 func (b AuctionManifestBase) GetObject(targetTimestamp sotah.UnixTimestamp, bkt *storage.BucketHandle) *storage.ObjectHandle {
 	return b.base.getObject(b.getObjectName(targetTimestamp), bkt)
+}
+
+func (b AuctionManifestBase) Handle(targetTimestamp sotah.UnixTimestamp, realm sotah.Realm) error {
+	bkt, err := b.ResolveBucket(realm)
+	if err != nil {
+		return err
+	}
+
+	obj := b.GetObject(targetTimestamp, bkt)
+	nextManifest, err := func() (sotah.AuctionManifest, error) {
+		exists, err := b.ObjectExists(obj)
+		if err != nil {
+			return sotah.AuctionManifest{}, err
+		}
+
+		if !exists {
+			return sotah.AuctionManifest{}, nil
+		}
+
+		reader, err := obj.NewReader(b.client.Context)
+		if err != nil {
+			return sotah.AuctionManifest{}, nil
+		}
+
+		data, err := ioutil.ReadAll(reader)
+		if err != nil {
+			return sotah.AuctionManifest{}, nil
+		}
+
+		var out sotah.AuctionManifest
+		if err := json.Unmarshal(data, &out); err != nil {
+			return sotah.AuctionManifest{}, nil
+		}
+
+		return out, nil
+	}()
+	if err != nil {
+		return err
+	}
+
+	nextManifest = append(nextManifest, targetTimestamp)
+	jsonEncodedBody, err := json.Marshal(nextManifest)
+	if err != nil {
+		return err
+	}
+
+	gzipEncodedBody, err := util.GzipEncode(jsonEncodedBody)
+	if err != nil {
+		return err
+	}
+
+	wc := obj.NewWriter(b.client.Context)
+	wc.ContentType = "application/json"
+	wc.ContentEncoding = "gzip"
+	if _, err := wc.Write(gzipEncodedBody); err != nil {
+		return err
+	}
+	if err := wc.Close(); err != nil {
+		return err
+	}
+
+	return nil
 }
