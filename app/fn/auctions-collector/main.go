@@ -16,7 +16,6 @@ import (
 	"github.com/sotah-inc/server/app/pkg/state"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
-	"google.golang.org/api/iterator"
 )
 
 var projectId = os.Getenv("GCP_PROJECT")
@@ -107,43 +106,15 @@ func AuctionsCollector(_ context.Context, m PubSubMessage) error {
 		}
 	}
 
-	for _, realms := range regionRealms {
-		for _, realm := range realms {
-			entry := logging.WithFields(logrus.Fields{
-				"region": realm.Region.Name,
-				"realm":  realm.Slug,
-			})
-
-			entry.Info("Resolving auction-manifest bucket")
-
-			bkt, err := auctionManifestStoreBase.ResolveBucket(realm)
-			if err != nil {
-				return err
-			}
-
-			entry.Info("Gathering object iterator")
-
-			it := bkt.Objects(storeClient.Context, nil)
-			for {
-				objAttrs, err := it.Next()
-				if err != nil {
-					if err == iterator.Done {
-						entry.Info("Done clearing objects, skipping to next realm")
-
-						break
-					}
-
-					return err
-				}
-
-				entry.WithField("object", objAttrs.Name).Info("Deleting object")
-
-				obj := bkt.Object(objAttrs.Name)
-				if err := obj.Delete(storeClient.Context); err != nil {
-					return err
-				}
-			}
+	for job := range auctionManifestStoreBase.DeleteAll(regionRealms) {
+		if job.Err != nil {
+			return job.Err
 		}
+
+		logging.WithFields(logrus.Fields{
+			"region": job.Realm.Region.Name,
+			"realm":  job.Realm.Slug,
+		}).Info("Cleared auction-manifest bucket")
 	}
 
 	return nil
