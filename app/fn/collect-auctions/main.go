@@ -23,11 +23,15 @@ import (
 var projectId = os.Getenv("GCP_PROJECT")
 
 var regions sotah.RegionList
+
 var busClient bus.Client
+var liveAuctionsComputeTopic *pubsub.Topic
+
 var blizzardClient blizzard.Client
+
 var storeClient store.Client
 var auctionsStoreBase store.AuctionsBase
-var liveAuctionsComputeTopic *pubsub.Topic
+var auctionManifestStoreBase store.AuctionManifestBase
 
 func init() {
 	var err error
@@ -37,7 +41,6 @@ func init() {
 
 		return
 	}
-
 	liveAuctionsComputeTopic, err = busClient.FirmTopic(string(subjects.LiveAuctionsCompute))
 	if err != nil {
 		log.Fatalf("Failed to get firm live-auctions-compute topic: %s", err.Error())
@@ -51,17 +54,24 @@ func init() {
 
 		return
 	}
+	auctionsStoreBase = store.NewAuctionsBase(storeClient)
+	auctionManifestStoreBase = store.NewAuctionManifestBase(storeClient)
 
-	msg, err := busClient.RequestFromTopic(string(subjects.Boot), "", 5*time.Second)
+	bootResponse, err := func() (state.AuthenticatedBootResponse, error) {
+		msg, err := busClient.RequestFromTopic(string(subjects.Boot), "", 5*time.Second)
+		if err != nil {
+			return state.AuthenticatedBootResponse{}, err
+		}
+
+		var out state.AuthenticatedBootResponse
+		if err := json.Unmarshal([]byte(msg.Data), &out); err != nil {
+			return state.AuthenticatedBootResponse{}, err
+		}
+
+		return out, nil
+	}()
 	if err != nil {
-		log.Fatalf("Failed to request boot data: %s", err.Error())
-
-		return
-	}
-
-	var bootResponse state.AuthenticatedBootResponse
-	if err := json.Unmarshal([]byte(msg.Data), &bootResponse); err != nil {
-		log.Fatalf("Failed to unmarshal boot data: %s", err.Error())
+		log.Fatalf("Failed to get authenticated-boot-response: %s", err.Error())
 
 		return
 	}
@@ -74,8 +84,6 @@ func init() {
 
 		return
 	}
-
-	auctionsStoreBase = store.NewAuctionsBase(storeClient)
 }
 
 type PubSubMessage struct {
@@ -83,58 +91,78 @@ type PubSubMessage struct {
 }
 
 func CollectAuctions(_ context.Context, m PubSubMessage) error {
-	var in bus.Message
-	if err := json.Unmarshal(m.Data, &in); err != nil {
-		return err
-	}
-
-	var job bus.CollectAuctionsJob
-	if err := json.Unmarshal([]byte(in.Data), &job); err != nil {
-		return err
-	}
-
-	region, err := func() (sotah.Region, error) {
-		for _, reg := range regions {
-			if reg.Name == blizzard.RegionName(job.RegionName) {
-				return reg, nil
-			}
+	job, err := func() (bus.CollectAuctionsJob, error) {
+		var in bus.Message
+		if err := json.Unmarshal(m.Data, &in); err != nil {
+			return bus.CollectAuctionsJob{}, err
 		}
 
-		return sotah.Region{}, errors.New("could not resolve region from job")
+		var out bus.CollectAuctionsJob
+		if err := json.Unmarshal([]byte(in.Data), &out); err != nil {
+			return bus.CollectAuctionsJob{}, err
+		}
+
+		return out, nil
 	}()
 	if err != nil {
 		return err
 	}
 
-	realm := sotah.Realm{
-		Realm:  blizzard.Realm{Slug: blizzard.RealmSlug(job.RealmSlug)},
-		Region: region,
-	}
+	region, realm, err := func() (sotah.Region, sotah.Realm, error) {
+		region, err := func() (sotah.Region, error) {
+			for _, reg := range regions {
+				if reg.Name == blizzard.RegionName(job.RegionName) {
+					return reg, nil
+				}
+			}
 
-	bkt, err := auctionsStoreBase.ResolveBucket(realm)
+			return sotah.Region{}, errors.New("could not resolve region from job")
+		}()
+		if err != nil {
+			return sotah.Region{}, sotah.Realm{}, err
+		}
+
+		realm := sotah.Realm{
+			Realm:  blizzard.Realm{Slug: blizzard.RealmSlug(job.RealmSlug)},
+			Region: region,
+		}
+
+		return region, realm, nil
+	}()
 	if err != nil {
 		return err
 	}
 
-	uri, err := blizzardClient.AppendAccessToken(blizzard.DefaultGetAuctionInfoURL(region.Hostname, blizzard.RealmSlug(job.RealmSlug)))
+	aucInfoFile, err := func() (blizzard.AuctionFile, error) {
+		uri, err := blizzardClient.AppendAccessToken(blizzard.DefaultGetAuctionInfoURL(region.Hostname, blizzard.RealmSlug(job.RealmSlug)))
+		if err != nil {
+			return blizzard.AuctionFile{}, err
+		}
+
+		aucInfo, respMeta, err := blizzard.NewAuctionInfoFromHTTP(uri)
+		if err != nil {
+			return blizzard.AuctionFile{}, err
+		}
+		if respMeta.Status != http.StatusOK {
+			return blizzard.AuctionFile{}, errors.New("response status for auc-info was not OK")
+		}
+
+		if len(aucInfo.Files) == 0 {
+			return blizzard.AuctionFile{}, errors.New("auc-info files was blank")
+		}
+
+		return aucInfo.Files[0], nil
+	}()
 	if err != nil {
 		return err
 	}
 
-	aucInfo, respMeta, err := blizzard.NewAuctionInfoFromHTTP(uri)
+	auctionsBucket, err := auctionsStoreBase.ResolveBucket(realm)
 	if err != nil {
 		return err
 	}
-	if respMeta.Status != http.StatusOK {
-		return errors.New("response status for auc-info was not OK")
-	}
 
-	if len(aucInfo.Files) == 0 {
-		return errors.New("auc-info files was blank")
-	}
-	aucInfoFile := aucInfo.Files[0]
-
-	obj := auctionsStoreBase.GetObject(aucInfoFile.LastModifiedAsTime(), bkt)
+	obj := auctionsStoreBase.GetObject(aucInfoFile.LastModifiedAsTime(), auctionsBucket)
 	exists, err := auctionsStoreBase.ObjectExists(obj)
 	if err != nil {
 		return err
@@ -157,7 +185,7 @@ func CollectAuctions(_ context.Context, m PubSubMessage) error {
 		return errors.New("response status for aucs was not OK")
 	}
 
-	if err := auctionsStoreBase.Handle(aucs, aucInfoFile.LastModifiedAsTime(), bkt); err != nil {
+	if err := auctionsStoreBase.Handle(aucs, aucInfoFile.LastModifiedAsTime(), auctionsBucket); err != nil {
 		return err
 	}
 
@@ -165,21 +193,32 @@ func CollectAuctions(_ context.Context, m PubSubMessage) error {
 		"region":        region.Name,
 		"realm":         realm.Slug,
 		"last-modified": aucInfoFile.LastModifiedAsTime().Unix(),
-	}).Info("Handled, pushing into live-auctions-compute")
+	}).Info("Handled, pushing into live-auctions-compute and adding to auction-manifest file")
 
-	liveAuctionsComputeJob := bus.LoadRegionRealmTimestampsInJob{
-		RegionName:      string(region.Name),
-		RealmSlug:       string(realm.Slug),
-		TargetTimestamp: int(aucInfoFile.LastModifiedAsTime().Unix()),
-	}
-	jsonEncoded, err := json.Marshal(liveAuctionsComputeJob)
+	msg, err := func() (bus.Message, error) {
+		jsonEncoded, err := json.Marshal(bus.LoadRegionRealmTimestampsInJob{
+			RegionName:      string(region.Name),
+			RealmSlug:       string(realm.Slug),
+			TargetTimestamp: int(aucInfoFile.LastModifiedAsTime().Unix()),
+		})
+		if err != nil {
+			return bus.Message{}, err
+		}
+
+		msg := bus.NewMessage()
+		msg.Data = string(jsonEncoded)
+
+		return msg, nil
+	}()
 	if err != nil {
 		return err
 	}
 
-	msg := bus.NewMessage()
-	msg.Data = string(jsonEncoded)
 	if _, err := busClient.Publish(liveAuctionsComputeTopic, msg); err != nil {
+		return err
+	}
+
+	if err := auctionManifestStoreBase.Handle(sotah.UnixTimestamp(aucInfoFile.LastModifiedAsTime().Unix()), realm); err != nil {
 		return err
 	}
 
