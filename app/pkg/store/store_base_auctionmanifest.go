@@ -110,6 +110,7 @@ func (b AuctionManifestBase) Handle(targetTimestamp sotah.UnixTimestamp, realm s
 type DeleteJob struct {
 	Err   error
 	Realm sotah.Realm
+	Count int
 }
 
 func (b AuctionManifestBase) DeleteAll(regionRealms map[blizzard.RegionName]sotah.Realms) chan DeleteJob {
@@ -130,6 +131,7 @@ func (b AuctionManifestBase) DeleteAll(regionRealms map[blizzard.RegionName]sota
 				out <- DeleteJob{
 					Err:   err,
 					Realm: realm,
+					Count: 0,
 				}
 
 				continue
@@ -138,11 +140,18 @@ func (b AuctionManifestBase) DeleteAll(regionRealms map[blizzard.RegionName]sota
 			entry.Info("Gathering object iterator")
 
 			it := bkt.Objects(b.client.Context, nil)
+			count := 0
 			for {
 				objAttrs, err := it.Next()
 				if err != nil {
 					if err == iterator.Done {
 						entry.Info("Done clearing objects, skipping to next realm")
+
+						out <- DeleteJob{
+							Err:   nil,
+							Realm: realm,
+							Count: count,
+						}
 
 						break
 					}
@@ -151,6 +160,7 @@ func (b AuctionManifestBase) DeleteAll(regionRealms map[blizzard.RegionName]sota
 						out <- DeleteJob{
 							Err:   err,
 							Realm: realm,
+							Count: count,
 						}
 
 						break
@@ -165,6 +175,7 @@ func (b AuctionManifestBase) DeleteAll(regionRealms map[blizzard.RegionName]sota
 						Err:   err,
 						Realm: realm,
 					}
+					count++
 
 					continue
 				}
