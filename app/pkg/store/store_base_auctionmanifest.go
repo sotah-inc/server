@@ -7,9 +7,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
-	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
-	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/util"
 	"google.golang.org/api/iterator"
@@ -119,13 +117,6 @@ func (b AuctionManifestBase) DeleteAll(regionRealms map[blizzard.RegionName]sota
 	out := make(chan DeleteJob)
 	worker := func() {
 		for realm := range in {
-			entry := logging.WithFields(logrus.Fields{
-				"region": realm.Region.Name,
-				"realm":  realm.Slug,
-			})
-
-			entry.Info("Resolving auction-manifest bucket")
-
 			bkt, err := b.ResolveBucket(realm)
 			if err != nil {
 				out <- DeleteJob{
@@ -137,16 +128,12 @@ func (b AuctionManifestBase) DeleteAll(regionRealms map[blizzard.RegionName]sota
 				continue
 			}
 
-			entry.Info("Gathering object iterator")
-
 			it := bkt.Objects(b.client.Context, nil)
 			count := 0
 			for {
 				objAttrs, err := it.Next()
 				if err != nil {
 					if err == iterator.Done {
-						entry.Info("Done clearing objects, skipping to next realm")
-
 						out <- DeleteJob{
 							Err:   nil,
 							Realm: realm,
@@ -166,8 +153,6 @@ func (b AuctionManifestBase) DeleteAll(regionRealms map[blizzard.RegionName]sota
 						break
 					}
 				}
-
-				entry.WithField("object", objAttrs.Name).Info("Deleting object")
 
 				obj := bkt.Object(objAttrs.Name)
 				if err := obj.Delete(b.client.Context); err != nil {
