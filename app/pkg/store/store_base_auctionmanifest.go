@@ -6,10 +6,13 @@ import (
 	"io/ioutil"
 	"time"
 
-	"github.com/sotah-inc/server/app/pkg/util"
-
 	"cloud.google.com/go/storage"
+	"github.com/sirupsen/logrus"
+	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/util"
+	"google.golang.org/api/iterator"
 )
 
 func NewAuctionManifestBase(c Client) AuctionManifestBase {
@@ -102,4 +105,87 @@ func (b AuctionManifestBase) Handle(targetTimestamp sotah.UnixTimestamp, realm s
 	}
 
 	return nil
+}
+
+type DeleteJob struct {
+	Err   error
+	Realm sotah.Realm
+}
+
+func (b AuctionManifestBase) DeleteAll(regionRealms map[blizzard.RegionName]sotah.Realms) chan DeleteJob {
+	// spinning up the workers
+	in := make(chan sotah.Realm)
+	out := make(chan DeleteJob)
+	worker := func() {
+		for realm := range in {
+			entry := logging.WithFields(logrus.Fields{
+				"region": realm.Region.Name,
+				"realm":  realm.Slug,
+			})
+
+			entry.Info("Resolving auction-manifest bucket")
+
+			bkt, err := b.ResolveBucket(realm)
+			if err != nil {
+				out <- DeleteJob{
+					Err:   err,
+					Realm: realm,
+				}
+
+				continue
+			}
+
+			entry.Info("Gathering object iterator")
+
+			it := bkt.Objects(b.client.Context, nil)
+			for {
+				objAttrs, err := it.Next()
+				if err != nil {
+					if err == iterator.Done {
+						entry.Info("Done clearing objects, skipping to next realm")
+
+						break
+					}
+
+					if err != nil {
+						out <- DeleteJob{
+							Err:   err,
+							Realm: realm,
+						}
+
+						break
+					}
+				}
+
+				entry.WithField("object", objAttrs.Name).Info("Deleting object")
+
+				obj := bkt.Object(objAttrs.Name)
+				if err := obj.Delete(b.client.Context); err != nil {
+					out <- DeleteJob{
+						Err:   err,
+						Realm: realm,
+					}
+
+					continue
+				}
+			}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(16, worker, postWork)
+
+	// queueing it up
+	go func() {
+		for _, realms := range regionRealms {
+			for _, realm := range realms {
+				in <- realm
+			}
+		}
+
+		close(in)
+	}()
+
+	return out
 }
