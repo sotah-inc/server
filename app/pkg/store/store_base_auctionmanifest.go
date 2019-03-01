@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"time"
 
 	"github.com/sotah-inc/server/app/pkg/util"
 
@@ -45,7 +46,9 @@ func (b AuctionManifestBase) Handle(targetTimestamp sotah.UnixTimestamp, realm s
 		return err
 	}
 
-	obj := b.GetObject(targetTimestamp, bkt)
+	normalizedTargetTimestamp := sotah.UnixTimestamp(sotah.NormalizeTargetDate(time.Unix(int64(targetTimestamp), 0)).Unix())
+
+	obj := b.GetObject(normalizedTargetTimestamp, bkt)
 	nextManifest, err := func() (sotah.AuctionManifest, error) {
 		exists, err := b.ObjectExists(obj)
 		if err != nil {
