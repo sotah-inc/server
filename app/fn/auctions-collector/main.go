@@ -109,24 +109,39 @@ func AuctionsCollector(_ context.Context, m PubSubMessage) error {
 
 	for _, realms := range regionRealms {
 		for _, realm := range realms {
+			entry := logging.WithFields(logrus.Fields{
+				"region": realm.Region.Name,
+				"realm":  realm.Slug,
+			})
+
+			entry.Info("Resolving auction-manifest bucket")
+
 			bkt, err := auctionManifestStoreBase.ResolveBucket(realm)
 			if err != nil {
 				return err
 			}
 
+			entry.Info("Gathering object iterator")
+
 			it := bkt.Objects(storeClient.Context, nil)
-			objAttrs, err := it.Next()
-			if err != nil {
-				if err == iterator.Done {
-					break
+			for {
+				objAttrs, err := it.Next()
+				if err != nil {
+					if err == iterator.Done {
+						entry.Info("Done clearing objects, skipping to next realm")
+
+						break
+					}
+
+					return err
 				}
 
-				return err
-			}
+				entry.WithField("object", objAttrs.Name).Info("Deleting object")
 
-			obj := bkt.Object(objAttrs.Name)
-			if err := obj.Delete(storeClient.Context); err != nil {
-				return err
+				obj := bkt.Object(objAttrs.Name)
+				if err := obj.Delete(storeClient.Context); err != nil {
+					return err
+				}
 			}
 		}
 	}

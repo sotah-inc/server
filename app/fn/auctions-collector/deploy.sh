@@ -7,4 +7,5 @@ gcloud functions deploy AuctionsCollector \
     --runtime go111 \
     --trigger-topic auctionsCollectorCompute \
     --source . \
+    --memory 128MB \
     --region us-central1
