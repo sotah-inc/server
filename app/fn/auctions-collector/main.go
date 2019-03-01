@@ -26,7 +26,6 @@ var busClient bus.Client
 var collectAuctionsTopic *pubsub.Topic
 
 var storeClient store.Client
-var auctionManifestStoreBase store.AuctionManifestBase
 
 func init() {
 	var err error
@@ -49,7 +48,6 @@ func init() {
 
 		return
 	}
-	auctionManifestStoreBase = store.NewAuctionManifestBase(storeClient)
 
 	bootResponse, err := func() (state.AuthenticatedBootResponse, error) {
 		msg, err := busClient.RequestFromTopic(string(subjects.Boot), "", 5*time.Second)
@@ -104,17 +102,6 @@ func AuctionsCollector(_ context.Context, m PubSubMessage) error {
 
 			continue
 		}
-	}
-
-	for job := range auctionManifestStoreBase.DeleteAll(regionRealms) {
-		if job.Err != nil {
-			return job.Err
-		}
-
-		logging.WithFields(logrus.Fields{
-			"region": job.Realm.Region.Name,
-			"realm":  job.Realm.Slug,
-		}).Info("Cleared auction-manifest bucket")
 	}
 
 	return nil
