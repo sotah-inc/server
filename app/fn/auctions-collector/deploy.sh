@@ -8,4 +8,5 @@ gcloud functions deploy AuctionsCollector \
     --trigger-topic auctionsCollectorCompute \
     --source . \
     --memory 128MB \
+    --timeout 300s \
     --region us-central1
