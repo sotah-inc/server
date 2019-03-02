@@ -33,4 +33,5 @@ const (
 	PricelistHistoriesIntakeV2      Subject = "pricelistHistoriesIntakeV2"
 	PricelistHistoriesCompute       Subject = "pricelistHistoriesCompute"
 	PricelistHistoriesComputeIntake Subject = "pricelistHistoriesComputeIntake"
+	CleanupCompute                  Subject = "cleanupCompute"
 )
