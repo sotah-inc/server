@@ -3,5 +3,5 @@ module github.com/sotah-inc/server/app/fn/collect-auctions
 require (
 	cloud.google.com/go v0.35.1
 	github.com/sirupsen/logrus v1.3.0
-	github.com/sotah-inc/server/app v0.0.0-20190301014231-c76c97d976ce
+	github.com/sotah-inc/server/app v0.0.0-20190301191904-798a34f17f67
 )
