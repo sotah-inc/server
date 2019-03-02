@@ -67,6 +67,7 @@ func CleanupIntake(_ context.Context, m PubSubMessage) error {
 
 	bkt := auctionsStoreBase.GetBucket(realm)
 	it := bkt.Objects(storeClient.Context, nil)
+	count := 0
 	for {
 		objAttrs, err := it.Next()
 		if err != nil {
@@ -80,17 +81,18 @@ func CleanupIntake(_ context.Context, m PubSubMessage) error {
 		}
 
 		parts := strings.Split(objAttrs.Name, ".")
-		timestamp, err := strconv.Atoi(parts[0])
-		if err != nil {
+		if _, err := strconv.Atoi(parts[0]); err != nil {
 			return err
 		}
 
-		logging.WithFields(logrus.Fields{
-			"region":    region.Name,
-			"realm":     realm.Slug,
-			"timestamp": timestamp,
-		}).Info("Found")
+		count += 1
 	}
+
+	logging.WithFields(logrus.Fields{
+		"region": region.Name,
+		"realm":  realm.Slug,
+		"count":  count,
+	}).Info("Found")
 
 	return nil
 }
