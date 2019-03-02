@@ -38,8 +38,8 @@ type ownersQueryRequestByItems struct {
 	Items      []blizzard.ItemID   `json:"items"`
 }
 
-func (request ownersQueryRequestByItems) resolve(sta LiveAuctionsState) (sotah.MiniAuctionList, requestError) {
-	regionLadBases, ok := sta.IO.Databases.LiveAuctionsDatabases[request.RegionName]
+func (request ownersQueryRequestByItems) resolve(laState LiveAuctionsState) (sotah.MiniAuctionList, requestError) {
+	regionLadBases, ok := laState.IO.Databases.LiveAuctionsDatabases[request.RegionName]
 	if !ok {
 		return sotah.MiniAuctionList{}, requestError{codes.NotFound, "Invalid region"}
 	}
@@ -57,8 +57,8 @@ func (request ownersQueryRequestByItems) resolve(sta LiveAuctionsState) (sotah.M
 	return maList, requestError{codes.Ok, ""}
 }
 
-func (sta LiveAuctionsState) ListenForOwnersQueryByItems(stop ListenStopChan) error {
-	err := sta.IO.Messenger.Subscribe(string(subjects.OwnersQueryByItems), stop, func(natsMsg nats.Msg) {
+func (laState LiveAuctionsState) ListenForOwnersQueryByItems(stop ListenStopChan) error {
+	err := laState.IO.Messenger.Subscribe(string(subjects.OwnersQueryByItems), stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		// resolving the request
@@ -66,7 +66,7 @@ func (sta LiveAuctionsState) ListenForOwnersQueryByItems(stop ListenStopChan) er
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.IO.Messenger.ReplyTo(natsMsg, m)
+			laState.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -77,11 +77,11 @@ func (sta LiveAuctionsState) ListenForOwnersQueryByItems(stop ListenStopChan) er
 		}
 
 		// resolving the auctions
-		aList, reErr := request.resolve(sta)
+		aList, reErr := request.resolve(laState)
 		if reErr.code != codes.Ok {
 			m.Err = reErr.message
 			m.Code = reErr.code
-			sta.IO.Messenger.ReplyTo(natsMsg, m)
+			laState.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -118,14 +118,14 @@ func (sta LiveAuctionsState) ListenForOwnersQueryByItems(stop ListenStopChan) er
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.IO.Messenger.ReplyTo(natsMsg, m)
+			laState.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		// dumping it out
 		m.Data = string(encodedMessage)
-		sta.IO.Messenger.ReplyTo(natsMsg, m)
+		laState.IO.Messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err

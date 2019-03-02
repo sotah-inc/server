@@ -52,7 +52,7 @@ func Download(url string) (b []byte, err error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return b, fmt.Errorf("Response was not OK: %d", resp.StatusCode)
+		return b, fmt.Errorf("response was not OK: %d", resp.StatusCode)
 	}
 
 	// optionally decompressing it

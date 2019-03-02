@@ -37,8 +37,8 @@ type AuctionsRequest struct {
 	ItemFilters   []blizzard.ItemID            `json:"item_filters"`
 }
 
-func (ar AuctionsRequest) resolve(sta LiveAuctionsState) (sotah.MiniAuctionList, requestError) {
-	regionLadBases, ok := sta.IO.Databases.LiveAuctionsDatabases[ar.RegionName]
+func (ar AuctionsRequest) resolve(laState LiveAuctionsState) (sotah.MiniAuctionList, requestError) {
+	regionLadBases, ok := laState.IO.Databases.LiveAuctionsDatabases[ar.RegionName]
 	if !ok {
 		return sotah.MiniAuctionList{}, requestError{codes.NotFound, "Invalid region"}
 	}
@@ -85,8 +85,8 @@ func (ar auctionsResponse) encodeForMessage() (string, error) {
 	return base64.StdEncoding.EncodeToString(gzipEncodedAuctions), nil
 }
 
-func (sta LiveAuctionsState) ListenForAuctions(stop ListenStopChan) error {
-	err := sta.IO.Messenger.Subscribe(string(subjects.Auctions), stop, func(natsMsg nats.Msg) {
+func (laState LiveAuctionsState) ListenForAuctions(stop ListenStopChan) error {
+	err := laState.IO.Messenger.Subscribe(string(subjects.Auctions), stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		// resolving the request
@@ -94,17 +94,17 @@ func (sta LiveAuctionsState) ListenForAuctions(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.IO.Messenger.ReplyTo(natsMsg, m)
+			laState.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		// resolving data from State
-		realmAuctions, reErr := aRequest.resolve(sta)
+		realmAuctions, reErr := aRequest.resolve(laState)
 		if reErr.code != codes.Ok {
 			m.Err = reErr.message
 			m.Code = reErr.code
-			sta.IO.Messenger.ReplyTo(natsMsg, m)
+			laState.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -136,7 +136,7 @@ func (sta LiveAuctionsState) ListenForAuctions(stop ListenStopChan) error {
 			if err != nil {
 				m.Err = err.Error()
 				m.Code = codes.UserError
-				sta.IO.Messenger.ReplyTo(natsMsg, m)
+				laState.IO.Messenger.ReplyTo(natsMsg, m)
 
 				return
 			}
@@ -147,7 +147,7 @@ func (sta LiveAuctionsState) ListenForAuctions(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.UserError
-			sta.IO.Messenger.ReplyTo(natsMsg, m)
+			laState.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -157,13 +157,13 @@ func (sta LiveAuctionsState) ListenForAuctions(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.IO.Messenger.ReplyTo(natsMsg, m)
+			laState.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		m.Data = data
-		sta.IO.Messenger.ReplyTo(natsMsg, m)
+		laState.IO.Messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err

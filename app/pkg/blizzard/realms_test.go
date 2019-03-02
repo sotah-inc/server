@@ -3,7 +3,7 @@ package blizzard
 import (
 	"testing"
 
-	"github.com/sotah-inc/server/pkg/app/utiltest"
+	"github.com/sotah-inc/server/app/pkg/utiltest"
 	"github.com/stretchr/testify/assert"
 )
 

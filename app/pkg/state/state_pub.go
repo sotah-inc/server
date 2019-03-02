@@ -93,7 +93,7 @@ func NewPubState(config PubStateConfig) (PubState, error) {
 
 		for _, rea := range status.Realms {
 			realmDatabaseDir := fmt.Sprintf("%s/%s", regionDatabaseDir, rea.Slug)
-			dbPaths, err := database.DatabaseV2Paths(realmDatabaseDir)
+			dbPaths, err := database.V2Paths(realmDatabaseDir)
 			if err != nil {
 				logging.WithFields(logrus.Fields{
 					"error": err.Error(),

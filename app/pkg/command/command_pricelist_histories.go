@@ -29,7 +29,7 @@ func PricelistHistories(config state.PricelistHistoriesStateConfig) error {
 
 		for _, rea := range phState.Statuses[reg.Name].Realms {
 			realmDatabaseDir := fmt.Sprintf("%s/%s", regionDatabaseDir, rea.Slug)
-			dbPaths, err := database.DatabasePaths(realmDatabaseDir)
+			dbPaths, err := database.Paths(realmDatabaseDir)
 			if err != nil {
 				logging.WithFields(logrus.Fields{
 					"error": err.Error(),

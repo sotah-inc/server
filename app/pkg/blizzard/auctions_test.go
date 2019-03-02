@@ -75,7 +75,7 @@ func TestGetAuctions(t *testing.T) {
 	auctionInfo.Files[0].URL = auctionsTs.URL
 
 	// gathering the auctions
-	auctions, err := auctionInfo.Files[0].GetAuctions()
+	auctions, _, err := auctionInfo.Files[0].GetAuctions()
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -108,7 +108,7 @@ func TestGetFirstAuctions(t *testing.T) {
 	auctionInfo.Files[0].URL = auctionsTs.URL
 
 	// gathering the auctinos
-	auctions, err := auctionInfo.GetFirstAuctions()
+	auctions, _, err := auctionInfo.GetFirstAuctions()
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -123,7 +123,7 @@ func TestNewAuctionsFromHTTP(t *testing.T) {
 		return
 	}
 
-	a, err := NewAuctionsFromHTTP(ts.URL)
+	a, _, err := NewAuctionsFromHTTP(ts.URL)
 	if !assert.Nil(t, err) {
 		return
 	}

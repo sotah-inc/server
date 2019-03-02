@@ -8,7 +8,10 @@ import (
 )
 
 func TestClientRefresh(t *testing.T) {
-	client := NewClient("", "")
+	client, err := NewClient("", "")
+	if !assert.Nil(t, err) {
+		return
+	}
 
 	ts, err := utiltest.ServeFile("../TestData/access-token.json")
 	if !assert.Nil(t, err) {
@@ -25,7 +28,10 @@ func TestClientRefresh(t *testing.T) {
 }
 
 func TestAppendAccessToken(t *testing.T) {
-	client := NewClient("", "")
+	client, err := NewClient("", "")
+	if !assert.Nil(t, err) {
+		return
+	}
 
 	ts, err := utiltest.ServeFile("../TestData/access-token.json")
 	if !assert.Nil(t, err) {
@@ -46,7 +52,10 @@ func TestAppendAccessToken(t *testing.T) {
 	}
 }
 func TestAppendAccessTokenFail(t *testing.T) {
-	client := NewClient("", "")
+	client, err := NewClient("", "")
+	if !assert.Nil(t, err) {
+		return
+	}
 
 	if _, err := client.AppendAccessToken("https://google.ca/"); !assert.NotNil(t, err) {
 		return

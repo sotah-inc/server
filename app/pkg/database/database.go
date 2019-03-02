@@ -23,7 +23,7 @@ type databasePathPair struct {
 	TargetTime time.Time
 }
 
-func DatabasePaths(databaseDir string) ([]databasePathPair, error) {
+func Paths(databaseDir string) ([]databasePathPair, error) {
 	out := []databasePathPair{}
 
 	databaseFilepaths, err := ioutil.ReadDir(databaseDir)
@@ -73,7 +73,7 @@ func DatabasePaths(databaseDir string) ([]databasePathPair, error) {
 	return out, nil
 }
 
-func DatabaseV2Paths(databaseDir string) ([]databasePathPair, error) {
+func V2Paths(databaseDir string) ([]databasePathPair, error) {
 	out := []databasePathPair{}
 
 	databaseFilepaths, err := ioutil.ReadDir(databaseDir)

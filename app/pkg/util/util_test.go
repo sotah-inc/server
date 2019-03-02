@@ -3,7 +3,7 @@ package util
 import (
 	"testing"
 
-	"github.com/sotah-inc/server/app/utiltest"
+	"github.com/sotah-inc/server/app/pkg/utiltest"
 	"github.com/stretchr/testify/assert"
 )
 

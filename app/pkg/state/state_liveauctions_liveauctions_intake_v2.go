@@ -60,12 +60,12 @@ func (iRequest liveAuctionsIntakeV2Request) resolve(statuses sotah.Statuses) (Re
 	return included, excluded
 }
 
-func (iRequest liveAuctionsIntakeV2Request) handle(sta LiveAuctionsState) {
+func (iRequest liveAuctionsIntakeV2Request) handle(laState LiveAuctionsState) {
 	// misc
 	startTime := time.Now()
 
 	// resolving included and excluded auctions
-	included, excluded := iRequest.resolve(sta.Statuses)
+	included, excluded := iRequest.resolve(laState.Statuses)
 
 	// counting realms for reporting
 	includedRealmCount := func() int {
@@ -86,10 +86,10 @@ func (iRequest liveAuctionsIntakeV2Request) handle(sta LiveAuctionsState) {
 	}()
 
 	// loading region-realm-timestamps from request into the bus
-	sta.IO.BusClient.LoadRegionRealmTimestamps(iRequest.RegionRealmTimestamps, subjects.LiveAuctionsCompute)
+	laState.IO.BusClient.LoadRegionRealmTimestamps(iRequest.RegionRealmTimestamps, subjects.LiveAuctionsCompute)
 
 	duration := time.Now().Sub(startTime)
-	sta.IO.Reporter.Report(metric.Metrics{
+	laState.IO.Reporter.Report(metric.Metrics{
 		"liveauctions_intake_v2_duration": int(duration) / 1000 / 1000 / 1000,
 		"included_realms":                 includedRealmCount,
 		"excluded_realms":                 excludedRealmCount,
@@ -99,11 +99,11 @@ func (iRequest liveAuctionsIntakeV2Request) handle(sta LiveAuctionsState) {
 	return
 }
 
-func (sta LiveAuctionsState) ListenForLiveAuctionsIntakeV2(stop ListenStopChan) error {
+func (laState LiveAuctionsState) ListenForLiveAuctionsIntakeV2(stop ListenStopChan) error {
 	in := make(chan liveAuctionsIntakeV2Request, 30)
 
 	// starting up a listener for live-auctions-intake
-	err := sta.IO.Messenger.Subscribe(string(subjects.LiveAuctionsIntakeV2), stop, func(natsMsg nats.Msg) {
+	err := laState.IO.Messenger.Subscribe(string(subjects.LiveAuctionsIntakeV2), stop, func(natsMsg nats.Msg) {
 		// resolving the request
 		iRequest, err := newLiveAuctionsIntakeV2Request(natsMsg.Data)
 		if err != nil {
@@ -112,7 +112,7 @@ func (sta LiveAuctionsState) ListenForLiveAuctionsIntakeV2(stop ListenStopChan) 
 			return
 		}
 
-		sta.IO.Reporter.ReportWithPrefix(metric.Metrics{
+		laState.IO.Reporter.ReportWithPrefix(metric.Metrics{
 			"buffer_size": len(iRequest.RegionRealmTimestamps),
 		}, kinds.LiveAuctionsIntakeV2)
 		logging.WithField("capacity", len(in)).Info("Received live-auctions-intake-v2-request, pushing onto handle channel")
@@ -126,7 +126,7 @@ func (sta LiveAuctionsState) ListenForLiveAuctionsIntakeV2(stop ListenStopChan) 
 	// starting up a worker to handle live-auctions-intake requests
 	go func() {
 		for iRequest := range in {
-			iRequest.handle(sta)
+			iRequest.handle(laState)
 		}
 	}()
 

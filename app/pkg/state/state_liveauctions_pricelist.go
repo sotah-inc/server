@@ -29,8 +29,8 @@ type priceListRequest struct {
 	ItemIds    []blizzard.ItemID   `json:"item_ids"`
 }
 
-func (plRequest priceListRequest) resolve(sta LiveAuctionsState) (sotah.MiniAuctionList, requestError) {
-	regionLadBases, ok := sta.IO.Databases.LiveAuctionsDatabases[plRequest.RegionName]
+func (plRequest priceListRequest) resolve(laState LiveAuctionsState) (sotah.MiniAuctionList, requestError) {
+	regionLadBases, ok := laState.IO.Databases.LiveAuctionsDatabases[plRequest.RegionName]
 	if !ok {
 		return sotah.MiniAuctionList{}, requestError{codes.NotFound, "Invalid region"}
 	}
@@ -66,8 +66,8 @@ func (plResponse priceListResponse) encodeForMessage() (string, error) {
 	return base64.StdEncoding.EncodeToString(gzipEncodedMessage), nil
 }
 
-func (sta LiveAuctionsState) ListenForPriceList(stop ListenStopChan) error {
-	err := sta.IO.Messenger.Subscribe(string(subjects.PriceList), stop, func(natsMsg nats.Msg) {
+func (laState LiveAuctionsState) ListenForPriceList(stop ListenStopChan) error {
+	err := laState.IO.Messenger.Subscribe(string(subjects.PriceList), stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		// resolving the request
@@ -75,17 +75,17 @@ func (sta LiveAuctionsState) ListenForPriceList(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.IO.Messenger.ReplyTo(natsMsg, m)
+			laState.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		// resolving data from state
-		realmAuctions, reErr := plRequest.resolve(sta)
+		realmAuctions, reErr := plRequest.resolve(laState)
 		if reErr.code != codes.Ok {
 			m.Err = reErr.message
 			m.Code = reErr.code
-			sta.IO.Messenger.ReplyTo(natsMsg, m)
+			laState.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -106,13 +106,13 @@ func (sta LiveAuctionsState) ListenForPriceList(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.IO.Messenger.ReplyTo(natsMsg, m)
+			laState.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		m.Data = data
-		sta.IO.Messenger.ReplyTo(natsMsg, m)
+		laState.IO.Messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err

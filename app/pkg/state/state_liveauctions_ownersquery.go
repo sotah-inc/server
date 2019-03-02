@@ -80,7 +80,7 @@ type ownersQueryRequest struct {
 	Query      string              `json:"query"`
 }
 
-func (request ownersQueryRequest) resolve(sta LiveAuctionsState) (ownersQueryResult, error) {
+func (request ownersQueryRequest) resolve(laState LiveAuctionsState) (ownersQueryResult, error) {
 	if request.RegionName == "" {
 		return ownersQueryResult{}, errors.New("region name cannot be blank")
 	}
@@ -89,7 +89,7 @@ func (request ownersQueryRequest) resolve(sta LiveAuctionsState) (ownersQueryRes
 	}
 
 	// resolving region-Realm auctions
-	regionLadBases, ok := sta.IO.Databases.LiveAuctionsDatabases[request.RegionName]
+	regionLadBases, ok := laState.IO.Databases.LiveAuctionsDatabases[request.RegionName]
 	if !ok {
 		return ownersQueryResult{}, errors.New("invalid region name")
 	}
@@ -126,8 +126,8 @@ func (request ownersQueryRequest) resolve(sta LiveAuctionsState) (ownersQueryRes
 	return oqResult, nil
 }
 
-func (sta LiveAuctionsState) ListenForOwnersQuery(stop ListenStopChan) error {
-	err := sta.IO.Messenger.Subscribe(string(subjects.OwnersQuery), stop, func(natsMsg nats.Msg) {
+func (laState LiveAuctionsState) ListenForOwnersQuery(stop ListenStopChan) error {
+	err := laState.IO.Messenger.Subscribe(string(subjects.OwnersQuery), stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		// resolving the request
@@ -135,17 +135,17 @@ func (sta LiveAuctionsState) ListenForOwnersQuery(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.MsgJSONParseError
-			sta.IO.Messenger.ReplyTo(natsMsg, m)
+			laState.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		// resolving result from the request and State
-		result, err := request.resolve(sta)
+		result, err := request.resolve(laState)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.NotFound
-			sta.IO.Messenger.ReplyTo(natsMsg, m)
+			laState.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
@@ -170,14 +170,14 @@ func (sta LiveAuctionsState) ListenForOwnersQuery(stop ListenStopChan) error {
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = codes.GenericError
-			sta.IO.Messenger.ReplyTo(natsMsg, m)
+			laState.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
 		// dumping it out
 		m.Data = string(encodedMessage)
-		sta.IO.Messenger.ReplyTo(natsMsg, m)
+		laState.IO.Messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
 		return err
