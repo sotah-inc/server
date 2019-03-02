@@ -1,4 +1,4 @@
-package test2
+package pricelisthistoriescomputeintake
 
 import (
 	"context"
@@ -43,7 +43,7 @@ type PubSubMessage struct {
 	Data []byte `json:"data"`
 }
 
-func HelloPubSub(_ context.Context, m PubSubMessage) error {
+func PricelistHistoriesComputeIntake(_ context.Context, m PubSubMessage) error {
 	var in bus.Message
 	if err := json.Unmarshal(m.Data, &in); err != nil {
 		return err
