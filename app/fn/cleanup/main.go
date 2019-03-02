@@ -26,7 +26,7 @@ var cleanupTopic *pubsub.Topic
 
 func init() {
 	var err error
-	busClient, err = bus.NewClient(projectId, "fn-auctions-collector")
+	busClient, err = bus.NewClient(projectId, "fn-cleanup")
 	if err != nil {
 		log.Fatalf("Failed to create new bus client: %s", err.Error())
 
