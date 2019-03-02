@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
+	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/util"
 	"google.golang.org/api/iterator"
@@ -177,6 +179,90 @@ func (b AuctionManifestBase) DeleteAll(regionRealms map[blizzard.RegionName]sota
 		for _, realms := range regionRealms {
 			for _, realm := range realms {
 				in <- realm
+			}
+		}
+
+		close(in)
+	}()
+
+	return out
+}
+
+type WriteAllInJob struct {
+	NormalizedTimestamp sotah.UnixTimestamp
+	Manifest            sotah.AuctionManifest
+}
+
+type WriteAllOutJob struct {
+	Err                 error
+	NormalizedTimestamp sotah.UnixTimestamp
+}
+
+func (b AuctionManifestBase) WriteAll(bkt *storage.BucketHandle, manifests map[sotah.UnixTimestamp]sotah.AuctionManifest) chan WriteAllOutJob {
+	// spinning up the workers
+	in := make(chan WriteAllInJob)
+	out := make(chan WriteAllOutJob)
+	worker := func() {
+		for inJob := range in {
+			logging.WithFields(logrus.Fields{
+				"manifest":  inJob.NormalizedTimestamp,
+				"timestamp": len(inJob.Manifest),
+			}).Info("Writing manifest to obj")
+
+			obj := b.GetObject(inJob.NormalizedTimestamp, bkt)
+
+			jsonEncodedBody, err := json.Marshal(inJob.Manifest)
+			if err != nil {
+				out <- WriteAllOutJob{
+					Err:                 err,
+					NormalizedTimestamp: inJob.NormalizedTimestamp,
+				}
+
+				continue
+			}
+
+			gzipEncodedBody, err := util.GzipEncode(jsonEncodedBody)
+			if err != nil {
+				out <- WriteAllOutJob{
+					Err:                 err,
+					NormalizedTimestamp: inJob.NormalizedTimestamp,
+				}
+
+				continue
+			}
+
+			wc := obj.NewWriter(b.client.Context)
+			wc.ContentType = "application/json"
+			wc.ContentEncoding = "gzip"
+			if _, err := wc.Write(gzipEncodedBody); err != nil {
+				out <- WriteAllOutJob{
+					Err:                 err,
+					NormalizedTimestamp: inJob.NormalizedTimestamp,
+				}
+
+				continue
+			}
+			if err := wc.Close(); err != nil {
+				out <- WriteAllOutJob{
+					Err:                 err,
+					NormalizedTimestamp: inJob.NormalizedTimestamp,
+				}
+
+				continue
+			}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(16, worker, postWork)
+
+	// queueing it up
+	go func() {
+		for normalizedTimestamp, manifest := range manifests {
+			in <- WriteAllInJob{
+				NormalizedTimestamp: normalizedTimestamp,
+				Manifest:            manifest,
 			}
 		}
 
