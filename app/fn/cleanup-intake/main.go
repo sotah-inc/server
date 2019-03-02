@@ -7,23 +7,22 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/sirupsen/logrus"
-	"github.com/sotah-inc/server/app/pkg/logging"
-	"google.golang.org/api/iterator"
-
 	"github.com/sotah-inc/server/app/pkg/blizzard"
-	"github.com/sotah-inc/server/app/pkg/sotah"
-
 	"github.com/sotah-inc/server/app/pkg/bus"
-
+	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/store"
+	"google.golang.org/api/iterator"
 )
 
 var projectId = os.Getenv("GCP_PROJECT")
 
 var storeClient store.Client
 var auctionsStoreBase store.AuctionsBase
+var auctionManifestStoreBase store.AuctionManifestBase
 
 func init() {
 	var err error
@@ -35,6 +34,7 @@ func init() {
 		return
 	}
 	auctionsStoreBase = store.NewAuctionsBase(storeClient)
+	auctionManifestStoreBase = store.NewAuctionManifestBase(storeClient)
 }
 
 type PubSubMessage struct {
@@ -65,9 +65,12 @@ func CleanupIntake(_ context.Context, m PubSubMessage) error {
 		Region: region,
 	}
 
+	currentNormalizedTime := sotah.NormalizeTargetDate(time.Now())
+
+	manifests := map[sotah.UnixTimestamp]sotah.AuctionManifest{}
+
 	bkt := auctionsStoreBase.GetBucket(realm)
 	it := bkt.Objects(storeClient.Context, nil)
-	count := 0
 	for {
 		objAttrs, err := it.Next()
 		if err != nil {
@@ -85,13 +88,33 @@ func CleanupIntake(_ context.Context, m PubSubMessage) error {
 			return err
 		}
 
-		count += 1
+		objTimestamp, err := strconv.Atoi(parts[0])
+		if err != nil {
+			return err
+		}
+
+		normalizedTime := sotah.NormalizeTargetDate(time.Unix(int64(objTimestamp), 0))
+
+		if normalizedTime.After(currentNormalizedTime) {
+			continue
+		}
+
+		normalizedTimestamp := sotah.UnixTimestamp(normalizedTime.Unix())
+		nextManifest := func() sotah.AuctionManifest {
+			result, ok := manifests[normalizedTimestamp]
+			if !ok {
+				return sotah.AuctionManifest{}
+			}
+
+			return result
+		}()
+		manifests[normalizedTimestamp] = append(nextManifest, sotah.UnixTimestamp(objTimestamp))
 	}
 
 	logging.WithFields(logrus.Fields{
-		"region": region.Name,
-		"realm":  realm.Slug,
-		"count":  count,
+		"region":    region.Name,
+		"realm":     realm.Slug,
+		"manifests": len(manifests),
 	}).Info("Found")
 
 	return nil
