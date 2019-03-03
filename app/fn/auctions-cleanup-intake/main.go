@@ -116,9 +116,9 @@ func AuctionsCleanupIntake(_ context.Context, m PubSubMessage) error {
 		}).Info("Deleted raw-auctions object")
 	}
 
-	//if err := obj.Delete(storeClient.Context); err != nil {
-	//	return err
-	//}
+	if err := obj.Delete(storeClient.Context); err != nil {
+		return err
+	}
 
 	logging.WithFields(logrus.Fields{
 		"region":   region.Name,
