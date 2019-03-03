@@ -7,6 +7,6 @@ gcloud functions deploy CleanupIntake \
     --runtime go111 \
     --trigger-topic cleanupCompute \
     --source . \
-    --memory 128MB \
+    --memory 512MB \
     --timeout 500s \
     --region us-central1

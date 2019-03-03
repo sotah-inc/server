@@ -111,11 +111,20 @@ func CleanupIntake(_ context.Context, m PubSubMessage) error {
 		manifests[normalizedTimestamp] = append(nextManifest, sotah.UnixTimestamp(objTimestamp))
 	}
 
-	logging.WithFields(logrus.Fields{
-		"region":    region.Name,
-		"realm":     realm.Slug,
-		"manifests": len(manifests),
-	}).Info("Found")
+	manifestBucket, err := auctionManifestStoreBase.ResolveBucket(realm)
+	if err != nil {
+		return err
+	}
+
+	for job := range auctionManifestStoreBase.WriteAll(manifestBucket, manifests) {
+		if job.Err != nil {
+			return err
+		}
+
+		logging.WithFields(logrus.Fields{
+			"manifest": job.NormalizedTimestamp,
+		}).Info("Finished writing")
+	}
 
 	return nil
 }
