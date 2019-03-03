@@ -75,6 +75,11 @@ func AuctionsCleanupIntake(_ context.Context, m PubSubMessage) error {
 		return nil
 	}
 
+	objAttrs, err := obj.Attrs(storeClient.Context)
+	if err != nil {
+		return err
+	}
+
 	manifest, err := func() (sotah.AuctionManifest, error) {
 		reader, err := obj.NewReader(storeClient.Context)
 		if err != nil {
@@ -101,11 +106,23 @@ func AuctionsCleanupIntake(_ context.Context, m PubSubMessage) error {
 		if outJob.Err != nil {
 			return outJob.Err
 		}
+
+		logging.WithFields(logrus.Fields{
+			"region":           region.Name,
+			"realm":            realm.Slug,
+			"target-timestamp": outJob.TargetTimestamp,
+		}).Info("Deleted raw-auctions object")
 	}
 
-	if err := obj.Delete(storeClient.Context); err != nil {
-		return err
-	}
+	//if err := obj.Delete(storeClient.Context); err != nil {
+	//	return err
+	//}
+
+	logging.WithFields(logrus.Fields{
+		"region":   region.Name,
+		"realm":    realm.Slug,
+		"manifest": objAttrs.Name,
+	}).Info("Deleted raw-auctions object")
 
 	return nil
 }
