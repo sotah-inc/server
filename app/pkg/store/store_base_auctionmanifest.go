@@ -105,21 +105,21 @@ func (b AuctionManifestBase) Handle(targetTimestamp sotah.UnixTimestamp, realm s
 	return nil
 }
 
-type DeleteJob struct {
+type DeleteAuctionManifestJob struct {
 	Err   error
 	Realm sotah.Realm
 	Count int
 }
 
-func (b AuctionManifestBase) DeleteAll(regionRealms map[blizzard.RegionName]sotah.Realms) chan DeleteJob {
+func (b AuctionManifestBase) DeleteAll(regionRealms map[blizzard.RegionName]sotah.Realms) chan DeleteAuctionManifestJob {
 	// spinning up the workers
 	in := make(chan sotah.Realm)
-	out := make(chan DeleteJob)
+	out := make(chan DeleteAuctionManifestJob)
 	worker := func() {
 		for realm := range in {
 			bkt, err := b.ResolveBucket(realm)
 			if err != nil {
-				out <- DeleteJob{
+				out <- DeleteAuctionManifestJob{
 					Err:   err,
 					Realm: realm,
 					Count: 0,
@@ -134,7 +134,7 @@ func (b AuctionManifestBase) DeleteAll(regionRealms map[blizzard.RegionName]sota
 				objAttrs, err := it.Next()
 				if err != nil {
 					if err == iterator.Done {
-						out <- DeleteJob{
+						out <- DeleteAuctionManifestJob{
 							Err:   nil,
 							Realm: realm,
 							Count: count,
@@ -144,7 +144,7 @@ func (b AuctionManifestBase) DeleteAll(regionRealms map[blizzard.RegionName]sota
 					}
 
 					if err != nil {
-						out <- DeleteJob{
+						out <- DeleteAuctionManifestJob{
 							Err:   err,
 							Realm: realm,
 							Count: count,
@@ -156,7 +156,7 @@ func (b AuctionManifestBase) DeleteAll(regionRealms map[blizzard.RegionName]sota
 
 				obj := bkt.Object(objAttrs.Name)
 				if err := obj.Delete(b.client.Context); err != nil {
-					out <- DeleteJob{
+					out <- DeleteAuctionManifestJob{
 						Err:   err,
 						Realm: realm,
 					}
