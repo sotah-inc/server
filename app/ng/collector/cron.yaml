@@ -3,3 +3,7 @@ cron:
   url: /
   schedule: every 30 minutes
   target: collector
+- description: "auctions cleanup"
+  url: /cleanup
+  schedule: every 24 hours
+  target: collector
