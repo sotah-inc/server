@@ -64,3 +64,47 @@ func (b AuctionsBase) Handle(aucs blizzard.Auctions, lastModified time.Time, bkt
 
 	return nil
 }
+
+type DeleteAuctionsJob struct {
+	Err             error
+	TargetTimestamp sotah.UnixTimestamp
+}
+
+func (b AuctionsBase) DeleteAll(bkt *storage.BucketHandle, manifest sotah.AuctionManifest) chan DeleteAuctionsJob {
+	// spinning up the workers
+	in := make(chan sotah.UnixTimestamp)
+	out := make(chan DeleteAuctionsJob)
+	worker := func() {
+		for targetTimestamp := range in {
+			obj := bkt.Object(b.getObjectName(time.Unix(int64(targetTimestamp), 0)))
+			if err := obj.Delete(b.client.Context); err != nil {
+				out <- DeleteAuctionsJob{
+					Err:             err,
+					TargetTimestamp: targetTimestamp,
+				}
+
+				continue
+			}
+
+			out <- DeleteAuctionsJob{
+				Err:             nil,
+				TargetTimestamp: targetTimestamp,
+			}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(16, worker, postWork)
+
+	// queueing it up
+	go func() {
+		for _, targetTimestamp := range manifest {
+			in <- targetTimestamp
+		}
+
+		close(in)
+	}()
+
+	return out
+}
