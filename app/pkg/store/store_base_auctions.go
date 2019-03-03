@@ -76,15 +76,15 @@ func (b AuctionsBase) DeleteAll(bkt *storage.BucketHandle, manifest sotah.Auctio
 	out := make(chan DeleteAuctionsJob)
 	worker := func() {
 		for targetTimestamp := range in {
-			//obj := bkt.Object(b.getObjectName(time.Unix(int64(targetTimestamp), 0)))
-			//if err := obj.Delete(b.client.Context); err != nil {
-			//	out <- DeleteAuctionsJob{
-			//		Err:             err,
-			//		TargetTimestamp: targetTimestamp,
-			//	}
-			//
-			//	continue
-			//}
+			obj := bkt.Object(b.getObjectName(time.Unix(int64(targetTimestamp), 0)))
+			if err := obj.Delete(b.client.Context); err != nil {
+				out <- DeleteAuctionsJob{
+					Err:             err,
+					TargetTimestamp: targetTimestamp,
+				}
+
+				continue
+			}
 
 			out <- DeleteAuctionsJob{
 				Err:             nil,
