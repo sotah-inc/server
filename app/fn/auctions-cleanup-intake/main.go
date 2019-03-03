@@ -103,5 +103,9 @@ func AuctionsCleanupIntake(_ context.Context, m PubSubMessage) error {
 		}
 	}
 
+	if err := obj.Delete(storeClient.Context); err != nil {
+		return err
+	}
+
 	return nil
 }
