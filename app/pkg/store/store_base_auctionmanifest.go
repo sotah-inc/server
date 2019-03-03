@@ -7,9 +7,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
-	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
-	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/util"
 	"google.golang.org/api/iterator"
@@ -204,11 +202,6 @@ func (b AuctionManifestBase) WriteAll(bkt *storage.BucketHandle, manifests map[s
 	out := make(chan WriteAllOutJob)
 	worker := func() {
 		for inJob := range in {
-			logging.WithFields(logrus.Fields{
-				"manifest":  inJob.NormalizedTimestamp,
-				"timestamp": len(inJob.Manifest),
-			}).Info("Writing manifest to obj")
-
 			obj := b.GetObject(inJob.NormalizedTimestamp, bkt)
 
 			jsonEncodedBody, err := json.Marshal(inJob.Manifest)
