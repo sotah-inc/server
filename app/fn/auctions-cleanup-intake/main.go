@@ -67,6 +67,14 @@ func AuctionsCleanupIntake(_ context.Context, m PubSubMessage) error {
 
 	manifestBucket := auctionsStoreBase.GetBucket(realm)
 	obj := auctionManifestStoreBase.GetObject(targetTimestamp, manifestBucket)
+	exists, err := auctionManifestStoreBase.ObjectExists(obj)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return nil
+	}
+
 	manifest, err := func() (sotah.AuctionManifest, error) {
 		reader, err := obj.NewReader(storeClient.Context)
 		if err != nil {
