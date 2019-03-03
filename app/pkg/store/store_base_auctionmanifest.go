@@ -250,12 +250,17 @@ func (b AuctionManifestBase) WriteAll(bkt *storage.BucketHandle, manifests map[s
 
 				continue
 			}
+
+			out <- WriteAllOutJob{
+				Err:                 nil,
+				NormalizedTimestamp: inJob.NormalizedTimestamp,
+			}
 		}
 	}
 	postWork := func() {
 		close(out)
 	}
-	util.Work(4, worker, postWork)
+	util.Work(8, worker, postWork)
 
 	// queueing it up
 	go func() {
