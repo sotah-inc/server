@@ -15,7 +15,6 @@ import (
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
-	"github.com/sotah-inc/server/app/pkg/store"
 )
 
 var projectId = os.Getenv("GCP_PROJECT")
@@ -24,8 +23,6 @@ var regionRealms map[blizzard.RegionName]sotah.Realms
 
 var busClient bus.Client
 var collectAuctionsTopic *pubsub.Topic
-
-var storeClient store.Client
 
 func init() {
 	var err error
@@ -38,13 +35,6 @@ func init() {
 	collectAuctionsTopic, err = busClient.FirmTopic(string(subjects.CollectAuctionsCompute))
 	if err != nil {
 		log.Fatalf("Failed to get firm topic: %s", err.Error())
-
-		return
-	}
-
-	storeClient, err = store.NewClient(projectId)
-	if err != nil {
-		log.Fatalf("Failed to create new store client: %s", err.Error())
 
 		return
 	}
