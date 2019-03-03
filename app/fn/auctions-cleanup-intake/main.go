@@ -65,13 +65,15 @@ func AuctionsCleanupIntake(_ context.Context, m PubSubMessage) error {
 	}
 	targetTimestamp := sotah.UnixTimestamp(job.TargetTimestamp)
 
-	manifestBucket := auctionsStoreBase.GetBucket(realm)
+	manifestBucket := auctionManifestStoreBase.GetBucket(realm)
 	obj := auctionManifestStoreBase.GetObject(targetTimestamp, manifestBucket)
 	exists, err := auctionManifestStoreBase.ObjectExists(obj)
 	if err != nil {
 		return err
 	}
 	if !exists {
+		logging.Info("Auctions-manifest object does not exist, halting early")
+
 		return nil
 	}
 
