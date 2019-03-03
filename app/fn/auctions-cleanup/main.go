@@ -7,9 +7,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/sirupsen/logrus"
-	"github.com/sotah-inc/server/app/pkg/logging"
-
 	"cloud.google.com/go/pubsub"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
@@ -80,11 +77,15 @@ type PubSubMessage struct {
 func AuctionsCleanup(_ context.Context, _ PubSubMessage) error {
 	priorManifestTimestamps := []sotah.UnixTimestamp{}
 	normalizedTime := sotah.NormalizeTargetDate(time.Now())
-	for i := 1; i < 2; i++ {
-		then := normalizedTime.AddDate(0, 0, -1*i)
+	startOffset := 14
+	endLimit := 14
+	for i := 0; i < endLimit; i++ {
+		then := normalizedTime.AddDate(0, 0, -1*(i+startOffset))
 
 		priorManifestTimestamps = append(priorManifestTimestamps, sotah.UnixTimestamp(then.Unix()))
 	}
+
+	jobs := []bus.CleanupAuctionManifestJob{}
 
 	for _, realms := range regionRealms {
 		for _, realm := range realms {
@@ -97,12 +98,21 @@ func AuctionsCleanup(_ context.Context, _ PubSubMessage) error {
 			}
 
 			for _, expiredManifestTimestamp := range priorManifestTimestamps {
-				logging.WithFields(logrus.Fields{
-					"region":   realm.Region.Name,
-					"realm":    realm.Slug,
-					"manifest": expiredManifestTimestamp,
-				}).Info("Queueing for deletion")
+				job := bus.CleanupAuctionManifestJob{
+					RegionName:      string(realm.Region.Name),
+					RealmSlug:       string(realm.Slug),
+					TargetTimestamp: int(expiredManifestTimestamp),
+				}
+				jobs = append(jobs, job)
+
+				break
 			}
+		}
+	}
+
+	for outJob := range busClient.LoadAuctionsCleanupJobs(jobs, auctionsCleanupTopic) {
+		if outJob.Err != nil {
+			return outJob.Err
 		}
 	}
 
