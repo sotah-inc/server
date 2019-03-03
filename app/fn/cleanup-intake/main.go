@@ -9,6 +9,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sirupsen/logrus"
+	"github.com/sotah-inc/server/app/pkg/logging"
+
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/sotah"
@@ -56,6 +59,8 @@ func CleanupIntake(_ context.Context, m PubSubMessage) error {
 	if err != nil {
 		return err
 	}
+
+	logging.WithFields(logrus.Fields{"job": job}).Info("Handling")
 
 	region := sotah.Region{Name: blizzard.RegionName(job.RegionName)}
 	realm := sotah.Realm{
