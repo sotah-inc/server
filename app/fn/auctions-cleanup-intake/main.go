@@ -124,7 +124,7 @@ func AuctionsCleanupIntake(_ context.Context, m PubSubMessage) error {
 		"region":   region.Name,
 		"realm":    realm.Slug,
 		"manifest": objAttrs.Name,
-	}).Info("Deleted raw-auctions object")
+	}).Info("Deleted manifest object")
 
 	return nil
 }
