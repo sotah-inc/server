@@ -4,6 +4,6 @@ cron:
   schedule: every 30 minutes
   target: collector
 - description: "auctions cleanup"
-  url: /cleanup
+  url: /clean
   schedule: every 24 hours
   target: collector
