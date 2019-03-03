@@ -12,8 +12,10 @@ import (
 )
 
 var projectId = os.Getenv("GOOGLE_CLOUD_PROJECT")
+
 var busClient bus.Client
-var recipientTopic *pubsub.Topic
+var collectComputeTopic *pubsub.Topic
+var auctionsCleanupTopic *pubsub.Topic
 
 func init() {
 	var err error
@@ -24,7 +26,13 @@ func init() {
 		return
 	}
 
-	recipientTopic, err = busClient.FirmTopic(string(subjects.AuctionsCollectorCompute))
+	collectComputeTopic, err = busClient.FirmTopic(string(subjects.AuctionsCollectorCompute))
+	if err != nil {
+		log.Fatalf("Failed to get firm topic: %s", err.Error())
+
+		return
+	}
+	auctionsCleanupTopic, err = busClient.FirmTopic(string(subjects.AuctionsCleanup))
 	if err != nil {
 		log.Fatalf("Failed to get firm topic: %s", err.Error())
 
@@ -48,18 +56,45 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	msg := bus.NewMessage()
-	if _, err := busClient.Publish(recipientTopic, msg); err != nil {
+	if _, err := busClient.Publish(collectComputeTopic, msg); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, fmt.Sprintf("Failed to publish message to collect-auctions topic: %s", err.Error()))
 
 		return
 	}
 
-	fmt.Fprint(w, "Hello, World!")
+	fmt.Fprint(w, "Hello, indexHandler()!")
+}
+
+func cleanHandler(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/clean" {
+		http.NotFound(w, r)
+
+		return
+	}
+
+	cronHeader := r.Header.Get("X-Appengine-Cron")
+	if cronHeader != "true" {
+		w.WriteHeader(http.StatusUnauthorized)
+		fmt.Fprint(w, "Unauthorized")
+
+		return
+	}
+
+	msg := bus.NewMessage()
+	if _, err := busClient.Publish(auctionsCleanupTopic, msg); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, fmt.Sprintf("Failed to publish message to auctions-cleanup topic: %s", err.Error()))
+
+		return
+	}
+
+	fmt.Fprint(w, "Hello, cleanHandler()!")
 }
 
 func main() {
 	http.HandleFunc("/", indexHandler)
+	http.HandleFunc("/clean", cleanHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {
