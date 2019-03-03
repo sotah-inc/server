@@ -89,14 +89,6 @@ func AuctionsCleanup(_ context.Context, _ PubSubMessage) error {
 
 	for _, realms := range regionRealms {
 		for _, realm := range realms {
-			if realm.Region.Name != "us" {
-				continue
-			}
-
-			if realm.Slug != "earthen-ring" {
-				continue
-			}
-
 			for _, expiredManifestTimestamp := range priorManifestTimestamps {
 				job := bus.CleanupAuctionManifestJob{
 					RegionName:      string(realm.Region.Name),
@@ -104,8 +96,6 @@ func AuctionsCleanup(_ context.Context, _ PubSubMessage) error {
 					TargetTimestamp: int(expiredManifestTimestamp),
 				}
 				jobs = append(jobs, job)
-
-				break
 			}
 		}
 	}
