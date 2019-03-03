@@ -96,7 +96,7 @@ func AuctionsCleanup(_ context.Context, _ PubSubMessage) error {
 				continue
 			}
 
-			for expiredManifestTimestamp := range priorManifestTimestamps {
+			for _, expiredManifestTimestamp := range priorManifestTimestamps {
 				logging.WithFields(logrus.Fields{
 					"region":   realm.Region.Name,
 					"realm":    realm.Slug,
