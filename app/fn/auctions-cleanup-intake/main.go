@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
@@ -20,6 +21,7 @@ var projectId = os.Getenv("GCP_PROJECT")
 var storeClient store.Client
 var auctionsStoreBase store.AuctionsBase
 var auctionManifestStoreBase store.AuctionManifestBase
+var pricelistHistoriesStoreBase store.PricelistHistoriesBase
 
 func init() {
 	var err error
@@ -32,6 +34,7 @@ func init() {
 	}
 	auctionsStoreBase = store.NewAuctionsBase(storeClient)
 	auctionManifestStoreBase = store.NewAuctionManifestBase(storeClient)
+	pricelistHistoriesStoreBase = store.NewPricelistHistoriesBase(storeClient)
 }
 
 func handleManifestCleaning(region sotah.Region, realm sotah.Realm, targetTimestamp sotah.UnixTimestamp) error {
@@ -99,6 +102,37 @@ func handleManifestCleaning(region sotah.Region, realm sotah.Realm, targetTimest
 	return nil
 }
 
+func handlePricelistsCleaning(region sotah.Region, realm sotah.Realm, targetTimestamp sotah.UnixTimestamp) error {
+	pricelistHistoriesBucket := pricelistHistoriesStoreBase.GetBucket(realm)
+	obj := pricelistHistoriesStoreBase.GetObject(time.Unix(int64(targetTimestamp), 0), pricelistHistoriesBucket)
+	exists, err := auctionManifestStoreBase.ObjectExists(obj)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		logging.Info("Pricelist-histories object does not exist, halting early")
+
+		return nil
+	}
+
+	objAttrs, err := obj.Attrs(storeClient.Context)
+	if err != nil {
+		return err
+	}
+
+	if err := obj.Delete(storeClient.Context); err != nil {
+		return err
+	}
+
+	logging.WithFields(logrus.Fields{
+		"region":   region.Name,
+		"realm":    realm.Slug,
+		"manifest": objAttrs.Name,
+	}).Info("Deleted pricelist-histories object")
+
+	return nil
+}
+
 type PubSubMessage struct {
 	Data []byte `json:"data"`
 }
@@ -131,6 +165,10 @@ func AuctionsCleanupIntake(_ context.Context, m PubSubMessage) error {
 	targetTimestamp := sotah.UnixTimestamp(job.TargetTimestamp)
 
 	if err := handleManifestCleaning(region, realm, targetTimestamp); err != nil {
+		return err
+	}
+
+	if err := handlePricelistsCleaning(region, realm, targetTimestamp); err != nil {
 		return err
 	}
 
