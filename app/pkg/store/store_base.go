@@ -70,6 +70,19 @@ func (b base) getObject(name string, bkt *storage.BucketHandle) *storage.ObjectH
 	return bkt.Object(name)
 }
 
+func (b base) getFirmObject(name string, bkt *storage.BucketHandle) (*storage.ObjectHandle, error) {
+	obj := bkt.Object(name)
+	exists, err := b.ObjectExists(obj)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, errors.New("obj does not exist")
+	}
+
+	return obj, nil
+}
+
 func (b base) ObjectExists(obj *storage.ObjectHandle) (bool, error) {
 	_, err := obj.Attrs(b.client.Context)
 	if err != nil {

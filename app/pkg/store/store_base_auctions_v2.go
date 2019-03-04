@@ -43,6 +43,10 @@ func (b AuctionsBaseV2) GetObject(realm sotah.Realm, lastModified time.Time, bkt
 	return b.base.getObject(b.getObjectName(realm, lastModified), bkt)
 }
 
+func (b AuctionsBaseV2) GetFirmObject(realm sotah.Realm, lastModified time.Time, bkt *storage.BucketHandle) (*storage.ObjectHandle, error) {
+	return b.base.getFirmObject(b.getObjectName(realm, lastModified), bkt)
+}
+
 func (b AuctionsBaseV2) Handle(aucs blizzard.Auctions, lastModified time.Time, realm sotah.Realm, bkt *storage.BucketHandle) error {
 	jsonEncodedBody, err := json.Marshal(aucs)
 	if err != nil {
