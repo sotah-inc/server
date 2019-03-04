@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"cloud.google.com/go/storage"
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
@@ -17,8 +18,11 @@ import (
 
 var projectId = os.Getenv("GCP_PROJECT")
 var busClient bus.Client
+
 var storeClient store.Client
 var liveAuctionsStoreBase store.LiveAuctionsBase
+var auctionsStoreBase store.AuctionsBaseV2
+var auctionsBucket *storage.BucketHandle
 
 func init() {
 	var err error
@@ -35,8 +39,15 @@ func init() {
 
 		return
 	}
-
 	liveAuctionsStoreBase = store.NewLiveAuctionsBase(storeClient)
+	auctionsStoreBase = store.NewAuctionsBaseV2(storeClient)
+
+	auctionsBucket, err = auctionsStoreBase.GetFirmBucket()
+	if err != nil {
+		log.Fatalf("Failed to get auctions bucket: %s", err.Error())
+
+		return
+	}
 }
 
 type PubSubMessage struct {
@@ -61,7 +72,12 @@ func LiveAuctionsComputeIntake(_ context.Context, m PubSubMessage) error {
 	}
 	targetTime := time.Unix(int64(job.TargetTimestamp), 0)
 
-	aucs, err := storeClient.GetAuctions(realm, targetTime)
+	obj, err := auctionsStoreBase.GetFirmObject(realm, targetTime, auctionsBucket)
+	if err != nil {
+		return err
+	}
+
+	aucs, err := storeClient.NewAuctions(obj)
 	if err != nil {
 		return err
 	}
