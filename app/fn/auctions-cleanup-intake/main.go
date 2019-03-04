@@ -34,37 +34,7 @@ func init() {
 	auctionManifestStoreBase = store.NewAuctionManifestBase(storeClient)
 }
 
-type PubSubMessage struct {
-	Data []byte `json:"data"`
-}
-
-func AuctionsCleanupIntake(_ context.Context, m PubSubMessage) error {
-	job, err := func() (bus.CleanupAuctionManifestJob, error) {
-		var in bus.Message
-		if err := json.Unmarshal(m.Data, &in); err != nil {
-			return bus.CleanupAuctionManifestJob{}, err
-		}
-
-		var out bus.CleanupAuctionManifestJob
-		if err := json.Unmarshal([]byte(in.Data), &out); err != nil {
-			return bus.CleanupAuctionManifestJob{}, err
-		}
-
-		return out, nil
-	}()
-	if err != nil {
-		return err
-	}
-
-	logging.WithFields(logrus.Fields{"job": job}).Info("Handling")
-
-	region := sotah.Region{Name: blizzard.RegionName(job.RegionName)}
-	realm := sotah.Realm{
-		Realm:  blizzard.Realm{Slug: blizzard.RealmSlug(job.RealmSlug)},
-		Region: region,
-	}
-	targetTimestamp := sotah.UnixTimestamp(job.TargetTimestamp)
-
+func handleManifestCleaning(region sotah.Region, realm sotah.Realm, targetTimestamp sotah.UnixTimestamp) error {
 	manifestBucket := auctionManifestStoreBase.GetBucket(realm)
 	obj := auctionManifestStoreBase.GetObject(targetTimestamp, manifestBucket)
 	exists, err := auctionManifestStoreBase.ObjectExists(obj)
@@ -125,6 +95,44 @@ func AuctionsCleanupIntake(_ context.Context, m PubSubMessage) error {
 		"realm":    realm.Slug,
 		"manifest": objAttrs.Name,
 	}).Info("Deleted manifest object")
+
+	return nil
+}
+
+type PubSubMessage struct {
+	Data []byte `json:"data"`
+}
+
+func AuctionsCleanupIntake(_ context.Context, m PubSubMessage) error {
+	job, err := func() (bus.CleanupAuctionManifestJob, error) {
+		var in bus.Message
+		if err := json.Unmarshal(m.Data, &in); err != nil {
+			return bus.CleanupAuctionManifestJob{}, err
+		}
+
+		var out bus.CleanupAuctionManifestJob
+		if err := json.Unmarshal([]byte(in.Data), &out); err != nil {
+			return bus.CleanupAuctionManifestJob{}, err
+		}
+
+		return out, nil
+	}()
+	if err != nil {
+		return err
+	}
+
+	logging.WithFields(logrus.Fields{"job": job}).Info("Handling")
+
+	region := sotah.Region{Name: blizzard.RegionName(job.RegionName)}
+	realm := sotah.Realm{
+		Realm:  blizzard.Realm{Slug: blizzard.RealmSlug(job.RealmSlug)},
+		Region: region,
+	}
+	targetTimestamp := sotah.UnixTimestamp(job.TargetTimestamp)
+
+	if err := handleManifestCleaning(region, realm, targetTimestamp); err != nil {
+		return err
+	}
 
 	return nil
 }
