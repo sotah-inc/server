@@ -30,7 +30,7 @@ var liveAuctionsComputeTopic *pubsub.Topic
 var blizzardClient blizzard.Client
 
 var storeClient store.Client
-var auctionsStoreBase store.AuctionsBase
+var auctionsStoreBase store.AuctionsBaseV2
 var auctionManifestStoreBase store.AuctionManifestBase
 
 func init() {
@@ -54,7 +54,7 @@ func init() {
 
 		return
 	}
-	auctionsStoreBase = store.NewAuctionsBase(storeClient)
+	auctionsStoreBase = store.NewAuctionsBaseV2(storeClient)
 	auctionManifestStoreBase = store.NewAuctionManifestBase(storeClient)
 
 	bootResponse, err := func() (state.AuthenticatedBootResponse, error) {
@@ -157,12 +157,12 @@ func CollectAuctions(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
-	auctionsBucket, err := auctionsStoreBase.ResolveBucket(realm)
+	auctionsBucket, err := auctionsStoreBase.ResolveBucket()
 	if err != nil {
 		return err
 	}
 
-	obj := auctionsStoreBase.GetObject(aucInfoFile.LastModifiedAsTime(), auctionsBucket)
+	obj := auctionsStoreBase.GetObject(realm, aucInfoFile.LastModifiedAsTime(), auctionsBucket)
 	exists, err := auctionsStoreBase.ObjectExists(obj)
 	if err != nil {
 		return err
@@ -185,7 +185,7 @@ func CollectAuctions(_ context.Context, m PubSubMessage) error {
 		return errors.New("response status for aucs was not OK")
 	}
 
-	if err := auctionsStoreBase.Handle(aucs, aucInfoFile.LastModifiedAsTime(), auctionsBucket); err != nil {
+	if err := auctionsStoreBase.Handle(aucs, aucInfoFile.LastModifiedAsTime(), realm, auctionsBucket); err != nil {
 		return err
 	}
 
