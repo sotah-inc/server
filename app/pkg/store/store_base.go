@@ -1,6 +1,10 @@
 package store
 
-import "cloud.google.com/go/storage"
+import (
+	"errors"
+
+	"cloud.google.com/go/storage"
+)
 
 type base struct {
 	client Client
@@ -44,6 +48,19 @@ func (b base) resolveBucket(name string) (*storage.BucketHandle, error) {
 		}
 
 		return bkt, nil
+	}
+
+	return bkt, nil
+}
+
+func (b base) getFirmBucket(name string) (*storage.BucketHandle, error) {
+	bkt := b.getBucket(name)
+	exists, err := b.BucketExists(bkt)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, errors.New("bucket does not exist")
 	}
 
 	return bkt, nil

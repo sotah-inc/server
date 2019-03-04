@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/sotah-inc/server/app/pkg/util"
-
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/util"
 )
 
 func NewAuctionsBaseV2(c Client) AuctionsBaseV2 {
@@ -26,6 +25,10 @@ func (b AuctionsBaseV2) getBucketName() string {
 
 func (b AuctionsBaseV2) GetBucket() *storage.BucketHandle {
 	return b.base.getBucket(b.getBucketName())
+}
+
+func (b AuctionsBaseV2) GetFirmBucket() (*storage.BucketHandle, error) {
+	return b.base.getFirmBucket(b.getBucketName())
 }
 
 func (b AuctionsBaseV2) ResolveBucket() (*storage.BucketHandle, error) {
