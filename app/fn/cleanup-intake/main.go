@@ -116,20 +116,36 @@ func RebuildManifest(realm sotah.Realm) error {
 	return nil
 }
 
+type TransferRawAuctionsOutJob struct {
+	Err             error
+	ManifestObjName string
+	OldObjExists    bool
+	NewObjExists    bool
+}
+
 func TransferRawAuctions(realm sotah.Realm) error {
 	manifestBucket, err := auctionManifestStoreBase.GetFirmBucket(realm)
 	if err != nil {
 		return err
 	}
 
-	oldAuctionsBucket, err := auctionsStoreBase.GetFirmBucket(realm)
+	oldAuctionsBucket := auctionsStoreBase.GetBucket(realm)
+	exists, err := auctionsStoreBase.BucketExists(oldAuctionsBucket)
 	if err != nil {
 		return err
+	}
+	if !exists {
+		logging.WithFields(logrus.Fields{
+			"region": realm.Region.Name,
+			"realm":  realm.Slug,
+		}).Info("Old auctions-bucket does not exist!")
+
+		return nil
 	}
 
 	// spinning up the workers
 	in := make(chan *storage.ObjectAttrs)
-	out := make(chan error)
+	out := make(chan TransferRawAuctionsOutJob)
 	worker := func() {
 		for objAttrs := range in {
 			manifest, err := func() (sotah.AuctionManifest, error) {
@@ -151,77 +167,93 @@ func TransferRawAuctions(realm sotah.Realm) error {
 				return out, nil
 			}()
 			if err != nil {
-				out <- err
+				out <- TransferRawAuctionsOutJob{
+					Err:             err,
+					ManifestObjName: objAttrs.Name,
+				}
 
 				continue
 			}
 
 			for _, targetTimestamp := range manifest {
-				logging.WithFields(logrus.Fields{
-					"region":           realm.Region.Name,
-					"realm":            realm.Slug,
-					"target-timestamp": targetTimestamp,
-				}).Info("Transferring")
-
 				targetTime := time.Unix(int64(targetTimestamp), 0)
 				oldObj := auctionsStoreBase.GetObject(targetTime, oldAuctionsBucket)
 				exists, err := auctionsStoreBase.ObjectExists(oldObj)
 				if err != nil {
-					out <- err
+					out <- TransferRawAuctionsOutJob{
+						Err:             err,
+						ManifestObjName: objAttrs.Name,
+					}
 
 					continue
 				}
 
 				if !exists {
+					out <- TransferRawAuctionsOutJob{
+						Err:             nil,
+						ManifestObjName: objAttrs.Name,
+					}
+
 					continue
 				}
 
-				reader, err := oldObj.NewReader(storeClient.Context)
+				newObj := auctionsStoreBaseV2.GetObject(realm, targetTime, newAuctionsBucket)
+				newObjExists, err := auctionsStoreBaseV2.ObjectExists(newObj)
 				if err != nil {
-					out <- err
+					out <- TransferRawAuctionsOutJob{
+						Err:             err,
+						ManifestObjName: objAttrs.Name,
+					}
+
+					continue
+				}
+				if newObjExists {
+					if err := oldObj.Delete(storeClient.Context); err != nil {
+						out <- TransferRawAuctionsOutJob{
+							Err:             err,
+							ManifestObjName: objAttrs.Name,
+						}
+					}
+
+					out <- TransferRawAuctionsOutJob{
+						Err:             nil,
+						ManifestObjName: objAttrs.Name,
+						OldObjExists:    true,
+						NewObjExists:    true,
+					}
 
 					continue
 				}
 
-				data, err := ioutil.ReadAll(reader)
-				if err != nil {
-					out <- err
+				logging.WithFields(logrus.Fields{
+					"region":           realm.Region.Name,
+					"realm":            realm.Slug,
+					"target-timestamp": targetTimestamp,
+				}).Info("Found to transfer, transferring")
+
+				copier := newObj.CopierFrom(oldObj)
+				if _, err := copier.Run(storeClient.Context); err != nil {
+					out <- TransferRawAuctionsOutJob{
+						Err:             err,
+						ManifestObjName: objAttrs.Name,
+					}
 
 					continue
 				}
 
-				gzipEncoded, err := util.GzipEncode(data)
-				if err != nil {
-					out <- err
-
-					continue
+				out <- TransferRawAuctionsOutJob{
+					Err:             nil,
+					ManifestObjName: objAttrs.Name,
+					OldObjExists:    true,
+					NewObjExists:    false,
 				}
-
-				newObj := auctionsStoreBaseV2.GetObject(realm, time.Unix(int64(targetTimestamp), 0), newAuctionsBucket)
-
-				// writing it out to the gcloud object
-				wc := newObj.NewWriter(storeClient.Context)
-				wc.ContentType = "application/json"
-				wc.ContentEncoding = "gzip"
-				if _, err := wc.Write(gzipEncoded); err != nil {
-					out <- err
-
-					continue
-				}
-				if err := wc.Close(); err != nil {
-					out <- err
-
-					continue
-				}
-
-				out <- nil
 			}
 		}
 	}
 	postWork := func() {
 		close(out)
 	}
-	util.Work(8, worker, postWork)
+	util.Work(32, worker, postWork)
 
 	go func() {
 		it := manifestBucket.Objects(storeClient.Context, nil)
@@ -233,7 +265,7 @@ func TransferRawAuctions(realm sotah.Realm) error {
 				}
 
 				if err != nil {
-					break
+					logging.WithField("error", err.Error()).Fatal("Failed to head to next iterator")
 				}
 			}
 
@@ -243,9 +275,71 @@ func TransferRawAuctions(realm sotah.Realm) error {
 		close(in)
 	}()
 
-	for err := range out {
-		if err != nil {
-			return err
+	toPruneCount := 0
+	toTransferCount := 0
+	for outJob := range out {
+		if outJob.Err != nil {
+			return outJob.Err
+		}
+
+		if !outJob.OldObjExists {
+			continue
+		}
+
+		if outJob.NewObjExists {
+			toPruneCount += 1
+
+			continue
+		}
+
+		toTransferCount += 1
+	}
+
+	if toTransferCount > 0 {
+		logging.WithFields(logrus.Fields{
+			"region":      realm.Region.Name,
+			"realm":       realm.Slug,
+			"to-transfer": toTransferCount,
+		}).Info("Transferred")
+	}
+	if toPruneCount > 0 {
+		logging.WithFields(logrus.Fields{
+			"region":   realm.Region.Name,
+			"realm":    realm.Slug,
+			"to-prune": toPruneCount,
+		}).Info("Pruned")
+	}
+	if toTransferCount == 0 && toPruneCount == 0 {
+		logging.WithFields(logrus.Fields{
+			"region": realm.Region.Name,
+			"realm":  realm.Slug,
+		}).Info("No more raw-auctions to transfer or prune, checking bucket for remaining raw-auctions")
+
+		it := oldAuctionsBucket.Objects(storeClient.Context, nil)
+		totalRemaining := 0
+		for {
+			if _, err := it.Next(); err != nil {
+				if err == iterator.Done {
+					break
+				}
+
+				if err != nil {
+					return err
+				}
+			}
+
+			totalRemaining += 1
+		}
+
+		if totalRemaining > 0 {
+			logging.WithFields(logrus.Fields{
+				"region": realm.Region.Name,
+				"realm":  realm.Slug,
+			}).Info("Found raw-auctions not inserted into manifest!")
+		} else {
+			if err := oldAuctionsBucket.Delete(storeClient.Context); err != nil {
+				return err
+			}
 		}
 	}
 

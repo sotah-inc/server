@@ -92,6 +92,11 @@ func Cleanup(_ context.Context, _ PubSubMessage) error {
 
 			continue
 		}
+
+		logging.WithFields(logrus.Fields{
+			"region": job.Realm.Region.Name,
+			"realm":  job.Realm.Slug,
+		}).Info("Queued up realm")
 	}
 
 	return nil
