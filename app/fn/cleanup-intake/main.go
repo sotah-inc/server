@@ -214,7 +214,7 @@ func TransferRawAuctions(realm sotah.Realm) error {
 					continue
 				}
 
-				break
+				out <- nil
 			}
 		}
 	}
