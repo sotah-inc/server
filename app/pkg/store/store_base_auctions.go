@@ -32,6 +32,10 @@ func (b AuctionsBase) ResolveBucket(realm sotah.Realm) (*storage.BucketHandle, e
 	return b.base.resolveBucket(b.getBucketName(realm))
 }
 
+func (b AuctionsBase) GetFirmBucket(realm sotah.Realm) (*storage.BucketHandle, error) {
+	return b.base.getFirmBucket(b.getBucketName(realm))
+}
+
 func (b AuctionsBase) getObjectName(lastModified time.Time) string {
 	return fmt.Sprintf("%d.json.gz", lastModified.Unix())
 }
