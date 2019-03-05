@@ -238,8 +238,6 @@ func TransferRawAuctions(realm sotah.Realm) error {
 			}
 
 			in <- objAttrs
-
-			break
 		}
 
 		close(in)
