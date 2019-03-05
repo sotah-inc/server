@@ -19,7 +19,7 @@ import (
 var projectId = os.Getenv("GCP_PROJECT")
 
 var storeClient store.Client
-var auctionsStoreBase store.AuctionsBase
+var auctionsStoreBase store.AuctionsBaseV2
 var auctionManifestStoreBase store.AuctionManifestBase
 var pricelistHistoriesStoreBase store.PricelistHistoriesBase
 
@@ -32,7 +32,7 @@ func init() {
 
 		return
 	}
-	auctionsStoreBase = store.NewAuctionsBase(storeClient)
+	auctionsStoreBase = store.NewAuctionsBaseV2(storeClient)
 	auctionManifestStoreBase = store.NewAuctionManifestBase(storeClient)
 	pricelistHistoriesStoreBase = store.NewPricelistHistoriesBase(storeClient)
 }
@@ -77,7 +77,7 @@ func handleManifestCleaning(region sotah.Region, realm sotah.Realm, targetTimest
 		return err
 	}
 
-	for outJob := range auctionsStoreBase.DeleteAll(auctionsStoreBase.GetBucket(realm), manifest) {
+	for outJob := range auctionsStoreBase.DeleteAll(auctionsStoreBase.GetBucket(), realm, manifest) {
 		if outJob.Err != nil {
 			return outJob.Err
 		}
