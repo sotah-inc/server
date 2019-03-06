@@ -28,7 +28,6 @@ var auctionManifestStoreBase store.AuctionManifestBase
 var auctionManifestStoreBaseV2 store.AuctionManifestBaseV2
 var auctionsStoreBaseV2 store.AuctionsBaseV2
 
-var newAuctionsBucket *storage.BucketHandle
 var newManifestBucket *storage.BucketHandle
 
 func init() {
@@ -43,13 +42,6 @@ func init() {
 	auctionsStoreBaseV2 = store.NewAuctionsBaseV2(storeClient)
 	auctionManifestStoreBase = store.NewAuctionManifestBase(storeClient)
 	auctionManifestStoreBaseV2 = store.NewAuctionManifestBaseV2(storeClient)
-
-	newAuctionsBucket, err = auctionsStoreBaseV2.GetFirmBucket()
-	if err != nil {
-		log.Fatalf("Failed to get new raw-auctions bucket: %s", err.Error())
-
-		return
-	}
 
 	newManifestBucket, err = auctionManifestStoreBaseV2.GetFirmBucket()
 	if err != nil {
