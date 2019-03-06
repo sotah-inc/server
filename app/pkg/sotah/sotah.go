@@ -104,4 +104,22 @@ func NormalizeTargetDate(targetDate time.Time) time.Time {
 	return time.Unix(targetDate.Unix()-int64(nearestWeekStartOffset), 0)
 }
 
+func NewAuctionManifestFromMap(am map[UnixTimestamp]interface{}) AuctionManifest {
+	out := AuctionManifest{}
+	for v := range am {
+		out = append(out, v)
+	}
+
+	return out
+}
+
 type AuctionManifest []UnixTimestamp
+
+func (am AuctionManifest) ToMap() map[UnixTimestamp]interface{} {
+	out := map[UnixTimestamp]interface{}{}
+	for _, v := range am {
+		out[v] = struct{}{}
+	}
+
+	return out
+}
