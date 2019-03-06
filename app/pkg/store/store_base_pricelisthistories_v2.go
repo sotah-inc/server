@@ -37,17 +37,11 @@ func (b PricelistHistoriesBaseV2) GetObject(targetTime time.Time, realm sotah.Re
 	return b.base.getObject(b.getObjectName(targetTime, realm), bkt)
 }
 
-func (b PricelistHistoriesBaseV2) Handle(aucs blizzard.Auctions, targetTime time.Time, rea sotah.Realm) (sotah.UnixTimestamp, error) {
+func (b PricelistHistoriesBaseV2) Handle(aucs blizzard.Auctions, targetTime time.Time, rea sotah.Realm, bkt *storage.BucketHandle) (sotah.UnixTimestamp, error) {
 	normalizedTargetDate := sotah.NormalizeTargetDate(targetTime)
 
 	// resolving unix-timestamp of target-time
 	targetTimestamp := sotah.UnixTimestamp(targetTime.Unix())
-
-	// gathering the bucket
-	bkt, err := b.GetFirmBucket()
-	if err != nil {
-		return 0, err
-	}
 
 	// gathering an object
 	obj := b.GetObject(normalizedTargetDate, rea, bkt)
