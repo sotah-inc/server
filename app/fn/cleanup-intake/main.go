@@ -347,10 +347,29 @@ func TransferManifests(realm sotah.Realm) error {
 		logging.WithFields(logrus.Fields{
 			"region": realm.Region.Name,
 			"realm":  realm.Slug,
-		}).Info("No more manifests to transfer or update, deleting bucket")
+		}).Info("No more manifests to transfer or update, clearing bucket and deleting it")
+
+		it := oldManifestBucket.Objects(storeClient.Context, nil)
+		for {
+			objAttrs, err := it.Next()
+			if err != nil {
+				if err == iterator.Done {
+					break
+				}
+
+				if err != nil {
+					return err
+				}
+			}
+
+			obj := oldManifestBucket.Object(objAttrs.Name)
+			if err := obj.Delete(storeClient.Context); err != nil {
+				return err
+			}
+		}
 
 		if err := oldManifestBucket.Delete(storeClient.Context); err != nil {
-			return nil
+			return err
 		}
 	}
 
@@ -380,14 +399,6 @@ func CleanupIntake(_ context.Context, m PubSubMessage) error {
 	realm := sotah.Realm{
 		Realm:  blizzard.Realm{Slug: blizzard.RealmSlug(job.RealmSlug)},
 		Region: sotah.Region{Name: blizzard.RegionName(job.RegionName)},
-	}
-
-	if realm.Region.Name != "us" {
-		return nil
-	}
-
-	if realm.Slug != "earthen-ring" {
-		return nil
 	}
 
 	return TransferManifests(realm)
