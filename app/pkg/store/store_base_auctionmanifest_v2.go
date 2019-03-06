@@ -45,12 +45,7 @@ func (b AuctionManifestBaseV2) GetObject(targetTimestamp sotah.UnixTimestamp, re
 	return b.base.getObject(b.getObjectName(targetTimestamp, realm), bkt)
 }
 
-func (b AuctionManifestBaseV2) Handle(targetTimestamp sotah.UnixTimestamp, realm sotah.Realm) error {
-	bkt, err := b.GetFirmBucket()
-	if err != nil {
-		return err
-	}
-
+func (b AuctionManifestBaseV2) Handle(targetTimestamp sotah.UnixTimestamp, realm sotah.Realm, bkt *storage.BucketHandle) error {
 	normalizedTargetTimestamp := sotah.UnixTimestamp(sotah.NormalizeTargetDate(time.Unix(int64(targetTimestamp), 0)).Unix())
 
 	obj := b.GetObject(normalizedTargetTimestamp, realm, bkt)
@@ -190,9 +185,7 @@ func (b AuctionManifestBaseV2) WriteAll(bkt *storage.BucketHandle, realm sotah.R
 	out := make(chan WriteAllOutJob)
 	worker := func() {
 		for inJob := range in {
-			obj := b.GetObject(inJob.NormalizedTimestamp, realm, bkt)
-
-			jsonEncodedBody, err := json.Marshal(inJob.Manifest)
+			gzipEncodedBody, err := inJob.Manifest.EncodeForPersistence()
 			if err != nil {
 				out <- WriteAllOutJob{
 					Err:                 err,
@@ -202,17 +195,7 @@ func (b AuctionManifestBaseV2) WriteAll(bkt *storage.BucketHandle, realm sotah.R
 				continue
 			}
 
-			gzipEncodedBody, err := util.GzipEncode(jsonEncodedBody)
-			if err != nil {
-				out <- WriteAllOutJob{
-					Err:                 err,
-					NormalizedTimestamp: inJob.NormalizedTimestamp,
-				}
-
-				continue
-			}
-
-			wc := obj.NewWriter(b.client.Context)
+			wc := b.GetObject(inJob.NormalizedTimestamp, realm, bkt).NewWriter(b.client.Context)
 			wc.ContentType = "application/json"
 			wc.ContentEncoding = "gzip"
 			if _, err := wc.Write(gzipEncodedBody); err != nil {
