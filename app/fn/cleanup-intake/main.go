@@ -27,6 +27,7 @@ var storeClient store.Client
 var auctionManifestStoreBase store.AuctionManifestBase
 var auctionManifestStoreBaseV2 store.AuctionManifestBaseV2
 var auctionsStoreBaseV2 store.AuctionsBaseV2
+var pricelistHistoriesBase store.PricelistHistoriesBase
 
 var newManifestBucket *storage.BucketHandle
 
@@ -42,6 +43,7 @@ func init() {
 	auctionsStoreBaseV2 = store.NewAuctionsBaseV2(storeClient)
 	auctionManifestStoreBase = store.NewAuctionManifestBase(storeClient)
 	auctionManifestStoreBaseV2 = store.NewAuctionManifestBaseV2(storeClient)
+	pricelistHistoriesBase = store.NewPricelistHistoriesBase(storeClient)
 
 	newManifestBucket, err = auctionManifestStoreBaseV2.GetFirmBucket()
 	if err != nil {
@@ -376,6 +378,62 @@ func TransferManifests(realm sotah.Realm) error {
 	return nil
 }
 
+func ClearPricelistHistories(realm sotah.Realm) error {
+	bkt := pricelistHistoriesBase.GetBucket(realm)
+
+	// spinning up the workers
+	in := make(chan *storage.ObjectAttrs)
+	out := make(chan error)
+	worker := func() {
+		for objAttrs := range in {
+			obj := bkt.Object(objAttrs.Name)
+			if err := obj.Delete(storeClient.Context); err != nil {
+				out <- err
+
+				continue
+			}
+
+			out <- nil
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(8, worker, postWork)
+
+	go func() {
+		it := bkt.Objects(storeClient.Context, nil)
+		for {
+			objAttrs, err := it.Next()
+			if err != nil {
+				if err == iterator.Done {
+					break
+				}
+
+				if err != nil {
+					logging.WithField("error", err.Error()).Fatal("Failed to head to next iterator")
+				}
+			}
+
+			in <- objAttrs
+		}
+
+		close(in)
+	}()
+
+	for err := range out {
+		if err != nil {
+			return err
+		}
+	}
+
+	if err := bkt.Delete(storeClient.Context); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func CleanupIntake(_ context.Context, m PubSubMessage) error {
 	job, err := func() (bus.CollectAuctionsJob, error) {
 		var in bus.Message
@@ -401,5 +459,5 @@ func CleanupIntake(_ context.Context, m PubSubMessage) error {
 		Region: sotah.Region{Name: blizzard.RegionName(job.RegionName)},
 	}
 
-	return TransferManifests(realm)
+	return ClearPricelistHistories(realm)
 }
