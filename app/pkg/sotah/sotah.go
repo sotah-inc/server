@@ -149,8 +149,7 @@ func (am AuctionManifest) Includes(subset AuctionManifest) bool {
 
 func (am AuctionManifest) Merge(subset AuctionManifest) AuctionManifest {
 	out := am.ToMap()
-	subsetMap := subset.ToMap()
-	for subsetTimestamp := range subsetMap {
+	for _, subsetTimestamp := range subset {
 		out[subsetTimestamp] = struct{}{}
 	}
 

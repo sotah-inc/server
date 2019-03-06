@@ -187,15 +187,15 @@ func TransferManifests(realm sotah.Realm) error {
 					"obj":    objAttrs.Name,
 				}).Info("No obj exists, creating")
 
-				//oldObj := auctionManifestStoreBase.GetObject(sotah.UnixTimestamp(objTimestamp), oldManifestBucket)
-				//if _, err := newObj.CopierFrom(oldObj).Run(storeClient.Context); err != nil {
-				//	out <- TransferManifestsOutJob{
-				//		Err:             err,
-				//		ManifestObjName: objAttrs.Name,
-				//	}
-				//
-				//	continue
-				//}
+				oldObj := auctionManifestStoreBase.GetObject(sotah.UnixTimestamp(objTimestamp), oldManifestBucket)
+				if _, err := newObj.CopierFrom(oldObj).Run(storeClient.Context); err != nil {
+					out <- TransferManifestsOutJob{
+						Err:             err,
+						ManifestObjName: objAttrs.Name,
+					}
+
+					continue
+				}
 
 				out <- TransferManifestsOutJob{
 					Err:             nil,
@@ -247,27 +247,27 @@ func TransferManifests(realm sotah.Realm) error {
 				"obj":    objAttrs.Name,
 			}).Info("Merging old obj into new obj")
 
-			//gzipEncodedBody, err := newManifest.Merge(oldManifest).EncodeForPersistence()
-			//if err != nil {
-			//	out <- TransferManifestsOutJob{
-			//		Err:             nil,
-			//		ManifestObjName: objAttrs.Name,
-			//	}
-			//
-			//	continue
-			//}
-			//
-			//wc := newObj.NewWriter(storeClient.Context)
-			//wc.ContentType = "application/json"
-			//wc.ContentEncoding = "gzip"
-			//if _, err := wc.Write(gzipEncodedBody); err != nil {
-			//	out <- TransferManifestsOutJob{
-			//		Err:             err,
-			//		ManifestObjName: objAttrs.Name,
-			//	}
-			//
-			//	continue
-			//}
+			gzipEncodedBody, err := newManifest.Merge(oldManifest).EncodeForPersistence()
+			if err != nil {
+				out <- TransferManifestsOutJob{
+					Err:             nil,
+					ManifestObjName: objAttrs.Name,
+				}
+
+				continue
+			}
+
+			wc := newObj.NewWriter(storeClient.Context)
+			wc.ContentType = "application/json"
+			wc.ContentEncoding = "gzip"
+			if _, err := wc.Write(gzipEncodedBody); err != nil {
+				out <- TransferManifestsOutJob{
+					Err:             err,
+					ManifestObjName: objAttrs.Name,
+				}
+
+				continue
+			}
 
 			out <- TransferManifestsOutJob{
 				Err:             nil,
@@ -372,6 +372,14 @@ func CleanupIntake(_ context.Context, m PubSubMessage) error {
 	realm := sotah.Realm{
 		Realm:  blizzard.Realm{Slug: blizzard.RealmSlug(job.RealmSlug)},
 		Region: sotah.Region{Name: blizzard.RegionName(job.RegionName)},
+	}
+
+	if realm.Region.Name != "us" {
+		return nil
+	}
+
+	if realm.Slug != "earthen-ring" {
+		return nil
 	}
 
 	return TransferManifests(realm)
