@@ -380,6 +380,13 @@ func TransferManifests(realm sotah.Realm) error {
 
 func ClearPricelistHistories(realm sotah.Realm) error {
 	bkt := pricelistHistoriesBase.GetBucket(realm)
+	exists, err := pricelistHistoriesBase.BucketExists(bkt)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return nil
+	}
 
 	// spinning up the workers
 	in := make(chan *storage.ObjectAttrs)
