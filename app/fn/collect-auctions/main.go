@@ -9,6 +9,8 @@ import (
 	"os"
 	"time"
 
+	"cloud.google.com/go/storage"
+
 	"cloud.google.com/go/pubsub"
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
@@ -31,6 +33,7 @@ var blizzardClient blizzard.Client
 
 var storeClient store.Client
 var auctionsStoreBase store.AuctionsBaseV2
+var auctionsBucket *storage.BucketHandle
 var auctionManifestStoreBase store.AuctionManifestBase
 
 func init() {
@@ -56,6 +59,13 @@ func init() {
 	}
 	auctionsStoreBase = store.NewAuctionsBaseV2(storeClient)
 	auctionManifestStoreBase = store.NewAuctionManifestBase(storeClient)
+
+	auctionsBucket, err = auctionsStoreBase.GetFirmBucket()
+	if err != nil {
+		log.Fatalf("Failed to create get firm raw-auctions bucket: %s", err.Error())
+
+		return
+	}
 
 	bootResponse, err := func() (state.AuthenticatedBootResponse, error) {
 		msg, err := busClient.RequestFromTopic(string(subjects.Boot), "", 5*time.Second)
@@ -153,11 +163,6 @@ func CollectAuctions(_ context.Context, m PubSubMessage) error {
 
 		return aucInfo.Files[0], nil
 	}()
-	if err != nil {
-		return err
-	}
-
-	auctionsBucket, err := auctionsStoreBase.ResolveBucket()
 	if err != nil {
 		return err
 	}
