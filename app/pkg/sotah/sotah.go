@@ -134,3 +134,25 @@ func (am AuctionManifest) EncodeForPersistence() ([]byte, error) {
 
 	return util.GzipEncode(jsonEncoded)
 }
+
+func (am AuctionManifest) Includes(subset AuctionManifest) bool {
+	amMap := am.ToMap()
+	subsetMap := subset.ToMap()
+	for subsetTimestamp := range subsetMap {
+		if _, ok := amMap[subsetTimestamp]; !ok {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (am AuctionManifest) Merge(subset AuctionManifest) AuctionManifest {
+	out := am.ToMap()
+	subsetMap := subset.ToMap()
+	for subsetTimestamp := range subsetMap {
+		out[subsetTimestamp] = struct{}{}
+	}
+
+	return NewAuctionManifestFromMap(out)
+}
