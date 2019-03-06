@@ -78,18 +78,14 @@ func (pRequest PricelistHistoriesComputeIntakeRequest) handle(pubState PubState,
 	}
 
 	// resolving the bucket
-	bkt := pubState.PricelistHistoriesBase.GetBucket(realm)
-	exists, err := pubState.PricelistHistoriesBase.BucketExists(bkt)
+	bkt, err := pubState.PricelistHistoriesBase.GetFirmBucket()
 	if err != nil {
 		return err
 	}
-	if !exists {
-		return errors.New("bucket does not exist")
-	}
 
 	// resolving the object
-	obj := pubState.PricelistHistoriesBase.GetObject(time.Unix(int64(pRequest.NormalizedTargetTimestamp), 0), bkt)
-	exists, err = pubState.PricelistHistoriesBase.ObjectExists(obj)
+	obj := pubState.PricelistHistoriesBase.GetObject(time.Unix(int64(pRequest.NormalizedTargetTimestamp), 0), realm, bkt)
+	exists, err := pubState.PricelistHistoriesBase.ObjectExists(obj)
 	if err != nil {
 		return err
 	}
