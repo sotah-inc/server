@@ -257,3 +257,22 @@ func (b AuctionManifestBaseV2) WriteAll(bkt *storage.BucketHandle, realm sotah.R
 
 	return out
 }
+
+func (b AuctionManifestBaseV2) NewAuctionManifest(obj *storage.ObjectHandle) (sotah.AuctionManifest, error) {
+	reader, err := obj.NewReader(b.client.Context)
+	if err != nil {
+		return sotah.AuctionManifest{}, err
+	}
+
+	data, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return sotah.AuctionManifest{}, err
+	}
+
+	var out sotah.AuctionManifest
+	if err := json.Unmarshal(data, &out); err != nil {
+		return sotah.AuctionManifest{}, err
+	}
+
+	return out, nil
+}
