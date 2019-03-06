@@ -7,6 +7,8 @@ import (
 	"os"
 	"time"
 
+	"cloud.google.com/go/storage"
+
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/sotah"
@@ -18,7 +20,8 @@ import (
 var projectId = os.Getenv("GCP_PROJECT")
 var busClient bus.Client
 var storeClient store.Client
-var pricelistHistoriesStoreBase store.PricelistHistoriesBase
+var pricelistHistoriesStoreBase store.PricelistHistoriesBaseV2
+var pricelistHistoriesBucket *storage.BucketHandle
 
 func init() {
 	var err error
@@ -35,8 +38,14 @@ func init() {
 
 		return
 	}
+	pricelistHistoriesStoreBase = store.NewPricelistHistoriesBaseV2(storeClient)
 
-	pricelistHistoriesStoreBase = store.NewPricelistHistoriesBase(storeClient)
+	pricelistHistoriesBucket, err = pricelistHistoriesStoreBase.GetFirmBucket()
+	if err != nil {
+		log.Fatalf("Failed to get firm pricelist-histories bucket: %s", err.Error())
+
+		return
+	}
 }
 
 type PubSubMessage struct {
@@ -66,7 +75,7 @@ func PricelistHistoriesComputeIntake(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
-	normalizedTargetTimestamp, err := pricelistHistoriesStoreBase.Handle(aucs, targetTime, realm)
+	normalizedTargetTimestamp, err := pricelistHistoriesStoreBase.Handle(aucs, targetTime, realm, pricelistHistoriesBucket)
 	if err != nil {
 		return err
 	}
