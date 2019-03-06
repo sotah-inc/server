@@ -34,7 +34,8 @@ var blizzardClient blizzard.Client
 var storeClient store.Client
 var auctionsStoreBase store.AuctionsBaseV2
 var auctionsBucket *storage.BucketHandle
-var auctionManifestStoreBase store.AuctionManifestBase
+var auctionManifestStoreBase store.AuctionManifestBaseV2
+var auctionsManifestBucket *storage.BucketHandle
 
 func init() {
 	var err error
@@ -58,11 +59,18 @@ func init() {
 		return
 	}
 	auctionsStoreBase = store.NewAuctionsBaseV2(storeClient)
-	auctionManifestStoreBase = store.NewAuctionManifestBase(storeClient)
+	auctionManifestStoreBase = store.NewAuctionManifestBaseV2(storeClient)
 
 	auctionsBucket, err = auctionsStoreBase.GetFirmBucket()
 	if err != nil {
-		log.Fatalf("Failed to create get firm raw-auctions bucket: %s", err.Error())
+		log.Fatalf("Failed to get firm raw-auctions bucket: %s", err.Error())
+
+		return
+	}
+
+	auctionsManifestBucket, err = auctionManifestStoreBase.GetFirmBucket()
+	if err != nil {
+		log.Fatalf("Failed to get firm auctions-manifest bucket: %s", err.Error())
 
 		return
 	}
@@ -223,7 +231,11 @@ func CollectAuctions(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
-	if err := auctionManifestStoreBase.Handle(sotah.UnixTimestamp(aucInfoFile.LastModifiedAsTime().Unix()), realm); err != nil {
+	if err := auctionManifestStoreBase.Handle(
+		sotah.UnixTimestamp(aucInfoFile.LastModifiedAsTime().Unix()),
+		realm,
+		auctionsManifestBucket,
+	); err != nil {
 		return err
 	}
 
