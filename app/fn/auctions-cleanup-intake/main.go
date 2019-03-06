@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"cloud.google.com/go/storage"
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
@@ -21,7 +22,8 @@ var projectId = os.Getenv("GCP_PROJECT")
 var storeClient store.Client
 var auctionsStoreBase store.AuctionsBaseV2
 var auctionManifestStoreBase store.AuctionManifestBase
-var pricelistHistoriesStoreBase store.PricelistHistoriesBase
+var pricelistHistoriesStoreBase store.PricelistHistoriesBaseV2
+var pricelistHistoriesBucket *storage.BucketHandle
 
 func init() {
 	var err error
@@ -33,11 +35,17 @@ func init() {
 		return
 	}
 	auctionsStoreBase = store.NewAuctionsBaseV2(storeClient)
-	auctionManifestStoreBase = store.NewAuctionManifestBase(storeClient)
-	pricelistHistoriesStoreBase = store.NewPricelistHistoriesBase(storeClient)
+	pricelistHistoriesStoreBase = store.NewPricelistHistoriesBaseV2(storeClient)
+
+	pricelistHistoriesBucket, err = pricelistHistoriesStoreBase.GetFirmBucket()
+	if err != nil {
+		log.Fatalf("Failed to get firm pricelist-histories bucket: %s", err.Error())
+
+		return
+	}
 }
 
-func handleManifestCleaning(region sotah.Region, realm sotah.Realm, targetTimestamp sotah.UnixTimestamp) error {
+func handleManifestCleaning(realm sotah.Realm, targetTimestamp sotah.UnixTimestamp) error {
 	manifestBucket := auctionManifestStoreBase.GetBucket(realm)
 	obj := auctionManifestStoreBase.GetObject(targetTimestamp, manifestBucket)
 	exists, err := auctionManifestStoreBase.ObjectExists(obj)
@@ -83,7 +91,7 @@ func handleManifestCleaning(region sotah.Region, realm sotah.Realm, targetTimest
 		}
 
 		logging.WithFields(logrus.Fields{
-			"region":           region.Name,
+			"region":           realm.Region.Name,
 			"realm":            realm.Slug,
 			"target-timestamp": outJob.TargetTimestamp,
 		}).Info("Deleted raw-auctions object")
@@ -94,7 +102,7 @@ func handleManifestCleaning(region sotah.Region, realm sotah.Realm, targetTimest
 	}
 
 	logging.WithFields(logrus.Fields{
-		"region":   region.Name,
+		"region":   realm.Region.Name,
 		"realm":    realm.Slug,
 		"manifest": objAttrs.Name,
 	}).Info("Deleted manifest object")
@@ -102,9 +110,8 @@ func handleManifestCleaning(region sotah.Region, realm sotah.Realm, targetTimest
 	return nil
 }
 
-func handlePricelistsCleaning(region sotah.Region, realm sotah.Realm, targetTimestamp sotah.UnixTimestamp) error {
-	pricelistHistoriesBucket := pricelistHistoriesStoreBase.GetBucket(realm)
-	obj := pricelistHistoriesStoreBase.GetObject(time.Unix(int64(targetTimestamp), 0), pricelistHistoriesBucket)
+func handlePricelistsCleaning(realm sotah.Realm, targetTimestamp sotah.UnixTimestamp) error {
+	obj := pricelistHistoriesStoreBase.GetObject(time.Unix(int64(targetTimestamp), 0), realm, pricelistHistoriesBucket)
 	exists, err := auctionManifestStoreBase.ObjectExists(obj)
 	if err != nil {
 		return err
@@ -125,7 +132,7 @@ func handlePricelistsCleaning(region sotah.Region, realm sotah.Realm, targetTime
 	}
 
 	logging.WithFields(logrus.Fields{
-		"region":   region.Name,
+		"region":   realm.Region.Name,
 		"realm":    realm.Slug,
 		"manifest": objAttrs.Name,
 	}).Info("Deleted pricelist-histories object")
@@ -157,18 +164,17 @@ func AuctionsCleanupIntake(_ context.Context, m PubSubMessage) error {
 
 	logging.WithFields(logrus.Fields{"job": job}).Info("Handling")
 
-	region := sotah.Region{Name: blizzard.RegionName(job.RegionName)}
 	realm := sotah.Realm{
 		Realm:  blizzard.Realm{Slug: blizzard.RealmSlug(job.RealmSlug)},
-		Region: region,
+		Region: sotah.Region{Name: blizzard.RegionName(job.RegionName)},
 	}
 	targetTimestamp := sotah.UnixTimestamp(job.TargetTimestamp)
 
-	if err := handleManifestCleaning(region, realm, targetTimestamp); err != nil {
+	if err := handleManifestCleaning(realm, targetTimestamp); err != nil {
 		return err
 	}
 
-	if err := handlePricelistsCleaning(region, realm, targetTimestamp); err != nil {
+	if err := handlePricelistsCleaning(realm, targetTimestamp); err != nil {
 		return err
 	}
 
