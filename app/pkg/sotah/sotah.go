@@ -1,10 +1,12 @@
 package sotah
 
 import (
+	"encoding/json"
 	"errors"
 	"time"
 
 	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/util"
 )
 
 type RegionList []Region
@@ -122,4 +124,13 @@ func (am AuctionManifest) ToMap() map[UnixTimestamp]interface{} {
 	}
 
 	return out
+}
+
+func (am AuctionManifest) EncodeForPersistence() ([]byte, error) {
+	jsonEncoded, err := json.Marshal(am)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return util.GzipEncode(jsonEncoded)
 }
