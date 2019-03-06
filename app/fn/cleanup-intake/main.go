@@ -3,7 +3,7 @@ package cleanupintake
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -11,24 +11,25 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
-	"github.com/sotah-inc/server/app/pkg/util"
-
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/store"
+	"github.com/sotah-inc/server/app/pkg/util"
 	"google.golang.org/api/iterator"
 )
 
 var projectId = os.Getenv("GCP_PROJECT")
 
 var storeClient store.Client
-var auctionsStoreBase store.AuctionsBase
 var auctionManifestStoreBase store.AuctionManifestBase
+var auctionManifestStoreBaseV2 store.AuctionManifestBaseV2
 var auctionsStoreBaseV2 store.AuctionsBaseV2
+
 var newAuctionsBucket *storage.BucketHandle
+var newManifestBucket *storage.BucketHandle
 
 func init() {
 	var err error
@@ -39,13 +40,20 @@ func init() {
 
 		return
 	}
-	auctionsStoreBase = store.NewAuctionsBase(storeClient)
-	auctionManifestStoreBase = store.NewAuctionManifestBase(storeClient)
 	auctionsStoreBaseV2 = store.NewAuctionsBaseV2(storeClient)
+	auctionManifestStoreBase = store.NewAuctionManifestBase(storeClient)
+	auctionManifestStoreBaseV2 = store.NewAuctionManifestBaseV2(storeClient)
 
 	newAuctionsBucket, err = auctionsStoreBaseV2.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get new raw-auctions bucket: %s", err.Error())
+
+		return
+	}
+
+	newManifestBucket, err = auctionManifestStoreBaseV2.GetFirmBucket()
+	if err != nil {
+		log.Fatalf("Failed to get new manifest bucket: %s", err.Error())
 
 		return
 	}
@@ -60,8 +68,14 @@ func RebuildManifest(realm sotah.Realm) error {
 
 	manifests := map[sotah.UnixTimestamp]sotah.AuctionManifest{}
 
-	bkt := auctionsStoreBase.GetBucket(realm)
-	it := bkt.Objects(storeClient.Context, nil)
+	bkt := auctionsStoreBaseV2.GetBucket()
+	it := bkt.Objects(
+		storeClient.Context,
+		&storage.Query{
+			Delimiter: "/",
+			Prefix:    fmt.Sprintf("%s/%s/", realm.Region.Name, realm.Slug),
+		},
+	)
 	for {
 		objAttrs, err := it.Next()
 		if err != nil {
@@ -102,35 +116,30 @@ func RebuildManifest(realm sotah.Realm) error {
 		manifests[normalizedTimestamp] = append(nextManifest, sotah.UnixTimestamp(objTimestamp))
 	}
 
-	manifestBucket, err := auctionManifestStoreBase.ResolveBucket(realm)
-	if err != nil {
-		return err
-	}
-
-	for writeAllOutJob := range auctionManifestStoreBase.WriteAll(manifestBucket, manifests) {
+	for writeAllOutJob := range auctionManifestStoreBaseV2.WriteAll(newManifestBucket, realm, manifests) {
 		if writeAllOutJob.Err != nil {
-			return err
+			return writeAllOutJob.Err
 		}
 	}
 
 	return nil
 }
 
-type TransferRawAuctionsOutJob struct {
+type TransferManifestsOutJob struct {
 	Err             error
 	ManifestObjName string
-	OldObjExists    bool
-	NewObjExists    bool
+	Created         bool
+	Updated         bool
 }
 
-func TransferRawAuctions(realm sotah.Realm) error {
+func TransferManifests(realm sotah.Realm) error {
 	manifestBucket, err := auctionManifestStoreBase.GetFirmBucket(realm)
 	if err != nil {
 		return err
 	}
 
-	oldAuctionsBucket := auctionsStoreBase.GetBucket(realm)
-	exists, err := auctionsStoreBase.BucketExists(oldAuctionsBucket)
+	oldManifestBucket := auctionManifestStoreBase.GetBucket(realm)
+	exists, err := auctionManifestStoreBase.BucketExists(oldManifestBucket)
 	if err != nil {
 		return err
 	}
@@ -138,36 +147,19 @@ func TransferRawAuctions(realm sotah.Realm) error {
 		logging.WithFields(logrus.Fields{
 			"region": realm.Region.Name,
 			"realm":  realm.Slug,
-		}).Info("Old auctions-bucket does not exist!")
+		}).Info("Old manifest bucket does not exist!")
 
 		return nil
 	}
 
 	// spinning up the workers
 	in := make(chan *storage.ObjectAttrs)
-	out := make(chan TransferRawAuctionsOutJob)
+	out := make(chan TransferManifestsOutJob)
 	worker := func() {
 		for objAttrs := range in {
-			manifest, err := func() (sotah.AuctionManifest, error) {
-				obj := manifestBucket.Object(objAttrs.Name)
-				reader, err := obj.NewReader(storeClient.Context)
-				if err != nil {
-					return sotah.AuctionManifest{}, err
-				}
-				data, err := ioutil.ReadAll(reader)
-				if err != nil {
-					return sotah.AuctionManifest{}, err
-				}
-
-				var out sotah.AuctionManifest
-				if err := json.Unmarshal(data, &out); err != nil {
-					return sotah.AuctionManifest{}, err
-				}
-
-				return out, nil
-			}()
-			if err != nil {
-				out <- TransferRawAuctionsOutJob{
+			parts := strings.Split(objAttrs.Name, ".")
+			if _, err := strconv.Atoi(parts[0]); err != nil {
+				out <- TransferManifestsOutJob{
 					Err:             err,
 					ManifestObjName: objAttrs.Name,
 				}
@@ -175,85 +167,127 @@ func TransferRawAuctions(realm sotah.Realm) error {
 				continue
 			}
 
-			for _, targetTimestamp := range manifest {
-				targetTime := time.Unix(int64(targetTimestamp), 0)
-				oldObj := auctionsStoreBase.GetObject(targetTime, oldAuctionsBucket)
-				exists, err := auctionsStoreBase.ObjectExists(oldObj)
-				if err != nil {
-					out <- TransferRawAuctionsOutJob{
-						Err:             err,
-						ManifestObjName: objAttrs.Name,
-					}
-
-					continue
+			objTimestamp, err := strconv.Atoi(parts[0])
+			if err != nil {
+				out <- TransferManifestsOutJob{
+					Err:             err,
+					ManifestObjName: objAttrs.Name,
 				}
 
-				if !exists {
-					out <- TransferRawAuctionsOutJob{
-						Err:             nil,
-						ManifestObjName: objAttrs.Name,
-					}
+				continue
+			}
 
-					continue
+			newObj := auctionManifestStoreBaseV2.GetObject(sotah.UnixTimestamp(objTimestamp), realm, newManifestBucket)
+			exists, err := auctionManifestStoreBaseV2.ObjectExists(newObj)
+			if err != nil {
+				out <- TransferManifestsOutJob{
+					Err:             err,
+					ManifestObjName: objAttrs.Name,
 				}
 
-				newObj := auctionsStoreBaseV2.GetObject(realm, targetTime, newAuctionsBucket)
-				newObjExists, err := auctionsStoreBaseV2.ObjectExists(newObj)
-				if err != nil {
-					out <- TransferRawAuctionsOutJob{
-						Err:             err,
-						ManifestObjName: objAttrs.Name,
-					}
+				continue
+			}
 
-					continue
-				}
-				if newObjExists {
-					if err := oldObj.Delete(storeClient.Context); err != nil {
-						out <- TransferRawAuctionsOutJob{
-							Err:             err,
-							ManifestObjName: objAttrs.Name,
-						}
-					}
-
-					out <- TransferRawAuctionsOutJob{
-						Err:             nil,
-						ManifestObjName: objAttrs.Name,
-						OldObjExists:    true,
-						NewObjExists:    true,
-					}
-
-					continue
-				}
-
+			if !exists {
 				logging.WithFields(logrus.Fields{
-					"region":           realm.Region.Name,
-					"realm":            realm.Slug,
-					"target-timestamp": targetTimestamp,
-				}).Info("Found to transfer, transferring")
+					"region": realm.Region.Name,
+					"realm":  realm.Slug,
+					"obj":    objAttrs.Name,
+				}).Info("No obj exists, creating")
 
-				copier := newObj.CopierFrom(oldObj)
-				if _, err := copier.Run(storeClient.Context); err != nil {
-					out <- TransferRawAuctionsOutJob{
-						Err:             err,
-						ManifestObjName: objAttrs.Name,
-					}
+				//oldObj := auctionManifestStoreBase.GetObject(sotah.UnixTimestamp(objTimestamp), oldManifestBucket)
+				//if _, err := newObj.CopierFrom(oldObj).Run(storeClient.Context); err != nil {
+				//	out <- TransferManifestsOutJob{
+				//		Err:             err,
+				//		ManifestObjName: objAttrs.Name,
+				//	}
+				//
+				//	continue
+				//}
 
-					continue
-				}
-
-				out <- TransferRawAuctionsOutJob{
+				out <- TransferManifestsOutJob{
 					Err:             nil,
 					ManifestObjName: objAttrs.Name,
-					OldObjExists:    true,
-					NewObjExists:    false,
+					Created:         true,
 				}
+
+				continue
+			}
+
+			newManifest, err := auctionManifestStoreBaseV2.NewAuctionManifest(newObj)
+			if err != nil {
+				out <- TransferManifestsOutJob{
+					Err:             err,
+					ManifestObjName: objAttrs.Name,
+				}
+
+				continue
+			}
+
+			oldManifest, err := auctionManifestStoreBaseV2.NewAuctionManifest(auctionManifestStoreBase.GetObject(sotah.UnixTimestamp(objTimestamp), oldManifestBucket))
+			if err != nil {
+				out <- TransferManifestsOutJob{
+					Err:             err,
+					ManifestObjName: objAttrs.Name,
+				}
+
+				continue
+			}
+
+			if newManifest.Includes(oldManifest) {
+				logging.WithFields(logrus.Fields{
+					"region": realm.Region.Name,
+					"realm":  realm.Slug,
+					"obj":    objAttrs.Name,
+				}).Info("New obj includes old obj data, skipping")
+
+				out <- TransferManifestsOutJob{
+					Err:             nil,
+					ManifestObjName: objAttrs.Name,
+				}
+
+				continue
+			}
+
+			logging.WithFields(logrus.Fields{
+				"region": realm.Region.Name,
+				"realm":  realm.Slug,
+				"obj":    objAttrs.Name,
+			}).Info("Merging old obj into new obj")
+
+			//gzipEncodedBody, err := newManifest.Merge(oldManifest).EncodeForPersistence()
+			//if err != nil {
+			//	out <- TransferManifestsOutJob{
+			//		Err:             nil,
+			//		ManifestObjName: objAttrs.Name,
+			//	}
+			//
+			//	continue
+			//}
+			//
+			//wc := newObj.NewWriter(storeClient.Context)
+			//wc.ContentType = "application/json"
+			//wc.ContentEncoding = "gzip"
+			//if _, err := wc.Write(gzipEncodedBody); err != nil {
+			//	out <- TransferManifestsOutJob{
+			//		Err:             err,
+			//		ManifestObjName: objAttrs.Name,
+			//	}
+			//
+			//	continue
+			//}
+
+			out <- TransferManifestsOutJob{
+				Err:             nil,
+				ManifestObjName: objAttrs.Name,
+				Updated:         true,
 			}
 		}
 	}
 	postWork := func() {
 		close(out)
 	}
-	util.Work(32, worker, postWork)
+	util.Work(8, worker, postWork)
 
 	go func() {
 		it := manifestBucket.Objects(storeClient.Context, nil)
@@ -275,72 +309,49 @@ func TransferRawAuctions(realm sotah.Realm) error {
 		close(in)
 	}()
 
-	toPruneCount := 0
-	toTransferCount := 0
+	updateCount := 0
+	transferCount := 0
 	for outJob := range out {
 		if outJob.Err != nil {
 			return outJob.Err
 		}
 
-		if !outJob.OldObjExists {
-			continue
-		}
-
-		if outJob.NewObjExists {
-			toPruneCount += 1
+		if outJob.Created {
+			transferCount += 1
 
 			continue
 		}
 
-		toTransferCount += 1
+		if outJob.Updated {
+			updateCount += 1
+
+			continue
+		}
 	}
 
-	if toTransferCount > 0 {
+	if transferCount > 0 {
 		logging.WithFields(logrus.Fields{
-			"region":      realm.Region.Name,
-			"realm":       realm.Slug,
-			"to-transfer": toTransferCount,
+			"region":         realm.Region.Name,
+			"realm":          realm.Slug,
+			"transfer-count": transferCount,
 		}).Info("Transferred")
 	}
-	if toPruneCount > 0 {
+	if updateCount > 0 {
 		logging.WithFields(logrus.Fields{
-			"region":   realm.Region.Name,
-			"realm":    realm.Slug,
-			"to-prune": toPruneCount,
-		}).Info("Pruned")
+			"region":       realm.Region.Name,
+			"realm":        realm.Slug,
+			"update-count": updateCount,
+		}).Info("Updated")
 	}
-	if toTransferCount == 0 && toPruneCount == 0 {
+	if transferCount == 0 && updateCount == 0 {
 		logging.WithFields(logrus.Fields{
 			"region": realm.Region.Name,
 			"realm":  realm.Slug,
-		}).Info("No more raw-auctions to transfer or prune, checking bucket for remaining raw-auctions")
+		}).Info("No more manifests to transfer or update, deleting bucket")
 
-		it := oldAuctionsBucket.Objects(storeClient.Context, nil)
-		totalRemaining := 0
-		for {
-			if _, err := it.Next(); err != nil {
-				if err == iterator.Done {
-					break
-				}
-
-				if err != nil {
-					return err
-				}
-			}
-
-			totalRemaining += 1
-		}
-
-		if totalRemaining > 0 {
-			logging.WithFields(logrus.Fields{
-				"region": realm.Region.Name,
-				"realm":  realm.Slug,
-			}).Info("Found raw-auctions not inserted into manifest!")
-		} else {
-			if err := oldAuctionsBucket.Delete(storeClient.Context); err != nil {
-				return err
-			}
-		}
+		//if err := oldManifestBucket.Delete(storeClient.Context); err != nil {
+		//	return nil
+		//}
 	}
 
 	return nil
@@ -371,5 +382,5 @@ func CleanupIntake(_ context.Context, m PubSubMessage) error {
 		Region: sotah.Region{Name: blizzard.RegionName(job.RegionName)},
 	}
 
-	return TransferRawAuctions(realm)
+	return TransferManifests(realm)
 }
