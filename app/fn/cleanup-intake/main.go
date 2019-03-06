@@ -349,9 +349,9 @@ func TransferManifests(realm sotah.Realm) error {
 			"realm":  realm.Slug,
 		}).Info("No more manifests to transfer or update, deleting bucket")
 
-		//if err := oldManifestBucket.Delete(storeClient.Context); err != nil {
-		//	return nil
-		//}
+		if err := oldManifestBucket.Delete(storeClient.Context); err != nil {
+			return nil
+		}
 	}
 
 	return nil
