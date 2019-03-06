@@ -268,6 +268,14 @@ func TransferManifests(realm sotah.Realm) error {
 
 				continue
 			}
+			if err := wc.Close(); err != nil {
+				out <- TransferManifestsOutJob{
+					Err:             err,
+					ManifestObjName: objAttrs.Name,
+				}
+
+				continue
+			}
 
 			out <- TransferManifestsOutJob{
 				Err:             nil,
