@@ -39,7 +39,7 @@ var auctionsManifestBucket *storage.BucketHandle
 
 func init() {
 	var err error
-	busClient, err = bus.NewClient(projectId, "fn-live-auctions-compute-intake")
+	busClient, err = bus.NewClient(projectId, "fn-download-auctions")
 	if err != nil {
 		log.Fatalf("Failed to create new bus client: %s", err.Error())
 
