@@ -26,13 +26,13 @@ func init() {
 		return
 	}
 
-	collectComputeTopic, err = busClient.FirmTopic(string(subjects.AuctionsCollectorCompute))
+	collectComputeTopic, err = busClient.FirmTopic(string(subjects.DownloadAllAuctions))
 	if err != nil {
 		log.Fatalf("Failed to get firm topic: %s", err.Error())
 
 		return
 	}
-	auctionsCleanupTopic, err = busClient.FirmTopic(string(subjects.AuctionsCleanup))
+	auctionsCleanupTopic, err = busClient.FirmTopic(string(subjects.CleanupAllExpiredManifests))
 	if err != nil {
 		log.Fatalf("Failed to get firm topic: %s", err.Error())
 
