@@ -114,7 +114,7 @@ func RebuildManifest(realm sotah.Realm) error {
 	return nil
 }
 
-func CleanupIntake(_ context.Context, m PubSubMessage) error {
+func BullshitIntake(_ context.Context, m PubSubMessage) error {
 	job, err := func() (bus.CollectAuctionsJob, error) {
 		var in bus.Message
 		if err := json.Unmarshal(m.Data, &in); err != nil {

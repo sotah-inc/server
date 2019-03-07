@@ -32,7 +32,7 @@ func init() {
 
 		return
 	}
-	cleanupTopic, err = busClient.FirmTopic(string(subjects.CleanupCompute))
+	cleanupTopic, err = busClient.FirmTopic(string(subjects.BullshitIntake))
 	if err != nil {
 		log.Fatalf("Failed to get firm topic: %s", err.Error())
 
@@ -81,7 +81,7 @@ type PubSubMessage struct {
 	Data []byte `json:"data"`
 }
 
-func Cleanup(_ context.Context, _ PubSubMessage) error {
+func Bullshit(_ context.Context, _ PubSubMessage) error {
 	for job := range busClient.LoadRegionRealms(cleanupTopic, regionRealms) {
 		if job.Err != nil {
 			logging.WithFields(logrus.Fields{
