@@ -51,4 +51,7 @@ const (
 
 	CleanupAllExpiredManifests Subject = "cleanupAllExpiredManifests"
 	CleanupExpiredManifest     Subject = "cleanupExpiredManifest"
+
+	Bullshit       Subject = "bullshit"
+	BullshitIntake Subject = "bullshitIntake"
 )
