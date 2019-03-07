@@ -32,7 +32,7 @@ func init() {
 
 		return
 	}
-	collectAuctionsTopic, err = busClient.FirmTopic(string(subjects.CollectAuctionsCompute))
+	collectAuctionsTopic, err = busClient.FirmTopic(string(subjects.DownloadAuctions))
 	if err != nil {
 		log.Fatalf("Failed to get firm topic: %s", err.Error())
 
@@ -76,7 +76,7 @@ type PubSubMessage struct {
 	Data []byte `json:"data"`
 }
 
-func AuctionsCollector(_ context.Context, _ PubSubMessage) error {
+func DownloadAllAuctions(_ context.Context, _ PubSubMessage) error {
 	for job := range busClient.LoadRegionRealms(collectAuctionsTopic, regionRealms) {
 		if job.Err != nil {
 			logging.WithFields(logrus.Fields{

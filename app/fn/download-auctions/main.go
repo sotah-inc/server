@@ -108,7 +108,7 @@ type PubSubMessage struct {
 	Data []byte `json:"data"`
 }
 
-func CollectAuctions(_ context.Context, m PubSubMessage) error {
+func DownloadAuctions(_ context.Context, m PubSubMessage) error {
 	job, err := func() (bus.CollectAuctionsJob, error) {
 		var in bus.Message
 		if err := json.Unmarshal(m.Data, &in); err != nil {
