@@ -32,6 +32,7 @@ const (
 	PricelistHistoriesComputeIntake Subject = "pricelistHistoriesComputeIntake"
 )
 
+// gcloud fn-related
 const (
 	DownloadAllAuctions Subject = "downloadAllAuctions"
 	DownloadAuctions    Subject = "downloadAuctions"
