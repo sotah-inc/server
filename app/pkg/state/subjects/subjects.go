@@ -47,7 +47,7 @@ const (
 
 	ComputeAllPricelistHistories      Subject = "computeAllPricelistHistories"
 	ComputePricelistHistories         Subject = "computePricelistHistories"
-	ReceiveComptuedPricelistHistories Subject = "receiveComputedPricelistHistories"
+	ReceiveComputedPricelistHistories Subject = "receiveComputedPricelistHistories"
 
 	CleanupAllExpiredManifests Subject = "cleanupAllExpiredManifests"
 	CleanupExpiredManifest     Subject = "cleanupExpiredManifest"
