@@ -3,8 +3,8 @@
 # us-central1 because us-east1 does not fucking have go111 runtime yet
 
 # deploying func
-gcloud functions deploy LiveAuctionsComputeIntake \
+gcloud functions deploy ComputeLiveAuctions \
     --runtime go111 \
-    --trigger-topic liveAuctionsCompute \
+    --trigger-topic computeLiveAuctions \
     --source . \
     --region us-central1
