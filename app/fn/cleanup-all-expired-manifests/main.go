@@ -30,7 +30,7 @@ func init() {
 
 		return
 	}
-	auctionsCleanupTopic, err = busClient.FirmTopic(string(subjects.AuctionsCleanupCompute))
+	auctionsCleanupTopic, err = busClient.FirmTopic(string(subjects.CleanupExpiredManifest))
 	if err != nil {
 		log.Fatalf("Failed to get firm topic: %s", err.Error())
 
@@ -74,7 +74,7 @@ type PubSubMessage struct {
 	Data []byte `json:"data"`
 }
 
-func AuctionsCleanup(_ context.Context, _ PubSubMessage) error {
+func CleanupAllExpiredManifests(_ context.Context, _ PubSubMessage) error {
 	priorManifestTimestamps := []sotah.UnixTimestamp{}
 	normalizedTime := sotah.NormalizeTargetDate(time.Now())
 	startOffset := 14

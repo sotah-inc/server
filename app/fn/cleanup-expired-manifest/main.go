@@ -144,7 +144,7 @@ type PubSubMessage struct {
 	Data []byte `json:"data"`
 }
 
-func AuctionsCleanupIntake(_ context.Context, m PubSubMessage) error {
+func CleanupExpiredManifest(_ context.Context, m PubSubMessage) error {
 	job, err := func() (bus.CleanupAuctionManifestJob, error) {
 		var in bus.Message
 		if err := json.Unmarshal(m.Data, &in); err != nil {

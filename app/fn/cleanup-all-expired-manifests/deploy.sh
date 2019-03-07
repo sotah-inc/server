@@ -3,9 +3,9 @@
 # us-central1 because us-east1 does not fucking have go111 runtime yet
 
 # deploying func
-gcloud functions deploy AuctionsCleanup \
+gcloud functions deploy CleanupAllExpiredManifests \
     --runtime go111 \
-    --trigger-topic auctionsCleanup \
+    --trigger-topic cleanupAllExpiredManifests \
     --source . \
     --memory 128MB \
     --region us-central1
