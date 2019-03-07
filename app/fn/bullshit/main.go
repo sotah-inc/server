@@ -1,4 +1,4 @@
-package cleanup
+package bullshit
 
 import (
 	"context"
