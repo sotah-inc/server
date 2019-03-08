@@ -19,10 +19,11 @@ func NewMessage() Message {
 }
 
 type Message struct {
-	Data    string     `json:"data"`
-	Err     string     `json:"error"`
-	Code    codes.Code `json:"code"`
-	ReplyTo string     `json:"reply_to"`
+	Data      string     `json:"data"`
+	Err       string     `json:"error"`
+	Code      codes.Code `json:"code"`
+	ReplyTo   string     `json:"reply_to"`
+	ReplyToId string     `json:"reply_to_id"`
 }
 
 func NewClient(projectID string, subscriberId string) (Client, error) {
