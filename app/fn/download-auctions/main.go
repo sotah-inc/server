@@ -206,30 +206,30 @@ func DownloadAuctions(_ context.Context, m PubSubMessage) error {
 		"region":        region.Name,
 		"realm":         realm.Slug,
 		"last-modified": aucInfoFile.LastModifiedAsTime().Unix(),
-	}).Info("Handled, pushing into live-auctions-compute and adding to auction-manifest file")
+	}).Info("Handled, adding to auction-manifest file")
 
-	msg, err := func() (bus.Message, error) {
-		jsonEncoded, err := json.Marshal(bus.LoadRegionRealmTimestampsInJob{
-			RegionName:      string(region.Name),
-			RealmSlug:       string(realm.Slug),
-			TargetTimestamp: int(aucInfoFile.LastModifiedAsTime().Unix()),
-		})
-		if err != nil {
-			return bus.Message{}, err
-		}
-
-		msg := bus.NewMessage()
-		msg.Data = string(jsonEncoded)
-
-		return msg, nil
-	}()
-	if err != nil {
-		return err
-	}
-
-	if _, err := busClient.Publish(liveAuctionsComputeTopic, msg); err != nil {
-		return err
-	}
+	//msg, err := func() (bus.Message, error) {
+	//	jsonEncoded, err := json.Marshal(bus.LoadRegionRealmTimestampsInJob{
+	//		RegionName:      string(region.Name),
+	//		RealmSlug:       string(realm.Slug),
+	//		TargetTimestamp: int(aucInfoFile.LastModifiedAsTime().Unix()),
+	//	})
+	//	if err != nil {
+	//		return bus.Message{}, err
+	//	}
+	//
+	//	msg := bus.NewMessage()
+	//	msg.Data = string(jsonEncoded)
+	//
+	//	return msg, nil
+	//}()
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//if _, err := busClient.Publish(liveAuctionsComputeTopic, msg); err != nil {
+	//	return err
+	//}
 
 	if err := auctionManifestStoreBase.Handle(
 		sotah.UnixTimestamp(aucInfoFile.LastModifiedAsTime().Unix()),
