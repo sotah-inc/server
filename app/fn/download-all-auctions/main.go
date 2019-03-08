@@ -3,10 +3,14 @@ package auctionscollector
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
 	"time"
+
+	"github.com/sirupsen/logrus"
+	"github.com/sotah-inc/server/app/pkg/logging"
 
 	"cloud.google.com/go/pubsub"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
@@ -77,15 +81,30 @@ type PubSubMessage struct {
 	Data []byte `json:"data"`
 }
 
+type MessageResponses map[string]bus.Message
+
+func (r MessageResponses) IsComplete() bool {
+	for _, msg := range r {
+		if len(msg.ReplyToId) == 0 {
+			return false
+		}
+	}
+
+	return true
+}
+
 func DownloadAllAuctions(_ context.Context, _ PubSubMessage) error {
 	// producing a topic and subscribing to receive responses
-	downloadedAuctionsResponses := map[string]bus.Message{}
+	downloadedAuctionsResponses := MessageResponses{}
 	downloadedAuctionsRecipientTopic, err := busClient.CreateTopic(
 		fmt.Sprintf("%s-%s", subjects.DownloadAllAuctions, uuid.NewV4().String()),
 	)
 	if err != nil {
 		return err
 	}
+
+	// opening a listener
+	onComplete := make(chan interface{})
 	receiveDownloadedAuctionsConfig := bus.SubscribeConfig{
 		Topic:     downloadedAuctionsRecipientTopic,
 		OnReady:   make(chan interface{}),
@@ -93,6 +112,12 @@ func DownloadAllAuctions(_ context.Context, _ PubSubMessage) error {
 		OnStopped: make(chan interface{}),
 		Callback: func(busMsg bus.Message) {
 			downloadedAuctionsResponses[busMsg.ReplyToId] = busMsg
+
+			if !downloadedAuctionsResponses.IsComplete() {
+				return
+			}
+
+			onComplete <- struct{}{}
 		},
 	}
 	go func() {
@@ -157,6 +182,34 @@ func DownloadAllAuctions(_ context.Context, _ PubSubMessage) error {
 
 		close(in)
 	}()
+
+	// waiting for messages to drain out
+	for outJob := range out {
+		if outJob.Err != nil {
+			return err
+		}
+	}
+
+	// waiting for responses is complete or timer runs out
+	timer := time.After(2 * time.Minute)
+	select {
+	case <-timer:
+		return errors.New("timed out")
+	case <-onComplete:
+		break
+	}
+
+	// stopping the downloaded-auctions receiver
+	receiveDownloadedAuctionsConfig.Stop <- struct{}{}
+	<-receiveDownloadedAuctionsConfig.OnStopped
+
+	// iterating over the results
+	for responseId, msg := range downloadedAuctionsResponses {
+		logging.WithFields(logrus.Fields{
+			"id":  responseId,
+			"msg": msg,
+		}).Info("Received message")
+	}
 
 	return nil
 }
