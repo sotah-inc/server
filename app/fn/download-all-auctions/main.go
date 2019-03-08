@@ -85,7 +85,7 @@ func DownloadAllAuctions(_ context.Context, _ PubSubMessage) error {
 				"realm":  job.Realm.Slug,
 			}).Error("Failed to queue message")
 
-			continue
+			return job.Err
 		}
 	}
 
