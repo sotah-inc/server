@@ -131,6 +131,8 @@ func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
 		Stop:      make(chan interface{}),
 		OnStopped: make(chan interface{}),
 		Callback: func(busMsg bus.Message) {
+			logging.WithField("msg", busMsg).Info("Received response")
+
 			downloadedAuctionsResponses.Mutex.Lock()
 			defer downloadedAuctionsResponses.Mutex.Unlock()
 
