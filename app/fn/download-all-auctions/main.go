@@ -237,8 +237,8 @@ func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
 
 	// stopping the downloaded-auctions receiver
 	logging.WithField(
-		"duration_ms",
-		duration/1000/1000,
+		"duration",
+		int(duration.Seconds()),
 	).Info("Finished receiving responses, stopping the listener and waiting for it to stop")
 	receiveDownloadedAuctionsConfig.Stop <- struct{}{}
 	<-receiveDownloadedAuctionsConfig.OnStopped
