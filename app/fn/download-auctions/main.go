@@ -9,9 +9,10 @@ import (
 	"os"
 	"time"
 
+	"github.com/sotah-inc/server/app/pkg/bus/codes"
+
 	"cloud.google.com/go/storage"
 
-	"cloud.google.com/go/pubsub"
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
@@ -27,7 +28,8 @@ var projectId = os.Getenv("GCP_PROJECT")
 var regions sotah.RegionList
 
 var busClient bus.Client
-var liveAuctionsComputeTopic *pubsub.Topic
+
+// var liveAuctionsComputeTopic *pubsub.Topic
 
 var blizzardClient blizzard.Client
 
@@ -45,12 +47,12 @@ func init() {
 
 		return
 	}
-	liveAuctionsComputeTopic, err = busClient.FirmTopic(string(subjects.LiveAuctionsCompute))
-	if err != nil {
-		log.Fatalf("Failed to get firm live-auctions-compute topic: %s", err.Error())
-
-		return
-	}
+	// liveAuctionsComputeTopic, err = busClient.FirmTopic(string(subjects.LiveAuctionsCompute))
+	// if err != nil {
+	// 	log.Fatalf("Failed to get firm live-auctions-compute topic: %s", err.Error())
+	//
+	// 	return
+	// }
 
 	storeClient, err = store.NewClient(projectId)
 	if err != nil {
@@ -104,27 +106,8 @@ func init() {
 	}
 }
 
-type PubSubMessage struct {
-	Data []byte `json:"data"`
-}
-
-func DownloadAuctions(_ context.Context, m PubSubMessage) error {
-	job, err := func() (bus.CollectAuctionsJob, error) {
-		var in bus.Message
-		if err := json.Unmarshal(m.Data, &in); err != nil {
-			return bus.CollectAuctionsJob{}, err
-		}
-
-		var out bus.CollectAuctionsJob
-		if err := json.Unmarshal([]byte(in.Data), &out); err != nil {
-			return bus.CollectAuctionsJob{}, err
-		}
-
-		return out, nil
-	}()
-	if err != nil {
-		return err
-	}
+func Handle(job bus.CollectAuctionsJob) bus.Message {
+	m := bus.NewMessage()
 
 	region, realm, err := func() (sotah.Region, sotah.Realm, error) {
 		region, err := func() (sotah.Region, error) {
@@ -148,7 +131,10 @@ func DownloadAuctions(_ context.Context, m PubSubMessage) error {
 		return region, realm, nil
 	}()
 	if err != nil {
-		return err
+		m.Err = err.Error()
+		m.Code = codes.NotFound
+
+		return m
 	}
 
 	aucInfoFile, err := func() (blizzard.AuctionFile, error) {
@@ -172,13 +158,19 @@ func DownloadAuctions(_ context.Context, m PubSubMessage) error {
 		return aucInfo.Files[0], nil
 	}()
 	if err != nil {
-		return err
+		m.Err = err.Error()
+		m.Code = codes.GenericError
+
+		return m
 	}
 
 	obj := auctionsStoreBase.GetObject(realm, aucInfoFile.LastModifiedAsTime(), auctionsBucket)
 	exists, err := auctionsStoreBase.ObjectExists(obj)
 	if err != nil {
-		return err
+		m.Err = err.Error()
+		m.Code = codes.GenericError
+
+		return m
 	}
 	if exists {
 		logging.WithFields(logrus.Fields{
@@ -187,23 +179,37 @@ func DownloadAuctions(_ context.Context, m PubSubMessage) error {
 			"last-modified": aucInfoFile.LastModifiedAsTime().Unix(),
 		}).Info("Object exists for region/ realm/ last-modified tuple, skipping")
 
-		return nil
+		m.Code = codes.Ok
+
+		return m
 	}
 
 	resp, err := blizzard.Download(aucInfoFile.URL)
 	if err != nil {
-		return err
+		m.Err = err.Error()
+		m.Code = codes.GenericError
+
+		return m
 	}
 	if resp.Status != http.StatusOK {
-		return errors.New("response status for aucs was not OK")
+		m.Err = errors.New("response status for aucs was not OK").Error()
+		m.Code = codes.GenericError
+
+		return m
 	}
 	aucs, err := blizzard.NewAuctions(resp.Body)
 	if err != nil {
-		return err
+		m.Err = err.Error()
+		m.Code = codes.GenericError
+
+		return m
 	}
 
 	if err := auctionsStoreBase.Handle(aucs, aucInfoFile.LastModifiedAsTime(), realm, auctionsBucket); err != nil {
-		return err
+		m.Err = err.Error()
+		m.Code = codes.GenericError
+
+		return m
 	}
 
 	logging.WithFields(logrus.Fields{
@@ -211,6 +217,41 @@ func DownloadAuctions(_ context.Context, m PubSubMessage) error {
 		"realm":         realm.Slug,
 		"last-modified": aucInfoFile.LastModifiedAsTime().Unix(),
 	}).Info("Handled, adding to auction-manifest file")
+
+	if err := auctionManifestStoreBase.Handle(
+		sotah.UnixTimestamp(aucInfoFile.LastModifiedAsTime().Unix()),
+		realm,
+		auctionsManifestBucket,
+	); err != nil {
+		m.Err = err.Error()
+		m.Code = codes.GenericError
+
+		return m
+	}
+
+	return m
+}
+
+type PubSubMessage struct {
+	Data []byte `json:"data"`
+}
+
+func DownloadAuctions(_ context.Context, m PubSubMessage) error {
+	var in bus.Message
+	if err := json.Unmarshal(m.Data, &in); err != nil {
+		return err
+	}
+
+	var job bus.CollectAuctionsJob
+	if err := json.Unmarshal([]byte(in.Data), &job); err != nil {
+		return err
+	}
+
+	msg := Handle(job)
+	msg.ReplyToId = in.ReplyToId
+	if _, err := busClient.ReplyTo(in, msg); err != nil {
+		return err
+	}
 
 	//msg, err := func() (bus.Message, error) {
 	//	jsonEncoded, err := json.Marshal(bus.LoadRegionRealmTimestampsInJob{
@@ -234,14 +275,6 @@ func DownloadAuctions(_ context.Context, m PubSubMessage) error {
 	//if _, err := busClient.Publish(liveAuctionsComputeTopic, msg); err != nil {
 	//	return err
 	//}
-
-	if err := auctionManifestStoreBase.Handle(
-		sotah.UnixTimestamp(aucInfoFile.LastModifiedAsTime().Unix()),
-		realm,
-		auctionsManifestBucket,
-	); err != nil {
-		return err
-	}
 
 	return nil
 }
