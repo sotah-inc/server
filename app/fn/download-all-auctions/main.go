@@ -10,12 +10,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sirupsen/logrus"
-	"github.com/sotah-inc/server/app/pkg/logging"
-
 	"cloud.google.com/go/pubsub"
+	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
+	"github.com/sotah-inc/server/app/pkg/bus/codes"
+	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
@@ -131,7 +131,10 @@ func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
 		Stop:      make(chan interface{}),
 		OnStopped: make(chan interface{}),
 		Callback: func(busMsg bus.Message) {
-			logging.WithField("msg", busMsg).Info("Received response")
+			logging.WithFields(logrus.Fields{
+				"reply-to-id": busMsg.ReplyToId,
+				"code":        busMsg.Code,
+			}).Info("Received response")
 
 			downloadedAuctionsResponses.Mutex.Lock()
 			defer downloadedAuctionsResponses.Mutex.Unlock()
@@ -201,6 +204,7 @@ func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
 	util.Work(32, worker, postWork)
 
 	// queueing it up
+	startTime := time.Now()
 	logging.Info("Queueing it up")
 	go func() {
 		for _, realms := range regionRealms {
@@ -229,19 +233,22 @@ func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
 	case <-onComplete:
 		break
 	}
+	duration := time.Now().Sub(startTime)
 
 	// stopping the downloaded-auctions receiver
-	logging.Info("Stopping the listener and waiting for it to stop")
+	logging.WithField(
+		"duration_ms",
+		duration/1000/1000,
+	).Info("Finished receiving responses, stopping the listener and waiting for it to stop")
 	receiveDownloadedAuctionsConfig.Stop <- struct{}{}
 	<-receiveDownloadedAuctionsConfig.OnStopped
 
 	// iterating over the results
 	logging.Info("Iterating over the results")
-	for responseId, msg := range downloadedAuctionsResponses.Items {
-		logging.WithFields(logrus.Fields{
-			"id":  responseId,
-			"msg": msg,
-		}).Info("Received message")
+	for _, msg := range downloadedAuctionsResponses.Items {
+		if msg.Code == codes.Ok {
+			continue
+		}
 	}
 
 	return nil
