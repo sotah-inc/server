@@ -95,6 +95,7 @@ func (r MessageResponses) IsComplete() bool {
 
 func DownloadAllAuctions(_ context.Context, _ PubSubMessage) error {
 	// producing a topic and subscribing to receive responses
+	logging.Info("Producing a topic and subscription to receive responses")
 	downloadedAuctionsResponses := MessageResponses{}
 	downloadedAuctionsRecipientTopic, err := busClient.CreateTopic(
 		fmt.Sprintf("%s-%s", subjects.DownloadAllAuctions, uuid.NewV4().String()),
@@ -104,6 +105,7 @@ func DownloadAllAuctions(_ context.Context, _ PubSubMessage) error {
 	}
 
 	// opening a listener
+	logging.Info("Opening a listener and waiting for it to finish opening")
 	onComplete := make(chan interface{})
 	receiveDownloadedAuctionsConfig := bus.SubscribeConfig{
 		Topic:     downloadedAuctionsRecipientTopic,
@@ -130,6 +132,7 @@ func DownloadAllAuctions(_ context.Context, _ PubSubMessage) error {
 	<-receiveDownloadedAuctionsConfig.OnReady
 
 	// spinning up the workers
+	logging.Info("Spinning up workers")
 	in := make(chan sotah.Realm)
 	out := make(chan bus.LoadRegionRealmsOutJob)
 	worker := func() {
@@ -173,6 +176,7 @@ func DownloadAllAuctions(_ context.Context, _ PubSubMessage) error {
 	util.Work(32, worker, postWork)
 
 	// queueing it up
+	logging.Info("Queueing it up")
 	go func() {
 		for _, realms := range regionRealms {
 			for _, realm := range realms {
@@ -184,6 +188,7 @@ func DownloadAllAuctions(_ context.Context, _ PubSubMessage) error {
 	}()
 
 	// waiting for messages to drain out
+	logging.Info("Waiting for messages to drain out")
 	for outJob := range out {
 		if outJob.Err != nil {
 			return err
@@ -191,6 +196,7 @@ func DownloadAllAuctions(_ context.Context, _ PubSubMessage) error {
 	}
 
 	// waiting for responses is complete or timer runs out
+	logging.Info("Waiting for responses to complete or timer runs out")
 	timer := time.After(5 * time.Minute)
 	select {
 	case <-timer:
@@ -200,10 +206,12 @@ func DownloadAllAuctions(_ context.Context, _ PubSubMessage) error {
 	}
 
 	// stopping the downloaded-auctions receiver
+	logging.Info("Stopping the listener and waiting for it to stop")
 	receiveDownloadedAuctionsConfig.Stop <- struct{}{}
 	<-receiveDownloadedAuctionsConfig.OnStopped
 
 	// iterating over the results
+	logging.Info("Iterating over the results")
 	for responseId, msg := range downloadedAuctionsResponses {
 		logging.WithFields(logrus.Fields{
 			"id":  responseId,
