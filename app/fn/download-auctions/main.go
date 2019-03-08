@@ -190,12 +190,16 @@ func DownloadAuctions(_ context.Context, m PubSubMessage) error {
 		return nil
 	}
 
-	aucs, respMeta, err := aucInfoFile.GetAuctions()
+	resp, err := blizzard.Download(aucInfoFile.URL)
 	if err != nil {
 		return err
 	}
-	if respMeta.Status != http.StatusOK {
+	if resp.Status != http.StatusOK {
 		return errors.New("response status for aucs was not OK")
+	}
+	aucs, err := blizzard.NewAuctions(resp.Body)
+	if err != nil {
+		return err
 	}
 
 	if err := auctionsStoreBase.Handle(aucs, aucInfoFile.LastModifiedAsTime(), realm, auctionsBucket); err != nil {
