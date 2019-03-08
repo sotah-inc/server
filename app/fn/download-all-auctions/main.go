@@ -100,12 +100,19 @@ func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
 
 	// producing a topic and subscribing to receive responses
 	logging.Info("Producing a topic and subscription to receive responses")
-	downloadedAuctionsResponses := MessageResponses{}
 	downloadedAuctionsRecipientTopic, err := busClient.CreateTopic(
 		fmt.Sprintf("%s-%s", subjects.DownloadAllAuctions, uuid.NewV4().String()),
 	)
 	if err != nil {
 		return err
+	}
+
+	// producing a blank list of message responses
+	downloadedAuctionsResponses := MessageResponses{}
+	for _, realms := range regionRealms {
+		for _, realm := range realms {
+			downloadedAuctionsResponses[fmt.Sprintf("%s-%s", realm.Region.Name, realm.Slug)] = bus.NewMessage()
+		}
 	}
 
 	// opening a listener
