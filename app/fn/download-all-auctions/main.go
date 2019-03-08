@@ -191,7 +191,7 @@ func DownloadAllAuctions(_ context.Context, _ PubSubMessage) error {
 	}
 
 	// waiting for responses is complete or timer runs out
-	timer := time.After(2 * time.Minute)
+	timer := time.After(5 * time.Minute)
 	select {
 	case <-timer:
 		return errors.New("timed out")
