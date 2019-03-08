@@ -93,7 +93,11 @@ func (r MessageResponses) IsComplete() bool {
 	return true
 }
 
-func DownloadAllAuctions(_ context.Context, _ PubSubMessage) error {
+func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
+	if len(m.Data) == 0 {
+		return errors.New("fail")
+	}
+
 	// producing a topic and subscribing to receive responses
 	logging.Info("Producing a topic and subscription to receive responses")
 	downloadedAuctionsResponses := MessageResponses{}
