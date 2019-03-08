@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -81,10 +82,13 @@ type PubSubMessage struct {
 	Data []byte `json:"data"`
 }
 
-type MessageResponses map[string]bus.Message
+type MessageResponses struct {
+	Items map[string]bus.Message
+	Mutex *sync.Mutex
+}
 
 func (r MessageResponses) IsComplete() bool {
-	for _, msg := range r {
+	for _, msg := range r.Items {
 		if len(msg.ReplyToId) == 0 {
 			return false
 		}
@@ -108,10 +112,13 @@ func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
 	}
 
 	// producing a blank list of message responses
-	downloadedAuctionsResponses := MessageResponses{}
+	downloadedAuctionsResponses := MessageResponses{
+		Mutex: &sync.Mutex{},
+		Items: map[string]bus.Message{},
+	}
 	for _, realms := range regionRealms {
 		for _, realm := range realms {
-			downloadedAuctionsResponses[fmt.Sprintf("%s-%s", realm.Region.Name, realm.Slug)] = bus.NewMessage()
+			downloadedAuctionsResponses.Items[fmt.Sprintf("%s-%s", realm.Region.Name, realm.Slug)] = bus.NewMessage()
 		}
 	}
 
@@ -124,13 +131,18 @@ func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
 		Stop:      make(chan interface{}),
 		OnStopped: make(chan interface{}),
 		Callback: func(busMsg bus.Message) {
-			downloadedAuctionsResponses[busMsg.ReplyToId] = busMsg
+			downloadedAuctionsResponses.Mutex.Lock()
+			defer downloadedAuctionsResponses.Mutex.Unlock()
+
+			downloadedAuctionsResponses.Items[busMsg.ReplyToId] = busMsg
 
 			if !downloadedAuctionsResponses.IsComplete() {
 				return
 			}
 
 			onComplete <- struct{}{}
+
+			return
 		},
 	}
 	go func() {
@@ -223,7 +235,7 @@ func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
 
 	// iterating over the results
 	logging.Info("Iterating over the results")
-	for responseId, msg := range downloadedAuctionsResponses {
+	for responseId, msg := range downloadedAuctionsResponses.Items {
 		logging.WithFields(logrus.Fields{
 			"id":  responseId,
 			"msg": msg,
