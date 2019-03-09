@@ -97,6 +97,19 @@ func (r MessageResponses) IsComplete() bool {
 	return true
 }
 
+func (r MessageResponses) FilterInCompleted() map[string]bus.Message {
+	out := map[string]bus.Message{}
+	for k, v := range r.Items {
+		if len(v.ReplyToId) == 0 {
+			continue
+		}
+
+		out[k] = v
+	}
+
+	return out
+}
+
 func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
 	if len(m.Data) == 0 {
 		return errors.New("fail")
@@ -232,19 +245,22 @@ func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
 	case <-onComplete:
 		break
 	}
+	responseItems := downloadedAuctionsResponses.FilterInCompleted()
 	duration := time.Now().Sub(startTime)
 
 	// stopping the downloaded-auctions receiver
-	logging.WithField(
-		"duration",
-		int(duration.Seconds()),
+	logging.WithFields(
+		logrus.Fields{
+			"duration":  int(duration.Seconds()),
+			"responses": len(responseItems),
+		},
 	).Info("Finished receiving responses, stopping the listener and waiting for it to stop")
 	receiveDownloadedAuctionsConfig.Stop <- struct{}{}
 	<-receiveDownloadedAuctionsConfig.OnStopped
 
 	// iterating over the results
 	logging.Info("Iterating over the results")
-	for _, msg := range downloadedAuctionsResponses.Items {
+	for _, msg := range responseItems {
 		if msg.Code == codes.Ok {
 			continue
 		}

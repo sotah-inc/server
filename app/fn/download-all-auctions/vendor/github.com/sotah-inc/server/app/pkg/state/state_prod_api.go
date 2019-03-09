@@ -4,7 +4,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
-	"github.com/sotah-inc/server/app/pkg/database"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/metric"
@@ -107,48 +106,35 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 	}
 	apiState.ItemClasses = itemClasses
 
-	// loading the items database
-	itemsDatabase, err := database.NewItemsDatabase(config.ItemsDatabaseDir)
-	if err != nil {
-		return ProdApiState{}, err
-	}
-	apiState.IO.Databases.ItemsDatabase = itemsDatabase
-
 	// gathering profession icons
-	if apiState.UseGCloud {
-		for i, prof := range apiState.Professions {
-			itemIconUrl, err := func() (string, error) {
-				exists, err := apiState.IO.StoreClient.ItemIconExists(prof.Icon)
-				if err != nil {
-					return "", err
-				}
-
-				if exists {
-					obj, err := apiState.IO.StoreClient.GetItemIconObject(prof.Icon)
-					if err != nil {
-						return "", err
-					}
-
-					return apiState.IO.StoreClient.GetStoreItemIconURLFunc(obj)
-				}
-
-				body, err := util.Download(blizzard.DefaultGetItemIconURL(prof.Icon))
-				if err != nil {
-					return "", err
-				}
-
-				return apiState.IO.StoreClient.WriteItemIcon(prof.Icon, body)
-			}()
+	for i, prof := range apiState.Professions {
+		itemIconUrl, err := func() (string, error) {
+			exists, err := apiState.IO.StoreClient.ItemIconExists(prof.Icon)
 			if err != nil {
-				return ProdApiState{}, err
+				return "", err
 			}
 
-			apiState.Professions[i].IconURL = itemIconUrl
+			if exists {
+				obj, err := apiState.IO.StoreClient.GetItemIconObject(prof.Icon)
+				if err != nil {
+					return "", err
+				}
+
+				return apiState.IO.StoreClient.GetStoreItemIconURLFunc(obj)
+			}
+
+			body, err := util.Download(blizzard.DefaultGetItemIconURL(prof.Icon))
+			if err != nil {
+				return "", err
+			}
+
+			return apiState.IO.StoreClient.WriteItemIcon(prof.Icon, body)
+		}()
+		if err != nil {
+			return ProdApiState{}, err
 		}
-	} else {
-		for i, prof := range apiState.Professions {
-			apiState.Professions[i].IconURL = blizzard.DefaultGetItemIconURL(prof.Icon)
-		}
+
+		apiState.Professions[i].IconURL = itemIconUrl
 	}
 
 	// establishing bus-listeners
