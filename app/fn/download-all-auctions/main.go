@@ -229,7 +229,7 @@ func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
 	timer := time.After(5 * time.Minute)
 	select {
 	case <-timer:
-		return errors.New("timed out")
+		return errors.New("timed out before auctions could return")
 	case <-onComplete:
 		break
 	}
