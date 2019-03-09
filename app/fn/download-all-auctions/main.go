@@ -144,11 +144,6 @@ func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
 		Stop:      make(chan interface{}),
 		OnStopped: make(chan interface{}),
 		Callback: func(busMsg bus.Message) {
-			logging.WithFields(logrus.Fields{
-				"reply-to-id": busMsg.ReplyToId,
-				"code":        busMsg.Code,
-			}).Info("Received response")
-
 			downloadedAuctionsResponses.Mutex.Lock()
 			defer downloadedAuctionsResponses.Mutex.Unlock()
 
@@ -273,6 +268,13 @@ func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
 
 			continue
 		}
+
+		var respData bus.RegionRealmTimestampTuple
+		if err := json.Unmarshal([]byte(msg.Data), &respData); err != nil {
+			return err
+		}
+
+		logging.WithField("resp-data", respData).Info("Received message")
 	}
 
 	return nil
