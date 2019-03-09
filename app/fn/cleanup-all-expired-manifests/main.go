@@ -78,7 +78,7 @@ func CleanupAllExpiredManifests(_ context.Context, _ PubSubMessage) error {
 	priorManifestTimestamps := []sotah.UnixTimestamp{}
 	normalizedTime := sotah.NormalizeTargetDate(time.Now())
 	startOffset := 14
-	endLimit := 250
+	endLimit := 14
 	for i := 0; i < endLimit; i++ {
 		then := normalizedTime.AddDate(0, 0, -1*(i+startOffset))
 
