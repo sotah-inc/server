@@ -366,8 +366,10 @@ type CollectAuctionsJob struct {
 	RealmSlug  string `json:"realm_slug"`
 }
 
-type CleanupAuctionManifestJob struct {
+type RegionRealmTimestampTuple struct {
 	RegionName      string `json:"region_name"`
 	RealmSlug       string `json:"realm_slug"`
 	TargetTimestamp int    `json:"target_timestamp"`
 }
+
+type CleanupAuctionManifestJob = RegionRealmTimestampTuple
