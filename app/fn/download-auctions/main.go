@@ -234,6 +234,20 @@ func Handle(job bus.CollectAuctionsJob) bus.Message {
 		return m
 	}
 
+	respData := bus.RegionRealmTimestampTuple{
+		RegionName:      string(realm.Region.Name),
+		RealmSlug:       string(realm.Slug),
+		TargetTimestamp: int(aucInfoFile.LastModifiedAsTime().Unix()),
+	}
+	data, err := json.Marshal(respData)
+	if err != nil {
+		m.Err = err.Error()
+		m.Code = codes.GenericError
+
+		return m
+	}
+	m.Data = string(data)
+
 	return m
 }
 
