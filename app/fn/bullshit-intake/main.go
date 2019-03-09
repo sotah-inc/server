@@ -10,12 +10,14 @@ import (
 	"strings"
 	"time"
 
+	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/storage"
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
 	"google.golang.org/api/iterator"
 )
@@ -28,8 +30,24 @@ var auctionsStoreBaseV2 store.AuctionsBaseV2
 
 var newManifestBucket *storage.BucketHandle
 
+var busClient bus.Client
+var auctionsCleanupTopic *pubsub.Topic
+
 func init() {
 	var err error
+
+	busClient, err = bus.NewClient(projectId, "fn-cleanup-all-expired-manifests")
+	if err != nil {
+		log.Fatalf("Failed to create new bus client: %s", err.Error())
+
+		return
+	}
+	auctionsCleanupTopic, err = busClient.FirmTopic(string(subjects.CleanupExpiredManifest))
+	if err != nil {
+		log.Fatalf("Failed to get firm topic: %s", err.Error())
+
+		return
+	}
 
 	storeClient, err = store.NewClient(projectId)
 	if err != nil {
@@ -46,10 +64,6 @@ func init() {
 
 		return
 	}
-}
-
-type PubSubMessage struct {
-	Data []byte `json:"data"`
 }
 
 func RebuildManifest(realm sotah.Realm) error {
@@ -114,6 +128,62 @@ func RebuildManifest(realm sotah.Realm) error {
 	return nil
 }
 
+func CheckManifestForExpired(realm sotah.Realm) error {
+	limit := sotah.NormalizeTargetDate(time.Now()).AddDate(0, 0, -14)
+	prefix := fmt.Sprintf("%s/%s/", realm.Region.Name, realm.Slug)
+	it := newManifestBucket.Objects(storeClient.Context, &storage.Query{Prefix: prefix})
+	for {
+		objAttrs, err := it.Next()
+		if err != nil {
+			if err == iterator.Done {
+				break
+			}
+
+			if err != nil {
+				return err
+			}
+		}
+
+		targetTimestamp, err := strconv.Atoi(objAttrs.Name[len(prefix):(len(objAttrs.Name) - len(".json"))])
+		if err != nil {
+			return err
+		}
+
+		targetTime := time.Unix(int64(targetTimestamp), 0)
+		if targetTime.After(limit) {
+			continue
+		}
+
+		logging.WithFields(logrus.Fields{
+			"region":           realm.Region.Name,
+			"realm":            realm.Slug,
+			"target-timestamp": targetTimestamp,
+		}).Info("Found expired, enqueueing")
+
+		jsonEncoded, err := json.Marshal(bus.CleanupAuctionManifestJob{
+			RegionName:      string(realm.Region.Name),
+			RealmSlug:       string(realm.Slug),
+			TargetTimestamp: int(targetTime.Unix()),
+		})
+		if err != nil {
+			return err
+		}
+
+		msg := bus.NewMessage()
+		msg.Data = string(jsonEncoded)
+
+		if _, err := busClient.Publish(auctionsCleanupTopic, msg); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+type PubSubMessage struct {
+	Data []byte `json:"data"`
+}
+
 func BullshitIntake(_ context.Context, m PubSubMessage) error {
 	job, err := func() (bus.CollectAuctionsJob, error) {
 		var in bus.Message
@@ -139,5 +209,9 @@ func BullshitIntake(_ context.Context, m PubSubMessage) error {
 		Region: sotah.Region{Name: blizzard.RegionName(job.RegionName)},
 	}
 
-	return RebuildManifest(realm)
+	if realm.Region.Name != "us" || realm.Slug != "earthen-ring" {
+		return nil
+	}
+
+	return CheckManifestForExpired(realm)
 }

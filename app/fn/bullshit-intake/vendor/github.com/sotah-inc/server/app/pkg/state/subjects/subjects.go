@@ -32,6 +32,7 @@ const (
 	PricelistHistoriesComputeIntake Subject = "pricelistHistoriesComputeIntake"
 )
 
+// gcloud fn-related
 const (
 	DownloadAllAuctions Subject = "downloadAllAuctions"
 	DownloadAuctions    Subject = "downloadAuctions"
@@ -46,8 +47,11 @@ const (
 
 	ComputeAllPricelistHistories      Subject = "computeAllPricelistHistories"
 	ComputePricelistHistories         Subject = "computePricelistHistories"
-	ReceiveComptuedPricelistHistories Subject = "receiveComputedPricelistHistories"
+	ReceiveComputedPricelistHistories Subject = "receiveComputedPricelistHistories"
 
 	CleanupAllExpiredManifests Subject = "cleanupAllExpiredManifests"
 	CleanupExpiredManifest     Subject = "cleanupExpiredManifest"
+
+	Bullshit       Subject = "bullshit"
+	BullshitIntake Subject = "bullshitIntake"
 )
