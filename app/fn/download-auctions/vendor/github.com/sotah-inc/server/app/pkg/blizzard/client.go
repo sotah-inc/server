@@ -132,3 +132,16 @@ func (c Client) AppendAccessToken(destination string) (string, error) {
 
 	return u.String(), nil
 }
+
+func ClearAccessToken(destination string) (string, error) {
+	u, err := url.Parse(destination)
+	if err != nil {
+		return "", err
+	}
+
+	q := u.Query()
+	q.Set("access_token", "xxx")
+	u.RawQuery = q.Encode()
+
+	return u.String(), nil
+}

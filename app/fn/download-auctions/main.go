@@ -183,7 +183,22 @@ func Handle(job bus.CollectAuctionsJob) bus.Message {
 	}
 	if resp.Status != http.StatusOK {
 		m.Err = errors.New("response status for aucs was not OK").Error()
-		m.Code = codes.GenericError
+		m.Code = codes.BlizzardError
+
+		respError := blizzard.ResponseError{
+			Status: resp.Status,
+			Body:   string(resp.Body),
+			URI:    aucInfoFile.URL,
+		}
+		data, err := json.Marshal(respError)
+		if err != nil {
+			m.Err = err.Error()
+			m.Code = codes.GenericError
+
+			return m
+		}
+
+		m.Data = string(data)
 
 		return m
 	}
