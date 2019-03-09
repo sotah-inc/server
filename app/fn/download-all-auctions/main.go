@@ -226,10 +226,9 @@ func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
 
 	// waiting for responses is complete or timer runs out
 	logging.Info("Waiting for responses to complete or timer runs out")
-	timer := time.After(5 * time.Minute)
+	timer := time.After(200 * time.Second)
 	select {
 	case <-timer:
-		return errors.New("timed out before auctions could return")
 	case <-onComplete:
 		break
 	}
