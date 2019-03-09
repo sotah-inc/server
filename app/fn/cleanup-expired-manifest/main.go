@@ -20,9 +20,13 @@ import (
 var projectId = os.Getenv("GCP_PROJECT")
 
 var storeClient store.Client
+
 var auctionsStoreBase store.AuctionsBaseV2
+var auctionStoreBucket *storage.BucketHandle
+
 var auctionManifestStoreBase store.AuctionManifestBaseV2
 var auctionManifestBucket *storage.BucketHandle
+
 var pricelistHistoriesStoreBase store.PricelistHistoriesBaseV2
 var pricelistHistoriesBucket *storage.BucketHandle
 
@@ -36,9 +40,15 @@ func init() {
 		return
 	}
 	auctionsStoreBase = store.NewAuctionsBaseV2(storeClient)
+	auctionStoreBucket, err = auctionsStoreBase.GetFirmBucket()
+	if err != nil {
+		log.Fatalf("Failed to get firm raw-auctions bucket: %s", err.Error())
+
+		return
+	}
 
 	auctionManifestStoreBase = store.NewAuctionManifestBaseV2(storeClient)
-	auctionManifestBucket, err = auctionsStoreBase.GetFirmBucket()
+	auctionManifestBucket, err = auctionManifestStoreBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get firm auction-manifest bucket: %s", err.Error())
 
@@ -55,13 +65,14 @@ func init() {
 }
 
 func handleManifestCleaning(realm sotah.Realm, targetTimestamp sotah.UnixTimestamp) error {
+	objName := auctionManifestStoreBase.GetObjectName(targetTimestamp, realm)
 	obj := auctionManifestStoreBase.GetObject(targetTimestamp, realm, auctionManifestBucket)
 	exists, err := auctionManifestStoreBase.ObjectExists(obj)
 	if err != nil {
 		return err
 	}
 	if !exists {
-		logging.Info("Auctions-manifest object does not exist, halting early")
+		logging.WithField("obj-name", objName).Info("Auctions-manifest object does not exist, halting early")
 
 		return nil
 	}
@@ -93,7 +104,7 @@ func handleManifestCleaning(realm sotah.Realm, targetTimestamp sotah.UnixTimesta
 		return err
 	}
 
-	for outJob := range auctionsStoreBase.DeleteAll(auctionsStoreBase.GetBucket(), realm, manifest) {
+	for outJob := range auctionsStoreBase.DeleteAll(auctionStoreBucket, realm, manifest) {
 		if outJob.Err != nil {
 			return outJob.Err
 		}
@@ -120,7 +131,7 @@ func handleManifestCleaning(realm sotah.Realm, targetTimestamp sotah.UnixTimesta
 
 func handlePricelistsCleaning(realm sotah.Realm, targetTimestamp sotah.UnixTimestamp) error {
 	obj := pricelistHistoriesStoreBase.GetObject(time.Unix(int64(targetTimestamp), 0), realm, pricelistHistoriesBucket)
-	exists, err := auctionManifestStoreBase.ObjectExists(obj)
+	exists, err := pricelistHistoriesStoreBase.ObjectExists(obj)
 	if err != nil {
 		return err
 	}
