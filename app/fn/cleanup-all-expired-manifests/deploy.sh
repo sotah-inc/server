@@ -8,4 +8,5 @@ gcloud functions deploy CleanupAllExpiredManifests \
     --trigger-topic cleanupAllExpiredManifests \
     --source . \
     --memory 128MB \
+    --timeout 500s \
     --region us-central1
