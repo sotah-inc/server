@@ -13,4 +13,5 @@ var (
 	MsgJSONParseError Code = -2
 	NotFound          Code = -3
 	UserError         Code = -4
+	BlizzardError     Code = -5
 )
