@@ -21,7 +21,8 @@ var projectId = os.Getenv("GCP_PROJECT")
 
 var storeClient store.Client
 var auctionsStoreBase store.AuctionsBaseV2
-var auctionManifestStoreBase store.AuctionManifestBase
+var auctionManifestStoreBase store.AuctionManifestBaseV2
+var auctionManifestBucket *storage.BucketHandle
 var pricelistHistoriesStoreBase store.PricelistHistoriesBaseV2
 var pricelistHistoriesBucket *storage.BucketHandle
 
@@ -35,8 +36,16 @@ func init() {
 		return
 	}
 	auctionsStoreBase = store.NewAuctionsBaseV2(storeClient)
-	pricelistHistoriesStoreBase = store.NewPricelistHistoriesBaseV2(storeClient)
 
+	auctionManifestStoreBase = store.NewAuctionManifestBaseV2(storeClient)
+	auctionManifestBucket, err = auctionsStoreBase.GetFirmBucket()
+	if err != nil {
+		log.Fatalf("Failed to get firm auction-manifest bucket: %s", err.Error())
+
+		return
+	}
+
+	pricelistHistoriesStoreBase = store.NewPricelistHistoriesBaseV2(storeClient)
 	pricelistHistoriesBucket, err = pricelistHistoriesStoreBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get firm pricelist-histories bucket: %s", err.Error())
@@ -46,8 +55,7 @@ func init() {
 }
 
 func handleManifestCleaning(realm sotah.Realm, targetTimestamp sotah.UnixTimestamp) error {
-	manifestBucket := auctionManifestStoreBase.GetBucket(realm)
-	obj := auctionManifestStoreBase.GetObject(targetTimestamp, manifestBucket)
+	obj := auctionManifestStoreBase.GetObject(targetTimestamp, realm, auctionManifestBucket)
 	exists, err := auctionManifestStoreBase.ObjectExists(obj)
 	if err != nil {
 		return err

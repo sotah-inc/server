@@ -9,13 +9,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/sotah-inc/server/app/pkg/bus/codes"
-
 	"cloud.google.com/go/storage"
-
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
+	"github.com/sotah-inc/server/app/pkg/bus/codes"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state"

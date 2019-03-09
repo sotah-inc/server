@@ -104,6 +104,12 @@ func (b AuctionManifestBaseV2) Handle(targetTimestamp sotah.UnixTimestamp, realm
 	return nil
 }
 
+type DeleteAuctionManifestJob struct {
+	Err   error
+	Realm sotah.Realm
+	Count int
+}
+
 func (b AuctionManifestBaseV2) DeleteAll(regionRealms map[blizzard.RegionName]sotah.Realms) chan DeleteAuctionManifestJob {
 	// spinning up the workers
 	in := make(chan sotah.Realm)
@@ -177,6 +183,16 @@ func (b AuctionManifestBaseV2) DeleteAll(regionRealms map[blizzard.RegionName]so
 	}()
 
 	return out
+}
+
+type WriteAllInJob struct {
+	NormalizedTimestamp sotah.UnixTimestamp
+	Manifest            sotah.AuctionManifest
+}
+
+type WriteAllOutJob struct {
+	Err                 error
+	NormalizedTimestamp sotah.UnixTimestamp
 }
 
 func (b AuctionManifestBaseV2) WriteAll(bkt *storage.BucketHandle, realm sotah.Realm, manifests map[sotah.UnixTimestamp]sotah.AuctionManifest) chan WriteAllOutJob {
