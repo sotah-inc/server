@@ -261,17 +261,17 @@ func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
 	// iterating over the results
 	logging.Info("Iterating over the results")
 	for _, msg := range responseItems {
-		if msg.Code == codes.Ok {
-			continue
-		}
+		if msg.Code != codes.Ok {
+			if msg.Code == codes.BlizzardError {
+				var respError blizzard.ResponseError
+				if err := json.Unmarshal([]byte(msg.Data), &respError); err != nil {
+					return err
+				}
 
-		if msg.Code == codes.BlizzardError {
-			var respError blizzard.ResponseError
-			if err := json.Unmarshal([]byte(msg.Data), &respError); err != nil {
-				return err
+				logging.WithFields(logrus.Fields{"resp-error": respError}).Error("Received erroneous response")
 			}
 
-			logging.WithFields(logrus.Fields{"resp-error": respError}).Error("Received erroneous response")
+			continue
 		}
 	}
 
