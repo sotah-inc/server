@@ -209,9 +209,5 @@ func BullshitIntake(_ context.Context, m PubSubMessage) error {
 		Region: sotah.Region{Name: blizzard.RegionName(job.RegionName)},
 	}
 
-	if realm.Region.Name != "us" || realm.Slug != "earthen-ring" {
-		return nil
-	}
-
 	return CheckManifestForExpired(realm)
 }
