@@ -62,6 +62,7 @@ func (tr *timedTransport) Duration() time.Duration {
 type ResponseError struct {
 	Body   string `json:"body"`
 	Status int    `json:"status"`
+	URI    string `json:"uri"`
 }
 
 // ResponseMeta is a blizzard api response meta data
