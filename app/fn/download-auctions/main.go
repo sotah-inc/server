@@ -27,8 +27,6 @@ var regions sotah.RegionList
 
 var busClient bus.Client
 
-// var liveAuctionsComputeTopic *pubsub.Topic
-
 var blizzardClient blizzard.Client
 
 var storeClient store.Client
@@ -45,12 +43,6 @@ func init() {
 
 		return
 	}
-	// liveAuctionsComputeTopic, err = busClient.FirmTopic(string(subjects.LiveAuctionsCompute))
-	// if err != nil {
-	// 	log.Fatalf("Failed to get firm live-auctions-compute topic: %s", err.Error())
-	//
-	// 	return
-	// }
 
 	storeClient, err = store.NewClient(projectId)
 	if err != nil {
@@ -250,29 +242,6 @@ func DownloadAuctions(_ context.Context, m PubSubMessage) error {
 	if _, err := busClient.ReplyTo(in, msg); err != nil {
 		return err
 	}
-
-	//msg, err := func() (bus.Message, error) {
-	//	jsonEncoded, err := json.Marshal(bus.LoadRegionRealmTimestampsInJob{
-	//		RegionName:      string(region.Name),
-	//		RealmSlug:       string(realm.Slug),
-	//		TargetTimestamp: int(aucInfoFile.LastModifiedAsTime().Unix()),
-	//	})
-	//	if err != nil {
-	//		return bus.Message{}, err
-	//	}
-	//
-	//	msg := bus.NewMessage()
-	//	msg.Data = string(jsonEncoded)
-	//
-	//	return msg, nil
-	//}()
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//if _, err := busClient.Publish(liveAuctionsComputeTopic, msg); err != nil {
-	//	return err
-	//}
 
 	return nil
 }
