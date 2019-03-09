@@ -127,20 +127,44 @@ func Handle(job bus.CollectAuctionsJob) bus.Message {
 		return m
 	}
 
+	uri, err := blizzardClient.AppendAccessToken(blizzard.DefaultGetAuctionInfoURL(region.Hostname, blizzard.RealmSlug(job.RealmSlug)))
+	if err != nil {
+		m.Err = err.Error()
+		m.Code = codes.GenericError
+
+		return m
+	}
+
+	aucInfo, respMeta, err := blizzard.NewAuctionInfoFromHTTP(uri)
+	if err != nil {
+		m.Err = err.Error()
+		m.Code = codes.GenericError
+
+		return m
+	}
+	if respMeta.Status != http.StatusOK {
+		m.Err = errors.New("response status for auc-info was not OK").Error()
+		m.Code = codes.BlizzardError
+
+		respError := blizzard.ResponseError{
+			Status: respMeta.Status,
+			Body:   string(respMeta.Body),
+			URI:    uri,
+		}
+		data, err := json.Marshal(respError)
+		if err != nil {
+			m.Err = err.Error()
+			m.Code = codes.GenericError
+
+			return m
+		}
+
+		m.Data = string(data)
+
+		return m
+	}
+
 	aucInfoFile, err := func() (blizzard.AuctionFile, error) {
-		uri, err := blizzardClient.AppendAccessToken(blizzard.DefaultGetAuctionInfoURL(region.Hostname, blizzard.RealmSlug(job.RealmSlug)))
-		if err != nil {
-			return blizzard.AuctionFile{}, err
-		}
-
-		aucInfo, respMeta, err := blizzard.NewAuctionInfoFromHTTP(uri)
-		if err != nil {
-			return blizzard.AuctionFile{}, err
-		}
-		if respMeta.Status != http.StatusOK {
-			return blizzard.AuctionFile{}, errors.New("response status for auc-info was not OK")
-		}
-
 		if len(aucInfo.Files) == 0 {
 			return blizzard.AuctionFile{}, errors.New("auc-info files was blank")
 		}
