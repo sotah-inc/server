@@ -249,6 +249,15 @@ func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
 		if msg.Code == codes.Ok {
 			continue
 		}
+
+		if msg.Code == codes.BlizzardError {
+			var respError blizzard.ResponseError
+			if err := json.Unmarshal([]byte(msg.Data), &respError); err != nil {
+				return err
+			}
+
+			logging.WithFields(logrus.Fields{"resp-error": respError}).Error("Received erroneous response")
+		}
 	}
 
 	return nil
