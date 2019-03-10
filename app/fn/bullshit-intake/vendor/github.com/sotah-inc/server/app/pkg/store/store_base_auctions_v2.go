@@ -11,8 +11,8 @@ import (
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
-func NewAuctionsBaseV2(c Client) AuctionsBaseV2 {
-	return AuctionsBaseV2{base{client: c}}
+func NewAuctionsBaseV2(c Client, location string) AuctionsBaseV2 {
+	return AuctionsBaseV2{base{client: c, location: location}}
 }
 
 type AuctionsBaseV2 struct {

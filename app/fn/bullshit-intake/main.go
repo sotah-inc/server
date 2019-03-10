@@ -25,10 +25,18 @@ import (
 var projectId = os.Getenv("GCP_PROJECT")
 
 var storeClient store.Client
-var auctionManifestStoreBaseV2 store.AuctionManifestBaseV2
-var auctionsStoreBaseV2 store.AuctionsBaseV2
 
-var newManifestBucket *storage.BucketHandle
+var auctionManifestStoreBaseV2 store.AuctionManifestBaseV2
+var manifestBucket *storage.BucketHandle
+
+var auctionManifestStoreBaseInter store.AuctionManifestBaseInter
+var manifestInterBucket *storage.BucketHandle
+
+var auctionsStoreBaseV2 store.AuctionsBaseV2
+var rawAuctionsBucket *storage.BucketHandle
+
+var auctionsStoreBaseInter store.AuctionsBaseInter
+var rawAuctionsInterBucket *storage.BucketHandle
 
 var busClient bus.Client
 var auctionsCleanupTopic *pubsub.Topic
@@ -55,10 +63,33 @@ func init() {
 
 		return
 	}
-	auctionsStoreBaseV2 = store.NewAuctionsBaseV2(storeClient)
-	auctionManifestStoreBaseV2 = store.NewAuctionManifestBaseV2(storeClient)
 
-	newManifestBucket, err = auctionManifestStoreBaseV2.GetFirmBucket()
+	auctionsStoreBaseV2 = store.NewAuctionsBaseV2(storeClient, "us-east1")
+	rawAuctionsBucket, err = auctionsStoreBaseV2.GetFirmBucket()
+	if err != nil {
+		log.Fatalf("Failed to get new manifest bucket: %s", err.Error())
+
+		return
+	}
+
+	auctionsStoreBaseInter = store.NewAuctionsBaseInter(storeClient, "us-central1")
+	rawAuctionsInterBucket, err = auctionsStoreBaseInter.GetFirmBucket()
+	if err != nil {
+		log.Fatalf("Failed to get new manifest bucket: %s", err.Error())
+
+		return
+	}
+
+	auctionManifestStoreBaseV2 = store.NewAuctionManifestBaseV2(storeClient, "us-east1")
+	manifestBucket, err = auctionManifestStoreBaseV2.GetFirmBucket()
+	if err != nil {
+		log.Fatalf("Failed to get new manifest bucket: %s", err.Error())
+
+		return
+	}
+
+	auctionManifestStoreBaseInter = store.NewAuctionManifestBaseInter(storeClient, "us-central1")
+	manifestInterBucket, err = auctionManifestStoreBaseInter.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get new manifest bucket: %s", err.Error())
 
@@ -71,8 +102,7 @@ func RebuildManifest(realm sotah.Realm) error {
 
 	manifests := map[sotah.UnixTimestamp]sotah.AuctionManifest{}
 
-	bkt := auctionsStoreBaseV2.GetBucket()
-	it := bkt.Objects(
+	it := rawAuctionsBucket.Objects(
 		storeClient.Context,
 		&storage.Query{
 			Delimiter: "/",
@@ -119,7 +149,7 @@ func RebuildManifest(realm sotah.Realm) error {
 		manifests[normalizedTimestamp] = append(nextManifest, sotah.UnixTimestamp(objTimestamp))
 	}
 
-	for writeAllOutJob := range auctionManifestStoreBaseV2.WriteAll(newManifestBucket, realm, manifests) {
+	for writeAllOutJob := range auctionManifestStoreBaseV2.WriteAll(manifestBucket, realm, manifests) {
 		if writeAllOutJob.Err != nil {
 			return writeAllOutJob.Err
 		}
@@ -131,7 +161,7 @@ func RebuildManifest(realm sotah.Realm) error {
 func CheckManifestForExpired(realm sotah.Realm) error {
 	limit := sotah.NormalizeTargetDate(time.Now()).AddDate(0, 0, -14)
 	prefix := fmt.Sprintf("%s/%s/", realm.Region.Name, realm.Slug)
-	it := newManifestBucket.Objects(storeClient.Context, &storage.Query{Prefix: prefix})
+	it := manifestBucket.Objects(storeClient.Context, &storage.Query{Prefix: prefix})
 	for {
 		objAttrs, err := it.Next()
 		if err != nil {
@@ -177,6 +207,10 @@ func CheckManifestForExpired(realm sotah.Realm) error {
 		}
 	}
 
+	return nil
+}
+
+func TransferBuckets(realm sotah.Realm) error {
 	return nil
 }
 

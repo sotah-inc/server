@@ -13,8 +13,8 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-func NewAuctionManifestBaseV2(c Client) AuctionManifestBaseV2 {
-	return AuctionManifestBaseV2{base{client: c}}
+func NewAuctionManifestBaseV2(c Client, location string) AuctionManifestBaseV2 {
+	return AuctionManifestBaseV2{base{client: c, location: location}}
 }
 
 type AuctionManifestBaseV2 struct {
@@ -37,12 +37,12 @@ func (b AuctionManifestBaseV2) GetFirmBucket() (*storage.BucketHandle, error) {
 	return b.base.getFirmBucket(b.getBucketName())
 }
 
-func (b AuctionManifestBaseV2) getObjectName(targetTimestamp sotah.UnixTimestamp, realm sotah.Realm) string {
+func (b AuctionManifestBaseV2) GetObjectName(targetTimestamp sotah.UnixTimestamp, realm sotah.Realm) string {
 	return fmt.Sprintf("%s/%s/%d.json", realm.Region.Name, realm.Slug, targetTimestamp)
 }
 
 func (b AuctionManifestBaseV2) GetObject(targetTimestamp sotah.UnixTimestamp, realm sotah.Realm, bkt *storage.BucketHandle) *storage.ObjectHandle {
-	return b.base.getObject(b.getObjectName(targetTimestamp, realm), bkt)
+	return b.base.getObject(b.GetObjectName(targetTimestamp, realm), bkt)
 }
 
 func (b AuctionManifestBaseV2) Handle(targetTimestamp sotah.UnixTimestamp, realm sotah.Realm, bkt *storage.BucketHandle) error {

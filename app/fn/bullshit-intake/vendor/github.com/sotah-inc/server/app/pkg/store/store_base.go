@@ -7,7 +7,9 @@ import (
 )
 
 type base struct {
-	client Client
+	client       Client
+	storageClass string
+	location     string
 }
 
 func (b base) getBucket(name string) *storage.BucketHandle {
@@ -16,8 +18,8 @@ func (b base) getBucket(name string) *storage.BucketHandle {
 
 func (b base) createBucket(bkt *storage.BucketHandle) error {
 	return bkt.Create(b.client.Context, b.client.projectID, &storage.BucketAttrs{
-		StorageClass: "REGIONAL",
-		Location:     "us-east1",
+		StorageClass: b.storageClass,
+		Location:     b.location,
 	})
 }
 
