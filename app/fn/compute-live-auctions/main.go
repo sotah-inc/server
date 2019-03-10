@@ -8,15 +8,15 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
-	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
-	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/bus/codes"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/store"
 )
 
 var projectId = os.Getenv("GCP_PROJECT")
+
 var busClient bus.Client
 
 var storeClient store.Client
@@ -50,6 +50,56 @@ func init() {
 	}
 }
 
+func Handle(job bus.LoadRegionRealmTimestampsInJob) bus.Message {
+	m := bus.NewMessage()
+
+	region := sotah.Region{Name: blizzard.RegionName(job.RegionName)}
+	realm := sotah.Realm{
+		Realm:  blizzard.Realm{Slug: blizzard.RealmSlug(job.RealmSlug)},
+		Region: region,
+	}
+	targetTime := time.Unix(int64(job.TargetTimestamp), 0)
+
+	obj, err := auctionsStoreBase.GetFirmObject(realm, targetTime, auctionsBucket)
+	if err != nil {
+		m.Err = err.Error()
+		m.Code = codes.NotFound
+
+		return m
+	}
+
+	aucs, err := storeClient.NewAuctions(obj)
+	if err != nil {
+		m.Err = err.Error()
+		m.Code = codes.GenericError
+
+		return m
+	}
+
+	if err := liveAuctionsStoreBase.Handle(aucs, realm); err != nil {
+		m.Err = err.Error()
+		m.Code = codes.GenericError
+
+		return m
+	}
+
+	respData := bus.RegionRealmTimestampTuple{
+		RegionName:      string(realm.Region.Name),
+		RealmSlug:       string(realm.Slug),
+		TargetTimestamp: job.TargetTimestamp,
+	}
+	data, err := json.Marshal(respData)
+	if err != nil {
+		m.Err = err.Error()
+		m.Code = codes.GenericError
+
+		return m
+	}
+	m.Data = string(data)
+
+	return m
+}
+
 type PubSubMessage struct {
 	Data []byte `json:"data"`
 }
@@ -65,47 +115,11 @@ func ComputeLiveAuctions(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
-	region := sotah.Region{Name: blizzard.RegionName(job.RegionName)}
-	realm := sotah.Realm{
-		Realm:  blizzard.Realm{Slug: blizzard.RealmSlug(job.RealmSlug)},
-		Region: region,
-	}
-	targetTime := time.Unix(int64(job.TargetTimestamp), 0)
-
-	obj, err := auctionsStoreBase.GetFirmObject(realm, targetTime, auctionsBucket)
-	if err != nil {
+	msg := Handle(job)
+	msg.ReplyToId = in.ReplyToId
+	if _, err := busClient.ReplyTo(in, msg); err != nil {
 		return err
 	}
-
-	aucs, err := storeClient.NewAuctions(obj)
-	if err != nil {
-		return err
-	}
-
-	if err := liveAuctionsStoreBase.Handle(aucs, realm); err != nil {
-		return err
-	}
-
-	logging.WithFields(logrus.Fields{
-		"region":        region.Name,
-		"realm":         realm.Slug,
-		"last-modified": targetTime.Unix(),
-	}).Info("Handled")
-
-	// req := state.LiveAuctionsComputeIntakeRequest{}
-	// req.RegionName = string(region.Name)
-	// req.RealmSlug = string(realm.Slug)
-	// jsonEncodedRequest, err := json.Marshal(req)
-	// if err != nil {
-	// 	return err
-	// }
-	//
-	// topic := busClient.Topic(string(subjects.LiveAuctionsComputeIntake))
-	// msg := bus.NewMessage()
-	// msg.Data = string(jsonEncodedRequest)
-	// if _, err := busClient.Publish(topic, msg); err != nil {
-	// 	return err
-	// }
 
 	return nil
 }

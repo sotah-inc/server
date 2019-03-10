@@ -2,6 +2,7 @@ package bus
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/bus/codes"
 	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/util"
 	"github.com/twinj/uuid"
 )
 
@@ -19,10 +21,11 @@ func NewMessage() Message {
 }
 
 type Message struct {
-	Data    string     `json:"data"`
-	Err     string     `json:"error"`
-	Code    codes.Code `json:"code"`
-	ReplyTo string     `json:"reply_to"`
+	Data      string     `json:"data"`
+	Err       string     `json:"error"`
+	Code      codes.Code `json:"code"`
+	ReplyTo   string     `json:"reply_to"`
+	ReplyToId string     `json:"reply_to_id"`
 }
 
 func NewClient(projectID string, subscriberId string) (Client, error) {
@@ -365,8 +368,45 @@ type CollectAuctionsJob struct {
 	RealmSlug  string `json:"realm_slug"`
 }
 
-type CleanupAuctionManifestJob struct {
+func NewRegionRealmTimestampTuples(data string) (RegionRealmTimestampTuples, error) {
+	base64Decoded, err := base64.RawStdEncoding.DecodeString(data)
+	if err != nil {
+		return RegionRealmTimestampTuples{}, err
+	}
+
+	gzipDecoded, err := util.GzipDecode(base64Decoded)
+	if err != nil {
+		return RegionRealmTimestampTuples{}, err
+	}
+
+	var out RegionRealmTimestampTuples
+	if err := json.Unmarshal(gzipDecoded, &out); err != nil {
+		return RegionRealmTimestampTuples{}, err
+	}
+
+	return out, nil
+}
+
+type RegionRealmTimestampTuples []RegionRealmTimestampTuple
+
+func (s RegionRealmTimestampTuples) EncodeForDelivery() (string, error) {
+	jsonEncoded, err := json.Marshal(s)
+	if err != nil {
+		return "", err
+	}
+
+	gzipEncoded, err := util.GzipEncode(jsonEncoded)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.RawStdEncoding.EncodeToString(gzipEncoded), nil
+}
+
+type RegionRealmTimestampTuple struct {
 	RegionName      string `json:"region_name"`
 	RealmSlug       string `json:"realm_slug"`
 	TargetTimestamp int    `json:"target_timestamp"`
 }
+
+type CleanupAuctionManifestJob = RegionRealmTimestampTuple

@@ -9,48 +9,42 @@ import (
 	"github.com/sotah-inc/server/app/pkg/sotah"
 )
 
-func NewPricelistHistoriesBase(c Client) PricelistHistoriesBase {
-	return PricelistHistoriesBase{base{client: c}}
+func NewPricelistHistoriesBaseV2(c Client) PricelistHistoriesBaseV2 {
+	return PricelistHistoriesBaseV2{base{client: c}}
 }
 
-type PricelistHistoriesBase struct {
+type PricelistHistoriesBaseV2 struct {
 	base
 }
 
-func (b PricelistHistoriesBase) getBucketName(rea sotah.Realm) string {
-	return fmt.Sprintf("pricelist-histories_%s_%s", rea.Region.Name, rea.Slug)
+func (b PricelistHistoriesBaseV2) getBucketName() string {
+	return "pricelist-histories"
 }
 
-func (b PricelistHistoriesBase) GetBucket(rea sotah.Realm) *storage.BucketHandle {
-	return b.base.getBucket(b.getBucketName(rea))
+func (b PricelistHistoriesBaseV2) GetBucket() *storage.BucketHandle {
+	return b.base.getBucket(b.getBucketName())
 }
 
-func (b PricelistHistoriesBase) resolveBucket(rea sotah.Realm) (*storage.BucketHandle, error) {
-	return b.base.resolveBucket(b.getBucketName(rea))
+func (b PricelistHistoriesBaseV2) GetFirmBucket() (*storage.BucketHandle, error) {
+	return b.base.getFirmBucket(b.getBucketName())
 }
 
-func (b PricelistHistoriesBase) getObjectName(targetTime time.Time) string {
-	return fmt.Sprintf("%d.txt.gz", targetTime.Unix())
+func (b PricelistHistoriesBaseV2) getObjectName(targetTime time.Time, realm sotah.Realm) string {
+	return fmt.Sprintf("%s/%s/%d.txt.gz", realm.Region.Name, realm.Slug, targetTime.Unix())
 }
 
-func (b PricelistHistoriesBase) GetObject(targetTime time.Time, bkt *storage.BucketHandle) *storage.ObjectHandle {
-	return b.base.getObject(b.getObjectName(targetTime), bkt)
+func (b PricelistHistoriesBaseV2) GetObject(targetTime time.Time, realm sotah.Realm, bkt *storage.BucketHandle) *storage.ObjectHandle {
+	return b.base.getObject(b.getObjectName(targetTime, realm), bkt)
 }
 
-func (b PricelistHistoriesBase) Handle(aucs blizzard.Auctions, targetTime time.Time, rea sotah.Realm) (sotah.UnixTimestamp, error) {
+func (b PricelistHistoriesBaseV2) Handle(aucs blizzard.Auctions, targetTime time.Time, rea sotah.Realm, bkt *storage.BucketHandle) (sotah.UnixTimestamp, error) {
 	normalizedTargetDate := sotah.NormalizeTargetDate(targetTime)
 
 	// resolving unix-timestamp of target-time
 	targetTimestamp := sotah.UnixTimestamp(targetTime.Unix())
 
-	// gathering the bucket
-	bkt, err := b.resolveBucket(rea)
-	if err != nil {
-		return 0, err
-	}
-
 	// gathering an object
-	obj := b.GetObject(normalizedTargetDate, bkt)
+	obj := b.GetObject(normalizedTargetDate, rea, bkt)
 
 	// resolving item-price-histories
 	ipHistories, err := func() (sotah.ItemPriceHistories, error) {

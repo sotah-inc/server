@@ -1,4 +1,4 @@
-# cloud.google.com/go v0.35.1
+# cloud.google.com/go v0.36.0
 cloud.google.com/go/storage
 cloud.google.com/go/iam
 cloud.google.com/go/internal
@@ -23,9 +23,10 @@ github.com/googleapis/gax-go/v2
 github.com/konsorten/go-windows-terminal-sequences
 # github.com/sirupsen/logrus v1.3.0
 github.com/sirupsen/logrus
-# github.com/sotah-inc/server/app v0.0.0-20190304234557-a41e3125c71b
+# github.com/sotah-inc/server/app v0.0.0-20190310022025-cb8f23f09962
 github.com/sotah-inc/server/app/pkg/blizzard
 github.com/sotah-inc/server/app/pkg/bus
+github.com/sotah-inc/server/app/pkg/bus/codes
 github.com/sotah-inc/server/app/pkg/logging
 github.com/sotah-inc/server/app/pkg/sotah
 github.com/sotah-inc/server/app/pkg/store
@@ -33,7 +34,6 @@ github.com/sotah-inc/server/app/pkg/blizzard/itembinds
 github.com/sotah-inc/server/app/pkg/blizzard/realmpopulations
 github.com/sotah-inc/server/app/pkg/blizzard/realmtypes
 github.com/sotah-inc/server/app/pkg/util
-github.com/sotah-inc/server/app/pkg/bus/codes
 github.com/sotah-inc/server/app/pkg/state/subjects
 github.com/sotah-inc/server/app/pkg/sotah/sortdirections
 github.com/sotah-inc/server/app/pkg/sotah/sortkinds
@@ -110,7 +110,7 @@ google.golang.org/appengine/internal/log
 google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/socket
 google.golang.org/appengine/internal/socket
-# google.golang.org/genproto v0.0.0-20190122154452-ba6ebe99b011
+# google.golang.org/genproto v0.0.0-20190201180003-4b09977fb922
 google.golang.org/genproto/googleapis/iam/v1
 google.golang.org/genproto/googleapis/rpc/code
 google.golang.org/genproto/googleapis/api/annotations
@@ -120,6 +120,7 @@ google.golang.org/genproto/googleapis/rpc/status
 # google.golang.org/grpc v1.17.0
 google.golang.org/grpc
 google.golang.org/grpc/codes
+google.golang.org/grpc/metadata
 google.golang.org/grpc/status
 google.golang.org/grpc/keepalive
 google.golang.org/grpc/balancer
@@ -137,7 +138,6 @@ google.golang.org/grpc/internal/envconfig
 google.golang.org/grpc/internal/grpcrand
 google.golang.org/grpc/internal/grpcsync
 google.golang.org/grpc/internal/transport
-google.golang.org/grpc/metadata
 google.golang.org/grpc/naming
 google.golang.org/grpc/peer
 google.golang.org/grpc/resolver

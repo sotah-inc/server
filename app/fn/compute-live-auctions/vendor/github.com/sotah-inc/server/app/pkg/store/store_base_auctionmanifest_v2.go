@@ -13,43 +13,42 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-func NewAuctionManifestBase(c Client) AuctionManifestBase {
-	return AuctionManifestBase{base{client: c}}
+func NewAuctionManifestBaseV2(c Client) AuctionManifestBaseV2 {
+	return AuctionManifestBaseV2{base{client: c}}
 }
 
-type AuctionManifestBase struct {
+type AuctionManifestBaseV2 struct {
 	base
 }
 
-func (b AuctionManifestBase) getBucketName(realm sotah.Realm) string {
-	return fmt.Sprintf("auctions-manifest_%s_%s", realm.Region.Name, realm.Slug)
+func (b AuctionManifestBaseV2) getBucketName() string {
+	return "auctions-manifest"
 }
 
-func (b AuctionManifestBase) GetBucket(realm sotah.Realm) *storage.BucketHandle {
-	return b.base.getBucket(b.getBucketName(realm))
+func (b AuctionManifestBaseV2) GetBucket() *storage.BucketHandle {
+	return b.base.getBucket(b.getBucketName())
 }
 
-func (b AuctionManifestBase) ResolveBucket(realm sotah.Realm) (*storage.BucketHandle, error) {
-	return b.base.resolveBucket(b.getBucketName(realm))
+func (b AuctionManifestBaseV2) ResolveBucket() (*storage.BucketHandle, error) {
+	return b.base.resolveBucket(b.getBucketName())
 }
 
-func (b AuctionManifestBase) getObjectName(targetTimestamp sotah.UnixTimestamp) string {
-	return fmt.Sprintf("%d.json", targetTimestamp)
+func (b AuctionManifestBaseV2) GetFirmBucket() (*storage.BucketHandle, error) {
+	return b.base.getFirmBucket(b.getBucketName())
 }
 
-func (b AuctionManifestBase) GetObject(targetTimestamp sotah.UnixTimestamp, bkt *storage.BucketHandle) *storage.ObjectHandle {
-	return b.base.getObject(b.getObjectName(targetTimestamp), bkt)
+func (b AuctionManifestBaseV2) GetObjectName(targetTimestamp sotah.UnixTimestamp, realm sotah.Realm) string {
+	return fmt.Sprintf("%s/%s/%d.json", realm.Region.Name, realm.Slug, targetTimestamp)
 }
 
-func (b AuctionManifestBase) Handle(targetTimestamp sotah.UnixTimestamp, realm sotah.Realm) error {
-	bkt, err := b.ResolveBucket(realm)
-	if err != nil {
-		return err
-	}
+func (b AuctionManifestBaseV2) GetObject(targetTimestamp sotah.UnixTimestamp, realm sotah.Realm, bkt *storage.BucketHandle) *storage.ObjectHandle {
+	return b.base.getObject(b.GetObjectName(targetTimestamp, realm), bkt)
+}
 
+func (b AuctionManifestBaseV2) Handle(targetTimestamp sotah.UnixTimestamp, realm sotah.Realm, bkt *storage.BucketHandle) error {
 	normalizedTargetTimestamp := sotah.UnixTimestamp(sotah.NormalizeTargetDate(time.Unix(int64(targetTimestamp), 0)).Unix())
 
-	obj := b.GetObject(normalizedTargetTimestamp, bkt)
+	obj := b.GetObject(normalizedTargetTimestamp, realm, bkt)
 	nextManifest, err := func() (sotah.AuctionManifest, error) {
 		exists, err := b.ObjectExists(obj)
 		if err != nil {
@@ -111,13 +110,13 @@ type DeleteAuctionManifestJob struct {
 	Count int
 }
 
-func (b AuctionManifestBase) DeleteAll(regionRealms map[blizzard.RegionName]sotah.Realms) chan DeleteAuctionManifestJob {
+func (b AuctionManifestBaseV2) DeleteAll(regionRealms map[blizzard.RegionName]sotah.Realms) chan DeleteAuctionManifestJob {
 	// spinning up the workers
 	in := make(chan sotah.Realm)
 	out := make(chan DeleteAuctionManifestJob)
 	worker := func() {
 		for realm := range in {
-			bkt, err := b.ResolveBucket(realm)
+			bkt, err := b.GetFirmBucket()
 			if err != nil {
 				out <- DeleteAuctionManifestJob{
 					Err:   err,
@@ -196,15 +195,13 @@ type WriteAllOutJob struct {
 	NormalizedTimestamp sotah.UnixTimestamp
 }
 
-func (b AuctionManifestBase) WriteAll(bkt *storage.BucketHandle, manifests map[sotah.UnixTimestamp]sotah.AuctionManifest) chan WriteAllOutJob {
+func (b AuctionManifestBaseV2) WriteAll(bkt *storage.BucketHandle, realm sotah.Realm, manifests map[sotah.UnixTimestamp]sotah.AuctionManifest) chan WriteAllOutJob {
 	// spinning up the workers
 	in := make(chan WriteAllInJob)
 	out := make(chan WriteAllOutJob)
 	worker := func() {
 		for inJob := range in {
-			obj := b.GetObject(inJob.NormalizedTimestamp, bkt)
-
-			jsonEncodedBody, err := json.Marshal(inJob.Manifest)
+			gzipEncodedBody, err := inJob.Manifest.EncodeForPersistence()
 			if err != nil {
 				out <- WriteAllOutJob{
 					Err:                 err,
@@ -214,17 +211,7 @@ func (b AuctionManifestBase) WriteAll(bkt *storage.BucketHandle, manifests map[s
 				continue
 			}
 
-			gzipEncodedBody, err := util.GzipEncode(jsonEncodedBody)
-			if err != nil {
-				out <- WriteAllOutJob{
-					Err:                 err,
-					NormalizedTimestamp: inJob.NormalizedTimestamp,
-				}
-
-				continue
-			}
-
-			wc := obj.NewWriter(b.client.Context)
+			wc := b.GetObject(inJob.NormalizedTimestamp, realm, bkt).NewWriter(b.client.Context)
 			wc.ContentType = "application/json"
 			wc.ContentEncoding = "gzip"
 			if _, err := wc.Write(gzipEncodedBody); err != nil {
@@ -268,4 +255,23 @@ func (b AuctionManifestBase) WriteAll(bkt *storage.BucketHandle, manifests map[s
 	}()
 
 	return out
+}
+
+func (b AuctionManifestBaseV2) NewAuctionManifest(obj *storage.ObjectHandle) (sotah.AuctionManifest, error) {
+	reader, err := obj.NewReader(b.client.Context)
+	if err != nil {
+		return sotah.AuctionManifest{}, err
+	}
+
+	data, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return sotah.AuctionManifest{}, err
+	}
+
+	var out sotah.AuctionManifest
+	if err := json.Unmarshal(data, &out); err != nil {
+		return sotah.AuctionManifest{}, err
+	}
+
+	return out, nil
 }

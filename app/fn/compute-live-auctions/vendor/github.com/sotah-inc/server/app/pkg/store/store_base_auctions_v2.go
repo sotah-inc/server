@@ -72,6 +72,11 @@ func (b AuctionsBaseV2) Handle(aucs blizzard.Auctions, lastModified time.Time, r
 	return nil
 }
 
+type DeleteAuctionsJob struct {
+	Err             error
+	TargetTimestamp sotah.UnixTimestamp
+}
+
 func (b AuctionsBaseV2) DeleteAll(bkt *storage.BucketHandle, realm sotah.Realm, manifest sotah.AuctionManifest) chan DeleteAuctionsJob {
 	// spinning up the workers
 	in := make(chan sotah.UnixTimestamp)
