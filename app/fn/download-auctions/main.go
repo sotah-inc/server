@@ -50,8 +50,8 @@ func init() {
 
 		return
 	}
-	auctionsStoreBase = store.NewAuctionsBaseV2(storeClient)
-	auctionManifestStoreBase = store.NewAuctionManifestBaseV2(storeClient)
+	auctionsStoreBase = store.NewAuctionsBaseV2(storeClient, "us-central1")
+	auctionManifestStoreBase = store.NewAuctionManifestBaseV2(storeClient, "us-central1")
 
 	auctionsBucket, err = auctionsStoreBase.GetFirmBucket()
 	if err != nil {

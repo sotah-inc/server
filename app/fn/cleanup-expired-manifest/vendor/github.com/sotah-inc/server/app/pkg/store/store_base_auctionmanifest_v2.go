@@ -13,8 +13,8 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-func NewAuctionManifestBaseV2(c Client) AuctionManifestBaseV2 {
-	return AuctionManifestBaseV2{base{client: c}}
+func NewAuctionManifestBaseV2(c Client, location string) AuctionManifestBaseV2 {
+	return AuctionManifestBaseV2{base{client: c, location: location}}
 }
 
 type AuctionManifestBaseV2 struct {
