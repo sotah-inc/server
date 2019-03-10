@@ -28,7 +28,7 @@ var projectId = os.Getenv("GCP_PROJECT")
 var regionRealms map[blizzard.RegionName]sotah.Realms
 
 var busClient bus.Client
-var collectAuctionsTopic *pubsub.Topic
+var downloadAuctionsTopic *pubsub.Topic
 
 func init() {
 	var err error
@@ -38,7 +38,7 @@ func init() {
 
 		return
 	}
-	collectAuctionsTopic, err = busClient.FirmTopic(string(subjects.DownloadAuctions))
+	downloadAuctionsTopic, err = busClient.FirmTopic(string(subjects.DownloadAuctions))
 	if err != nil {
 		log.Fatalf("Failed to get firm topic: %s", err.Error())
 
@@ -191,7 +191,7 @@ func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
 			msg.Data = string(jsonEncoded)
 			msg.ReplyTo = downloadedAuctionsRecipientTopic.ID()
 			msg.ReplyToId = fmt.Sprintf("%s-%s", realm.Region.Name, realm.Slug)
-			if _, err := busClient.Publish(collectAuctionsTopic, msg); err != nil {
+			if _, err := busClient.Publish(downloadAuctionsTopic, msg); err != nil {
 				out <- bus.LoadRegionRealmsOutJob{
 					Err:   err,
 					Realm: realm,
