@@ -1,8 +1,8 @@
 cron:
-- description: "auctions collector"
-  url: /
-  schedule: every 20 minutes
-  target: collector
+#- description: "auctions collector"
+#  url: /
+#  schedule: every 20 minutes
+#  target: collector
 - description: "auctions cleanup"
   url: /clean
   schedule: every 24 hours
