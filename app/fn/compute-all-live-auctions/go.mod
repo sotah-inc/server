@@ -1,4 +1,4 @@
-module github.com/sotah-inc/server/app/fn/auctions-collector
+module github.com/sotah-inc/server/app/fn/compute-all-live-auctions
 
 require (
 	cloud.google.com/go v0.36.0

@@ -1,4 +1,4 @@
-package auctionscollector
+package download_all_auctions
 
 import (
 	"context"

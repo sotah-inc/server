@@ -1,4 +1,4 @@
-package cleanupintake
+package cleanup_expired_manifest
 
 import (
 	"context"

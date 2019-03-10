@@ -1,4 +1,4 @@
-module github.com/sotah-inc/server/app/fn/collect-auctions
+module github.com/sotah-inc/server/app/fn/download-auctions
 
 require (
 	cloud.google.com/go v0.36.0

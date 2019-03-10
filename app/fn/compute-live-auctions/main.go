@@ -1,4 +1,4 @@
-package liveauctionscomputeintake
+package compute_live_auctions
 
 import (
 	"context"

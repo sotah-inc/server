@@ -1,4 +1,4 @@
-package auctionscleanup
+package cleanup_all_expired_manifests
 
 import (
 	"context"

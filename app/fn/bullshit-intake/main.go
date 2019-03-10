@@ -1,4 +1,4 @@
-package cleanupintake
+package bullshit_intake
 
 import (
 	"context"

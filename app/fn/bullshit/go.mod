@@ -1,4 +1,4 @@
-module github.com/sotah-inc/server/app/fn/cleanup
+module github.com/sotah-inc/server/app/fn/bullshit
 
 require (
 	cloud.google.com/go v0.36.0

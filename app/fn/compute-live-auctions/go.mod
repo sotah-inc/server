@@ -1,4 +1,4 @@
-module github.com/sotah-inc/server/app/fn/live-auctions-compute-intake
+module github.com/sotah-inc/server/app/fn/compute-live-auctions
 
 require (
 	cloud.google.com/go v0.35.1

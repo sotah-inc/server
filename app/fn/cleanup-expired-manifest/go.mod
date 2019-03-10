@@ -1,4 +1,4 @@
-module github.com/sotah-inc/server/app/fn/auctions-cleanup-intake
+module github.com/sotah-inc/server/app/fn/cleanup-expired-manifest
 
 require (
 	cloud.google.com/go v0.36.0
