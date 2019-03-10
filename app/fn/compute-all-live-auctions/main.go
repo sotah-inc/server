@@ -43,8 +43,8 @@ func ComputeAllLiveAuctions(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
-	var tuple []bus.RegionRealmTimestampTuple
-	if err := json.Unmarshal([]byte(in.Data), &tuple); err != nil {
+	tuple, err := bus.NewRegionRealmTimestampTuples(in.Data)
+	if err != nil {
 		return err
 	}
 
