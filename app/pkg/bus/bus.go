@@ -387,7 +387,7 @@ func NewRegionRealmTimestampTuples(data string) (RegionRealmTimestampTuples, err
 	return out, nil
 }
 
-type RegionRealmTimestampTuples = []RegionRealmTimestampTuple
+type RegionRealmTimestampTuples []RegionRealmTimestampTuple
 
 func (s RegionRealmTimestampTuples) EncodeForDelivery() (string, error) {
 	jsonEncoded, err := json.Marshal(s)
