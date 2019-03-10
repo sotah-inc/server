@@ -29,6 +29,7 @@ var regionRealms map[blizzard.RegionName]sotah.Realms
 
 var busClient bus.Client
 var downloadAuctionsTopic *pubsub.Topic
+var computeAllLiveAuctionsTopic *pubsub.Topic
 
 func init() {
 	var err error
@@ -39,6 +40,12 @@ func init() {
 		return
 	}
 	downloadAuctionsTopic, err = busClient.FirmTopic(string(subjects.DownloadAuctions))
+	if err != nil {
+		log.Fatalf("Failed to get firm topic: %s", err.Error())
+
+		return
+	}
+	computeAllLiveAuctionsTopic, err = busClient.FirmTopic(string(subjects.ComputeAllLiveAuctions))
 	if err != nil {
 		log.Fatalf("Failed to get firm topic: %s", err.Error())
 
@@ -254,8 +261,8 @@ func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
 	<-receiveDownloadedAuctionsConfig.OnStopped
 
 	// iterating over the results
-	logging.Info("Iterating over the results")
-	responses := []bus.RegionRealmTimestampTuple{}
+	logging.Info("Aggregating results")
+	responses := bus.RegionRealmTimestampTuples{}
 	for _, msg := range responseItems {
 		if msg.Code != codes.Ok {
 			if msg.Code == codes.BlizzardError {
@@ -280,6 +287,17 @@ func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
 		}
 
 		responses = append(responses, respData)
+	}
+
+	// producing a message for computation
+	data, err := responses.EncodeForDelivery()
+	if err != nil {
+		return err
+	}
+	msg := bus.NewMessage()
+	msg.Data = data
+	if _, err := busClient.Publish(computeAllLiveAuctionsTopic, msg); err != nil {
+		return err
 	}
 
 	return nil
