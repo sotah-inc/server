@@ -48,7 +48,7 @@ func ComputeAllLiveAuctions(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
-	logging.WithField("tuple", tuple).Info("Received")
+	logging.WithField("tuple", len(tuple)).Info("Received")
 
 	return nil
 }
