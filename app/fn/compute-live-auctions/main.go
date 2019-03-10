@@ -39,8 +39,8 @@ func init() {
 
 		return
 	}
-	liveAuctionsStoreBase = store.NewLiveAuctionsBase(storeClient)
-	auctionsStoreBase = store.NewAuctionsBaseV2(storeClient)
+	liveAuctionsStoreBase = store.NewLiveAuctionsBase(storeClient, "us-central1")
+	auctionsStoreBase = store.NewAuctionsBaseV2(storeClient, "us-central1")
 
 	auctionsBucket, err = auctionsStoreBase.GetFirmBucket()
 	if err != nil {

@@ -9,8 +9,8 @@ import (
 	"github.com/sotah-inc/server/app/pkg/sotah"
 )
 
-func NewLiveAuctionsBase(c Client) LiveAuctionsBase {
-	return LiveAuctionsBase{base{client: c}}
+func NewLiveAuctionsBase(c Client, location string) LiveAuctionsBase {
+	return LiveAuctionsBase{base{client: c, location: location}}
 }
 
 type LiveAuctionsBase struct {
