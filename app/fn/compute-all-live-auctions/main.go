@@ -43,12 +43,12 @@ func ComputeAllLiveAuctions(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
-	tuple, err := bus.NewRegionRealmTimestampTuples(in.Data)
+	tuples, err := bus.NewRegionRealmTimestampTuples(in.Data)
 	if err != nil {
 		return err
 	}
 
-	logging.WithField("tuple", len(tuple)).Info("Received")
+	logging.WithField("tuples", len(tuples)).Info("Handling")
 
 	return nil
 }
