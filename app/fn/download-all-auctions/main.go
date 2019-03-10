@@ -255,6 +255,7 @@ func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
 
 	// iterating over the results
 	logging.Info("Iterating over the results")
+	responses := []bus.RegionRealmTimestampTuple{}
 	for _, msg := range responseItems {
 		if msg.Code != codes.Ok {
 			if msg.Code == codes.BlizzardError {
@@ -269,12 +270,16 @@ func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
 			continue
 		}
 
+		if len(msg.Data) == 0 {
+			continue
+		}
+
 		var respData bus.RegionRealmTimestampTuple
 		if err := json.Unmarshal([]byte(msg.Data), &respData); err != nil {
 			return err
 		}
 
-		logging.WithField("resp-data", respData).Info("Received message")
+		responses = append(responses, respData)
 	}
 
 	return nil
