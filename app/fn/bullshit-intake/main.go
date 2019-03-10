@@ -3,6 +3,7 @@ package bullshit_intake
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -211,6 +212,45 @@ func CheckManifestForExpired(realm sotah.Realm) error {
 }
 
 func TransferBuckets(realm sotah.Realm) error {
+	prefix := fmt.Sprintf("%s/%s/", realm.Region.Name, realm.Slug)
+	it := manifestBucket.Objects(storeClient.Context, &storage.Query{Prefix: prefix})
+	for {
+		objAttrs, err := it.Next()
+		if err != nil {
+			if err == iterator.Done {
+				break
+			}
+
+			if err != nil {
+				return err
+			}
+		}
+
+		manifest, err := auctionManifestStoreBaseV2.NewAuctionManifest(manifestBucket.Object(objAttrs.Name))
+		if err != nil {
+			return err
+		}
+
+		for _, targetTimestamp := range manifest {
+			logging.WithFields(logrus.Fields{
+				"region":           realm.Region.Name,
+				"realm":            realm.Slug,
+				"manifest":         objAttrs.Name,
+				"target-timestamp": targetTimestamp,
+			}).Info("Checking")
+
+			rawAuctionsObj := auctionsStoreBaseV2.GetObject(realm, time.Unix(int64(targetTimestamp), 0), rawAuctionsBucket)
+			exists, err := auctionsStoreBaseV2.ObjectExists(rawAuctionsObj)
+			if err != nil {
+				return err
+			}
+
+			if !exists {
+				return errors.New("timestamp in manifest leads to no obj")
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -243,5 +283,9 @@ func BullshitIntake(_ context.Context, m PubSubMessage) error {
 		Region: sotah.Region{Name: blizzard.RegionName(job.RegionName)},
 	}
 
-	return CheckManifestForExpired(realm)
+	if realm.Region.Name != "us" || realm.Slug != "earthen-ring" {
+		return nil
+	}
+
+	return TransferBuckets(realm)
 }
