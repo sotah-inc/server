@@ -390,15 +390,15 @@ func TransferBuckets(realm sotah.Realm) error {
 			"raw-auctions": len(outJob.Manifest),
 		}).Info("No more raw-auctions to transfer and manifest has been copied, pruning old manifest")
 
-		for deleteJob := range auctionsStoreBaseV2.DeleteAll(rawAuctionsBucket, realm, outJob.Manifest) {
-			if deleteJob.Err != nil {
-				return deleteJob.Err
-			}
-		}
-
-		if err := outJob.PreviousManifestObj.Delete(storeClient.Context); err != nil {
-			return err
-		}
+		//for deleteJob := range auctionsStoreBaseV2.DeleteAll(rawAuctionsBucket, realm, outJob.Manifest) {
+		//	if deleteJob.Err != nil {
+		//		return deleteJob.Err
+		//	}
+		//}
+		//
+		//if err := outJob.PreviousManifestObj.Delete(storeClient.Context); err != nil {
+		//	return err
+		//}
 	}
 
 	return nil
