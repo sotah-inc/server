@@ -376,6 +376,16 @@ func TransferBuckets(realm sotah.Realm) error {
 		if outJob.Err != nil {
 			return outJob.Err
 		}
+
+		if outJob.Transferred > 0 {
+			continue
+		}
+
+		for deleteJob := range auctionsStoreBaseV2.DeleteAll(rawAuctionsBucket, realm, outJob.Manifest) {
+			if deleteJob.Err != nil {
+				return deleteJob.Err
+			}
+		}
 	}
 
 	return nil
