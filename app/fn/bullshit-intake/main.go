@@ -285,13 +285,26 @@ func TransferBuckets(realm sotah.Realm) error {
 				continue
 			}
 
-			manifestTimestamp := objAttrs.Name[len(prefix):(len(objAttrs.Name) - len(".json"))]
+			manifestTimestamp, err := strconv.Atoi(objAttrs.Name[len(prefix):(len(objAttrs.Name) - len(".json"))])
+			if err != nil {
+				out <- err
+
+				continue
+			}
 
 			logging.WithFields(logrus.Fields{
 				"region":   realm.Region.Name,
 				"realm":    realm.Slug,
 				"manifest": manifestTimestamp,
 			}).Info("No more raw-auctions objs to transfer, transferring manifest file and pruning old one")
+
+			nextManifestObj := auctionManifestStoreBaseInter.GetObject(sotah.UnixTimestamp(manifestTimestamp), realm, manifestInterBucket)
+			copier := nextManifestObj.CopierFrom(previousManifestObj)
+			if _, err := copier.Run(storeClient.Context); err != nil {
+				out <- err
+
+				continue
+			}
 
 			out <- nil
 		}
