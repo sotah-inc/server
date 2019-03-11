@@ -213,12 +213,18 @@ func CheckManifestForExpired(realm sotah.Realm) error {
 	return nil
 }
 
+type TransferBucketsOutJob struct {
+	Err         error
+	Manifest    sotah.AuctionManifest
+	Transferred int
+}
+
 func TransferBuckets(realm sotah.Realm) error {
 	prefix := fmt.Sprintf("%s/%s/", realm.Region.Name, realm.Slug)
 
 	// establishing channels for intake
 	in := make(chan *storage.ObjectAttrs)
-	out := make(chan error)
+	out := make(chan TransferBucketsOutJob)
 
 	// spinning up the workers
 	worker := func() {
@@ -226,7 +232,9 @@ func TransferBuckets(realm sotah.Realm) error {
 			previousManifestObj := manifestBucket.Object(objAttrs.Name)
 			manifest, err := auctionManifestStoreBaseV2.NewAuctionManifest(previousManifestObj)
 			if err != nil {
-				out <- err
+				out <- TransferBucketsOutJob{
+					Err: err,
+				}
 
 				continue
 			}
@@ -239,13 +247,19 @@ func TransferBuckets(realm sotah.Realm) error {
 				previousRawAuctionsObj := auctionsStoreBaseV2.GetObject(realm, targetTime, rawAuctionsBucket)
 				exists, err := auctionsStoreBaseV2.ObjectExists(previousRawAuctionsObj)
 				if err != nil {
-					out <- err
+					out <- TransferBucketsOutJob{
+						Err:      err,
+						Manifest: manifest,
+					}
 
 					continue
 				}
 
 				if !exists {
-					out <- errors.New("timestamp in manifest leads to no obj")
+					out <- TransferBucketsOutJob{
+						Err:      errors.New("timestamp in manifest leads to no obj"),
+						Manifest: manifest,
+					}
 
 					continue
 				}
@@ -253,7 +267,10 @@ func TransferBuckets(realm sotah.Realm) error {
 				nextRawAuctionsObj := auctionsStoreBaseInter.GetObject(realm, targetTime, rawAuctionsInterBucket)
 				exists, err = auctionsStoreBaseInter.ObjectExists(nextRawAuctionsObj)
 				if err != nil {
-					out <- err
+					out <- TransferBucketsOutJob{
+						Err:      err,
+						Manifest: manifest,
+					}
 
 					continue
 				}
@@ -271,7 +288,10 @@ func TransferBuckets(realm sotah.Realm) error {
 
 				copier := nextRawAuctionsObj.CopierFrom(previousRawAuctionsObj)
 				if _, err := copier.Run(storeClient.Context); err != nil {
-					out <- err
+					out <- TransferBucketsOutJob{
+						Err:      err,
+						Manifest: manifest,
+					}
 
 					continue
 				}
@@ -280,14 +300,21 @@ func TransferBuckets(realm sotah.Realm) error {
 			}
 
 			if transferred > 0 {
-				out <- nil
+				out <- TransferBucketsOutJob{
+					Err:         nil,
+					Manifest:    manifest,
+					Transferred: transferred,
+				}
 
 				continue
 			}
 
 			manifestTimestamp, err := strconv.Atoi(objAttrs.Name[len(prefix):(len(objAttrs.Name) - len(".json"))])
 			if err != nil {
-				out <- err
+				out <- TransferBucketsOutJob{
+					Err:      err,
+					Manifest: manifest,
+				}
 
 				continue
 			}
@@ -301,12 +328,19 @@ func TransferBuckets(realm sotah.Realm) error {
 			nextManifestObj := auctionManifestStoreBaseInter.GetObject(sotah.UnixTimestamp(manifestTimestamp), realm, manifestInterBucket)
 			copier := nextManifestObj.CopierFrom(previousManifestObj)
 			if _, err := copier.Run(storeClient.Context); err != nil {
-				out <- err
+				out <- TransferBucketsOutJob{
+					Err:      err,
+					Manifest: manifest,
+				}
 
 				continue
 			}
 
-			out <- nil
+			out <- TransferBucketsOutJob{
+				Err:         nil,
+				Manifest:    manifest,
+				Transferred: 0,
+			}
 		}
 	}
 	postWork := func() {
@@ -338,9 +372,9 @@ func TransferBuckets(realm sotah.Realm) error {
 		close(in)
 	}()
 
-	for err := range out {
-		if err != nil {
-			return err
+	for outJob := range out {
+		if outJob.Err != nil {
+			return outJob.Err
 		}
 	}
 
