@@ -214,9 +214,10 @@ func CheckManifestForExpired(realm sotah.Realm) error {
 }
 
 type TransferBucketsOutJob struct {
-	Err         error
-	Manifest    sotah.AuctionManifest
-	Transferred int
+	Err                 error
+	Manifest            sotah.AuctionManifest
+	Transferred         int
+	PreviousManifestObj *storage.ObjectHandle
 }
 
 func TransferBuckets(realm sotah.Realm) error {
@@ -323,7 +324,7 @@ func TransferBuckets(realm sotah.Realm) error {
 				"region":   realm.Region.Name,
 				"realm":    realm.Slug,
 				"manifest": manifestTimestamp,
-			}).Info("No more raw-auctions objs to transfer, transferring manifest file and pruning old one")
+			}).Info("No more raw-auctions objs to transfer, transferring manifest file")
 
 			nextManifestObj := auctionManifestStoreBaseInter.GetObject(sotah.UnixTimestamp(manifestTimestamp), realm, manifestInterBucket)
 			copier := nextManifestObj.CopierFrom(previousManifestObj)
@@ -337,9 +338,10 @@ func TransferBuckets(realm sotah.Realm) error {
 			}
 
 			out <- TransferBucketsOutJob{
-				Err:         nil,
-				Manifest:    manifest,
-				Transferred: 0,
+				Err:                 nil,
+				Manifest:            manifest,
+				Transferred:         0,
+				PreviousManifestObj: previousManifestObj,
 			}
 		}
 	}
@@ -381,10 +383,21 @@ func TransferBuckets(realm sotah.Realm) error {
 			continue
 		}
 
+		logging.WithFields(logrus.Fields{
+			"region":       realm.Region.Name,
+			"realm":        realm.Slug,
+			"manifest":     outJob.Manifest,
+			"raw-auctions": len(outJob.Manifest),
+		}).Info("No more raw-auctions to transfer and manifest has been copied, pruning old manifest")
+
 		for deleteJob := range auctionsStoreBaseV2.DeleteAll(rawAuctionsBucket, realm, outJob.Manifest) {
 			if deleteJob.Err != nil {
 				return deleteJob.Err
 			}
+		}
+
+		if err := outJob.PreviousManifestObj.Delete(storeClient.Context); err != nil {
+			return err
 		}
 	}
 
