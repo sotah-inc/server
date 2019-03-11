@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sotah-inc/server/app/pkg/util"
+
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/storage"
 	"github.com/sirupsen/logrus"
@@ -213,41 +215,119 @@ func CheckManifestForExpired(realm sotah.Realm) error {
 
 func TransferBuckets(realm sotah.Realm) error {
 	prefix := fmt.Sprintf("%s/%s/", realm.Region.Name, realm.Slug)
-	it := manifestBucket.Objects(storeClient.Context, &storage.Query{Prefix: prefix})
-	for {
-		objAttrs, err := it.Next()
-		if err != nil {
-			if err == iterator.Done {
-				break
+
+	// establishing channels for intake
+	in := make(chan *storage.ObjectAttrs)
+	out := make(chan error)
+
+	// spinning up the workers
+	worker := func() {
+		for objAttrs := range in {
+			previousManifestObj := manifestBucket.Object(objAttrs.Name)
+			manifest, err := auctionManifestStoreBaseV2.NewAuctionManifest(previousManifestObj)
+			if err != nil {
+				out <- err
+
+				continue
 			}
 
-			if err != nil {
-				return err
+			transferred := 0
+
+			for _, targetTimestamp := range manifest {
+				targetTime := time.Unix(int64(targetTimestamp), 0)
+
+				previousRawAuctionsObj := auctionsStoreBaseV2.GetObject(realm, targetTime, rawAuctionsBucket)
+				exists, err := auctionsStoreBaseV2.ObjectExists(previousRawAuctionsObj)
+				if err != nil {
+					out <- err
+
+					continue
+				}
+
+				if !exists {
+					out <- errors.New("timestamp in manifest leads to no obj")
+
+					continue
+				}
+
+				nextRawAuctionsObj := auctionsStoreBaseInter.GetObject(realm, targetTime, rawAuctionsInterBucket)
+				exists, err = auctionsStoreBaseInter.ObjectExists(nextRawAuctionsObj)
+				if err != nil {
+					out <- err
+
+					continue
+				}
+
+				if exists {
+					continue
+				}
+
+				logging.WithFields(logrus.Fields{
+					"region":           realm.Region.Name,
+					"realm":            realm.Slug,
+					"manifest":         objAttrs.Name,
+					"target-timestamp": targetTimestamp,
+				}).Info("Transferring")
+
+				copier := nextRawAuctionsObj.CopierFrom(previousRawAuctionsObj)
+				if _, err := copier.Run(storeClient.Context); err != nil {
+					out <- err
+
+					continue
+				}
+
+				transferred++
 			}
+
+			if transferred > 0 {
+				out <- nil
+
+				continue
+			}
+
+			manifestTimestamp := objAttrs.Name[len(prefix):(len(objAttrs.Name) - len(".json"))]
+
+			logging.WithFields(logrus.Fields{
+				"region":   realm.Region.Name,
+				"realm":    realm.Slug,
+				"manifest": manifestTimestamp,
+			}).Info("No more raw-auctions objs to transfer, transferring manifest file and pruning old one")
+
+			out <- nil
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(16, worker, postWork)
+
+	// queueing up the manifests
+	go func() {
+		logging.Info("Queueing up manifests")
+		it := manifestBucket.Objects(storeClient.Context, &storage.Query{Prefix: prefix})
+		for {
+			objAttrs, err := it.Next()
+			if err != nil {
+				if err == iterator.Done {
+					break
+				}
+
+				if err != nil {
+					logging.WithField("error", err.Error()).Fatal("Failed to iterate to next")
+
+					return
+				}
+			}
+
+			in <- objAttrs
 		}
 
-		manifest, err := auctionManifestStoreBaseV2.NewAuctionManifest(manifestBucket.Object(objAttrs.Name))
+		close(in)
+	}()
+
+	for err := range out {
 		if err != nil {
 			return err
-		}
-
-		for _, targetTimestamp := range manifest {
-			logging.WithFields(logrus.Fields{
-				"region":           realm.Region.Name,
-				"realm":            realm.Slug,
-				"manifest":         objAttrs.Name,
-				"target-timestamp": targetTimestamp,
-			}).Info("Checking")
-
-			rawAuctionsObj := auctionsStoreBaseV2.GetObject(realm, time.Unix(int64(targetTimestamp), 0), rawAuctionsBucket)
-			exists, err := auctionsStoreBaseV2.ObjectExists(rawAuctionsObj)
-			if err != nil {
-				return err
-			}
-
-			if !exists {
-				return errors.New("timestamp in manifest leads to no obj")
-			}
 		}
 	}
 
