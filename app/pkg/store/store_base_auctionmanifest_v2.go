@@ -22,7 +22,7 @@ type AuctionManifestBaseV2 struct {
 }
 
 func (b AuctionManifestBaseV2) getBucketName() string {
-	return "auctions-manifest-us-central1"
+	return "auctions-manifest"
 }
 
 func (b AuctionManifestBaseV2) GetBucket() *storage.BucketHandle {
