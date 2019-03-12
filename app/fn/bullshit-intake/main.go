@@ -417,12 +417,20 @@ func TransferBuckets(realm sotah.Realm) error {
 
 		for deleteJob := range auctionsStoreBaseV2.DeleteAll(rawAuctionsBucket, realm, outJob.Manifest) {
 			if deleteJob.Err != nil {
+				if deleteJob.Err == storage.ErrObjectNotExist {
+					continue
+				}
+
 				logging.WithField("error", deleteJob.Err.Error()).Error("Failed to delete previous raw-auctions obj")
 			}
 		}
 
 		previousManifestObj := auctionManifestStoreBaseV2.GetObject(outJob.TargetTimestamp, realm, manifestBucket)
 		if err := previousManifestObj.Delete(storeClient.Context); err != nil {
+			if err == storage.ErrObjectNotExist {
+				continue
+			}
+
 			logging.WithField("error", err.Error()).Error("Failed to delete previous manifest obj")
 
 			return err
