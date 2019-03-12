@@ -68,16 +68,8 @@ func init() {
 			return
 		}
 
-		if job.Region.Name != "eu" {
-			continue
-		}
-
 		realms := sotah.Realms{}
 		for _, realm := range job.Status.Realms {
-			if realm.Slug != "aegwynn" {
-				continue
-			}
-
 			realms = append(realms, realm)
 		}
 

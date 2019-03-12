@@ -469,9 +469,5 @@ func BullshitIntake(_ context.Context, m PubSubMessage) error {
 		Region: sotah.Region{Name: blizzard.RegionName(job.RegionName)},
 	}
 
-	if realm.Region.Name != "eu" || realm.Slug != "aegwynn" {
-		return nil
-	}
-
 	return TransferBuckets(realm)
 }
