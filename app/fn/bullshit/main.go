@@ -68,7 +68,7 @@ func init() {
 			return
 		}
 
-		if job.Region.Name != "us" {
+		if job.Region.Name != "eu" {
 			continue
 		}
 

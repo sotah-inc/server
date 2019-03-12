@@ -418,8 +418,6 @@ func TransferBuckets(realm sotah.Realm) error {
 		for deleteJob := range auctionsStoreBaseV2.DeleteAll(rawAuctionsBucket, realm, outJob.Manifest) {
 			if deleteJob.Err != nil {
 				logging.WithField("error", deleteJob.Err.Error()).Error("Failed to delete previous raw-auctions obj")
-
-				return deleteJob.Err
 			}
 		}
 
@@ -463,7 +461,7 @@ func BullshitIntake(_ context.Context, m PubSubMessage) error {
 		Region: sotah.Region{Name: blizzard.RegionName(job.RegionName)},
 	}
 
-	if realm.Region.Name != "us" || realm.Slug != "aegwynn" {
+	if realm.Region.Name != "eu" || realm.Slug != "aegwynn" {
 		return nil
 	}
 
