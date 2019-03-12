@@ -16,7 +16,7 @@ type AuctionManifestBaseInter struct {
 }
 
 func (b AuctionManifestBaseInter) getBucketName() string {
-	return "auctions-manifest-us-central1"
+	return "auctions-manifest"
 }
 
 func (b AuctionManifestBaseInter) GetBucket() *storage.BucketHandle {

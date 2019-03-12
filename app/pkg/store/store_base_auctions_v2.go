@@ -20,7 +20,7 @@ type AuctionsBaseV2 struct {
 }
 
 func (b AuctionsBaseV2) getBucketName() string {
-	return "raw-auctions"
+	return "raw-auctions-us-central1"
 }
 
 func (b AuctionsBaseV2) GetBucket() *storage.BucketHandle {
