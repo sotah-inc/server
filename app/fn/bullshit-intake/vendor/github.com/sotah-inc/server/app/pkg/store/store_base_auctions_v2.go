@@ -84,6 +84,24 @@ func (b AuctionsBaseV2) DeleteAll(bkt *storage.BucketHandle, realm sotah.Realm, 
 	worker := func() {
 		for targetTimestamp := range in {
 			obj := bkt.Object(b.getObjectName(realm, time.Unix(int64(targetTimestamp), 0)))
+			exists, err := b.ObjectExists(obj)
+			if err != nil {
+				out <- DeleteAuctionsJob{
+					Err:             err,
+					TargetTimestamp: targetTimestamp,
+				}
+
+				continue
+			}
+			if !exists {
+				out <- DeleteAuctionsJob{
+					Err:             nil,
+					TargetTimestamp: targetTimestamp,
+				}
+
+				continue
+			}
+
 			if err := obj.Delete(b.client.Context); err != nil {
 				out <- DeleteAuctionsJob{
 					Err:             err,
