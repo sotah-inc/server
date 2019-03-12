@@ -397,6 +397,7 @@ func TransferBuckets(realm sotah.Realm) error {
 		close(in)
 	}()
 
+	outJobs := []TransferBucketsOutJob{}
 	for outJob := range out {
 		if outJob.Err != nil {
 			return outJob.Err
@@ -406,6 +407,10 @@ func TransferBuckets(realm sotah.Realm) error {
 			continue
 		}
 
+		outJobs = append(outJobs, outJob)
+	}
+
+	for _, outJob := range outJobs {
 		logging.WithFields(logrus.Fields{
 			"region":       realm.Region.Name,
 			"realm":        realm.Slug,
