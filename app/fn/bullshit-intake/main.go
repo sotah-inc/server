@@ -3,7 +3,6 @@ package bullshit_intake
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -216,7 +215,7 @@ type TransferBucketsOutJob struct {
 	Err                 error
 	Manifest            sotah.AuctionManifest
 	Transferred         int
-	PreviousManifestObj *storage.ObjectHandle
+	PreviousManifestObj storage.ObjectHandle
 }
 
 func TransferBuckets(realm sotah.Realm) error {
@@ -256,10 +255,7 @@ func TransferBuckets(realm sotah.Realm) error {
 				}
 
 				if !exists {
-					out <- TransferBucketsOutJob{
-						Err:      errors.New("timestamp in manifest leads to no obj"),
-						Manifest: manifest,
-					}
+					logging.Info("Timestamp in manifest leads to no obj")
 
 					continue
 				}
@@ -340,7 +336,7 @@ func TransferBuckets(realm sotah.Realm) error {
 					Err:                 nil,
 					Manifest:            manifest,
 					Transferred:         0,
-					PreviousManifestObj: previousManifestObj,
+					PreviousManifestObj: *previousManifestObj,
 				}
 			}
 
@@ -364,7 +360,7 @@ func TransferBuckets(realm sotah.Realm) error {
 				Err:                 nil,
 				Manifest:            manifest,
 				Transferred:         0,
-				PreviousManifestObj: previousManifestObj,
+				PreviousManifestObj: *previousManifestObj,
 			}
 		}
 	}
@@ -420,12 +416,14 @@ func TransferBuckets(realm sotah.Realm) error {
 
 		for deleteJob := range auctionsStoreBaseV2.DeleteAll(rawAuctionsBucket, realm, outJob.Manifest) {
 			if deleteJob.Err != nil {
+				logging.WithField("error", deleteJob.Err.Error()).Error("Failed to delete previous raw-auctions obj")
+
 				return deleteJob.Err
 			}
 		}
 
 		if err := outJob.PreviousManifestObj.Delete(storeClient.Context); err != nil {
-			logging.Error("Failed to delete previous manifest obj")
+			logging.WithField("error", err.Error()).Error("Failed to delete previous manifest obj")
 
 			return err
 		}
