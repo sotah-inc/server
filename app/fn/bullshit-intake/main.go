@@ -58,7 +58,7 @@ func init() {
 		return
 	}
 
-	auctionsStoreBaseV2 = store.NewAuctionsBaseV2(storeClient, "us-east1")
+	auctionsStoreBaseV2 = store.NewAuctionsBaseV2(storeClient, "us-central1")
 	rawAuctionsBucket, err = auctionsStoreBaseV2.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get new manifest bucket: %s", err.Error())
@@ -66,7 +66,7 @@ func init() {
 		return
 	}
 
-	auctionManifestStoreBaseV2 = store.NewAuctionManifestBaseV2(storeClient, "us-east1")
+	auctionManifestStoreBaseV2 = store.NewAuctionManifestBaseV2(storeClient, "us-central1")
 	manifestBucket, err = auctionManifestStoreBaseV2.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get new manifest bucket: %s", err.Error())
