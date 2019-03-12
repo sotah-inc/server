@@ -11,8 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sotah-inc/server/app/pkg/util"
-
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/storage"
 	"github.com/sirupsen/logrus"
@@ -22,6 +20,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
+	"github.com/sotah-inc/server/app/pkg/util"
 	"google.golang.org/api/iterator"
 )
 
@@ -320,13 +319,37 @@ func TransferBuckets(realm sotah.Realm) error {
 				continue
 			}
 
+			nextManifestObj := auctionManifestStoreBaseInter.GetObject(sotah.UnixTimestamp(manifestTimestamp), realm, manifestInterBucket)
+			exists, err := auctionManifestStoreBaseInter.ObjectExists(nextManifestObj)
+			if err != nil {
+				out <- TransferBucketsOutJob{
+					Err:      err,
+					Manifest: manifest,
+				}
+
+				continue
+			}
+			if exists {
+				logging.WithFields(logrus.Fields{
+					"region":   realm.Region.Name,
+					"realm":    realm.Slug,
+					"manifest": manifestTimestamp,
+				}).Info("No more raw-auctions objs to transfer and next manifest obj already exists, skipping")
+
+				out <- TransferBucketsOutJob{
+					Err:                 nil,
+					Manifest:            manifest,
+					Transferred:         0,
+					PreviousManifestObj: previousManifestObj,
+				}
+			}
+
 			logging.WithFields(logrus.Fields{
 				"region":   realm.Region.Name,
 				"realm":    realm.Slug,
 				"manifest": manifestTimestamp,
 			}).Info("No more raw-auctions objs to transfer, transferring manifest file")
 
-			nextManifestObj := auctionManifestStoreBaseInter.GetObject(sotah.UnixTimestamp(manifestTimestamp), realm, manifestInterBucket)
 			copier := nextManifestObj.CopierFrom(previousManifestObj)
 			if _, err := copier.Run(storeClient.Context); err != nil {
 				out <- TransferBucketsOutJob{
@@ -390,15 +413,17 @@ func TransferBuckets(realm sotah.Realm) error {
 			"raw-auctions": len(outJob.Manifest),
 		}).Info("No more raw-auctions to transfer and manifest has been copied, pruning old manifest")
 
-		//for deleteJob := range auctionsStoreBaseV2.DeleteAll(rawAuctionsBucket, realm, outJob.Manifest) {
-		//	if deleteJob.Err != nil {
-		//		return deleteJob.Err
-		//	}
-		//}
-		//
-		//if err := outJob.PreviousManifestObj.Delete(storeClient.Context); err != nil {
-		//	return err
-		//}
+		for deleteJob := range auctionsStoreBaseV2.DeleteAll(rawAuctionsBucket, realm, outJob.Manifest) {
+			if deleteJob.Err != nil {
+				return deleteJob.Err
+			}
+		}
+
+		if err := outJob.PreviousManifestObj.Delete(storeClient.Context); err != nil {
+			logging.Error("Failed to delete previous manifest obj")
+
+			return err
+		}
 	}
 
 	return nil
@@ -433,7 +458,7 @@ func BullshitIntake(_ context.Context, m PubSubMessage) error {
 		Region: sotah.Region{Name: blizzard.RegionName(job.RegionName)},
 	}
 
-	if realm.Region.Name != "us" || realm.Slug != "earthen-ring" {
+	if realm.Region.Name != "us" || realm.Slug != "aegwynn" {
 		return nil
 	}
 

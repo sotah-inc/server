@@ -74,7 +74,7 @@ func init() {
 
 		realms := sotah.Realms{}
 		for _, realm := range job.Status.Realms {
-			if realm.Slug != "earthen-ring" {
+			if realm.Slug != "aegwynn" {
 				continue
 			}
 
