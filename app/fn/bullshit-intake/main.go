@@ -212,10 +212,10 @@ func CheckManifestForExpired(realm sotah.Realm) error {
 }
 
 type TransferBucketsOutJob struct {
-	Err                 error
-	Manifest            sotah.AuctionManifest
-	Transferred         int
-	PreviousManifestObj storage.ObjectHandle
+	Err             error
+	Manifest        sotah.AuctionManifest
+	Transferred     int
+	TargetTimestamp sotah.UnixTimestamp
 }
 
 func TransferBuckets(realm sotah.Realm) error {
@@ -305,7 +305,7 @@ func TransferBuckets(realm sotah.Realm) error {
 				continue
 			}
 
-			manifestTimestamp, err := strconv.Atoi(objAttrs.Name[len(prefix):(len(objAttrs.Name) - len(".json"))])
+			manifestTimestampInt, err := strconv.Atoi(objAttrs.Name[len(prefix):(len(objAttrs.Name) - len(".json"))])
 			if err != nil {
 				out <- TransferBucketsOutJob{
 					Err:      err,
@@ -314,8 +314,9 @@ func TransferBuckets(realm sotah.Realm) error {
 
 				continue
 			}
+			manifestTimestamp := sotah.UnixTimestamp(manifestTimestampInt)
 
-			nextManifestObj := auctionManifestStoreBaseInter.GetObject(sotah.UnixTimestamp(manifestTimestamp), realm, manifestInterBucket)
+			nextManifestObj := auctionManifestStoreBaseInter.GetObject(manifestTimestamp, realm, manifestInterBucket)
 			exists, err := auctionManifestStoreBaseInter.ObjectExists(nextManifestObj)
 			if err != nil {
 				out <- TransferBucketsOutJob{
@@ -333,10 +334,10 @@ func TransferBuckets(realm sotah.Realm) error {
 				}).Info("No more raw-auctions objs to transfer and next manifest obj already exists, skipping")
 
 				out <- TransferBucketsOutJob{
-					Err:                 nil,
-					Manifest:            manifest,
-					Transferred:         0,
-					PreviousManifestObj: *previousManifestObj,
+					Err:             nil,
+					Manifest:        manifest,
+					Transferred:     0,
+					TargetTimestamp: manifestTimestamp,
 				}
 			}
 
@@ -357,10 +358,10 @@ func TransferBuckets(realm sotah.Realm) error {
 			}
 
 			out <- TransferBucketsOutJob{
-				Err:                 nil,
-				Manifest:            manifest,
-				Transferred:         0,
-				PreviousManifestObj: *previousManifestObj,
+				Err:             nil,
+				Manifest:        manifest,
+				Transferred:     0,
+				TargetTimestamp: manifestTimestamp,
 			}
 		}
 	}
@@ -422,7 +423,8 @@ func TransferBuckets(realm sotah.Realm) error {
 			}
 		}
 
-		if err := outJob.PreviousManifestObj.Delete(storeClient.Context); err != nil {
+		previousManifestObj := auctionManifestStoreBaseV2.GetObject(outJob.TargetTimestamp, realm, manifestBucket)
+		if err := previousManifestObj.Delete(storeClient.Context); err != nil {
 			logging.WithField("error", err.Error()).Error("Failed to delete previous manifest obj")
 
 			return err
