@@ -284,6 +284,12 @@ func (c Client) BulkRequest(intakeTopic *pubsub.Topic, messages []Message, timeo
 		return BulkRequestMessages{}, err
 	}
 
+	// updating messages with reply-to topic
+	for i, msg := range messages {
+		msg.ReplyTo = recipientTopic.ID()
+		messages[i] = msg
+	}
+
 	// producing a blank list of message responses
 	responses := MessageResponses{
 		Mutex: &sync.Mutex{},
