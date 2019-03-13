@@ -101,6 +101,47 @@ func (c Client) Publish(topic *pubsub.Topic, msg Message) (string, error) {
 	return topic.Publish(c.context, &pubsub.Message{Data: data}).Get(c.context)
 }
 
+type BulkPublishOutJob struct {
+	Err error
+	Msg Message
+}
+
+func (c Client) BulkPublish(topic *pubsub.Topic, messages []Message) chan BulkPublishOutJob {
+	// opening workers and channels
+	in := make(chan Message)
+	out := make(chan BulkPublishOutJob)
+	worker := func() {
+		for msg := range in {
+			if _, err := c.Publish(topic, msg); err != nil {
+				out <- BulkPublishOutJob{
+					Err: err,
+					Msg: msg,
+				}
+
+				continue
+			}
+
+			out <- BulkPublishOutJob{
+				Err: nil,
+				Msg: msg,
+			}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(32, worker, postWork)
+
+	// queueing it up
+	go func() {
+		for _, msg := range messages {
+			in <- msg
+		}
+	}()
+
+	return out
+}
+
 func (c Client) subscriberName(topic *pubsub.Topic) string {
 	return fmt.Sprintf("subscriber-%s-%s-%s", c.subscriberId, topic.ID(), uuid.NewV4().String())
 }
