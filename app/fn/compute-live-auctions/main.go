@@ -110,8 +110,8 @@ func ComputeLiveAuctions(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
-	var job bus.LoadRegionRealmTimestampsInJob
-	if err := json.Unmarshal([]byte(in.Data), &job); err != nil {
+	job, err := bus.NewLoadRegionRealmTimestampsInJob(in.Data)
+	if err != nil {
 		return err
 	}
 
