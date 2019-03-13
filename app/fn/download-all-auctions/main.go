@@ -121,7 +121,7 @@ func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
 	}
 
 	// producing messages
-	logging.Info("Producing messages for bulk requesting")
+	logging.Info("Producing messages for bulk requests")
 	messages := []bus.Message{}
 	for _, realms := range regionRealms {
 		for _, realm := range realms {

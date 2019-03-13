@@ -35,7 +35,7 @@ github.com/nats-io/nkeys
 github.com/nats-io/nuid
 # github.com/sirupsen/logrus v1.3.0
 github.com/sirupsen/logrus
-# github.com/sotah-inc/server/app v0.0.0-20190313231745-c34cb9dea55f
+# github.com/sotah-inc/server/app v0.0.0-20190313233101-9ad628102f24
 github.com/sotah-inc/server/app/pkg/blizzard
 github.com/sotah-inc/server/app/pkg/bus
 github.com/sotah-inc/server/app/pkg/bus/codes
@@ -43,10 +43,10 @@ github.com/sotah-inc/server/app/pkg/logging
 github.com/sotah-inc/server/app/pkg/sotah
 github.com/sotah-inc/server/app/pkg/state
 github.com/sotah-inc/server/app/pkg/state/subjects
-github.com/sotah-inc/server/app/pkg/util
 github.com/sotah-inc/server/app/pkg/blizzard/itembinds
 github.com/sotah-inc/server/app/pkg/blizzard/realmpopulations
 github.com/sotah-inc/server/app/pkg/blizzard/realmtypes
+github.com/sotah-inc/server/app/pkg/util
 github.com/sotah-inc/server/app/pkg/sotah/sortdirections
 github.com/sotah-inc/server/app/pkg/sotah/sortkinds
 github.com/sotah-inc/server/app/pkg/database

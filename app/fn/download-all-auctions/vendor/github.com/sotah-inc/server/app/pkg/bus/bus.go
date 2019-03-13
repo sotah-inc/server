@@ -307,7 +307,7 @@ func (c Client) BulkRequest(intakeTopic *pubsub.Topic, messages []Message, timeo
 		Callback: func(busMsg Message) {
 			responses.Mutex.Lock()
 			responses.Items[busMsg.ReplyToId] = busMsg
-			defer responses.Mutex.Unlock()
+			responses.Mutex.Unlock()
 
 			if !responses.IsComplete() {
 				return
@@ -340,7 +340,12 @@ func (c Client) BulkRequest(intakeTopic *pubsub.Topic, messages []Message, timeo
 	timer := time.After(timeout)
 	select {
 	case <-timer:
+		logging.Info("Timer timed out, going over results in allotted time")
+
+		break
 	case <-onComplete:
+		logging.Info("Received all responses, going over all responses")
+
 		break
 	}
 	responseItems := responses.FilterInCompleted()
