@@ -307,7 +307,7 @@ func (c Client) BulkRequest(intakeTopic *pubsub.Topic, messages []Message, timeo
 		Callback: func(busMsg Message) {
 			responses.Mutex.Lock()
 			responses.Items[busMsg.ReplyToId] = busMsg
-			defer responses.Mutex.Unlock()
+			responses.Mutex.Unlock()
 
 			if !responses.IsComplete() {
 				return
