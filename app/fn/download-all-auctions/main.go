@@ -19,8 +19,6 @@ import (
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
-	"github.com/sotah-inc/server/app/pkg/util"
-	"github.com/twinj/uuid"
 )
 
 var projectId = os.Getenv("GCP_PROJECT")
@@ -122,147 +120,35 @@ func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
 		return errors.New("fail")
 	}
 
-	// producing a topic and subscribing to receive responses
-	logging.Info("Producing a topic and subscription to receive responses")
-	downloadedAuctionsRecipientTopic, err := busClient.CreateTopic(
-		fmt.Sprintf("%s-%s", subjects.DownloadAllAuctions, uuid.NewV4().String()),
-	)
-	if err != nil {
-		return err
-	}
-
-	// producing a blank list of message responses
-	downloadedAuctionsResponses := MessageResponses{
-		Mutex: &sync.Mutex{},
-		Items: map[string]bus.Message{},
-	}
+	// producing messages
+	logging.Info("Producing messages for bulk requesting")
+	messages := []bus.Message{}
 	for _, realms := range regionRealms {
 		for _, realm := range realms {
-			downloadedAuctionsResponses.Items[fmt.Sprintf("%s-%s", realm.Region.Name, realm.Slug)] = bus.NewMessage()
-		}
-	}
-
-	// opening a listener
-	logging.Info("Opening a listener and waiting for it to finish opening")
-	onComplete := make(chan interface{})
-	receiveDownloadedAuctionsConfig := bus.SubscribeConfig{
-		Topic:     downloadedAuctionsRecipientTopic,
-		OnReady:   make(chan interface{}),
-		Stop:      make(chan interface{}),
-		OnStopped: make(chan interface{}),
-		Callback: func(busMsg bus.Message) {
-			downloadedAuctionsResponses.Mutex.Lock()
-			defer downloadedAuctionsResponses.Mutex.Unlock()
-
-			downloadedAuctionsResponses.Items[busMsg.ReplyToId] = busMsg
-
-			if !downloadedAuctionsResponses.IsComplete() {
-				return
-			}
-
-			onComplete <- struct{}{}
-
-			return
-		},
-	}
-	go func() {
-		if err := busClient.Subscribe(receiveDownloadedAuctionsConfig); err != nil {
-			log.Fatalf("Failed to subscribe to download-all-auctions recipient topic: %s", err.Error())
-
-			return
-		}
-	}()
-	<-receiveDownloadedAuctionsConfig.OnReady
-
-	// spinning up the workers
-	logging.Info("Spinning up workers")
-	in := make(chan sotah.Realm)
-	out := make(chan bus.LoadRegionRealmsOutJob)
-	worker := func() {
-		for realm := range in {
 			job := bus.CollectAuctionsJob{
 				RegionName: string(realm.Region.Name),
 				RealmSlug:  string(realm.Slug),
 			}
 			jsonEncoded, err := json.Marshal(job)
 			if err != nil {
-				out <- bus.LoadRegionRealmsOutJob{
-					Err:   err,
-					Realm: realm,
-				}
-
-				return
+				return err
 			}
 
 			msg := bus.NewMessage()
 			msg.Data = string(jsonEncoded)
-			msg.ReplyTo = downloadedAuctionsRecipientTopic.ID()
 			msg.ReplyToId = fmt.Sprintf("%s-%s", realm.Region.Name, realm.Slug)
-			if _, err := busClient.Publish(downloadAuctionsTopic, msg); err != nil {
-				out <- bus.LoadRegionRealmsOutJob{
-					Err:   err,
-					Realm: realm,
-				}
-
-				return
-			}
-
-			out <- bus.LoadRegionRealmsOutJob{
-				Err:   nil,
-				Realm: realm,
-			}
-		}
-	}
-	postWork := func() {
-		close(out)
-	}
-	util.Work(32, worker, postWork)
-
-	// queueing it up
-	startTime := time.Now()
-	logging.Info("Queueing it up")
-	go func() {
-		for _, realms := range regionRealms {
-			for _, realm := range realms {
-				in <- realm
-			}
-		}
-
-		close(in)
-	}()
-
-	// waiting for messages to drain out
-	logging.Info("Waiting for messages to drain out")
-	for outJob := range out {
-		if outJob.Err != nil {
-			return err
+			messages = append(messages, msg)
 		}
 	}
 
-	// waiting for responses is complete or timer runs out
-	logging.Info("Waiting for responses to complete or timer runs out")
-	timer := time.After(200 * time.Second)
-	select {
-	case <-timer:
-	case <-onComplete:
-		break
+	// enqueueing them and gathering result jobs
+	responseItems, err := busClient.BulkRequest(downloadAuctionsTopic, messages, 200*time.Second)
+	if err != nil {
+		return err
 	}
-	responseItems := downloadedAuctionsResponses.FilterInCompleted()
-	duration := time.Now().Sub(startTime)
 
-	// stopping the downloaded-auctions receiver
-	logging.WithFields(
-		logrus.Fields{
-			"duration":  int(duration.Seconds()),
-			"responses": len(responseItems),
-		},
-	).Info("Finished receiving responses, stopping the listener and waiting for it to stop")
-	receiveDownloadedAuctionsConfig.Stop <- struct{}{}
-	<-receiveDownloadedAuctionsConfig.OnStopped
-
-	// iterating over the results
-	logging.Info("Aggregating results")
-	responses := bus.RegionRealmTimestampTuples{}
+	// formatting the response-items as tuples for processing
+	tuples := bus.RegionRealmTimestampTuples{}
 	for _, msg := range responseItems {
 		if msg.Code != codes.Ok {
 			if msg.Code == codes.BlizzardError {
@@ -286,11 +172,11 @@ func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
 			return err
 		}
 
-		responses = append(responses, respData)
+		tuples = append(tuples, respData)
 	}
 
 	// producing a message for computation
-	data, err := responses.EncodeForDelivery()
+	data, err := tuples.EncodeForDelivery()
 	if err != nil {
 		return err
 	}

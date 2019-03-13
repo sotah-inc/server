@@ -10,10 +10,28 @@ import (
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
+func NewLoadRegionRealmTimestampsInJob(data string) (LoadRegionRealmTimestampsInJob, error) {
+	var out LoadRegionRealmTimestampsInJob
+	if err := json.Unmarshal([]byte(data), &out); err != nil {
+		return LoadRegionRealmTimestampsInJob{}, err
+	}
+
+	return out, nil
+}
+
 type LoadRegionRealmTimestampsInJob struct {
 	RegionName      string `json:"region_name"`
 	RealmSlug       string `json:"realm_slug"`
 	TargetTimestamp int    `json:"target_timestamp"`
+}
+
+func (j LoadRegionRealmTimestampsInJob) EncodeForDelivery() (string, error) {
+	out, err := json.Marshal(j)
+	if err != nil {
+		return "", err
+	}
+
+	return string(out), nil
 }
 
 func (c Client) LoadRegionRealmTimestamps(rTimestamps sotah.RegionRealmTimestamps, recipientSubject subjects.Subject) {

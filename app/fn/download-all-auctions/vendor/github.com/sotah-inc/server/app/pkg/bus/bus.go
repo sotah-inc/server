@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"cloud.google.com/go/pubsub"
@@ -101,6 +102,47 @@ func (c Client) Publish(topic *pubsub.Topic, msg Message) (string, error) {
 	return topic.Publish(c.context, &pubsub.Message{Data: data}).Get(c.context)
 }
 
+type BulkPublishOutJob struct {
+	Err error
+	Msg Message
+}
+
+func (c Client) BulkPublish(topic *pubsub.Topic, messages []Message) chan BulkPublishOutJob {
+	// opening workers and channels
+	in := make(chan Message)
+	out := make(chan BulkPublishOutJob)
+	worker := func() {
+		for msg := range in {
+			if _, err := c.Publish(topic, msg); err != nil {
+				out <- BulkPublishOutJob{
+					Err: err,
+					Msg: msg,
+				}
+
+				continue
+			}
+
+			out <- BulkPublishOutJob{
+				Err: nil,
+				Msg: msg,
+			}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(32, worker, postWork)
+
+	// queueing it up
+	go func() {
+		for _, msg := range messages {
+			in <- msg
+		}
+	}()
+
+	return out
+}
+
 func (c Client) subscriberName(topic *pubsub.Topic) string {
 	return fmt.Sprintf("subscriber-%s-%s-%s", c.subscriberId, topic.ID(), uuid.NewV4().String())
 }
@@ -193,6 +235,128 @@ func (c Client) RequestFromTopic(topicName string, payload string, timeout time.
 	}
 
 	return c.Request(topic, payload, timeout)
+}
+
+type MessageResponses struct {
+	Items BulkRequestMessages
+	Mutex *sync.Mutex
+}
+
+func (r MessageResponses) IsComplete() bool {
+	for _, msg := range r.Items {
+		if len(msg.ReplyToId) == 0 {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (r MessageResponses) FilterInCompleted() BulkRequestMessages {
+	out := BulkRequestMessages{}
+	for k, v := range r.Items {
+		if len(v.ReplyToId) == 0 {
+			continue
+		}
+
+		out[k] = v
+	}
+
+	return out
+}
+
+func NewBulkRequestMessages(messages []Message) BulkRequestMessages {
+	out := BulkRequestMessages{}
+	for _, msg := range messages {
+		out[msg.ReplyToId] = NewMessage()
+	}
+
+	return out
+}
+
+type BulkRequestMessages map[string]Message
+
+func (c Client) BulkRequest(intakeTopic *pubsub.Topic, messages []Message, timeout time.Duration) (BulkRequestMessages, error) {
+	// producing a topic to receive responses
+	logging.Info("Producing a topic and subscription to receive responses")
+	recipientTopic, err := c.CreateTopic(fmt.Sprintf("bulk-request-%s", uuid.NewV4().String()))
+	if err != nil {
+		return BulkRequestMessages{}, err
+	}
+
+	// updating messages with reply-to topic
+	for i, msg := range messages {
+		msg.ReplyTo = recipientTopic.ID()
+		messages[i] = msg
+	}
+
+	// producing a blank list of message responses
+	responses := MessageResponses{
+		Mutex: &sync.Mutex{},
+		Items: NewBulkRequestMessages(messages),
+	}
+
+	// opening a listener
+	logging.Info("Opening a listener and waiting for it to finish opening")
+	onComplete := make(chan interface{})
+	receiveConfig := SubscribeConfig{
+		Topic:     recipientTopic,
+		OnReady:   make(chan interface{}),
+		Stop:      make(chan interface{}),
+		OnStopped: make(chan interface{}),
+		Callback: func(busMsg Message) {
+			responses.Mutex.Lock()
+			responses.Items[busMsg.ReplyToId] = busMsg
+			defer responses.Mutex.Unlock()
+
+			if !responses.IsComplete() {
+				return
+			}
+
+			onComplete <- struct{}{}
+
+			return
+		},
+	}
+	go func() {
+		if err := c.Subscribe(receiveConfig); err != nil {
+			logging.Fatalf("Failed to subscribe to recipient topic: %s", err.Error())
+
+			return
+		}
+	}()
+	<-receiveConfig.OnReady
+
+	// bulk publishing
+	startTime := time.Now()
+	for outJob := range c.BulkPublish(intakeTopic, messages) {
+		if outJob.Err != nil {
+			return BulkRequestMessages{}, outJob.Err
+		}
+	}
+
+	// waiting for responses is complete or timer runs out
+	logging.Info("Waiting for responses to complete or timer runs out")
+	timer := time.After(timeout)
+	select {
+	case <-timer:
+	case <-onComplete:
+		break
+	}
+	responseItems := responses.FilterInCompleted()
+	duration := time.Now().Sub(startTime)
+
+	// stopping the receiver
+	logging.WithFields(
+		logrus.Fields{
+			"duration":  int(duration.Seconds()),
+			"responses": len(responseItems),
+		},
+	).Info("Finished receiving responses, stopping the listener and waiting for it to stop")
+	receiveConfig.Stop <- struct{}{}
+	<-receiveConfig.OnStopped
+
+	return responses.FilterInCompleted(), nil
 }
 
 type requestJob struct {
