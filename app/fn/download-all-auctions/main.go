@@ -6,7 +6,6 @@ import (
 	"errors"
 	"log"
 	"os"
-	"sync"
 	"time"
 
 	"cloud.google.com/go/pubsub"
@@ -84,41 +83,13 @@ type PubSubMessage struct {
 	Data []byte `json:"data"`
 }
 
-type MessageResponses struct {
-	Items map[string]bus.Message
-	Mutex *sync.Mutex
-}
-
-func (r MessageResponses) IsComplete() bool {
-	for _, msg := range r.Items {
-		if len(msg.ReplyToId) == 0 {
-			return false
-		}
-	}
-
-	return true
-}
-
-func (r MessageResponses) FilterInCompleted() map[string]bus.Message {
-	out := map[string]bus.Message{}
-	for k, v := range r.Items {
-		if len(v.ReplyToId) == 0 {
-			continue
-		}
-
-		out[k] = v
-	}
-
-	return out
-}
-
 func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
 	if len(m.Data) == 0 {
 		return errors.New("fail")
 	}
 
 	// producing messages
-	logging.Info("Producing messages for bulk requestinggg")
+	logging.Info("Producing messages for bulk requesting")
 	messages, err := bus.NewCollectAuctionMessages(regionRealms)
 	if err != nil {
 		return err
