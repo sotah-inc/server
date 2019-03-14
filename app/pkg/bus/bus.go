@@ -138,6 +138,8 @@ func (c Client) BulkPublish(topic *pubsub.Topic, messages []Message) chan BulkPu
 		for _, msg := range messages {
 			in <- msg
 		}
+
+		close(in)
 	}()
 
 	return out
