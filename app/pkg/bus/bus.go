@@ -328,6 +328,7 @@ func (c Client) BulkRequest(intakeTopic *pubsub.Topic, messages []Message, timeo
 	<-receiveConfig.OnReady
 
 	// bulk publishing
+	logging.Info("Bulk publishing")
 	startTime := time.Now()
 	for outJob := range c.BulkPublish(intakeTopic, messages) {
 		if outJob.Err != nil {
