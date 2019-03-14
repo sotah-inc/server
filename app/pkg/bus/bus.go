@@ -631,6 +631,29 @@ func (s RegionRealmTimestampTuples) EncodeForDelivery() (string, error) {
 	return base64.RawStdEncoding.EncodeToString(gzipEncoded), nil
 }
 
+func (s RegionRealmTimestampTuples) ToMessages() ([]Message, error) {
+	out := []Message{}
+	for _, tuple := range s {
+		msg := NewMessage()
+		msg.ReplyToId = fmt.Sprintf("%s-%s", tuple.RegionName, tuple.RealmSlug)
+
+		job := LoadRegionRealmTimestampsInJob{
+			RegionName:      tuple.RegionName,
+			RealmSlug:       tuple.RealmSlug,
+			TargetTimestamp: tuple.TargetTimestamp,
+		}
+		data, err := job.EncodeForDelivery()
+		if err != nil {
+			return []Message{}, err
+		}
+		msg.Data = data
+
+		out = append(out, msg)
+	}
+
+	return out, nil
+}
+
 type RegionRealmTimestampTuple struct {
 	RegionName      string `json:"region_name"`
 	RealmSlug       string `json:"realm_slug"`
