@@ -11,11 +11,36 @@ import (
 
 	"cloud.google.com/go/pubsub"
 	"github.com/sirupsen/logrus"
+	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus/codes"
 	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/util"
 	"github.com/twinj/uuid"
 )
+
+func NewCollectAuctionMessages(regionRealms sotah.RegionRealms) ([]Message, error) {
+	messages := []Message{}
+	for _, realms := range regionRealms {
+		for _, realm := range realms {
+			job := CollectAuctionsJob{
+				RegionName: string(realm.Region.Name),
+				RealmSlug:  string(realm.Slug),
+			}
+			jsonEncoded, err := json.Marshal(job)
+			if err != nil {
+				return []Message{}, err
+			}
+
+			msg := NewMessage()
+			msg.Data = string(jsonEncoded)
+			msg.ReplyToId = fmt.Sprintf("%s-%s", realm.Region.Name, realm.Slug)
+			messages = append(messages, msg)
+		}
+	}
+
+	return messages, nil
+}
 
 func NewMessage() Message {
 	return Message{Code: codes.Ok}
@@ -138,6 +163,8 @@ func (c Client) BulkPublish(topic *pubsub.Topic, messages []Message) chan BulkPu
 		for _, msg := range messages {
 			in <- msg
 		}
+
+		close(in)
 	}()
 
 	return out
@@ -306,8 +333,8 @@ func (c Client) BulkRequest(intakeTopic *pubsub.Topic, messages []Message, timeo
 		OnStopped: make(chan interface{}),
 		Callback: func(busMsg Message) {
 			responses.Mutex.Lock()
+			defer responses.Mutex.Unlock()
 			responses.Items[busMsg.ReplyToId] = busMsg
-			responses.Mutex.Unlock()
 
 			if !responses.IsComplete() {
 				return
@@ -328,6 +355,7 @@ func (c Client) BulkRequest(intakeTopic *pubsub.Topic, messages []Message, timeo
 	<-receiveConfig.OnReady
 
 	// bulk publishing
+	logging.Info("Bulk publishing")
 	startTime := time.Now()
 	for outJob := range c.BulkPublish(intakeTopic, messages) {
 		if outJob.Err != nil {
@@ -535,6 +563,37 @@ func (c Client) Request(recipientTopic *pubsub.Topic, payload string, timeout ti
 type CollectAuctionsJob struct {
 	RegionName string `json:"region_name"`
 	RealmSlug  string `json:"realm_slug"`
+}
+
+func NewRegionRealmTimestampTuplesFromMessages(messages BulkRequestMessages) (RegionRealmTimestampTuples, error) {
+	tuples := RegionRealmTimestampTuples{}
+	for _, msg := range messages {
+		if msg.Code != codes.Ok {
+			if msg.Code == codes.BlizzardError {
+				var respError blizzard.ResponseError
+				if err := json.Unmarshal([]byte(msg.Data), &respError); err != nil {
+					return RegionRealmTimestampTuples{}, err
+				}
+
+				logging.WithFields(logrus.Fields{"resp-error": respError}).Error("Received erroneous response")
+			}
+
+			continue
+		}
+
+		if len(msg.Data) == 0 {
+			continue
+		}
+
+		var respData RegionRealmTimestampTuple
+		if err := json.Unmarshal([]byte(msg.Data), &respData); err != nil {
+			return RegionRealmTimestampTuples{}, err
+		}
+
+		tuples = append(tuples, respData)
+	}
+
+	return tuples, nil
 }
 
 func NewRegionRealmTimestampTuples(data string) (RegionRealmTimestampTuples, error) {

@@ -4,17 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"os"
 	"sync"
 	"time"
 
 	"cloud.google.com/go/pubsub"
-	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
-	"github.com/sotah-inc/server/app/pkg/bus/codes"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state"
@@ -122,23 +119,9 @@ func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
 
 	// producing messages
 	logging.Info("Producing messages for bulk requestinggg")
-	messages := []bus.Message{}
-	for _, realms := range regionRealms {
-		for _, realm := range realms {
-			job := bus.CollectAuctionsJob{
-				RegionName: string(realm.Region.Name),
-				RealmSlug:  string(realm.Slug),
-			}
-			jsonEncoded, err := json.Marshal(job)
-			if err != nil {
-				return err
-			}
-
-			msg := bus.NewMessage()
-			msg.Data = string(jsonEncoded)
-			msg.ReplyToId = fmt.Sprintf("%s-%s", realm.Region.Name, realm.Slug)
-			messages = append(messages, msg)
-		}
+	messages, err := bus.NewCollectAuctionMessages(regionRealms)
+	if err != nil {
+		return err
 	}
 
 	// enqueueing them and gathering result jobs
@@ -148,31 +131,9 @@ func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
 	}
 
 	// formatting the response-items as tuples for processing
-	tuples := bus.RegionRealmTimestampTuples{}
-	for _, msg := range responseItems {
-		if msg.Code != codes.Ok {
-			if msg.Code == codes.BlizzardError {
-				var respError blizzard.ResponseError
-				if err := json.Unmarshal([]byte(msg.Data), &respError); err != nil {
-					return err
-				}
-
-				logging.WithFields(logrus.Fields{"resp-error": respError}).Error("Received erroneous response")
-			}
-
-			continue
-		}
-
-		if len(msg.Data) == 0 {
-			continue
-		}
-
-		var respData bus.RegionRealmTimestampTuple
-		if err := json.Unmarshal([]byte(msg.Data), &respData); err != nil {
-			return err
-		}
-
-		tuples = append(tuples, respData)
+	tuples, err := bus.NewRegionRealmTimestampTuplesFromMessages(responseItems)
+	if err != nil {
+		return err
 	}
 
 	// producing a message for computation
