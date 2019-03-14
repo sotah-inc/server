@@ -305,9 +305,13 @@ func (c Client) BulkRequest(intakeTopic *pubsub.Topic, messages []Message, timeo
 		Stop:      make(chan interface{}),
 		OnStopped: make(chan interface{}),
 		Callback: func(busMsg Message) {
+			logging.WithField("reply-to-id", busMsg.ReplyToId).Info("Received message, locking items")
+
 			responses.Mutex.Lock()
 			responses.Items[busMsg.ReplyToId] = busMsg
 			responses.Mutex.Unlock()
+
+			logging.WithField("reply-to-id", busMsg.ReplyToId).Info("Unlocking items")
 
 			if !responses.IsComplete() {
 				return
