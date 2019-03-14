@@ -8,5 +8,5 @@ gcloud functions deploy DownloadAllAuctions \
     --trigger-topic downloadAllAuctions \
     --source . \
     --memory 128MB \
-    --timeout 500s \
+    --timeout 230s \
     --region us-central1
