@@ -48,6 +48,21 @@ func ComputeAllLiveAuctions(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
+	for _, tuple := range tuples {
+		job := bus.LoadRegionRealmTimestampsInJob{
+			RegionName:      tuple.RegionName,
+			RealmSlug:       tuple.RealmSlug,
+			TargetTimestamp: tuple.TargetTimestamp,
+		}
+		data, err := job.EncodeForDelivery()
+		if err != nil {
+			return err
+		}
+
+		msg := bus.NewMessage()
+
+	}
+
 	logging.WithField("tuples", len(tuples)).Info("Handling")
 
 	return nil
