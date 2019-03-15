@@ -20,6 +20,10 @@ func (b LiveAuctionsBase) getBucketName() string {
 	return "live-auctions"
 }
 
+func (b LiveAuctionsBase) GetFirmBucket() (*storage.BucketHandle, error) {
+	return b.base.getFirmBucket(b.getBucketName())
+}
+
 func (b LiveAuctionsBase) GetBucket() *storage.BucketHandle {
 	return b.base.getBucket(b.getBucketName())
 }
