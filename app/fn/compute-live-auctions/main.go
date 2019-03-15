@@ -15,17 +15,17 @@ import (
 	"github.com/sotah-inc/server/app/pkg/store"
 )
 
-var projectId = os.Getenv("GCP_PROJECT")
+var (
+	projectId = os.Getenv("GCP_PROJECT")
 
-var busClient bus.Client
+	busClient bus.Client
 
-var storeClient store.Client
-
-var liveAuctionsStoreBase store.LiveAuctionsBase
-var liveAuctionsBucket *storage.BucketHandle
-
-var auctionsStoreBase store.AuctionsBaseV2
-var rawAuctionsBucket *storage.BucketHandle
+	storeClient           store.Client
+	liveAuctionsStoreBase store.LiveAuctionsBase
+	liveAuctionsBucket    *storage.BucketHandle
+	auctionsStoreBase     store.AuctionsBaseV2
+	rawAuctionsBucket     *storage.BucketHandle
+)
 
 func init() {
 	var err error
