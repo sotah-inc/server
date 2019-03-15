@@ -19,13 +19,16 @@ import (
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
-var projectId = os.Getenv("GCP_PROJECT")
+var (
+	projectId = os.Getenv("GCP_PROJECT")
 
-var regionRealms map[blizzard.RegionName]sotah.Realms
+	regionRealms map[blizzard.RegionName]sotah.Realms
 
-var busClient bus.Client
-var downloadAuctionsTopic *pubsub.Topic
-var computeAllLiveAuctionsTopic *pubsub.Topic
+	busClient                   bus.Client
+	downloadAuctionsTopic       *pubsub.Topic
+	computeAllLiveAuctionsTopic *pubsub.Topic
+	validateAllAuctionsTopic    *pubsub.Topic
+)
 
 func init() {
 	var err error
@@ -42,6 +45,12 @@ func init() {
 		return
 	}
 	computeAllLiveAuctionsTopic, err = busClient.FirmTopic(string(subjects.ComputeAllLiveAuctions))
+	if err != nil {
+		log.Fatalf("Failed to get firm topic: %s", err.Error())
+
+		return
+	}
+	validateAllAuctionsTopic, err = busClient.FirmTopic(string(subjects.ValidateAllAuctions))
 	if err != nil {
 		log.Fatalf("Failed to get firm topic: %s", err.Error())
 
@@ -138,7 +147,14 @@ func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
 	}
 	msg := bus.NewMessage()
 	msg.Data = data
+
+	// publishing to compute-all-live-auctions
 	if _, err := busClient.Publish(computeAllLiveAuctionsTopic, msg); err != nil {
+		return err
+	}
+
+	// publishing to validate-all-auctions
+	if _, err := busClient.Publish(validateAllAuctionsTopic, msg); err != nil {
 		return err
 	}
 
