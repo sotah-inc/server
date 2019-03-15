@@ -11,7 +11,6 @@ import (
 
 	"cloud.google.com/go/pubsub"
 	"github.com/sirupsen/logrus"
-	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus/codes"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
@@ -568,23 +567,6 @@ type CollectAuctionsJob struct {
 func NewRegionRealmTimestampTuplesFromMessages(messages BulkRequestMessages) (RegionRealmTimestampTuples, error) {
 	tuples := RegionRealmTimestampTuples{}
 	for _, msg := range messages {
-		if msg.Code != codes.Ok {
-			if msg.Code == codes.BlizzardError {
-				var respError blizzard.ResponseError
-				if err := json.Unmarshal([]byte(msg.Data), &respError); err != nil {
-					return RegionRealmTimestampTuples{}, err
-				}
-
-				logging.WithFields(logrus.Fields{"resp-error": respError}).Error("Received erroneous response")
-			}
-
-			continue
-		}
-
-		if len(msg.Data) == 0 {
-			continue
-		}
-
 		var respData RegionRealmTimestampTuple
 		if err := json.Unmarshal([]byte(msg.Data), &respData); err != nil {
 			return RegionRealmTimestampTuples{}, err
@@ -629,6 +611,29 @@ func (s RegionRealmTimestampTuples) EncodeForDelivery() (string, error) {
 	}
 
 	return base64.RawStdEncoding.EncodeToString(gzipEncoded), nil
+}
+
+func (s RegionRealmTimestampTuples) ToMessages() ([]Message, error) {
+	out := []Message{}
+	for _, tuple := range s {
+		msg := NewMessage()
+		msg.ReplyToId = fmt.Sprintf("%s-%s", tuple.RegionName, tuple.RealmSlug)
+
+		job := LoadRegionRealmTimestampsInJob{
+			RegionName:      tuple.RegionName,
+			RealmSlug:       tuple.RealmSlug,
+			TargetTimestamp: tuple.TargetTimestamp,
+		}
+		data, err := job.EncodeForDelivery()
+		if err != nil {
+			return []Message{}, err
+		}
+		msg.Data = data
+
+		out = append(out, msg)
+	}
+
+	return out, nil
 }
 
 type RegionRealmTimestampTuple struct {

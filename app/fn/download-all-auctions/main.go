@@ -9,8 +9,10 @@ import (
 	"time"
 
 	"cloud.google.com/go/pubsub"
+	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
+	"github.com/sotah-inc/server/app/pkg/bus/codes"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state"
@@ -101,8 +103,30 @@ func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
+	validatedResponseItems := bus.BulkRequestMessages{}
+	for k, msg := range responseItems {
+		if msg.Code != codes.Ok {
+			if msg.Code == codes.BlizzardError {
+				var respError blizzard.ResponseError
+				if err := json.Unmarshal([]byte(msg.Data), &respError); err != nil {
+					return err
+				}
+
+				logging.WithFields(logrus.Fields{"resp-error": respError}).Error("Received erroneous response")
+			}
+
+			continue
+		}
+
+		if len(msg.Data) == 0 {
+			continue
+		}
+
+		validatedResponseItems[k] = msg
+	}
+
 	// formatting the response-items as tuples for processing
-	tuples, err := bus.NewRegionRealmTimestampTuplesFromMessages(responseItems)
+	tuples, err := bus.NewRegionRealmTimestampTuplesFromMessages(validatedResponseItems)
 	if err != nil {
 		return err
 	}
