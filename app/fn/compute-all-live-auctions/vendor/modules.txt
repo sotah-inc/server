@@ -20,12 +20,12 @@ github.com/googleapis/gax-go/v2
 github.com/konsorten/go-windows-terminal-sequences
 # github.com/sirupsen/logrus v1.3.0
 github.com/sirupsen/logrus
-# github.com/sotah-inc/server/app v0.0.0-20190314235729-299c5594e41b
+# github.com/sotah-inc/server/app v0.0.0-20190315002338-6f29bcc8781c
 github.com/sotah-inc/server/app/pkg/bus
+github.com/sotah-inc/server/app/pkg/bus/codes
 github.com/sotah-inc/server/app/pkg/logging
 github.com/sotah-inc/server/app/pkg/state/subjects
 github.com/sotah-inc/server/app/pkg/blizzard
-github.com/sotah-inc/server/app/pkg/bus/codes
 github.com/sotah-inc/server/app/pkg/sotah
 github.com/sotah-inc/server/app/pkg/util
 github.com/sotah-inc/server/app/pkg/blizzard/itembinds

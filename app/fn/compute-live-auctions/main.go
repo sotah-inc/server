@@ -20,9 +20,12 @@ var projectId = os.Getenv("GCP_PROJECT")
 var busClient bus.Client
 
 var storeClient store.Client
+
 var liveAuctionsStoreBase store.LiveAuctionsBase
+var liveAuctionsBucket *storage.BucketHandle
+
 var auctionsStoreBase store.AuctionsBaseV2
-var auctionsBucket *storage.BucketHandle
+var rawAuctionsBucket *storage.BucketHandle
 
 func init() {
 	var err error
@@ -39,10 +42,17 @@ func init() {
 
 		return
 	}
-	liveAuctionsStoreBase = store.NewLiveAuctionsBase(storeClient, "us-central1")
-	auctionsStoreBase = store.NewAuctionsBaseV2(storeClient, "us-central1")
 
-	auctionsBucket, err = auctionsStoreBase.GetFirmBucket()
+	liveAuctionsStoreBase = store.NewLiveAuctionsBase(storeClient, "us-central1")
+	liveAuctionsBucket, err = liveAuctionsStoreBase.GetFirmBucket()
+	if err != nil {
+		log.Fatalf("Failed to get auctions bucket: %s", err.Error())
+
+		return
+	}
+
+	auctionsStoreBase = store.NewAuctionsBaseV2(storeClient, "us-central1")
+	rawAuctionsBucket, err = auctionsStoreBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get auctions bucket: %s", err.Error())
 
@@ -60,7 +70,7 @@ func Handle(job bus.LoadRegionRealmTimestampsInJob) bus.Message {
 	}
 	targetTime := time.Unix(int64(job.TargetTimestamp), 0)
 
-	obj, err := auctionsStoreBase.GetFirmObject(realm, targetTime, auctionsBucket)
+	obj, err := auctionsStoreBase.GetFirmObject(realm, targetTime, rawAuctionsBucket)
 	if err != nil {
 		m.Err = err.Error()
 		m.Code = codes.NotFound
@@ -76,7 +86,7 @@ func Handle(job bus.LoadRegionRealmTimestampsInJob) bus.Message {
 		return m
 	}
 
-	if err := liveAuctionsStoreBase.Handle(aucs, realm); err != nil {
+	if err := liveAuctionsStoreBase.Handle(aucs, realm, liveAuctionsBucket); err != nil {
 		m.Err = err.Error()
 		m.Code = codes.GenericError
 
