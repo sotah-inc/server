@@ -17,8 +17,9 @@ import (
 var (
 	projectId = os.Getenv("GCP_PROJECT")
 
-	busClient             bus.Client
-	validateAuctionsTopic *pubsub.Topic
+	busClient                   bus.Client
+	validateAuctionsTopic       *pubsub.Topic
+	computeAllLiveAuctionsTopic *pubsub.Topic
 )
 
 func init() {
@@ -30,6 +31,12 @@ func init() {
 		return
 	}
 	validateAuctionsTopic, err = busClient.FirmTopic(string(subjects.ValidateAuctions))
+	if err != nil {
+		log.Fatalf("Failed to get firm topic: %s", err.Error())
+
+		return
+	}
+	computeAllLiveAuctionsTopic, err = busClient.FirmTopic(string(subjects.ComputeAllLiveAuctions))
 	if err != nil {
 		log.Fatalf("Failed to get firm topic: %s", err.Error())
 

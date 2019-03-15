@@ -24,10 +24,9 @@ var (
 
 	regionRealms map[blizzard.RegionName]sotah.Realms
 
-	busClient                   bus.Client
-	downloadAuctionsTopic       *pubsub.Topic
-	computeAllLiveAuctionsTopic *pubsub.Topic
-	validateAllAuctionsTopic    *pubsub.Topic
+	busClient                bus.Client
+	downloadAuctionsTopic    *pubsub.Topic
+	validateAllAuctionsTopic *pubsub.Topic
 )
 
 func init() {
@@ -39,12 +38,6 @@ func init() {
 		return
 	}
 	downloadAuctionsTopic, err = busClient.FirmTopic(string(subjects.DownloadAuctions))
-	if err != nil {
-		log.Fatalf("Failed to get firm topic: %s", err.Error())
-
-		return
-	}
-	computeAllLiveAuctionsTopic, err = busClient.FirmTopic(string(subjects.ComputeAllLiveAuctions))
 	if err != nil {
 		log.Fatalf("Failed to get firm topic: %s", err.Error())
 
@@ -147,11 +140,6 @@ func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
 	}
 	msg := bus.NewMessage()
 	msg.Data = data
-
-	// publishing to compute-all-live-auctions
-	if _, err := busClient.Publish(computeAllLiveAuctionsTopic, msg); err != nil {
-		return err
-	}
 
 	// publishing to validate-all-auctions
 	if _, err := busClient.Publish(validateAllAuctionsTopic, msg); err != nil {
