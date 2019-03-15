@@ -3,9 +3,9 @@
 # us-central1 because us-east1 does not fucking have go111 runtime yet
 
 # deploying func
-gcloud functions deploy ValidateAllLiveAuctions \
+gcloud functions deploy ValidateAllAuctions \
     --runtime go111 \
-    --trigger-topic validateAllLiveAuctions \
+    --trigger-topic validateAllAuctions \
     --source . \
     --memory 128MB \
     --timeout 500s \
