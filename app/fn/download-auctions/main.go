@@ -21,19 +21,21 @@ import (
 	"github.com/sotah-inc/server/app/pkg/store"
 )
 
-var projectId = os.Getenv("GCP_PROJECT")
+var (
+	projectId = os.Getenv("GCP_PROJECT")
 
-var regions sotah.RegionList
+	busClient bus.Client
 
-var busClient bus.Client
+	blizzardClient blizzard.Client
 
-var blizzardClient blizzard.Client
+	storeClient              store.Client
+	auctionsStoreBase        store.AuctionsBaseV2
+	auctionsBucket           *storage.BucketHandle
+	auctionManifestStoreBase store.AuctionManifestBaseV2
+	auctionsManifestBucket   *storage.BucketHandle
 
-var storeClient store.Client
-var auctionsStoreBase store.AuctionsBaseV2
-var auctionsBucket *storage.BucketHandle
-var auctionManifestStoreBase store.AuctionManifestBaseV2
-var auctionsManifestBucket *storage.BucketHandle
+	regions sotah.RegionList
+)
 
 func init() {
 	var err error
@@ -226,15 +228,8 @@ func Handle(job bus.CollectAuctionsJob) bus.Message {
 
 		return m
 	}
-	aucs, err := blizzard.NewAuctions(resp.Body)
-	if err != nil {
-		m.Err = err.Error()
-		m.Code = codes.GenericError
 
-		return m
-	}
-
-	if err := auctionsStoreBase.Handle(aucs, aucInfoFile.LastModifiedAsTime(), realm, auctionsBucket); err != nil {
+	if err := auctionsStoreBase.Handle(resp.Body, aucInfoFile.LastModifiedAsTime(), realm, auctionsBucket); err != nil {
 		m.Err = err.Error()
 		m.Code = codes.GenericError
 

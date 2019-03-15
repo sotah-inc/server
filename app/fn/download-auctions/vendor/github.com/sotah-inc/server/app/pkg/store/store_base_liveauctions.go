@@ -5,7 +5,6 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
-	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 )
 
@@ -19,6 +18,10 @@ type LiveAuctionsBase struct {
 
 func (b LiveAuctionsBase) getBucketName() string {
 	return "live-auctions"
+}
+
+func (b LiveAuctionsBase) GetFirmBucket() (*storage.BucketHandle, error) {
+	return b.base.getFirmBucket(b.getBucketName())
 }
 
 func (b LiveAuctionsBase) GetBucket() *storage.BucketHandle {
@@ -37,14 +40,7 @@ func (b LiveAuctionsBase) GetObject(realm sotah.Realm, bkt *storage.BucketHandle
 	return b.base.getObject(b.getObjectName(realm), bkt)
 }
 
-func (b LiveAuctionsBase) Handle(aucs blizzard.Auctions, realm sotah.Realm) error {
-	logging.WithField("bucket", b.getBucketName()).Info("Resolving bucket")
-
-	bkt, err := b.resolveBucket()
-	if err != nil {
-		return err
-	}
-
+func (b LiveAuctionsBase) Handle(aucs blizzard.Auctions, realm sotah.Realm, bkt *storage.BucketHandle) error {
 	// encoding auctions in the appropriate format
 	gzipEncodedBody, err := sotah.NewMiniAuctionListFromMiniAuctions(sotah.NewMiniAuctions(aucs)).EncodeForDatabase()
 	if err != nil {
