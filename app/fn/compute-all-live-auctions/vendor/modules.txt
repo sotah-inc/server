@@ -20,7 +20,7 @@ github.com/googleapis/gax-go/v2
 github.com/konsorten/go-windows-terminal-sequences
 # github.com/sirupsen/logrus v1.3.0
 github.com/sirupsen/logrus
-# github.com/sotah-inc/server/app v0.0.0-20190313224255-9e58eec6caeb
+# github.com/sotah-inc/server/app v0.0.0-20190314235729-299c5594e41b
 github.com/sotah-inc/server/app/pkg/bus
 github.com/sotah-inc/server/app/pkg/logging
 github.com/sotah-inc/server/app/pkg/state/subjects

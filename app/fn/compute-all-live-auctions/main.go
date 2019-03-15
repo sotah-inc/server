@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"log"
 	"os"
+	"time"
 
 	"cloud.google.com/go/pubsub"
 	"github.com/sotah-inc/server/app/pkg/bus"
+	"github.com/sotah-inc/server/app/pkg/bus/codes"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
@@ -43,27 +45,31 @@ func ComputeAllLiveAuctions(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
+	// producing region-realm-timestamp tuples from bus message
 	tuples, err := bus.NewRegionRealmTimestampTuples(in.Data)
 	if err != nil {
 		return err
 	}
 
-	for _, tuple := range tuples {
-		job := bus.LoadRegionRealmTimestampsInJob{
-			RegionName:      tuple.RegionName,
-			RealmSlug:       tuple.RealmSlug,
-			TargetTimestamp: tuple.TargetTimestamp,
-		}
-		data, err := job.EncodeForDelivery()
-		if err != nil {
-			return err
-		}
-
-		msg := bus.NewMessage()
-
+	// converting to messages for requesting
+	messages, err := tuples.ToMessages()
+	if err != nil {
+		return err
 	}
 
-	logging.WithField("tuples", len(tuples)).Info("Handling")
+	// enqueueing them and gathering result jobs
+	responseItems, err := busClient.BulkRequest(computeLiveAuctionsTopic, messages, 200*time.Second)
+	if err != nil {
+		return err
+	}
+
+	for _, msg := range responseItems {
+		if msg.Code != codes.Ok {
+			logging.WithField("msg", msg).Error("Received erroneous response")
+
+			continue
+		}
+	}
 
 	return nil
 }
