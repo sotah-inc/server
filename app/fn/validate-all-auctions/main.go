@@ -72,12 +72,34 @@ func ValidateAllAuctions(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
-	for _, msg := range responseItems {
+	validatedResponseItems := bus.BulkRequestMessages{}
+	for k, msg := range responseItems {
 		if msg.Code != codes.Ok {
 			logging.WithField("msg", msg).Error("Received erroneous response")
 
 			continue
 		}
+
+		validatedResponseItems[k] = msg
+	}
+
+	// formatting the response-items as tuples for processing
+	validatedTuples, err := bus.NewRegionRealmTimestampTuplesFromMessages(validatedResponseItems)
+	if err != nil {
+		return err
+	}
+
+	// producing a message for computation
+	data, err := validatedTuples.EncodeForDelivery()
+	if err != nil {
+		return err
+	}
+	msg := bus.NewMessage()
+	msg.Data = data
+
+	// publishing to compute-all-live-auctions
+	if _, err := busClient.Publish(computeAllLiveAuctionsTopic, msg); err != nil {
+		return err
 	}
 
 	return nil
