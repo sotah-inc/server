@@ -1,4 +1,4 @@
-package pricelisthistoriescomputeintake
+package compute_pricelist_histories
 
 import (
 	"context"
@@ -8,20 +8,25 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
-
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
+	"github.com/sotah-inc/server/app/pkg/bus/codes"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state"
-	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
 )
 
-var projectId = os.Getenv("GCP_PROJECT")
-var busClient bus.Client
-var storeClient store.Client
-var pricelistHistoriesStoreBase store.PricelistHistoriesBaseV2
-var pricelistHistoriesBucket *storage.BucketHandle
+var (
+	projectId = os.Getenv("GCP_PROJECT")
+
+	busClient bus.Client
+
+	storeClient                 store.Client
+	auctionsStoreBase           store.AuctionsBaseV2
+	rawAuctionsBucket           *storage.BucketHandle
+	pricelistHistoriesStoreBase store.PricelistHistoriesBaseV2
+	pricelistHistoriesBucket    *storage.BucketHandle
+)
 
 func init() {
 	var err error
@@ -38,14 +43,73 @@ func init() {
 
 		return
 	}
-	pricelistHistoriesStoreBase = store.NewPricelistHistoriesBaseV2(storeClient)
 
+	pricelistHistoriesStoreBase = store.NewPricelistHistoriesBaseV2(storeClient, "us-central1")
 	pricelistHistoriesBucket, err = pricelistHistoriesStoreBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get firm pricelist-histories bucket: %s", err.Error())
 
 		return
 	}
+
+	auctionsStoreBase = store.NewAuctionsBaseV2(storeClient, "us-central1")
+	rawAuctionsBucket, err = auctionsStoreBase.GetFirmBucket()
+	if err != nil {
+		log.Fatalf("Failed to get auctions bucket: %s", err.Error())
+
+		return
+	}
+}
+
+func Handle(job bus.LoadRegionRealmTimestampsInJob) bus.Message {
+	m := bus.NewMessage()
+
+	region := sotah.Region{Name: blizzard.RegionName(job.RegionName)}
+	realm := sotah.Realm{
+		Realm:  blizzard.Realm{Slug: blizzard.RealmSlug(job.RealmSlug)},
+		Region: region,
+	}
+	targetTime := time.Unix(int64(job.TargetTimestamp), 0)
+
+	obj, err := auctionsStoreBase.GetFirmObject(realm, targetTime, rawAuctionsBucket)
+	if err != nil {
+		m.Err = err.Error()
+		m.Code = codes.NotFound
+
+		return m
+	}
+
+	aucs, err := storeClient.NewAuctions(obj)
+	if err != nil {
+		m.Err = err.Error()
+		m.Code = codes.GenericError
+
+		return m
+	}
+
+	normalizedTargetTimestamp, err := pricelistHistoriesStoreBase.Handle(aucs, targetTime, realm, pricelistHistoriesBucket)
+	if err != nil {
+		m.Err = err.Error()
+		m.Code = codes.GenericError
+
+		return m
+	}
+
+	req := state.PricelistHistoriesComputeIntakeRequest{
+		RegionName:                string(region.Name),
+		RealmSlug:                 string(realm.Slug),
+		NormalizedTargetTimestamp: int(normalizedTargetTimestamp),
+	}
+	jsonEncodedRequest, err := json.Marshal(req)
+	if err != nil {
+		m.Err = err.Error()
+		m.Code = codes.GenericError
+
+		return m
+	}
+	m.Data = string(jsonEncodedRequest)
+
+	return m
 }
 
 type PubSubMessage struct {
@@ -58,41 +122,14 @@ func ComputePricelistHistories(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
-	var job bus.LoadRegionRealmTimestampsInJob
-	if err := json.Unmarshal([]byte(in.Data), &job); err != nil {
-		return err
-	}
-
-	region := sotah.Region{Name: blizzard.RegionName(job.RegionName)}
-	realm := sotah.Realm{
-		Realm:  blizzard.Realm{Slug: blizzard.RealmSlug(job.RealmSlug)},
-		Region: region,
-	}
-	targetTime := time.Unix(int64(job.TargetTimestamp), 0)
-
-	aucs, err := storeClient.GetAuctions(realm, targetTime)
+	job, err := bus.NewLoadRegionRealmTimestampsInJob(in.Data)
 	if err != nil {
 		return err
 	}
 
-	normalizedTargetTimestamp, err := pricelistHistoriesStoreBase.Handle(aucs, targetTime, realm, pricelistHistoriesBucket)
-	if err != nil {
-		return err
-	}
-
-	req := state.PricelistHistoriesComputeIntakeRequest{}
-	req.RegionName = string(region.Name)
-	req.RealmSlug = string(realm.Slug)
-	req.NormalizedTargetTimestamp = int(normalizedTargetTimestamp)
-	jsonEncodedRequest, err := json.Marshal(req)
-	if err != nil {
-		return err
-	}
-
-	topic := busClient.Topic(string(subjects.PricelistHistoriesComputeIntake))
-	msg := bus.NewMessage()
-	msg.Data = string(jsonEncodedRequest)
-	if _, err := busClient.Publish(topic, msg); err != nil {
+	msg := Handle(job)
+	msg.ReplyToId = in.ReplyToId
+	if _, err := busClient.ReplyTo(in, msg); err != nil {
 		return err
 	}
 

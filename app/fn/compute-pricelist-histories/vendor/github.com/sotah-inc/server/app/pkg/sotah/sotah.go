@@ -80,6 +80,8 @@ type Expansion struct {
 	LabelColor string `json:"label_color"`
 }
 
+type RegionRealms map[blizzard.RegionName]Realms
+
 type RegionRealmMap map[blizzard.RegionName]RealmMap
 
 type RealmMap map[blizzard.RealmSlug]Realm

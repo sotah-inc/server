@@ -71,7 +71,7 @@ func NewLiveAuctionsState(config LiveAuctionsStateConfig) (LiveAuctionsState, er
 		}
 
 		laState.IO.StoreClient = stor
-		laState.LiveAuctionsBase = store.NewLiveAuctionsBase(stor)
+		laState.LiveAuctionsBase = store.NewLiveAuctionsBase(stor, "us-east1")
 
 		// establishing a bus
 		logging.Info("Connecting bus-client")
