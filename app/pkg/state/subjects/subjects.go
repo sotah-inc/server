@@ -37,6 +37,9 @@ const (
 	DownloadAllAuctions Subject = "downloadAllAuctions"
 	DownloadAuctions    Subject = "downloadAuctions"
 
+	ValidateAllAuctions Subject = "validateAllAuctions"
+	ValidateAuctions    Subject = "validateAuctions"
+
 	SyncAllItems       Subject = "syncAllItems"
 	SyncItem           Subject = "syncItem"
 	ReceiveSyncedItems Subject = "receiveSyncedItems"
