@@ -105,9 +105,6 @@ github.com/shurcooL/users v0.0.0-20180125191416-49c67e49c537/go.mod h1:QJTqeLYED
 github.com/shurcooL/webdavfs v0.0.0-20170829043945-18c3829fa133/go.mod h1:hKmq5kWdCj2z2KEozexVbfEZIWiTjhE0+UjmZgPqehw=
 github.com/sirupsen/logrus v1.3.0 h1:hI/7Q+DtNZ2kINb6qt/lS+IyXnHQe9e90POfeewL/ME=
 github.com/sirupsen/logrus v1.3.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
-github.com/sotah-inc/server v0.0.0-20190315000226-56f1fd53ba72 h1:a+AsEMVyJGhuwElNXquQ0tBirJOPGgZFLDqM/aeFG9g=
-github.com/sotah-inc/server/app v0.0.0-20190314200039-1589100b13f9 h1:VMJcTjltCeHkIr0yp1bMHSurifpj+dSqjiKj0RGMZlg=
-github.com/sotah-inc/server/app v0.0.0-20190314200039-1589100b13f9/go.mod h1:ait7CFyAY8ITSMb5LPnmuLgnZsfQN1+BY141WvjjeJo=
 github.com/sotah-inc/server/app v0.0.0-20190315000226-56f1fd53ba72 h1:tf4Zl63Jr/EBSSgz4vVZ/pc9AW9/uachebTqV0ds0c8=
 github.com/sotah-inc/server/app v0.0.0-20190315000226-56f1fd53ba72/go.mod h1:ait7CFyAY8ITSMb5LPnmuLgnZsfQN1+BY141WvjjeJo=
 github.com/sourcegraph/annotate v0.0.0-20160123013949-f4cad6c6324d/go.mod h1:UdhH50NIW0fCiwBSr0co2m7BnFLdv4fQTgdqdJTHFeE=
