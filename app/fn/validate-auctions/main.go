@@ -1,4 +1,4 @@
-package compute_live_auctions
+package validate_auctions
 
 import (
 	"context"
@@ -24,7 +24,7 @@ var (
 
 func init() {
 	var err error
-	busClient, err = bus.NewClient(projectId, "fn-compute-live-auctions")
+	busClient, err = bus.NewClient(projectId, "fn-validate-auctions")
 	if err != nil {
 		log.Fatalf("Failed to create new bus client: %s", err.Error())
 
@@ -83,7 +83,7 @@ type PubSubMessage struct {
 	Data []byte `json:"data"`
 }
 
-func ComputeLiveAuctions(_ context.Context, m PubSubMessage) error {
+func ValidateAuctions(_ context.Context, m PubSubMessage) error {
 	var in bus.Message
 	if err := json.Unmarshal(m.Data, &in); err != nil {
 		return err

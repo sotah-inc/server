@@ -14,14 +14,16 @@ import (
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
-var projectId = os.Getenv("GCP_PROJECT")
+var (
+	projectId = os.Getenv("GCP_PROJECT")
 
-var busClient bus.Client
-var validateAuctionsTopic *pubsub.Topic
+	busClient             bus.Client
+	validateAuctionsTopic *pubsub.Topic
+)
 
 func init() {
 	var err error
-	busClient, err = bus.NewClient(projectId, "fn-compute-all-live-auctions")
+	busClient, err = bus.NewClient(projectId, "fn-validate-all-auctions")
 	if err != nil {
 		log.Fatalf("Failed to create new bus client: %s", err.Error())
 
@@ -39,7 +41,7 @@ type PubSubMessage struct {
 	Data []byte `json:"data"`
 }
 
-func ValidateAllLiveAuctions(_ context.Context, m PubSubMessage) error {
+func ValidateAllAuctions(_ context.Context, m PubSubMessage) error {
 	var in bus.Message
 	if err := json.Unmarshal(m.Data, &in); err != nil {
 		return err
