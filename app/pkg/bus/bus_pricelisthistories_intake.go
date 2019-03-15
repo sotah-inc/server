@@ -34,6 +34,14 @@ func (j LoadRegionRealmTimestampsInJob) EncodeForDelivery() (string, error) {
 	return string(out), nil
 }
 
+func (j LoadRegionRealmTimestampsInJob) ToRegionRealmTimestampTuple() RegionRealmTimestampTuple {
+	return RegionRealmTimestampTuple{
+		RegionName:      string(j.RegionName),
+		RealmSlug:       string(j.RealmSlug),
+		TargetTimestamp: j.TargetTimestamp,
+	}
+}
+
 func (c Client) LoadRegionRealmTimestamps(rTimestamps sotah.RegionRealmTimestamps, recipientSubject subjects.Subject) {
 	// establishing channels for intake
 	in := make(chan LoadRegionRealmTimestampsInJob)

@@ -642,4 +642,13 @@ type RegionRealmTimestampTuple struct {
 	TargetTimestamp int    `json:"target_timestamp"`
 }
 
+func (t RegionRealmTimestampTuple) EncodeForDelivery() (string, error) {
+	data, err := json.Marshal(t)
+	if err != nil {
+		return "", err
+	}
+
+	return string(data), nil
+}
+
 type CleanupAuctionManifestJob = RegionRealmTimestampTuple
