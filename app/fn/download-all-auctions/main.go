@@ -120,6 +120,7 @@ func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
 			continue
 		}
 
+		// ok msg code but no msg data means no new auctions
 		if len(msg.Data) == 0 {
 			continue
 		}
