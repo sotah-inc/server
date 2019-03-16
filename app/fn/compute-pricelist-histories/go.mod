@@ -1,4 +1,4 @@
-module github.com/sotah-inc/server/app/fn/pricelist-histories-compute-intake
+module github.com/sotah-inc/server/app/fn/compute-pricelist-histories
 
 require (
 	cloud.google.com/go v0.36.0

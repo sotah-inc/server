@@ -1,4 +1,4 @@
-module github.com/sotah-inc/server/app/fn/compute-live-auctions
+module github.com/sotah-inc/server/app/fn/validate-auctions
 
 require (
 	cloud.google.com/go v0.36.0
