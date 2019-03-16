@@ -104,3 +104,27 @@ func (b BootBase) GetRegionRealms(bkt *storage.BucketHandle) (map[blizzard.Regio
 
 	return out, nil
 }
+
+func (b BootBase) GetBlizzardCredentials(bkt *storage.BucketHandle) (sotah.BlizzardCredentials, error) {
+	credentialsObj, err := b.getFirmObject("blizzard-credentials.json", bkt)
+	if err != nil {
+		return sotah.BlizzardCredentials{}, err
+	}
+
+	reader, err := credentialsObj.NewReader(b.client.Context)
+	if err != nil {
+		return sotah.BlizzardCredentials{}, err
+	}
+
+	data, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return sotah.BlizzardCredentials{}, err
+	}
+
+	var out sotah.BlizzardCredentials
+	if err := json.Unmarshal(data, &out); err != nil {
+		return sotah.BlizzardCredentials{}, err
+	}
+
+	return out, nil
+}

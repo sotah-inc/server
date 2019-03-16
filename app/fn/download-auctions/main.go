@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	"cloud.google.com/go/storage"
 	"github.com/sirupsen/logrus"
@@ -16,8 +15,6 @@ import (
 	"github.com/sotah-inc/server/app/pkg/bus/codes"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
-	"github.com/sotah-inc/server/app/pkg/state"
-	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
 )
 
@@ -70,25 +67,6 @@ func init() {
 		return
 	}
 
-	bootResponse, err := func() (state.AuthenticatedBootResponse, error) {
-		msg, err := busClient.RequestFromTopic(string(subjects.Boot), "", 5*time.Second)
-		if err != nil {
-			return state.AuthenticatedBootResponse{}, err
-		}
-
-		var out state.AuthenticatedBootResponse
-		if err := json.Unmarshal([]byte(msg.Data), &out); err != nil {
-			return state.AuthenticatedBootResponse{}, err
-		}
-
-		return out, nil
-	}()
-	if err != nil {
-		log.Fatalf("Failed to get authenticated-boot-response: %s", err.Error())
-
-		return
-	}
-
 	bootBase := store.NewBootBase(storeClient, "us-central1")
 	var bootBucket *storage.BucketHandle
 	bootBucket, err = bootBase.GetFirmBucket()
@@ -109,10 +87,16 @@ func init() {
 
 		return
 	}
+	blizzardCredentials, err := bootBase.GetBlizzardCredentials(bootBucket)
+	if err != nil {
+		log.Fatalf("Failed to get blizzard-credentials: %s", err.Error())
 
-	logging.Info("Received regions and region-realms")
+		return
+	}
 
-	blizzardClient, err = blizzard.NewClient(bootResponse.BlizzardClientId, bootResponse.BlizzardClientSecret)
+	logging.Info("Received regions, region-realms, and blizzard-credentials")
+
+	blizzardClient, err = blizzard.NewClient(blizzardCredentials.ClientId, blizzardCredentials.ClientSecret)
 	if err != nil {
 		log.Fatalf("Failed to create blizzard client: %s", err.Error())
 
