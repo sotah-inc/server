@@ -17,9 +17,10 @@ import (
 var (
 	projectId = os.Getenv("GCP_PROJECT")
 
-	busClient                   bus.Client
-	validateAuctionsTopic       *pubsub.Topic
-	computeAllLiveAuctionsTopic *pubsub.Topic
+	busClient                         bus.Client
+	validateAuctionsTopic             *pubsub.Topic
+	computeAllLiveAuctionsTopic       *pubsub.Topic
+	computeAllPricelistHistoriesTopic *pubsub.Topic
 )
 
 func init() {
@@ -37,6 +38,12 @@ func init() {
 		return
 	}
 	computeAllLiveAuctionsTopic, err = busClient.FirmTopic(string(subjects.ComputeAllLiveAuctions))
+	if err != nil {
+		log.Fatalf("Failed to get firm topic: %s", err.Error())
+
+		return
+	}
+	computeAllPricelistHistoriesTopic, err = busClient.FirmTopic(string(subjects.ComputeAllPricelistHistories))
 	if err != nil {
 		log.Fatalf("Failed to get firm topic: %s", err.Error())
 
@@ -98,7 +105,14 @@ func ValidateAllAuctions(_ context.Context, m PubSubMessage) error {
 	msg.Data = data
 
 	// publishing to compute-all-live-auctions
+	logging.Info("Publishing to compute-all-live-auctions")
 	if _, err := busClient.Publish(computeAllLiveAuctionsTopic, msg); err != nil {
+		return err
+	}
+
+	// publishing to compute-all-pricelist-histories
+	logging.Info("Publishing to compute-all-pricelist-histories")
+	if _, err := busClient.Publish(computeAllPricelistHistoriesTopic, msg); err != nil {
 		return err
 	}
 
