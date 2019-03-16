@@ -100,7 +100,6 @@ func main() {
 		prodApiCommand.FullCommand(): func() error {
 			return command.ProdApi(state.ProdApiStateConfig{
 				SotahConfig:          c,
-				ItemsDatabaseDir:     fmt.Sprintf("%s/databases", *cacheDir),
 				BlizzardClientSecret: *clientSecret,
 				BlizzardClientId:     *clientID,
 				MessengerPort:        *natsPort,

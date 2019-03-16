@@ -25,8 +25,6 @@ type ProdApiStateConfig struct {
 
 	BlizzardClientId     string
 	BlizzardClientSecret string
-
-	ItemsDatabaseDir string
 }
 
 func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {

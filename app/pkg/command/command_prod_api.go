@@ -38,6 +38,7 @@ func ProdApi(config state.ProdApiStateConfig) error {
 
 	// stopping listeners
 	apiState.Listeners.Stop()
+	apiState.BusListeners.Stop()
 
 	logging.Info("Exiting")
 	return nil
