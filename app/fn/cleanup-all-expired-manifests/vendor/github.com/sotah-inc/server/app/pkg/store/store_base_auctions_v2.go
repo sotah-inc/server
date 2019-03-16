@@ -1,12 +1,10 @@
 package store
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"cloud.google.com/go/storage"
-	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
@@ -47,12 +45,7 @@ func (b AuctionsBaseV2) GetFirmObject(realm sotah.Realm, lastModified time.Time,
 	return b.base.getFirmObject(b.getObjectName(realm, lastModified), bkt)
 }
 
-func (b AuctionsBaseV2) Handle(aucs blizzard.Auctions, lastModified time.Time, realm sotah.Realm, bkt *storage.BucketHandle) error {
-	jsonEncodedBody, err := json.Marshal(aucs)
-	if err != nil {
-		return err
-	}
-
+func (b AuctionsBaseV2) Handle(jsonEncodedBody []byte, lastModified time.Time, realm sotah.Realm, bkt *storage.BucketHandle) error {
 	gzipEncodedBody, err := util.GzipEncode(jsonEncodedBody)
 	if err != nil {
 		return err
@@ -84,6 +77,24 @@ func (b AuctionsBaseV2) DeleteAll(bkt *storage.BucketHandle, realm sotah.Realm, 
 	worker := func() {
 		for targetTimestamp := range in {
 			obj := bkt.Object(b.getObjectName(realm, time.Unix(int64(targetTimestamp), 0)))
+			exists, err := b.ObjectExists(obj)
+			if err != nil {
+				out <- DeleteAuctionsJob{
+					Err:             err,
+					TargetTimestamp: targetTimestamp,
+				}
+
+				continue
+			}
+			if !exists {
+				out <- DeleteAuctionsJob{
+					Err:             nil,
+					TargetTimestamp: targetTimestamp,
+				}
+
+				continue
+			}
+
 			if err := obj.Delete(b.client.Context); err != nil {
 				out <- DeleteAuctionsJob{
 					Err:             err,

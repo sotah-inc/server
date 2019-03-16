@@ -69,7 +69,11 @@ func (sta ProdApiState) ListenForStatus(onReady chan interface{}, stop chan inte
 			if err != nil {
 				reply.Err = err.Error()
 				reply.Code = codes.MsgJSONParseError
-				sta.IO.BusClient.ReplyTo(busMsg, reply)
+				if _, err := sta.IO.BusClient.ReplyTo(busMsg, reply); err != nil {
+					logging.WithField("error", err.Error()).Error("Failed to reply")
+
+					return
+				}
 
 				return
 			}
@@ -86,7 +90,11 @@ func (sta ProdApiState) ListenForStatus(onReady chan interface{}, stop chan inte
 			if err != nil {
 				reply.Err = err.Error()
 				reply.Code = codes.NotFound
-				sta.IO.BusClient.ReplyTo(busMsg, reply)
+				if _, err := sta.IO.BusClient.ReplyTo(busMsg, reply); err != nil {
+					logging.WithField("error", err.Error()).Error("Failed to reply")
+
+					return
+				}
 
 				return
 			}
@@ -95,7 +103,11 @@ func (sta ProdApiState) ListenForStatus(onReady chan interface{}, stop chan inte
 			if !ok {
 				reply.Err = "Region found but not in Statuses"
 				reply.Code = codes.NotFound
-				sta.IO.BusClient.ReplyTo(busMsg, reply)
+				if _, err := sta.IO.BusClient.ReplyTo(busMsg, reply); err != nil {
+					logging.WithField("error", err.Error()).Error("Failed to reply")
+
+					return
+				}
 
 				return
 			}
@@ -104,13 +116,21 @@ func (sta ProdApiState) ListenForStatus(onReady chan interface{}, stop chan inte
 			if err != nil {
 				reply.Err = err.Error()
 				reply.Code = codes.GenericError
-				sta.IO.BusClient.ReplyTo(busMsg, reply)
+				if _, err := sta.IO.BusClient.ReplyTo(busMsg, reply); err != nil {
+					logging.WithField("error", err.Error()).Error("Failed to reply")
+
+					return
+				}
 
 				return
 			}
 
 			reply.Data = string(encodedStatus)
-			sta.IO.BusClient.ReplyTo(busMsg, reply)
+			if _, err := sta.IO.BusClient.ReplyTo(busMsg, reply); err != nil {
+				logging.WithField("error", err.Error()).Error("Failed to reply")
+
+				return
+			}
 		},
 		OnReady:   onReady,
 		OnStopped: onStopped,
