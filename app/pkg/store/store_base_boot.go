@@ -13,7 +13,7 @@ type BootBase struct {
 }
 
 func (b BootBase) getBucketName() string {
-	return "boot"
+	return "sotah-boot"
 }
 
 func (b BootBase) GetBucket() *storage.BucketHandle {
