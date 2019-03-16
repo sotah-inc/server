@@ -11,6 +11,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/bus/codes"
+	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state"
 	"github.com/sotah-inc/server/app/pkg/store"
@@ -126,6 +127,8 @@ func ComputePricelistHistories(_ context.Context, m PubSubMessage) error {
 	if err != nil {
 		return err
 	}
+
+	logging.WithField("job", job).Info("Handling")
 
 	msg := Handle(job)
 	msg.ReplyToId = in.ReplyToId
