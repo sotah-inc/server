@@ -34,7 +34,8 @@ var (
 	auctionManifestStoreBase store.AuctionManifestBaseV2
 	auctionsManifestBucket   *storage.BucketHandle
 
-	regions sotah.RegionList
+	regions      sotah.RegionList
+	regionRealms map[blizzard.RegionName]sotah.Realms
 )
 
 func init() {
@@ -88,7 +89,28 @@ func init() {
 		return
 	}
 
-	regions = bootResponse.Regions
+	bootBase := store.NewBootBase(storeClient, "us-central1")
+	var bootBucket *storage.BucketHandle
+	bootBucket, err = bootBase.GetFirmBucket()
+	if err != nil {
+		log.Fatalf("Failed to get firm bucket: %s", err.Error())
+
+		return
+	}
+	regions, err = bootBase.GetRegions(bootBucket)
+	if err != nil {
+		log.Fatalf("Failed to get regions: %s", err.Error())
+
+		return
+	}
+	regionRealms, err = bootBase.GetRegionRealms(bootBucket)
+	if err != nil {
+		log.Fatalf("Failed to get region-realms: %s", err.Error())
+
+		return
+	}
+
+	logging.Info("Received regions and region-realms")
 
 	blizzardClient, err = blizzard.NewClient(bootResponse.BlizzardClientId, bootResponse.BlizzardClientSecret)
 	if err != nil {
@@ -115,9 +137,22 @@ func Handle(job bus.CollectAuctionsJob) bus.Message {
 			return sotah.Region{}, sotah.Realm{}, err
 		}
 
-		realm := sotah.Realm{
-			Realm:  blizzard.Realm{Slug: blizzard.RealmSlug(job.RealmSlug)},
-			Region: region,
+		realm, err := func() (sotah.Realm, error) {
+			realms, ok := regionRealms[blizzard.RegionName(job.RegionName)]
+			if !ok {
+				return sotah.Realm{}, errors.New("could not resolve realms from job")
+			}
+
+			for _, realm := range realms {
+				if realm.Slug == blizzard.RealmSlug(job.RealmSlug) {
+					return realm, nil
+				}
+			}
+
+			return sotah.Realm{}, errors.New("could not resolve realm from job")
+		}()
+		if err != nil {
+			return sotah.Region{}, sotah.Realm{}, err
 		}
 
 		return region, realm, nil
