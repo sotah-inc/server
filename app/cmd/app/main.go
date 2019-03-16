@@ -38,6 +38,7 @@ func main() {
 
 		apiCommand                = app.Command(string(commands.API), "For running sotah-server.")
 		prodApiCommand            = app.Command(string(commands.ProdApi), "For running sotah-server in prod-mode.")
+		prodMetricsCommand        = app.Command(string(commands.ProdMetrics), "For forwarding metrics to a nats channel.")
 		liveAuctionsCommand       = app.Command(string(commands.LiveAuctions), "For in-memory storage of current auctions.")
 		pricelistHistoriesCommand = app.Command(string(commands.PricelistHistories), "For on-disk storage of pricelist histories.")
 		pubCommand                = app.Command(string(commands.Pub), "For testing pubsub on gcloud.")
@@ -105,6 +106,13 @@ func main() {
 				MessengerPort:        *natsPort,
 				MessengerHost:        *natsHost,
 				GCloudProjectID:      *projectID,
+			})
+		},
+		prodMetricsCommand.FullCommand(): func() error {
+			return command.ProdMetrics(state.ProdMetricsStateConfig{
+				MessengerPort:   *natsPort,
+				MessengerHost:   *natsHost,
+				GCloudProjectID: *projectID,
 			})
 		},
 		liveAuctionsCommand.FullCommand(): func() error {
