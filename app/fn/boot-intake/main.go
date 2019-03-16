@@ -19,7 +19,9 @@ import (
 )
 
 var (
-	projectId = os.Getenv("GCP_PROJECT")
+	projectId            = os.Getenv("GCP_PROJECT")
+	blizzardClientId     = os.Getenv("BLIZZARD_CLIENT_ID")
+	blizzardClientSecret = os.Getenv("BLIZZARD_CLIENT_SECRET")
 
 	busClient bus.Client
 
@@ -136,6 +138,23 @@ func BootIntake(_ context.Context, _ PubSubMessage) error {
 		if err := wc.Close(); err != nil {
 			return err
 		}
+	}
+
+	jsonEncodedCredentials, err := json.Marshal(sotah.BlizzardCredentials{
+		ClientId:     blizzardClientId,
+		ClientSecret: blizzardClientSecret,
+	})
+	if err != nil {
+		return err
+	}
+
+	wc = bootBase.GetObject("blizzard-credentials.json", bootBucket).NewWriter(storeClient.Context)
+	wc.ContentType = "application/json"
+	if _, err := wc.Write(jsonEncodedCredentials); err != nil {
+		return err
+	}
+	if err := wc.Close(); err != nil {
+		return err
 	}
 
 	return nil
