@@ -57,6 +57,8 @@ func (metricsState ProdLiveAuctionsState) ListenForComputedLiveAuctions(onReady 
 	config := bus.SubscribeConfig{
 		Stop: stop,
 		Callback: func(busMsg bus.Message) {
+			logging.WithField("data", len(busMsg.Data)).Info("Received message")
+
 			return
 		},
 		OnReady:   onReady,
