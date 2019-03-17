@@ -12,7 +12,7 @@ func ProdMetrics(config state.ProdMetricsStateConfig) error {
 	logging.Info("Starting prod-metrics")
 
 	// establishing a state
-	metricsState, err := state.NewProdMetricState(config)
+	metricsState, err := state.NewProdMetricsState(config)
 	if err != nil {
 		logging.WithField("error", err.Error()).Error("Failed to establish prod-metrics state")
 

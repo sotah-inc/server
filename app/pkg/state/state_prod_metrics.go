@@ -18,7 +18,7 @@ type ProdMetricsStateConfig struct {
 	MessengerPort int
 }
 
-func NewProdMetricState(config ProdMetricsStateConfig) (ProdMetricsState, error) {
+func NewProdMetricsState(config ProdMetricsStateConfig) (ProdMetricsState, error) {
 	// establishing an initial state
 	metricsState := ProdMetricsState{
 		State: NewState(uuid.NewV4(), true),
