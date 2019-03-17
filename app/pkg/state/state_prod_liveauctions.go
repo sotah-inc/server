@@ -1,6 +1,8 @@
 package state
 
 import (
+	"fmt"
+
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/database"
@@ -10,6 +12,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
+	"github.com/sotah-inc/server/app/pkg/util"
 	"github.com/twinj/uuid"
 )
 
@@ -72,6 +75,22 @@ func NewProdLiveAuctionsState(config ProdLiveAuctionsStateConfig) (ProdLiveAucti
 		statuses[regionName] = sotah.Status{Realms: realms}
 	}
 	liveAuctionsState.Statuses = statuses
+
+	// ensuring database paths exist
+	databasePaths := []string{}
+	for regionName, realms := range regionRealms {
+		for _, realm := range realms {
+			databasePaths = append(databasePaths, fmt.Sprintf(
+				"%s/%s/%s",
+				config.LiveAuctionsDatabaseDir,
+				regionName,
+				realm.Slug,
+			))
+		}
+	}
+	if err := util.EnsureDirsExist(databasePaths); err != nil {
+		return ProdLiveAuctionsState{}, err
+	}
 
 	// initializing a reporter
 	liveAuctionsState.IO.Reporter = metric.NewReporter(mess)
