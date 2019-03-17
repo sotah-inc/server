@@ -57,7 +57,14 @@ func (metricsState ProdLiveAuctionsState) ListenForComputedLiveAuctions(onReady 
 	config := bus.SubscribeConfig{
 		Stop: stop,
 		Callback: func(busMsg bus.Message) {
-			logging.WithField("data", len(busMsg.Data)).Info("Received message")
+			tuples, err := bus.NewRegionRealmTimestampTuples(busMsg.Data)
+			if err != nil {
+				logging.WithField("error", err.Error()).Error("Failed to decode region-realm-timestamps tuples")
+
+				return
+			}
+
+			logging.WithField("tuples", len(tuples)).Info("Received tuples")
 
 			return
 		},
