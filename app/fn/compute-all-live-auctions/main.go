@@ -16,10 +16,13 @@ import (
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
-var projectId = os.Getenv("GCP_PROJECT")
+var (
+	projectId = os.Getenv("GCP_PROJECT")
 
-var busClient bus.Client
-var computeLiveAuctionsTopic *pubsub.Topic
+	busClient                         bus.Client
+	computeLiveAuctionsTopic          *pubsub.Topic
+	receivedComputedLiveAuctionsTopic *pubsub.Topic
+)
 
 func init() {
 	var err error
@@ -30,6 +33,12 @@ func init() {
 		return
 	}
 	computeLiveAuctionsTopic, err = busClient.FirmTopic(string(subjects.ComputeLiveAuctions))
+	if err != nil {
+		log.Fatalf("Failed to get firm topic: %s", err.Error())
+
+		return
+	}
+	receivedComputedLiveAuctionsTopic, err = busClient.FirmTopic(string(subjects.ReceiveComputedLiveAuctions))
 	if err != nil {
 		log.Fatalf("Failed to get firm topic: %s", err.Error())
 
@@ -72,12 +81,35 @@ func ComputeAllLiveAuctions(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
-	for _, msg := range responseItems {
+	validatedResponseItems := bus.BulkRequestMessages{}
+	for k, msg := range responseItems {
 		if msg.Code != codes.Ok {
 			logging.WithField("msg", msg).Error("Received erroneous response")
 
 			continue
 		}
+
+		validatedResponseItems[k] = msg
+	}
+
+	// formatting the response-items as tuples for processing
+	validatedTuples, err := bus.NewRegionRealmTimestampTuplesFromMessages(validatedResponseItems)
+	if err != nil {
+		return err
+	}
+
+	// producing a message for computation
+	data, err := validatedTuples.EncodeForDelivery()
+	if err != nil {
+		return err
+	}
+	msg := bus.NewMessage()
+	msg.Data = data
+
+	// publishing to receive-computed-live-auctions
+	logging.Info("Publishing to receive-computed-live-auctions")
+	if _, err := busClient.Publish(receivedComputedLiveAuctionsTopic, msg); err != nil {
+		return err
 	}
 
 	return nil
