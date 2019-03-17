@@ -83,6 +83,11 @@ func HandleComputedLiveAuctions(liveAuctionsState ProdLiveAuctionsState, tuples 
 	// queueing it all up
 	go func() {
 		for _, tuple := range tuples {
+			logging.WithFields(logrus.Fields{
+				"region": tuple.RegionName,
+				"realm":  tuple.RealmSlug,
+			}).Info("Loading tuple")
+
 			in <- tuple
 		}
 
