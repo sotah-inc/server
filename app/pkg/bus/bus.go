@@ -80,6 +80,10 @@ func (c Client) CreateTopic(id string) (*pubsub.Topic, error) {
 }
 
 func (c Client) Topic(topicName string) *pubsub.Topic {
+	if c.client == nil {
+		logging.Error("client was nil")
+	}
+
 	return c.client.Topic(topicName)
 }
 
