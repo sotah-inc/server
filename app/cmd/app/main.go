@@ -37,12 +37,11 @@ func main() {
 		projectID      = app.Flag("project-id", "GCloud Storage Project ID").Default("").Envar("PROJECT_ID").String()
 
 		apiCommand                = app.Command(string(commands.API), "For running sotah-server.")
+		liveAuctionsCommand       = app.Command(string(commands.LiveAuctions), "For in-memory storage of current auctions.")
+		pricelistHistoriesCommand = app.Command(string(commands.PricelistHistories), "For on-disk storage of pricelist histories.")
 		prodApiCommand            = app.Command(string(commands.ProdApi), "For running sotah-server in prod-mode.")
 		prodMetricsCommand        = app.Command(string(commands.ProdMetrics), "For forwarding metrics to a nats channel.")
 		prodLiveAuctionsCommand   = app.Command(string(commands.ProdLiveAuctions), "For managing live-auctions in gcp ce vm.")
-		liveAuctionsCommand       = app.Command(string(commands.LiveAuctions), "For in-memory storage of current auctions.")
-		pricelistHistoriesCommand = app.Command(string(commands.PricelistHistories), "For on-disk storage of pricelist histories.")
-		pubCommand                = app.Command(string(commands.Pub), "For testing pubsub on gcloud.")
 	)
 	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
 
@@ -98,6 +97,22 @@ func main() {
 				GCloudProjectID:      *projectID,
 			})
 		},
+		liveAuctionsCommand.FullCommand(): func() error {
+			return command.LiveAuctions(state.LiveAuctionsStateConfig{
+				MessengerHost:           *natsHost,
+				MessengerPort:           *natsPort,
+				DiskStoreCacheDir:       *cacheDir,
+				LiveAuctionsDatabaseDir: fmt.Sprintf("%s/databases", *cacheDir),
+			})
+		},
+		pricelistHistoriesCommand.FullCommand(): func() error {
+			return command.PricelistHistories(state.PricelistHistoriesStateConfig{
+				DiskStoreCacheDir:             *cacheDir,
+				MessengerPort:                 *natsPort,
+				MessengerHost:                 *natsHost,
+				PricelistHistoriesDatabaseDir: fmt.Sprintf("%s/databases", *cacheDir),
+			})
+		},
 		prodApiCommand.FullCommand(): func() error {
 			return command.ProdApi(state.ProdApiStateConfig{
 				SotahConfig:          c,
@@ -121,30 +136,6 @@ func main() {
 				MessengerHost:           *natsHost,
 				GCloudProjectID:         *projectID,
 				LiveAuctionsDatabaseDir: fmt.Sprintf("%s/databases", *cacheDir),
-			})
-		},
-		liveAuctionsCommand.FullCommand(): func() error {
-			return command.LiveAuctions(state.LiveAuctionsStateConfig{
-				MessengerHost:           *natsHost,
-				MessengerPort:           *natsPort,
-				DiskStoreCacheDir:       *cacheDir,
-				LiveAuctionsDatabaseDir: fmt.Sprintf("%s/databases", *cacheDir),
-			})
-		},
-		pricelistHistoriesCommand.FullCommand(): func() error {
-			return command.PricelistHistories(state.PricelistHistoriesStateConfig{
-				DiskStoreCacheDir:             *cacheDir,
-				MessengerPort:                 *natsPort,
-				MessengerHost:                 *natsHost,
-				PricelistHistoriesDatabaseDir: fmt.Sprintf("%s/databases", *cacheDir),
-			})
-		},
-		pubCommand.FullCommand(): func() error {
-			return command.Pub(state.PubStateConfig{
-				GCloudProjectID:                 *projectID,
-				MessengerPort:                   *natsPort,
-				MessengerHost:                   *natsHost,
-				PricelistHistoriesDatabaseV2Dir: fmt.Sprintf("%s/databases", *cacheDir),
 			})
 		},
 	}
