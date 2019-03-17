@@ -7,6 +7,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/sotah-inc/server/app/pkg/metric"
+
 	"cloud.google.com/go/pubsub"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/bus/codes"
@@ -60,8 +62,15 @@ func ComputeAllPricelistHistories(_ context.Context, m PubSubMessage) error {
 	}
 
 	// enqueueing them and gathering result jobs
+	startTime := time.Now()
 	responseItems, err := busClient.BulkRequest(computePricelistHistoriesTopic, messages, 500*time.Second)
 	if err != nil {
+		return err
+	}
+
+	// reporting metrics
+	met := metric.Metrics{"compute_all_pricelist_histories_duration": int(int64(time.Now().Sub(startTime)) / 1000 / 1000 / 1000)}
+	if err := busClient.PublishMetrics(met); err != nil {
 		return err
 	}
 

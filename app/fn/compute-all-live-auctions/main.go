@@ -7,6 +7,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/sotah-inc/server/app/pkg/metric"
+
 	"cloud.google.com/go/pubsub"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/bus/codes"
@@ -58,8 +60,15 @@ func ComputeAllLiveAuctions(_ context.Context, m PubSubMessage) error {
 	}
 
 	// enqueueing them and gathering result jobs
+	startTime := time.Now()
 	responseItems, err := busClient.BulkRequest(computeLiveAuctionsTopic, messages, 200*time.Second)
 	if err != nil {
+		return err
+	}
+
+	// reporting metrics
+	met := metric.Metrics{"compute_all_live_auctions_duration": int(int64(time.Now().Sub(startTime)) / 1000 / 1000 / 1000)}
+	if err := busClient.PublishMetrics(met); err != nil {
 		return err
 	}
 
