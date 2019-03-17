@@ -6,6 +6,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/metric"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
 	"github.com/twinj/uuid"
@@ -42,12 +43,28 @@ func NewProdLiveAuctionsState(config ProdLiveAuctionsStateConfig) (ProdLiveAucti
 	liveAuctionsState.IO.BusClient = busClient
 
 	// establishing a store
-	stor, err := store.NewClient(config.GCloudProjectID)
+	storeClient, err := store.NewClient(config.GCloudProjectID)
 	if err != nil {
 		return ProdLiveAuctionsState{}, err
 	}
-	liveAuctionsState.IO.StoreClient = stor
-	liveAuctionsState.LiveAuctionsBase = store.NewLiveAuctionsBase(stor, "us-central1")
+	liveAuctionsState.IO.StoreClient = storeClient
+	liveAuctionsState.LiveAuctionsBase = store.NewLiveAuctionsBase(storeClient, "us-central1")
+	bootBase := store.NewBootBase(storeClient, "us-central1")
+
+	// gathering region-realms
+	statuses := sotah.Statuses{}
+	bootBucket, err := bootBase.GetFirmBucket()
+	if err != nil {
+		return ProdLiveAuctionsState{}, err
+	}
+	regionRealms, err := bootBase.GetRegionRealms(bootBucket)
+	if err != nil {
+		return ProdLiveAuctionsState{}, err
+	}
+	for regionName, realms := range regionRealms {
+		statuses[regionName] = sotah.Status{Realms: realms}
+	}
+	liveAuctionsState.Statuses = statuses
 
 	// initializing a reporter
 	liveAuctionsState.IO.Reporter = metric.NewReporter(mess)

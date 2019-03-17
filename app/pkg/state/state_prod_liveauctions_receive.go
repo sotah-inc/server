@@ -6,6 +6,10 @@ import (
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
+func HandleComputedLiveAuctions(metricsState ProdLiveAuctionsState, tuples bus.RegionRealmTimestampTuples) {
+	logging.WithField("tuples", len(tuples)).Info("Received tuples")
+}
+
 func (metricsState ProdLiveAuctionsState) ListenForComputedLiveAuctions(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {
 	// establishing subscriber config
 	config := bus.SubscribeConfig{
@@ -18,7 +22,7 @@ func (metricsState ProdLiveAuctionsState) ListenForComputedLiveAuctions(onReady 
 				return
 			}
 
-			logging.WithField("tuples", len(tuples)).Info("Received tuples")
+			HandleComputedLiveAuctions(metricsState, tuples)
 
 			return
 		},
