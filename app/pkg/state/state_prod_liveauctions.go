@@ -1,6 +1,7 @@
 package state
 
 import (
+	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/database"
 	"github.com/sotah-inc/server/app/pkg/logging"
@@ -48,7 +49,13 @@ func NewProdLiveAuctionsState(config ProdLiveAuctionsStateConfig) (ProdLiveAucti
 		return ProdLiveAuctionsState{}, err
 	}
 	liveAuctionsState.IO.StoreClient = storeClient
+
 	liveAuctionsState.LiveAuctionsBase = store.NewLiveAuctionsBase(storeClient, "us-central1")
+	liveAuctionsState.LiveAuctionsBucket, err = liveAuctionsState.LiveAuctionsBase.GetFirmBucket()
+	if err != nil {
+		return ProdLiveAuctionsState{}, err
+	}
+
 	bootBase := store.NewBootBase(storeClient, "us-central1")
 
 	// gathering region-realms
@@ -88,5 +95,6 @@ func NewProdLiveAuctionsState(config ProdLiveAuctionsStateConfig) (ProdLiveAucti
 type ProdLiveAuctionsState struct {
 	State
 
-	LiveAuctionsBase store.LiveAuctionsBase
+	LiveAuctionsBase   store.LiveAuctionsBase
+	LiveAuctionsBucket *storage.BucketHandle
 }
