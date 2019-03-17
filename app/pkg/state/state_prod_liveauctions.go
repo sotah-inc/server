@@ -2,10 +2,12 @@ package state
 
 import (
 	"github.com/sotah-inc/server/app/pkg/bus"
+	"github.com/sotah-inc/server/app/pkg/database"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
+	"github.com/sotah-inc/server/app/pkg/store"
 	"github.com/twinj/uuid"
 )
 
@@ -14,6 +16,8 @@ type ProdLiveAuctionsStateConfig struct {
 
 	MessengerHost string
 	MessengerPort int
+
+	LiveAuctionsDatabaseDir string
 }
 
 func NewProdLiveAuctionsState(config ProdLiveAuctionsStateConfig) (ProdLiveAuctionsState, error) {
@@ -37,8 +41,24 @@ func NewProdLiveAuctionsState(config ProdLiveAuctionsStateConfig) (ProdLiveAucti
 	}
 	liveAuctionsState.IO.BusClient = busClient
 
+	// establishing a store
+	stor, err := store.NewClient(config.GCloudProjectID)
+	if err != nil {
+		return ProdLiveAuctionsState{}, err
+	}
+	liveAuctionsState.IO.StoreClient = stor
+	liveAuctionsState.LiveAuctionsBase = store.NewLiveAuctionsBase(stor, "us-central1")
+
 	// initializing a reporter
 	liveAuctionsState.IO.Reporter = metric.NewReporter(mess)
+
+	// loading the live-auctions databases
+	logging.Info("Connecting to live-auctions databases")
+	ladBases, err := database.NewLiveAuctionsDatabases(config.LiveAuctionsDatabaseDir, liveAuctionsState.Statuses)
+	if err != nil {
+		return ProdLiveAuctionsState{}, err
+	}
+	liveAuctionsState.IO.Databases.LiveAuctionsDatabases = ladBases
 
 	// establishing bus-listeners
 	liveAuctionsState.BusListeners = NewBusListeners(SubjectBusListeners{
@@ -50,6 +70,8 @@ func NewProdLiveAuctionsState(config ProdLiveAuctionsStateConfig) (ProdLiveAucti
 
 type ProdLiveAuctionsState struct {
 	State
+
+	LiveAuctionsBase store.LiveAuctionsBase
 }
 
 func (metricsState ProdLiveAuctionsState) ListenForComputedLiveAuctions(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {

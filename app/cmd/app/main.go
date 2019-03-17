@@ -117,9 +117,10 @@ func main() {
 		},
 		prodLiveAuctionsCommand.FullCommand(): func() error {
 			return command.ProdLiveAuctions(state.ProdLiveAuctionsStateConfig{
-				MessengerPort:   *natsPort,
-				MessengerHost:   *natsHost,
-				GCloudProjectID: *projectID,
+				MessengerPort:           *natsPort,
+				MessengerHost:           *natsHost,
+				GCloudProjectID:         *projectID,
+				LiveAuctionsDatabaseDir: fmt.Sprintf("%s/databases", *cacheDir),
 			})
 		},
 		liveAuctionsCommand.FullCommand(): func() error {
