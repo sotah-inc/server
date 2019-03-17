@@ -82,12 +82,6 @@ func ValidateAllAuctions(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
-	// reporting metrics
-	met := metric.Metrics{"validate_all_auctions_duration": int(int64(time.Now().Sub(startTime)) / 1000 / 1000 / 1000)}
-	if err := busClient.PublishMetrics(met); err != nil {
-		return err
-	}
-
 	validatedResponseItems := bus.BulkRequestMessages{}
 	for k, msg := range responseItems {
 		if msg.Code != codes.Ok {
@@ -97,6 +91,14 @@ func ValidateAllAuctions(_ context.Context, m PubSubMessage) error {
 		}
 
 		validatedResponseItems[k] = msg
+	}
+
+	// reporting metrics
+	if err := busClient.PublishMetrics(metric.Metrics{
+		"validate_all_auctions_duration": int(int64(time.Now().Sub(startTime)) / 1000 / 1000 / 1000),
+		"included_realms":                len(validatedResponseItems),
+	}); err != nil {
+		return err
 	}
 
 	// formatting the response-items as tuples for processing
