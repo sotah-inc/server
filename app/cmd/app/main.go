@@ -133,11 +133,9 @@ func main() {
 		},
 		pricelistHistoriesCommand.FullCommand(): func() error {
 			return command.PricelistHistories(state.PricelistHistoriesStateConfig{
-				UseGCloud:                     c.UseGCloud,
 				DiskStoreCacheDir:             *cacheDir,
 				MessengerPort:                 *natsPort,
 				MessengerHost:                 *natsHost,
-				GCloudProjectID:               *projectID,
 				PricelistHistoriesDatabaseDir: fmt.Sprintf("%s/databases", *cacheDir),
 			})
 		},

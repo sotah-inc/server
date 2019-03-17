@@ -6,15 +6,11 @@ import (
 	"github.com/sotah-inc/server/app/pkg/diskstore"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/metric"
-	"github.com/sotah-inc/server/app/pkg/store"
 	"github.com/sotah-inc/server/app/pkg/util"
 	"github.com/twinj/uuid"
 )
 
 type PricelistHistoriesStateConfig struct {
-	UseGCloud       bool
-	GCloudProjectID string
-
 	MessengerHost string
 	MessengerPort int
 
@@ -25,7 +21,7 @@ type PricelistHistoriesStateConfig struct {
 
 func NewPricelistHistoriesState(config PricelistHistoriesStateConfig) (PricelistHistoriesState, error) {
 	phState := PricelistHistoriesState{
-		State: NewState(uuid.NewV4(), config.UseGCloud),
+		State: NewState(uuid.NewV4(), false),
 	}
 
 	// connecting to the messenger host
@@ -55,28 +51,18 @@ func NewPricelistHistoriesState(config PricelistHistoriesStateConfig) (Pricelist
 		phState.Statuses[reg.Name] = status
 	}
 
-	// establishing a store (gcloud store or disk store)
-	if config.UseGCloud {
-		stor, err := store.NewClient(config.GCloudProjectID)
-		if err != nil {
-			return PricelistHistoriesState{}, err
-		}
-
-		phState.IO.StoreClient = stor
-	} else {
-		cacheDirs := []string{
-			config.DiskStoreCacheDir,
-			fmt.Sprintf("%s/auctions", config.DiskStoreCacheDir),
-		}
-		for _, reg := range phState.Regions {
-			cacheDirs = append(cacheDirs, fmt.Sprintf("%s/auctions/%s", config.DiskStoreCacheDir, reg.Name))
-		}
-		if err := util.EnsureDirsExist(cacheDirs); err != nil {
-			return PricelistHistoriesState{}, err
-		}
-
-		phState.IO.DiskStore = diskstore.NewDiskStore(config.DiskStoreCacheDir)
+	// establishing a store
+	cacheDirs := []string{
+		config.DiskStoreCacheDir,
+		fmt.Sprintf("%s/auctions", config.DiskStoreCacheDir),
 	}
+	for _, reg := range phState.Regions {
+		cacheDirs = append(cacheDirs, fmt.Sprintf("%s/auctions/%s", config.DiskStoreCacheDir, reg.Name))
+	}
+	if err := util.EnsureDirsExist(cacheDirs); err != nil {
+		return PricelistHistoriesState{}, err
+	}
+	phState.IO.DiskStore = diskstore.NewDiskStore(config.DiskStoreCacheDir)
 
 	return phState, nil
 }
