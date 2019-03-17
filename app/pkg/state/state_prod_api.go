@@ -52,6 +52,9 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 	// establishing a bus
 	logging.Info("Connecting bus-client")
 	busClient, err := bus.NewClient(config.GCloudProjectID, "prod-api")
+	if err != nil {
+		return ProdApiState{}, err
+	}
 	apiState.IO.BusClient = busClient
 
 	// connecting to the messenger host

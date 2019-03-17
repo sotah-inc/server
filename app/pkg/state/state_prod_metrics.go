@@ -34,6 +34,9 @@ func NewProdMetricState(config ProdMetricsStateConfig) (ProdMetricsState, error)
 	// establishing a bus
 	logging.Info("Connecting bus-client")
 	busClient, err := bus.NewClient(config.GCloudProjectID, "prod-metrics")
+	if err != nil {
+		return ProdMetricsState{}, err
+	}
 	metricsState.IO.BusClient = busClient
 
 	// initializing a reporter

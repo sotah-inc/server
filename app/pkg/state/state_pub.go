@@ -31,6 +31,9 @@ func NewPubStateIO(config PubStateConfig, statuses sotah.Statuses) (IO, error) {
 	// establishing a bus
 	logging.Info("Connecting bus-client")
 	busClient, err := bus.NewClient(config.GCloudProjectID, "pub")
+	if err != nil {
+		return IO{}, err
+	}
 	out.BusClient = busClient
 
 	// establishing a store

@@ -76,6 +76,9 @@ func NewLiveAuctionsState(config LiveAuctionsStateConfig) (LiveAuctionsState, er
 		// establishing a bus
 		logging.Info("Connecting bus-client")
 		busClient, err := bus.NewClient(config.GCloudProjectID, "live-auctions")
+		if err != nil {
+			return LiveAuctionsState{}, err
+		}
 		laState.IO.BusClient = busClient
 	} else {
 		logging.Info("Connecting to disk store")
