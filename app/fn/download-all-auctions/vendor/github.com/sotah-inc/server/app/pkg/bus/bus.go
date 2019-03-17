@@ -13,7 +13,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/bus/codes"
 	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/util"
 	"github.com/twinj/uuid"
 )
@@ -557,6 +559,26 @@ func (c Client) Request(recipientTopic *pubsub.Topic, payload string, timeout ti
 	}
 
 	return requestResult.Payload, nil
+}
+
+func (c Client) PublishMetrics(m metric.Metrics) error {
+	topic, err := c.FirmTopic(string(subjects.AppMetrics))
+	if err != nil {
+		return err
+	}
+
+	jsonEncoded, err := json.Marshal(m)
+	if err != nil {
+		return err
+	}
+
+	msg := NewMessage()
+	msg.Data = string(jsonEncoded)
+	if _, err := c.Publish(topic, msg); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type CollectAuctionsJob struct {

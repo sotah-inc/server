@@ -3,7 +3,6 @@ package download_all_auctions
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"log"
 	"os"
 	"time"
@@ -15,6 +14,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/bus/codes"
 	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
@@ -78,11 +78,7 @@ type PubSubMessage struct {
 	Data []byte `json:"data"`
 }
 
-func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
-	if len(m.Data) == 0 {
-		return errors.New("fail")
-	}
-
+func DownloadAllAuctions(_ context.Context, _ PubSubMessage) error {
 	// producing messages
 	logging.Info("Producing messages for bulk requesting")
 	messages, err := bus.NewCollectAuctionMessages(regionRealms)
@@ -91,8 +87,15 @@ func DownloadAllAuctions(_ context.Context, m PubSubMessage) error {
 	}
 
 	// enqueueing them and gathering result jobs
+	startTime := time.Now()
 	responseItems, err := busClient.BulkRequest(downloadAuctionsTopic, messages, 200*time.Second)
 	if err != nil {
+		return err
+	}
+
+	// reporting metrics
+	m := metric.Metrics{"download_all_auctions_duration": int(int64(time.Now().Sub(startTime)) / 1000 / 1000 / 1000)}
+	if err := busClient.PublishMetrics(m); err != nil {
 		return err
 	}
 
