@@ -18,7 +18,7 @@ type AuthenticatedBootResponse struct {
 	BlizzardClientSecret string `json:"blizzard_client_secret"`
 }
 
-func (sta ProdApiState) ListenForBoot(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {
+func (sta ProdApiState) ListenForAuthenticatedBoot(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {
 	// establishing subscriber config
 	config := bus.SubscribeConfig{
 		Stop: stop,

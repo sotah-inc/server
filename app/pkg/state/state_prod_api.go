@@ -140,7 +140,7 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 
 	// establishing bus-listeners
 	apiState.BusListeners = NewBusListeners(SubjectBusListeners{
-		subjects.Boot:   apiState.ListenForBoot,
+		subjects.Boot:   apiState.ListenForAuthenticatedBoot,
 		subjects.Status: apiState.ListenForStatus,
 	})
 
