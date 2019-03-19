@@ -25,10 +25,9 @@ type requestError struct {
 
 // databases
 type Databases struct {
-	PricelistHistoryDatabases   database.PricelistHistoryDatabases
-	PricelistHistoryDatabasesV2 database.PricelistHistoryDatabasesV2
-	LiveAuctionsDatabases       database.LiveAuctionsDatabases
-	ItemsDatabase               database.ItemsDatabase
+	PricelistHistoryDatabases database.PricelistHistoryDatabases
+	LiveAuctionsDatabases     database.LiveAuctionsDatabases
+	ItemsDatabase             database.ItemsDatabase
 }
 
 // io bundle
