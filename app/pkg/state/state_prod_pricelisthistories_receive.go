@@ -128,8 +128,6 @@ func HandleComputedPricelistHistories(
 			}).Info("Loading request")
 
 			in <- request
-
-			break
 		}
 
 		close(in)
