@@ -116,7 +116,7 @@ func HandleComputedPricelistHistories(
 	postWork := func() {
 		close(loadInJobs)
 	}
-	util.Work(8, worker, postWork)
+	util.Work(4, worker, postWork)
 
 	// queueing it all up
 	go func() {
@@ -128,6 +128,8 @@ func HandleComputedPricelistHistories(
 			}).Info("Loading request")
 
 			in <- request
+
+			break
 		}
 
 		close(in)
@@ -162,7 +164,7 @@ func (phState ProdPricelistHistoriesState) ListenForComputedPricelistHistories(o
 
 			logging.WithField("requests", len(requests)).Info("Received requests")
 
-			// HandleComputedPricelistHistories(phState, requests)
+			HandleComputedPricelistHistories(phState, requests)
 
 			return
 		},
