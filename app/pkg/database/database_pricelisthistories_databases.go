@@ -4,6 +4,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/sotah-inc/server/app/pkg/blizzard"
+
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
@@ -186,4 +188,112 @@ func (phdBases PricelistHistoryDatabases) StartPruner(stopChan sotah.WorkerStopC
 	}()
 
 	return onStop
+}
+
+func (phdBases PricelistHistoryDatabases) resolveDatabaseFromLoadInEncodedJob(
+	job PricelistHistoryDatabaseEncodedLoadInJob,
+) (PricelistHistoryDatabase, error) {
+	phdBase, ok := phdBases.Databases[job.RegionName][job.RealmSlug][job.NormalizedTargetTimestamp]
+	if ok {
+		return phdBase, nil
+	}
+
+	normalizedTargetDate := time.Unix(int64(job.NormalizedTargetTimestamp), 0)
+
+	dbPath := pricelistHistoryDatabaseV2FilePath(
+		phdBases.databaseDir,
+		job.RegionName,
+		job.RealmSlug,
+		job.NormalizedTargetTimestamp,
+	)
+	phdBase, err := newPricelistHistoryDatabase(dbPath, normalizedTargetDate)
+	if err != nil {
+		return PricelistHistoryDatabase{}, err
+	}
+	phdBases.Databases[job.RegionName][job.RealmSlug][job.NormalizedTargetTimestamp] = phdBase
+
+	return phdBase, nil
+}
+
+type PricelistHistoryDatabaseEncodedLoadInJob struct {
+	RegionName                blizzard.RegionName
+	RealmSlug                 blizzard.RealmSlug
+	NormalizedTargetTimestamp sotah.UnixTimestamp
+	Data                      map[blizzard.ItemID][]byte
+}
+
+type PricelistHistoryDatabaseEncodedLoadOutJob struct {
+	Err                       error
+	RegionName                blizzard.RegionName
+	RealmSlug                 blizzard.RealmSlug
+	NormalizedTargetTimestamp sotah.UnixTimestamp
+}
+
+func (job PricelistHistoryDatabaseEncodedLoadOutJob) ToLogrusFields() logrus.Fields {
+	return logrus.Fields{
+		"error":  job.Err.Error(),
+		"region": job.RegionName,
+		"realm":  job.RealmSlug,
+		"normalized-target-timestamp": job.NormalizedTargetTimestamp,
+	}
+}
+
+func (phdBases PricelistHistoryDatabases) LoadEncoded(
+	in chan PricelistHistoryDatabaseEncodedLoadInJob,
+) chan PricelistHistoryDatabaseEncodedLoadOutJob {
+	// establishing channels
+	out := make(chan PricelistHistoryDatabaseEncodedLoadOutJob)
+
+	// spinning up workers for receiving pre-encoded auctions and persisting them
+	worker := func() {
+		for job := range in {
+			phdBase, err := phdBases.resolveDatabaseFromLoadInEncodedJob(job)
+			if err != nil {
+				logging.WithFields(logrus.Fields{
+					"error":  err.Error(),
+					"region": job.RegionName,
+					"realm":  job.RealmSlug,
+				}).Error("Could not resolve database from load job")
+
+				out <- PricelistHistoryDatabaseEncodedLoadOutJob{
+					Err:                       err,
+					RegionName:                job.RegionName,
+					RealmSlug:                 job.RealmSlug,
+					NormalizedTargetTimestamp: job.NormalizedTargetTimestamp,
+				}
+
+				continue
+			}
+
+			if err := phdBase.persistEncodedItemPrices(job.Data); err != nil {
+				logging.WithFields(logrus.Fields{
+					"error":  err.Error(),
+					"region": job.RegionName,
+					"realm":  job.RealmSlug,
+				}).Error("Could not persist encoded item-prices from job")
+
+				out <- PricelistHistoryDatabaseEncodedLoadOutJob{
+					Err:                       err,
+					RegionName:                job.RegionName,
+					RealmSlug:                 job.RealmSlug,
+					NormalizedTargetTimestamp: job.NormalizedTargetTimestamp,
+				}
+
+				continue
+			}
+
+			out <- PricelistHistoryDatabaseEncodedLoadOutJob{
+				Err:                       nil,
+				RegionName:                job.RegionName,
+				RealmSlug:                 job.RealmSlug,
+				NormalizedTargetTimestamp: job.NormalizedTargetTimestamp,
+			}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(4, worker, postWork)
+
+	return out
 }

@@ -147,3 +147,27 @@ func (phdBase PricelistHistoryDatabase) persistItemPrices(targetTime time.Time, 
 
 	return nil
 }
+
+func (phdBase PricelistHistoryDatabase) persistEncodedItemPrices(data map[blizzard.ItemID][]byte) error {
+	logging.WithField("items", len(data)).Info("Persisting encoded item-prices")
+
+	err := phdBase.db.Batch(func(tx *bolt.Tx) error {
+		for itemId, payload := range data {
+			bkt, err := tx.CreateBucketIfNotExists(pricelistHistoryBucketName(itemId))
+			if err != nil {
+				return err
+			}
+
+			if err := bkt.Put(pricelistHistoryKeyName(), payload); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
