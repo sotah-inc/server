@@ -18,8 +18,9 @@ import (
 var (
 	projectId = os.Getenv("GCP_PROJECT")
 
-	busClient                      bus.Client
-	computePricelistHistoriesTopic *pubsub.Topic
+	busClient                               bus.Client
+	computePricelistHistoriesTopic          *pubsub.Topic
+	receivedComputedPricelistHistoriesTopic *pubsub.Topic
 )
 
 func init() {
@@ -31,6 +32,12 @@ func init() {
 		return
 	}
 	computePricelistHistoriesTopic, err = busClient.FirmTopic(string(subjects.ComputePricelistHistories))
+	if err != nil {
+		log.Fatalf("Failed to get firm topic: %s", err.Error())
+
+		return
+	}
+	receivedComputedPricelistHistoriesTopic, err = busClient.FirmTopic(string(subjects.ReceiveComputedPricelistHistories))
 	if err != nil {
 		log.Fatalf("Failed to get firm topic: %s", err.Error())
 
@@ -73,12 +80,37 @@ func ComputeAllPricelistHistories(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
-	for _, msg := range responseItems {
+	validatedResponseItems := bus.BulkRequestMessages{}
+	for k, msg := range responseItems {
 		if msg.Code != codes.Ok {
 			logging.WithField("msg", msg).Error("Received erroneous response")
 
 			continue
 		}
+
+		validatedResponseItems[k] = msg
+
+		break
+	}
+
+	// formatting the response-items as requests for processing
+	requests, err := bus.NewPricelistHistoriesComputeIntakeRequestsFromMessages(validatedResponseItems)
+	if err != nil {
+		return err
+	}
+
+	// producing a message for computation
+	data, err := requests.EncodeForDelivery()
+	if err != nil {
+		return err
+	}
+	msg := bus.NewMessage()
+	msg.Data = data
+
+	// publishing to receive-computed-pricelist-histories
+	logging.Info("Publishing to receive-computed-pricelist-histories")
+	if _, err := busClient.Publish(receivedComputedPricelistHistoriesTopic, msg); err != nil {
+		return err
 	}
 
 	return nil
