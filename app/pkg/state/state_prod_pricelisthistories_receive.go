@@ -148,7 +148,7 @@ func HandleComputedPricelistHistories(
 	}
 }
 
-func (phState ProdPricelistHistoriesState) ListenForComputedLiveAuctions(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {
+func (phState ProdPricelistHistoriesState) ListenForComputedPricelistHistories(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {
 	// establishing subscriber config
 	config := bus.SubscribeConfig{
 		Stop: stop,

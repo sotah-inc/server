@@ -10,6 +10,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
 	"github.com/sotah-inc/server/app/pkg/util"
 	"github.com/twinj/uuid"
@@ -103,7 +104,9 @@ func NewProdPricelistHistoriesState(config ProdPricelistHistoriesStateConfig) (P
 	phState.IO.Databases.PricelistHistoryDatabases = phdBases
 
 	// establishing bus-listeners
-	phState.BusListeners = NewBusListeners(SubjectBusListeners{})
+	phState.BusListeners = NewBusListeners(SubjectBusListeners{
+		subjects.ReceiveComputedPricelistHistories: phState.ListenForComputedPricelistHistories,
+	})
 
 	return phState, nil
 }
