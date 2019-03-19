@@ -160,7 +160,9 @@ func (phState ProdPricelistHistoriesState) ListenForComputedLiveAuctions(onReady
 				return
 			}
 
-			HandleComputedPricelistHistories(phState, requests)
+			logging.WithField("requests", len(requests)).Info("Received requests")
+
+			// HandleComputedPricelistHistories(phState, requests)
 
 			return
 		},
