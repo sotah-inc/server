@@ -242,6 +242,20 @@ func NewPricelistHistoriesComputeIntakeRequests(data string) (PricelistHistories
 
 type PricelistHistoriesComputeIntakeRequests []PricelistHistoriesComputeIntakeRequest
 
+func (r PricelistHistoriesComputeIntakeRequests) EncodeForDelivery() (string, error) {
+	jsonEncoded, err := json.Marshal(r)
+	if err != nil {
+		return "", err
+	}
+
+	gzipEncoded, err := util.GzipEncode(jsonEncoded)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.RawStdEncoding.EncodeToString(gzipEncoded), nil
+}
+
 type PricelistHistoriesComputeIntakeRequest struct {
 	RegionName                string `json:"region_name"`
 	RealmSlug                 string `json:"realm_slug"`
