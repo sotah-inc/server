@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/sotah"
@@ -24,13 +23,18 @@ func pricelistHistoryBucketName(ID blizzard.ItemID) []byte {
 }
 
 // db
-func pricelistHistoryDatabaseFilePath(dirPath string, rea sotah.Realm, targetTime time.Time) string {
+func pricelistHistoryDatabaseFilePath(
+	dirPath string,
+	regionName blizzard.RegionName,
+	realmSlug blizzard.RealmSlug,
+	targetTimestamp sotah.UnixTimestamp,
+) string {
 	return fmt.Sprintf(
 		"%s/pricelist-histories/%s/%s/%d.db",
 		dirPath,
-		rea.Region.Name,
-		rea.Slug,
-		targetTime.Unix(),
+		regionName,
+		realmSlug,
+		targetTimestamp,
 	)
 }
 

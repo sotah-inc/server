@@ -12,6 +12,7 @@ import (
 	"cloud.google.com/go/pubsub"
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/bus/codes"
+	"github.com/sotah-inc/server/app/pkg/database"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/sotah"
@@ -598,6 +599,22 @@ func NewRegionRealmTimestampTuplesFromMessages(messages BulkRequestMessages) (Re
 	}
 
 	return tuples, nil
+}
+
+func NewPricelistHistoriesComputeIntakeRequestsFromMessages(
+	messages BulkRequestMessages,
+) (database.PricelistHistoriesComputeIntakeRequests, error) {
+	out := database.PricelistHistoriesComputeIntakeRequests{}
+	for _, msg := range messages {
+		var respData database.PricelistHistoriesComputeIntakeRequest
+		if err := json.Unmarshal([]byte(msg.Data), &respData); err != nil {
+			return database.PricelistHistoriesComputeIntakeRequests{}, err
+		}
+
+		out = append(out, respData)
+	}
+
+	return out, nil
 }
 
 func NewRegionRealmTimestampTuples(data string) (RegionRealmTimestampTuples, error) {

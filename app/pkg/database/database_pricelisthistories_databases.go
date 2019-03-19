@@ -27,7 +27,12 @@ func (phdBases PricelistHistoryDatabases) resolveDatabaseFromLoadInJob(job LoadI
 		return phdBase, nil
 	}
 
-	dbPath := pricelistHistoryDatabaseFilePath(phdBases.databaseDir, job.Realm, normalizedTargetDate)
+	dbPath := pricelistHistoryDatabaseFilePath(
+		phdBases.databaseDir,
+		job.Realm.Region.Name,
+		job.Realm.Slug,
+		normalizedTargetTimestamp,
+	)
 	phdBase, err := newPricelistHistoryDatabase(dbPath, normalizedTargetDate)
 	if err != nil {
 		return PricelistHistoryDatabase{}, err
@@ -201,7 +206,7 @@ func (phdBases PricelistHistoryDatabases) resolveDatabaseFromLoadInEncodedJob(
 
 	normalizedTargetDate := time.Unix(int64(job.NormalizedTargetTimestamp), 0)
 
-	dbPath := pricelistHistoryDatabaseV2FilePath(
+	dbPath := pricelistHistoryDatabaseFilePath(
 		phdBases.databaseDir,
 		job.RegionName,
 		job.RealmSlug,
