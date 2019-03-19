@@ -1,6 +1,8 @@
 package database
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"os"
 	"time"
 
@@ -213,6 +215,33 @@ func (phdBases PricelistHistoryDatabases) resolveDatabaseFromLoadInEncodedJob(
 	phdBases.Databases[job.RegionName][job.RealmSlug][job.NormalizedTargetTimestamp] = phdBase
 
 	return phdBase, nil
+}
+
+func NewPricelistHistoriesComputeIntakeRequests(data string) (PricelistHistoriesComputeIntakeRequests, error) {
+	base64Decoded, err := base64.RawStdEncoding.DecodeString(data)
+	if err != nil {
+		return PricelistHistoriesComputeIntakeRequests{}, err
+	}
+
+	gzipDecoded, err := util.GzipDecode(base64Decoded)
+	if err != nil {
+		return PricelistHistoriesComputeIntakeRequests{}, err
+	}
+
+	var out PricelistHistoriesComputeIntakeRequests
+	if err := json.Unmarshal(gzipDecoded, &out); err != nil {
+		return PricelistHistoriesComputeIntakeRequests{}, err
+	}
+
+	return out, nil
+}
+
+type PricelistHistoriesComputeIntakeRequests []PricelistHistoriesComputeIntakeRequest
+
+type PricelistHistoriesComputeIntakeRequest struct {
+	RegionName                string `json:"region_name"`
+	RealmSlug                 string `json:"realm_slug"`
+	NormalizedTargetTimestamp int    `json:"normalized_target_timestamp"`
 }
 
 type PricelistHistoryDatabaseEncodedLoadInJob struct {
