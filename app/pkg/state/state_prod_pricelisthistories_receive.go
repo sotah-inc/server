@@ -26,7 +26,7 @@ func HandleComputedPricelistHistories(
 	loadInJobs := make(chan database.PricelistHistoryDatabaseEncodedLoadInJob)
 	loadOutJobs := phState.IO.Databases.PricelistHistoryDatabases.LoadEncoded(loadInJobs)
 
-	// starting workers for handling tuples
+	// starting workers for handling requests
 	in := make(chan database.PricelistHistoriesComputeIntakeRequest)
 	worker := func() {
 		for request := range in {
@@ -49,7 +49,7 @@ func HandleComputedPricelistHistories(
 				return sotah.Realm{}, errors.New("realm not found")
 			}()
 			if err != nil {
-				logging.WithField("error", err.Error()).Error("Failed to resolve realm from tuple")
+				logging.WithField("error", err.Error()).Error("Failed to resolve realm from request")
 
 				continue
 			}
@@ -157,7 +157,7 @@ func (phState ProdPricelistHistoriesState) ListenForComputedPricelistHistories(o
 		Callback: func(busMsg bus.Message) {
 			requests, err := database.NewPricelistHistoriesComputeIntakeRequests(busMsg.Data)
 			if err != nil {
-				logging.WithField("error", err.Error()).Error("Failed to decode compute-intake requests tuples")
+				logging.WithField("error", err.Error()).Error("Failed to decode compute-intake requests")
 
 				return
 			}
