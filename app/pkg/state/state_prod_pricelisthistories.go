@@ -80,7 +80,7 @@ func NewProdPricelistHistoriesState(config ProdPricelistHistoriesStateConfig) (P
 	for regionName, realms := range regionRealms {
 		for _, realm := range realms {
 			databasePaths = append(databasePaths, fmt.Sprintf(
-				"%s/%s/%s",
+				"%s/pricelist-histories/%s/%s",
 				config.PricelistHistoriesDatabaseDir,
 				regionName,
 				realm.Slug,
