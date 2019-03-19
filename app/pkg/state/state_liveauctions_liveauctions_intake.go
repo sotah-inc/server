@@ -156,7 +156,7 @@ func (iRequest liveAuctionsIntakeRequest) handle(laState LiveAuctionsState) {
 	// publishing for pricelist-histories-intake
 	err := func() error {
 		if laState.UseGCloud {
-			phiRequest := pricelistHistoriesIntakeV2Request{RegionRealmTimestamps: iRequest.RegionRealmTimestamps}
+			phiRequest := pricelistHistoriesIntakeRequest{RegionRealmTimestamps: iRequest.RegionRealmTimestamps}
 			return func() error {
 				encodedRequest, err := json.Marshal(phiRequest)
 				if err != nil {
