@@ -8,25 +8,25 @@ import (
 	"github.com/sotah-inc/server/app/pkg/state"
 )
 
-func ProdLiveAuctions(config state.ProdLiveAuctionsStateConfig) error {
-	logging.Info("Starting prod-liveauctions")
+func ProdPricelistHistories(config state.ProdPricelistHistoriesStateConfig) error {
+	logging.Info("Starting prod-metrics")
 
 	// establishing a state
-	liveAuctionsState, err := state.NewProdLiveAuctionsState(config)
+	pricelistHistoriesState, err := state.NewProdPricelistHistoriesState(config)
 	if err != nil {
-		logging.WithField("error", err.Error()).Error("Failed to establish prod-liveauctions state")
+		logging.WithField("error", err.Error()).Error("Failed to establish prod-pricelisthistories state")
 
 		return err
 	}
 
 	// opening all listeners
-	if err := liveAuctionsState.Listeners.Listen(); err != nil {
+	if err := pricelistHistoriesState.Listeners.Listen(); err != nil {
 		return err
 	}
 
 	// opening all bus-listeners
 	logging.Info("Opening all bus-listeners")
-	liveAuctionsState.BusListeners.Listen()
+	pricelistHistoriesState.BusListeners.Listen()
 
 	// catching SIGINT
 	logging.Info("Waiting for SIGINT")
@@ -37,7 +37,7 @@ func ProdLiveAuctions(config state.ProdLiveAuctionsStateConfig) error {
 	logging.Info("Caught SIGINT, exiting")
 
 	// stopping listeners
-	liveAuctionsState.Listeners.Stop()
+	pricelistHistoriesState.Listeners.Stop()
 
 	logging.Info("Exiting")
 	return nil
