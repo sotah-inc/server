@@ -164,6 +164,8 @@ func (phState ProdPricelistHistoriesState) ListenForComputedPricelistHistories(o
 
 			HandleComputedPricelistHistories(phState, requests)
 
+			logging.WithField("requests", len(requests)).Info("Done handling requests")
+
 			return
 		},
 		OnReady:   onReady,
