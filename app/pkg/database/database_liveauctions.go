@@ -15,5 +15,5 @@ func liveAuctionsKeyName() []byte {
 }
 
 func liveAuctionsDatabasePath(dirPath string, rea sotah.Realm) string {
-	return fmt.Sprintf("%s/%s/%s/live-auctions.db", dirPath, rea.Region.Name, rea.Slug)
+	return fmt.Sprintf("%s/live-auctions/%s/%s.db", dirPath, rea.Region.Name, rea.Slug)
 }

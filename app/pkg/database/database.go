@@ -128,3 +128,9 @@ type LoadInJob struct {
 	TargetTime time.Time
 	Auctions   blizzard.Auctions
 }
+
+type EncodedLoadInJob struct {
+	Realm           sotah.Realm
+	TargetTime      time.Time
+	GzipEncodedData []byte
+}

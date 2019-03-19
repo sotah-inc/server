@@ -26,7 +26,7 @@ func pricelistHistoryBucketName(ID blizzard.ItemID) []byte {
 // db
 func pricelistHistoryDatabaseFilePath(dirPath string, rea sotah.Realm, targetTime time.Time) string {
 	return fmt.Sprintf(
-		"%s/%s/%s/next-%d.db",
+		"%s/pricelist-histories/%s/%s/%d.db",
 		dirPath,
 		rea.Region.Name,
 		rea.Slug,
