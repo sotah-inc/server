@@ -89,8 +89,6 @@ func ComputeAllPricelistHistories(_ context.Context, m PubSubMessage) error {
 		}
 
 		validatedResponseItems[k] = msg
-
-		break
 	}
 
 	// formatting the response-items as requests for processing
