@@ -7,6 +7,6 @@ gcloud functions deploy DownloadAllAuctions \
     --runtime go111 \
     --trigger-topic downloadAllAuctions \
     --source . \
-    --memory 2048MB \
+    --memory 512MB \
     --timeout 500s \
     --region us-central1

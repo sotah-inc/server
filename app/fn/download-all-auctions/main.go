@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -124,6 +125,7 @@ func init() {
 
 func Handle(job bus.CollectAuctionsJob) bus.Message {
 	m := bus.NewMessage()
+	m.ReplyTo = fmt.Sprintf("%s-%s", job.RegionName, job.RealmSlug)
 
 	region, realm, err := func() (sotah.Region, sotah.Realm, error) {
 		region, err := func() (sotah.Region, error) {
