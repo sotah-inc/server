@@ -2,7 +2,11 @@ package store
 
 import (
 	"fmt"
+	"strconv"
 	"time"
+
+	"github.com/sotah-inc/server/app/pkg/util"
+	"google.golang.org/api/iterator"
 
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
@@ -109,4 +113,100 @@ func (b PricelistHistoriesBaseV2) Handle(aucs blizzard.Auctions, targetTime time
 	}
 
 	return sotah.UnixTimestamp(normalizedTargetDate.Unix()), wc.Close()
+}
+
+func (b PricelistHistoriesBaseV2) GetAllExpiredTimestamps(
+	regionRealms map[blizzard.RegionName]sotah.Realms,
+	bkt *storage.BucketHandle,
+) (RegionRealmExpiredTimestamps, error) {
+	out := make(chan GetExpiredTimestampsJob)
+	in := make(chan sotah.Realm)
+
+	// spinning up workers
+	worker := func() {
+		for realm := range in {
+			timestamps, err := b.GetExpiredTimestamps(realm, bkt)
+			if err != nil {
+				out <- GetExpiredTimestampsJob{
+					Err:   err,
+					Realm: realm,
+				}
+
+				continue
+			}
+
+			out <- GetExpiredTimestampsJob{
+				Err:        nil,
+				Realm:      realm,
+				Timestamps: timestamps,
+			}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(8, worker, postWork)
+
+	// queueing it up
+	go func() {
+		for _, realms := range regionRealms {
+			for _, realm := range realms {
+				in <- realm
+			}
+		}
+
+		close(in)
+	}()
+
+	// going over results
+	expiredTimestamps := RegionRealmExpiredTimestamps{}
+	for job := range out {
+		if job.Err != nil {
+			return RegionRealmExpiredTimestamps{}, job.Err
+		}
+
+		regionName := job.Realm.Region.Name
+		if _, ok := expiredTimestamps[regionName]; !ok {
+			expiredTimestamps[regionName] = RealmExpiredTimestamps{}
+		}
+
+		expiredTimestamps[regionName][job.Realm.Slug] = job.Timestamps
+	}
+
+	return expiredTimestamps, nil
+}
+
+func (b PricelistHistoriesBaseV2) GetExpiredTimestamps(realm sotah.Realm, bkt *storage.BucketHandle) ([]sotah.UnixTimestamp, error) {
+	out := []sotah.UnixTimestamp{}
+
+	limit := sotah.NormalizeTargetDate(time.Now()).AddDate(0, 0, -14)
+
+	prefix := fmt.Sprintf("%s/%s/", realm.Region.Name, realm.Slug)
+	it := bkt.Objects(b.client.Context, &storage.Query{Prefix: prefix})
+	for {
+		objAttrs, err := it.Next()
+		if err != nil {
+			if err == iterator.Done {
+				break
+			}
+
+			if err != nil {
+				return []sotah.UnixTimestamp{}, err
+			}
+		}
+
+		targetTimestamp, err := strconv.Atoi(objAttrs.Name[len(prefix):(len(objAttrs.Name) - len(".txt.gz"))])
+		if err != nil {
+			return []sotah.UnixTimestamp{}, err
+		}
+
+		targetTime := time.Unix(int64(targetTimestamp), 0)
+		if targetTime.After(limit) {
+			continue
+		}
+
+		out = append(out, sotah.UnixTimestamp(targetTimestamp))
+	}
+
+	return out, nil
 }

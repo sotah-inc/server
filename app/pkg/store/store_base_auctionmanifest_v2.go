@@ -285,16 +285,6 @@ func (b AuctionManifestBaseV2) NewAuctionManifest(obj *storage.ObjectHandle) (so
 	return out, nil
 }
 
-type RealmExpiredTimestamps map[blizzard.RealmSlug][]sotah.UnixTimestamp
-
-type RegionRealmExpiredTimestamps map[blizzard.RegionName]RealmExpiredTimestamps
-
-type GetExpiredTimestampsJob struct {
-	Err        error
-	Realm      sotah.Realm
-	Timestamps []sotah.UnixTimestamp
-}
-
 func (b AuctionManifestBaseV2) GetAllExpiredTimestamps(
 	regionRealms map[blizzard.RegionName]sotah.Realms,
 	bkt *storage.BucketHandle,
