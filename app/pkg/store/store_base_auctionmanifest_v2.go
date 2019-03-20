@@ -302,6 +302,32 @@ func (b AuctionManifestBaseV2) GetAllExpiredTimestamps(
 	out := make(chan GetExpiredTimestampsJob)
 	in := make(chan sotah.Realm)
 
+	// spinning up workers
+	worker := func() {
+		for realm := range in {
+			timestamps, err := b.GetExpiredTimestamps(realm, bkt)
+			if err != nil {
+				out <- GetExpiredTimestampsJob{
+					Err:   err,
+					Realm: realm,
+				}
+
+				continue
+			}
+
+			out <- GetExpiredTimestampsJob{
+				Err:        nil,
+				Realm:      realm,
+				Timestamps: timestamps,
+			}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(4, worker, postWork)
+
+	// queueing it up
 	go func() {
 		for _, realms := range regionRealms {
 			for _, realm := range realms {
@@ -312,6 +338,7 @@ func (b AuctionManifestBaseV2) GetAllExpiredTimestamps(
 		close(in)
 	}()
 
+	// going over results
 	expiredTimestamps := RegionRealmExpiredTimestamps{}
 	for job := range out {
 		if job.Err != nil {
