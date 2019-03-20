@@ -125,7 +125,7 @@ func init() {
 
 func Handle(job bus.CollectAuctionsJob) bus.Message {
 	m := bus.NewMessage()
-	m.ReplyTo = fmt.Sprintf("%s-%s", job.RegionName, job.RealmSlug)
+	m.ReplyToId = fmt.Sprintf("%s-%s", job.RegionName, job.RealmSlug)
 
 	region, realm, err := func() (sotah.Region, sotah.Realm, error) {
 		region, err := func() (sotah.Region, error) {
@@ -332,7 +332,7 @@ func DownloadAllAuctions(_ context.Context, _ PubSubMessage) error {
 	postWork := func() {
 		close(out)
 	}
-	util.Work(8, worker, postWork)
+	util.Work(4, worker, postWork)
 
 	// enqueueing realms for processing
 	startTime := time.Now()
