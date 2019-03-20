@@ -12,8 +12,11 @@ import (
 	"cloud.google.com/go/pubsub"
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/bus/codes"
+	"github.com/sotah-inc/server/app/pkg/database"
 	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/util"
 	"github.com/twinj/uuid"
 )
@@ -559,6 +562,26 @@ func (c Client) Request(recipientTopic *pubsub.Topic, payload string, timeout ti
 	return requestResult.Payload, nil
 }
 
+func (c Client) PublishMetrics(m metric.Metrics) error {
+	topic, err := c.FirmTopic(string(subjects.AppMetrics))
+	if err != nil {
+		return err
+	}
+
+	jsonEncoded, err := json.Marshal(m)
+	if err != nil {
+		return err
+	}
+
+	msg := NewMessage()
+	msg.Data = string(jsonEncoded)
+	if _, err := c.Publish(topic, msg); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 type CollectAuctionsJob struct {
 	RegionName string `json:"region_name"`
 	RealmSlug  string `json:"realm_slug"`
@@ -576,6 +599,22 @@ func NewRegionRealmTimestampTuplesFromMessages(messages BulkRequestMessages) (Re
 	}
 
 	return tuples, nil
+}
+
+func NewPricelistHistoriesComputeIntakeRequestsFromMessages(
+	messages BulkRequestMessages,
+) (database.PricelistHistoriesComputeIntakeRequests, error) {
+	out := database.PricelistHistoriesComputeIntakeRequests{}
+	for _, msg := range messages {
+		var respData database.PricelistHistoriesComputeIntakeRequest
+		if err := json.Unmarshal([]byte(msg.Data), &respData); err != nil {
+			return database.PricelistHistoriesComputeIntakeRequests{}, err
+		}
+
+		out = append(out, respData)
+	}
+
+	return out, nil
 }
 
 func NewRegionRealmTimestampTuples(data string) (RegionRealmTimestampTuples, error) {

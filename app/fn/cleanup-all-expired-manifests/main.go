@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"os"
-	"time"
 
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/storage"
@@ -20,6 +19,9 @@ var (
 
 	busClient            bus.Client
 	auctionsCleanupTopic *pubsub.Topic
+
+	auctionManifestStoreBase store.AuctionManifestBaseV2
+	auctionManifestBucket    *storage.BucketHandle
 
 	regionRealms map[blizzard.RegionName]sotah.Realms
 )
@@ -60,6 +62,14 @@ func init() {
 
 		return
 	}
+
+	auctionManifestStoreBase = store.NewAuctionManifestBaseV2(storeClient, "us-central1")
+	auctionManifestBucket, err = auctionManifestStoreBase.GetFirmBucket()
+	if err != nil {
+		log.Fatalf("Failed to get firm auction-manifest bucket: %s", err.Error())
+
+		return
+	}
 }
 
 type PubSubMessage struct {
@@ -67,25 +77,19 @@ type PubSubMessage struct {
 }
 
 func CleanupAllExpiredManifests(_ context.Context, _ PubSubMessage) error {
-	priorManifestTimestamps := []sotah.UnixTimestamp{}
-	normalizedTime := sotah.NormalizeTargetDate(time.Now())
-	startOffset := 14
-	endLimit := 14
-	for i := 0; i < endLimit; i++ {
-		then := normalizedTime.AddDate(0, 0, -1*(i+startOffset))
-
-		priorManifestTimestamps = append(priorManifestTimestamps, sotah.UnixTimestamp(then.Unix()))
+	regionExpiredTimestamps, err := auctionManifestStoreBase.GetAllExpiredTimestamps(regionRealms, auctionManifestBucket)
+	if err != nil {
+		return err
 	}
 
 	jobs := []bus.CleanupAuctionManifestJob{}
-
-	for _, realms := range regionRealms {
-		for _, realm := range realms {
-			for _, expiredManifestTimestamp := range priorManifestTimestamps {
+	for regionName, realmExpiredTimestamps := range regionExpiredTimestamps {
+		for realmSlug, expiredTimestamps := range realmExpiredTimestamps {
+			for _, timestamp := range expiredTimestamps {
 				job := bus.CleanupAuctionManifestJob{
-					RegionName:      string(realm.Region.Name),
-					RealmSlug:       string(realm.Slug),
-					TargetTimestamp: int(expiredManifestTimestamp),
+					RegionName:      string(regionName),
+					RealmSlug:       string(realmSlug),
+					TargetTimestamp: int(timestamp),
 				}
 				jobs = append(jobs, job)
 			}

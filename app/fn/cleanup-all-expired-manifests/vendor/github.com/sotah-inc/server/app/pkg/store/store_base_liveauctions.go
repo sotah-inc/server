@@ -40,6 +40,10 @@ func (b LiveAuctionsBase) GetObject(realm sotah.Realm, bkt *storage.BucketHandle
 	return b.base.getObject(b.getObjectName(realm), bkt)
 }
 
+func (b LiveAuctionsBase) GetFirmObject(realm sotah.Realm, bkt *storage.BucketHandle) (*storage.ObjectHandle, error) {
+	return b.base.getFirmObject(b.getObjectName(realm), bkt)
+}
+
 func (b LiveAuctionsBase) Handle(aucs blizzard.Auctions, realm sotah.Realm, bkt *storage.BucketHandle) error {
 	// encoding auctions in the appropriate format
 	gzipEncodedBody, err := sotah.NewMiniAuctionListFromMiniAuctions(sotah.NewMiniAuctions(aucs)).EncodeForDatabase()
