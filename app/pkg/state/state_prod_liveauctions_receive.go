@@ -78,7 +78,7 @@ func HandleComputedLiveAuctions(liveAuctionsState ProdLiveAuctionsState, tuples 
 	postWork := func() {
 		close(loadInJobs)
 	}
-	util.Work(8, worker, postWork)
+	util.Work(4, worker, postWork)
 
 	// queueing it all up
 	go func() {
