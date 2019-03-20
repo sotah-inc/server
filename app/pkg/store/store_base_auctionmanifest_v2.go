@@ -45,6 +45,14 @@ func (b AuctionManifestBaseV2) GetObject(targetTimestamp sotah.UnixTimestamp, re
 	return b.base.getObject(b.GetObjectName(targetTimestamp, realm), bkt)
 }
 
+func (b AuctionManifestBaseV2) GetFirmObject(
+	targetTimestamp sotah.UnixTimestamp,
+	realm sotah.Realm,
+	bkt *storage.BucketHandle,
+) (*storage.ObjectHandle, error) {
+	return b.base.getFirmObject(b.GetObjectName(targetTimestamp, realm), bkt)
+}
+
 func (b AuctionManifestBaseV2) Handle(targetTimestamp sotah.UnixTimestamp, realm sotah.Realm, bkt *storage.BucketHandle) error {
 	normalizedTargetTimestamp := sotah.UnixTimestamp(sotah.NormalizeTargetDate(time.Unix(int64(targetTimestamp), 0)).Unix())
 
