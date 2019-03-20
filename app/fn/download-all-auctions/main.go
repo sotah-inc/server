@@ -332,7 +332,7 @@ func DownloadAllAuctions(_ context.Context, _ PubSubMessage) error {
 	postWork := func() {
 		close(out)
 	}
-	util.Work(8, worker, postWork)
+	util.Work(16, worker, postWork)
 
 	// enqueueing realms for processing
 	startTime := time.Now()
