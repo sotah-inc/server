@@ -80,6 +80,8 @@ type Expansion struct {
 	LabelColor string `json:"label_color"`
 }
 
+type RegionRealms map[blizzard.RegionName]Realms
+
 type RegionRealmMap map[blizzard.RegionName]RealmMap
 
 type RealmMap map[blizzard.RealmSlug]Realm
@@ -154,4 +156,22 @@ func (am AuctionManifest) Merge(subset AuctionManifest) AuctionManifest {
 	}
 
 	return NewAuctionManifestFromMap(out)
+}
+
+func NewBlizzardCredentials(data []byte) (BlizzardCredentials, error) {
+	var out BlizzardCredentials
+	if err := json.Unmarshal(data, &out); err != nil {
+		return BlizzardCredentials{}, err
+	}
+
+	return out, nil
+}
+
+type BlizzardCredentials struct {
+	ClientId     string `json:"client_id"`
+	ClientSecret string `json:"client_secret"`
+}
+
+func (c BlizzardCredentials) EncodeForStorage() ([]byte, error) {
+	return json.Marshal(c)
 }

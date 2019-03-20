@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"time"
 
 	"cloud.google.com/go/storage"
 	"github.com/sirupsen/logrus"
@@ -17,18 +16,17 @@ import (
 	"github.com/sotah-inc/server/app/pkg/store"
 )
 
-var projectId = os.Getenv("GCP_PROJECT")
+var (
+	projectId = os.Getenv("GCP_PROJECT")
 
-var storeClient store.Client
+	storeClient store.Client
 
-var auctionsStoreBase store.AuctionsBaseV2
-var auctionStoreBucket *storage.BucketHandle
+	auctionsStoreBase  store.AuctionsBaseV2
+	auctionStoreBucket *storage.BucketHandle
 
-var auctionManifestStoreBase store.AuctionManifestBaseV2
-var auctionManifestBucket *storage.BucketHandle
-
-var pricelistHistoriesStoreBase store.PricelistHistoriesBaseV2
-var pricelistHistoriesBucket *storage.BucketHandle
+	auctionManifestStoreBase store.AuctionManifestBaseV2
+	auctionManifestBucket    *storage.BucketHandle
+)
 
 func init() {
 	var err error
@@ -39,6 +37,7 @@ func init() {
 
 		return
 	}
+
 	auctionsStoreBase = store.NewAuctionsBaseV2(storeClient, "us-central1")
 	auctionStoreBucket, err = auctionsStoreBase.GetFirmBucket()
 	if err != nil {
@@ -54,30 +53,10 @@ func init() {
 
 		return
 	}
-
-	pricelistHistoriesStoreBase = store.NewPricelistHistoriesBaseV2(storeClient, "us-central1")
-	pricelistHistoriesBucket, err = pricelistHistoriesStoreBase.GetFirmBucket()
-	if err != nil {
-		log.Fatalf("Failed to get firm pricelist-histories bucket: %s", err.Error())
-
-		return
-	}
 }
 
 func handleManifestCleaning(realm sotah.Realm, targetTimestamp sotah.UnixTimestamp) error {
-	objName := auctionManifestStoreBase.GetObjectName(targetTimestamp, realm)
-	obj := auctionManifestStoreBase.GetObject(targetTimestamp, realm, auctionManifestBucket)
-	exists, err := auctionManifestStoreBase.ObjectExists(obj)
-	if err != nil {
-		return err
-	}
-	if !exists {
-		logging.WithField("obj-name", objName).Info("Auctions-manifest object does not exist, halting early")
-
-		return nil
-	}
-
-	objAttrs, err := obj.Attrs(storeClient.Context)
+	obj, err := auctionManifestStoreBase.GetFirmObject(targetTimestamp, realm, auctionManifestBucket)
 	if err != nil {
 		return err
 	}
@@ -121,40 +100,10 @@ func handleManifestCleaning(realm sotah.Realm, targetTimestamp sotah.UnixTimesta
 	}
 
 	logging.WithFields(logrus.Fields{
-		"region":   realm.Region.Name,
-		"realm":    realm.Slug,
-		"manifest": objAttrs.Name,
+		"region":           realm.Region.Name,
+		"realm":            realm.Slug,
+		"target-timestamp": targetTimestamp,
 	}).Info("Deleted manifest object")
-
-	return nil
-}
-
-func handlePricelistsCleaning(realm sotah.Realm, targetTimestamp sotah.UnixTimestamp) error {
-	obj := pricelistHistoriesStoreBase.GetObject(time.Unix(int64(targetTimestamp), 0), realm, pricelistHistoriesBucket)
-	exists, err := pricelistHistoriesStoreBase.ObjectExists(obj)
-	if err != nil {
-		return err
-	}
-	if !exists {
-		logging.Info("Pricelist-histories object does not exist, halting early")
-
-		return nil
-	}
-
-	objAttrs, err := obj.Attrs(storeClient.Context)
-	if err != nil {
-		return err
-	}
-
-	if err := obj.Delete(storeClient.Context); err != nil {
-		return err
-	}
-
-	logging.WithFields(logrus.Fields{
-		"region":   realm.Region.Name,
-		"realm":    realm.Slug,
-		"manifest": objAttrs.Name,
-	}).Info("Deleted pricelist-histories object")
 
 	return nil
 }
@@ -190,10 +139,6 @@ func CleanupExpiredManifest(_ context.Context, m PubSubMessage) error {
 	targetTimestamp := sotah.UnixTimestamp(job.TargetTimestamp)
 
 	if err := handleManifestCleaning(realm, targetTimestamp); err != nil {
-		return err
-	}
-
-	if err := handlePricelistsCleaning(realm, targetTimestamp); err != nil {
 		return err
 	}
 

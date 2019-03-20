@@ -22,9 +22,7 @@ const (
 	SessionSecret                   Subject = "sessionSecret"
 	RuntimeInfo                     Subject = "runtimeInfo"
 	LiveAuctionsIntake              Subject = "liveAuctionsIntake"
-	LiveAuctionsIntakeV2            Subject = "liveAuctionsIntakeV2"
 	LiveAuctionsCompute             Subject = "liveAuctionsCompute"
-	LiveAuctionsComputeIntake       Subject = "liveAuctionsComputeIntake"
 	PricelistHistoriesIntake        Subject = "pricelistHistoriesIntake"
 	AppMetrics                      Subject = "appMetrics"
 	PricelistHistoriesIntakeV2      Subject = "pricelistHistoriesIntakeV2"
@@ -36,6 +34,9 @@ const (
 const (
 	DownloadAllAuctions Subject = "downloadAllAuctions"
 	DownloadAuctions    Subject = "downloadAuctions"
+
+	ValidateAllAuctions Subject = "validateAllAuctions"
+	ValidateAuctions    Subject = "validateAuctions"
 
 	SyncAllItems       Subject = "syncAllItems"
 	SyncItem           Subject = "syncItem"
