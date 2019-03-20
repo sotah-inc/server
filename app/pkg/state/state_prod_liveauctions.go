@@ -81,7 +81,7 @@ func NewProdLiveAuctionsState(config ProdLiveAuctionsStateConfig) (ProdLiveAucti
 	for regionName, realms := range regionRealms {
 		for _, realm := range realms {
 			databasePaths = append(databasePaths, fmt.Sprintf(
-				"%s/%s/%s",
+				"%s/live-auctions/%s/%s",
 				config.LiveAuctionsDatabaseDir,
 				regionName,
 				realm.Slug,
