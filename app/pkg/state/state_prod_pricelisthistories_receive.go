@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/sotah-inc/server/app/pkg/metric"
+
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
@@ -148,7 +150,11 @@ func HandleComputedPricelistHistories(
 	}
 }
 
-func (phState ProdPricelistHistoriesState) ListenForComputedPricelistHistories(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {
+func (phState ProdPricelistHistoriesState) ListenForComputedPricelistHistories(
+	onReady chan interface{},
+	stop chan interface{},
+	onStopped chan interface{},
+) {
 	// establishing subscriber config
 	config := bus.SubscribeConfig{
 		Stop: stop,
@@ -160,11 +166,19 @@ func (phState ProdPricelistHistoriesState) ListenForComputedPricelistHistories(o
 				return
 			}
 
+			// handling requests
 			logging.WithField("requests", len(requests)).Info("Received requests")
-
+			startTime := time.Now()
 			HandleComputedPricelistHistories(phState, requests)
-
 			logging.WithField("requests", len(requests)).Info("Done handling requests")
+
+			// reporting metrics
+			m := metric.Metrics{"receive_all_pricelist_histories_duration": int(int64(time.Now().Sub(startTime)) / 1000 / 1000 / 1000)}
+			if err := phState.IO.BusClient.PublishMetrics(m); err != nil {
+				logging.WithField("error", err.Error()).Error("Failed to publish metric")
+
+				return
+			}
 
 			return
 		},

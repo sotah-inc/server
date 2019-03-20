@@ -3,6 +3,9 @@ package state
 import (
 	"errors"
 	"io/ioutil"
+	"time"
+
+	"github.com/sotah-inc/server/app/pkg/metric"
 
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
@@ -121,7 +124,19 @@ func (liveAuctionsState ProdLiveAuctionsState) ListenForComputedLiveAuctions(onR
 				return
 			}
 
+			// handling requests
+			logging.WithField("requests", len(tuples)).Info("Received tuples")
+			startTime := time.Now()
 			HandleComputedLiveAuctions(liveAuctionsState, tuples)
+			logging.WithField("requests", len(tuples)).Info("Done handling tuples")
+
+			// reporting metrics
+			m := metric.Metrics{"receive_all_live_auctions_duration": int(int64(time.Now().Sub(startTime)) / 1000 / 1000 / 1000)}
+			if err := liveAuctionsState.IO.BusClient.PublishMetrics(m); err != nil {
+				logging.WithField("error", err.Error()).Error("Failed to publish metric")
+
+				return
+			}
 
 			return
 		},
