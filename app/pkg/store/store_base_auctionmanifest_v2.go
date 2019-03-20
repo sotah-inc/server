@@ -325,7 +325,7 @@ func (b AuctionManifestBaseV2) GetAllExpiredTimestamps(
 	postWork := func() {
 		close(out)
 	}
-	util.Work(4, worker, postWork)
+	util.Work(8, worker, postWork)
 
 	// queueing it up
 	go func() {
