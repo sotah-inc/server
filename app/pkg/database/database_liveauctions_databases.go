@@ -1,6 +1,8 @@
 package database
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -244,6 +246,16 @@ func (ladBases LiveAuctionsDatabases) GetStats(realms sotah.Realms) chan GetStat
 	return out
 }
 
+func NewQueryRequest(data []byte) (QueryRequest, error) {
+	ar := &QueryRequest{}
+	err := json.Unmarshal(data, &ar)
+	if err != nil {
+		return QueryRequest{}, err
+	}
+
+	return *ar, nil
+}
+
 type QueryRequest struct {
 	RegionName    blizzard.RegionName          `json:"region_name"`
 	RealmSlug     blizzard.RealmSlug           `json:"realm_slug"`
@@ -259,6 +271,20 @@ type QueryResponse struct {
 	AuctionList sotah.MiniAuctionList `json:"auctions"`
 	Total       int                   `json:"total"`
 	TotalCount  int                   `json:"total_count"`
+}
+
+func (qr QueryResponse) EncodeForDelivery() (string, error) {
+	jsonEncoded, err := json.Marshal(qr)
+	if err != nil {
+		return "", err
+	}
+
+	gzipEncoded, err := util.GzipEncode(jsonEncoded)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(gzipEncoded), nil
 }
 
 func (ladBases LiveAuctionsDatabases) Query(qr QueryRequest) (QueryResponse, codes.Code, error) {
