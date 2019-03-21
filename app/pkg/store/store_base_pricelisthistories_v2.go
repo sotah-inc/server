@@ -109,6 +109,9 @@ func (b PricelistHistoriesBaseV2) Handle(aucs blizzard.Auctions, targetTime time
 	wc := obj.NewWriter(b.client.Context)
 	wc.ContentType = "text/plain"
 	wc.ContentEncoding = "gzip"
+	if wc.Metadata == nil {
+		wc.Metadata = map[string]string{}
+	}
 	wc.Metadata["version_id"] = uuid.NewV4().String()
 	if _, err := wc.Write(gzipEncodedBody); err != nil {
 		return 0, err
