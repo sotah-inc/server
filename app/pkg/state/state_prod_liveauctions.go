@@ -108,6 +108,11 @@ func NewProdLiveAuctionsState(config ProdLiveAuctionsStateConfig) (ProdLiveAucti
 		subjects.ReceiveComputedLiveAuctions: liveAuctionsState.ListenForComputedLiveAuctions,
 	})
 
+	// establishing messenger-listeners
+	liveAuctionsState.Listeners = NewListeners(SubjectListeners{
+		subjects.Auctions: liveAuctionsState.ListenForAuctions,
+	})
+
 	return liveAuctionsState, nil
 }
 
