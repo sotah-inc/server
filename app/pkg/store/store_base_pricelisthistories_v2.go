@@ -13,6 +13,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/util"
+	"github.com/twinj/uuid"
 	"google.golang.org/api/iterator"
 )
 
@@ -108,6 +109,7 @@ func (b PricelistHistoriesBaseV2) Handle(aucs blizzard.Auctions, targetTime time
 	wc := obj.NewWriter(b.client.Context)
 	wc.ContentType = "text/plain"
 	wc.ContentEncoding = "gzip"
+	wc.Metadata["version_id"] = uuid.NewV4().String()
 	if _, err := wc.Write(gzipEncodedBody); err != nil {
 		return 0, err
 	}
