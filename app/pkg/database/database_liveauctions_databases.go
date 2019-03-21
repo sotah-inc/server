@@ -4,15 +4,13 @@ import (
 	"errors"
 	"time"
 
-	"github.com/sotah-inc/server/app/pkg/database/codes"
-
-	"github.com/sotah-inc/server/app/pkg/sotah/sortdirections"
-	"github.com/sotah-inc/server/app/pkg/sotah/sortkinds"
-
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/database/codes"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/sotah/sortdirections"
+	"github.com/sotah-inc/server/app/pkg/sotah/sortkinds"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
