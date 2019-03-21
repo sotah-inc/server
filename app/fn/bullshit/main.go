@@ -17,12 +17,14 @@ import (
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
-var projectId = os.Getenv("GCP_PROJECT")
+var (
+	projectId = os.Getenv("GCP_PROJECT")
 
-var regionRealms map[blizzard.RegionName]sotah.Realms
+	regionRealms map[blizzard.RegionName]sotah.Realms
 
-var busClient bus.Client
-var cleanupTopic *pubsub.Topic
+	busClient    bus.Client
+	cleanupTopic *pubsub.Topic
+)
 
 func init() {
 	var err error
