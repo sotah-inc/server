@@ -6,10 +6,11 @@ import (
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/database"
+	dCodes "github.com/sotah-inc/server/app/pkg/database/codes"
 	"github.com/sotah-inc/server/app/pkg/diskstore"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/messenger"
-	"github.com/sotah-inc/server/app/pkg/messenger/codes"
+	mCodes "github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/resolver"
 	"github.com/sotah-inc/server/app/pkg/sotah"
@@ -19,7 +20,7 @@ import (
 )
 
 type requestError struct {
-	code    codes.Code
+	code    mCodes.Code
 	message string
 }
 
@@ -155,3 +156,22 @@ type RealmTimeTuple struct {
 type RealmTimes map[blizzard.RealmSlug]RealmTimeTuple
 
 type RegionRealmTimes map[blizzard.RegionName]RealmTimes
+
+func DatabaseCodeToMessengerCode(dCode dCodes.Code) mCodes.Code {
+	switch dCode {
+	case dCodes.Ok:
+		return mCodes.Ok
+	case dCodes.Blank:
+		return mCodes.Blank
+	case dCodes.GenericError:
+		return mCodes.GenericError
+	case dCodes.MsgJSONParseError:
+		return mCodes.MsgJSONParseError
+	case dCodes.NotFound:
+		return mCodes.NotFound
+	case dCodes.UserError:
+		return mCodes.UserError
+	}
+
+	return mCodes.Blank
+}
