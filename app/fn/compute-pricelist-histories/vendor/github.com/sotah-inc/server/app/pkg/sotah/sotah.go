@@ -48,6 +48,13 @@ func NewRealms(reg Region, blizzRealms []blizzard.Realm) Realms {
 
 type Realms []Realm
 
+func NewSkeletonRealm(regionName blizzard.RegionName, realmSlug blizzard.RealmSlug) Realm {
+	return Realm{
+		Region: Region{Name: regionName},
+		Realm:  blizzard.Realm{Slug: realmSlug},
+	}
+}
+
 type Realm struct {
 	blizzard.Realm
 	Region       Region `json:"region"`
@@ -156,4 +163,22 @@ func (am AuctionManifest) Merge(subset AuctionManifest) AuctionManifest {
 	}
 
 	return NewAuctionManifestFromMap(out)
+}
+
+func NewBlizzardCredentials(data []byte) (BlizzardCredentials, error) {
+	var out BlizzardCredentials
+	if err := json.Unmarshal(data, &out); err != nil {
+		return BlizzardCredentials{}, err
+	}
+
+	return out, nil
+}
+
+type BlizzardCredentials struct {
+	ClientId     string `json:"client_id"`
+	ClientSecret string `json:"client_secret"`
+}
+
+func (c BlizzardCredentials) EncodeForStorage() ([]byte, error) {
+	return json.Marshal(c)
 }

@@ -60,6 +60,9 @@ func NewAPIState(config APIStateConfig) (APIState, error) {
 		// establishing a bus
 		logging.Info("Connecting bus-client")
 		busClient, err := bus.NewClient(config.GCloudProjectID, "api")
+		if err != nil {
+			return APIState{}, err
+		}
 		apiState.IO.BusClient = busClient
 	} else {
 		cacheDirs := []string{

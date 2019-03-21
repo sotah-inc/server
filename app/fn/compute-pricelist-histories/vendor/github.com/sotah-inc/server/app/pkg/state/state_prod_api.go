@@ -25,8 +25,6 @@ type ProdApiStateConfig struct {
 
 	BlizzardClientId     string
 	BlizzardClientSecret string
-
-	ItemsDatabaseDir string
 }
 
 func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
@@ -54,6 +52,9 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 	// establishing a bus
 	logging.Info("Connecting bus-client")
 	busClient, err := bus.NewClient(config.GCloudProjectID, "prod-api")
+	if err != nil {
+		return ProdApiState{}, err
+	}
 	apiState.IO.BusClient = busClient
 
 	// connecting to the messenger host
@@ -139,8 +140,15 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 
 	// establishing bus-listeners
 	apiState.BusListeners = NewBusListeners(SubjectBusListeners{
-		subjects.Boot:   apiState.ListenForBoot,
-		subjects.Status: apiState.ListenForStatus,
+		subjects.Boot:   apiState.ListenForBusAuthenticatedBoot,
+		subjects.Status: apiState.ListenForBusStatus,
+	})
+
+	// establishing messenger-listeners
+	apiState.Listeners = NewListeners(SubjectListeners{
+		subjects.Boot:          apiState.ListenForMessengerBoot,
+		subjects.Status:        apiState.ListenForMessengerStatus,
+		subjects.SessionSecret: apiState.ListenForSessionSecret,
 	})
 
 	return apiState, nil
