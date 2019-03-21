@@ -48,6 +48,13 @@ func NewRealms(reg Region, blizzRealms []blizzard.Realm) Realms {
 
 type Realms []Realm
 
+func NewSkeletonRealm(regionName blizzard.RegionName, realmSlug blizzard.RealmSlug) Realm {
+	return Realm{
+		Region: Region{Name: regionName},
+		Realm:  blizzard.Realm{Slug: realmSlug},
+	}
+}
+
 type Realm struct {
 	blizzard.Realm
 	Region       Region `json:"region"`
