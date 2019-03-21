@@ -245,7 +245,7 @@ func (b PricelistHistoriesBaseV2) GetAll(
 	postWork := func() {
 		close(out)
 	}
-	util.Work(4, worker, postWork)
+	util.Work(8, worker, postWork)
 
 	return out
 }
