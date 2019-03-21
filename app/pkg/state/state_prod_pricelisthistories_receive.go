@@ -1,11 +1,6 @@
 package state
 
 import (
-	"encoding/base64"
-	"encoding/csv"
-	"errors"
-	"io"
-	"strconv"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -16,108 +11,35 @@ import (
 	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
-	"github.com/sotah-inc/server/app/pkg/util"
+	"github.com/sotah-inc/server/app/pkg/store"
 )
 
 func HandleComputedPricelistHistories(
 	phState ProdPricelistHistoriesState,
 	requests []database.PricelistHistoriesComputeIntakeRequest,
 ) {
-	// declaring a load-in channel for the live-auctions db and starting it up
+	// declaring a get-in channel for gathering pricelist-histories
+	getInJobs := make(chan store.GetAllPricelistHistoriesInJob)
+	getOutJobs := phState.PricelistHistoriesBase.GetAll(getInJobs, phState.PricelistHistoriesBucket)
+
+	// declaring a load-in channel for the pricelist-histories db
 	loadInJobs := make(chan database.PricelistHistoryDatabaseEncodedLoadInJob)
 	loadOutJobs := phState.IO.Databases.PricelistHistoryDatabases.LoadEncoded(loadInJobs)
 
-	// starting workers for handling requests
-	in := make(chan database.PricelistHistoriesComputeIntakeRequest)
-	worker := func() {
-		for request := range in {
-			// resolving the realm from the request
-			realm, err := func() (sotah.Realm, error) {
-				for regionName, status := range phState.Statuses {
-					if regionName != blizzard.RegionName(request.RegionName) {
-						continue
-					}
-
-					for _, realm := range status.Realms {
-						if realm.Slug != blizzard.RealmSlug(request.RealmSlug) {
-							continue
-						}
-
-						return realm, nil
-					}
-				}
-
-				return sotah.Realm{}, errors.New("realm not found")
-			}()
-			if err != nil {
-				logging.WithField("error", err.Error()).Error("Failed to resolve realm from request")
+	// spinning up a worker for translating get-out-jobs to load-in-jobs
+	go func() {
+		for outJob := range getOutJobs {
+			if outJob.Err != nil {
+				logging.WithFields(outJob.ToLogrusFields()).Error("Failed to get pricelist-histories")
 
 				continue
 			}
 
-			// resolving the data
-			data, err := func() (map[blizzard.ItemID][]byte, error) {
-				obj, err := phState.PricelistHistoriesBase.GetFirmObject(
-					time.Unix(int64(request.NormalizedTargetTimestamp), 0),
-					realm,
-					phState.PricelistHistoriesBucket,
-				)
-				if err != nil {
-					return map[blizzard.ItemID][]byte{}, err
-				}
-
-				// gathering the data from the object
-				reader, err := obj.NewReader(phState.IO.StoreClient.Context)
-				if err != nil {
-					return map[blizzard.ItemID][]byte{}, err
-				}
-				defer reader.Close()
-
-				out := map[blizzard.ItemID][]byte{}
-				r := csv.NewReader(reader)
-				for {
-					record, err := r.Read()
-					if err == io.EOF {
-						break
-					}
-					if err != nil {
-						return map[blizzard.ItemID][]byte{}, err
-					}
-
-					itemIdInt, err := strconv.Atoi(record[0])
-					if err != nil {
-						return map[blizzard.ItemID][]byte{}, err
-					}
-					itemId := blizzard.ItemID(itemIdInt)
-
-					base64DecodedPriceHistory, err := base64.StdEncoding.DecodeString(record[1])
-					if err != nil {
-						return map[blizzard.ItemID][]byte{}, err
-					}
-
-					out[itemId] = base64DecodedPriceHistory
-				}
-
-				return out, nil
-			}()
-			if err != nil {
-				logging.WithField("error", err.Error()).Error("Failed to get data")
-
-				continue
-			}
-
-			loadInJobs <- database.PricelistHistoryDatabaseEncodedLoadInJob{
-				RegionName:                blizzard.RegionName(request.RegionName),
-				RealmSlug:                 blizzard.RealmSlug(request.RealmSlug),
-				NormalizedTargetTimestamp: sotah.UnixTimestamp(request.NormalizedTargetTimestamp),
-				Data: data,
-			}
+			loadInJobs <- database.PricelistHistoryDatabaseEncodedLoadInJob{}
 		}
-	}
-	postWork := func() {
+
 		close(loadInJobs)
-	}
-	util.Work(4, worker, postWork)
+	}()
 
 	// queueing it all up
 	go func() {
@@ -128,10 +50,14 @@ func HandleComputedPricelistHistories(
 				"normalized-target-timestamp": request.NormalizedTargetTimestamp,
 			}).Info("Loading request")
 
-			in <- request
+			getInJobs <- store.GetAllPricelistHistoriesInJob{
+				RegionName:      blizzard.RegionName(request.RegionName),
+				RealmSlug:       blizzard.RealmSlug(request.RealmSlug),
+				TargetTimestamp: sotah.UnixTimestamp(request.NormalizedTargetTimestamp),
+			}
 		}
 
-		close(in)
+		close(getInJobs)
 	}()
 
 	// waiting for the results to drain out
