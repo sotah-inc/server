@@ -35,7 +35,12 @@ func HandleComputedPricelistHistories(
 				continue
 			}
 
-			loadInJobs <- database.PricelistHistoryDatabaseEncodedLoadInJob{}
+			loadInJobs <- database.PricelistHistoryDatabaseEncodedLoadInJob{
+				RegionName:                outJob.RegionName,
+				RealmSlug:                 outJob.RealmSlug,
+				NormalizedTargetTimestamp: outJob.TargetTimestamp,
+				Data: outJob.Data,
+			}
 		}
 
 		close(loadInJobs)
