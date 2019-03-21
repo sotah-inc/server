@@ -132,6 +132,7 @@ type GetAllPricelistHistoriesOutJob struct {
 	RealmSlug       blizzard.RealmSlug
 	TargetTimestamp sotah.UnixTimestamp
 	Data            map[blizzard.ItemID][]byte
+	VersionId       string
 }
 
 func (job GetAllPricelistHistoriesOutJob) ToLogrusFields() logrus.Fields {
@@ -152,17 +153,37 @@ func (b PricelistHistoriesBaseV2) GetAll(
 	// spinning up some workers
 	worker := func() {
 		for inJob := range in {
-			// resolving the data
-			data, err := func() (map[blizzard.ItemID][]byte, error) {
-				obj, err := b.GetFirmObject(
-					time.Unix(int64(inJob.TargetTimestamp), 0),
-					sotah.NewSkeletonRealm(inJob.RegionName, inJob.RealmSlug),
-					bkt,
-				)
-				if err != nil {
-					return map[blizzard.ItemID][]byte{}, err
+			// resolving the obj
+			obj, err := b.GetFirmObject(
+				time.Unix(int64(inJob.TargetTimestamp), 0),
+				sotah.NewSkeletonRealm(inJob.RegionName, inJob.RealmSlug),
+				bkt,
+			)
+			if err != nil {
+				out <- GetAllPricelistHistoriesOutJob{
+					Err:             err,
+					RegionName:      inJob.RegionName,
+					RealmSlug:       inJob.RealmSlug,
+					TargetTimestamp: inJob.TargetTimestamp,
 				}
 
+				continue
+			}
+
+			objAttrs, err := obj.Attrs(b.client.Context)
+			if err != nil {
+				out <- GetAllPricelistHistoriesOutJob{
+					Err:             err,
+					RegionName:      inJob.RegionName,
+					RealmSlug:       inJob.RealmSlug,
+					TargetTimestamp: inJob.TargetTimestamp,
+				}
+
+				continue
+			}
+
+			// resolving the data
+			data, err := func() (map[blizzard.ItemID][]byte, error) {
 				// gathering the data from the object
 				reader, err := obj.NewReader(b.client.Context)
 				if err != nil {
@@ -214,6 +235,7 @@ func (b PricelistHistoriesBaseV2) GetAll(
 				RealmSlug:       inJob.RealmSlug,
 				TargetTimestamp: inJob.TargetTimestamp,
 				Data:            data,
+				VersionId:       objAttrs.Metadata["version_id"],
 			}
 		}
 	}
