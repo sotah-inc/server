@@ -11,9 +11,9 @@ import (
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/bus/codes"
+	"github.com/sotah-inc/server/app/pkg/database"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
-	"github.com/sotah-inc/server/app/pkg/state"
 	"github.com/sotah-inc/server/app/pkg/store"
 )
 
@@ -96,7 +96,7 @@ func Handle(job bus.LoadRegionRealmTimestampsInJob) bus.Message {
 		return m
 	}
 
-	req := state.PricelistHistoriesComputeIntakeRequest{
+	req := database.PricelistHistoriesComputeIntakeRequest{
 		RegionName:                string(region.Name),
 		RealmSlug:                 string(realm.Slug),
 		NormalizedTargetTimestamp: int(normalizedTargetTimestamp),
