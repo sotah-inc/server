@@ -1,16 +1,19 @@
 package store
 
 import (
+	"encoding/base64"
+	"encoding/csv"
 	"fmt"
+	"io"
 	"strconv"
 	"time"
 
-	"github.com/sotah-inc/server/app/pkg/util"
-	"google.golang.org/api/iterator"
-
 	"cloud.google.com/go/storage"
+	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/util"
+	"google.golang.org/api/iterator"
 )
 
 func NewPricelistHistoriesBaseV2(c Client, location string) PricelistHistoriesBaseV2 {
@@ -113,6 +116,111 @@ func (b PricelistHistoriesBaseV2) Handle(aucs blizzard.Auctions, targetTime time
 	}
 
 	return sotah.UnixTimestamp(normalizedTargetDate.Unix()), wc.Close()
+}
+
+type GetAllPricelistHistoriesInJob struct {
+	RegionName      blizzard.RegionName
+	RealmSlug       blizzard.RealmSlug
+	TargetTimestamp sotah.UnixTimestamp
+}
+
+type GetAllPricelistHistoriesOutJob struct {
+	Err             error
+	RegionName      blizzard.RegionName
+	RealmSlug       blizzard.RealmSlug
+	TargetTimestamp sotah.UnixTimestamp
+	Data            map[blizzard.ItemID][]byte
+}
+
+func (job GetAllPricelistHistoriesOutJob) ToLogrusFields() logrus.Fields {
+	return logrus.Fields{
+		"error":            job.Err.Error(),
+		"region":           job.RegionName,
+		"realm":            job.RealmSlug,
+		"target-timestamp": job.TargetTimestamp,
+	}
+}
+
+func (b PricelistHistoriesBaseV2) GetAll(
+	in chan GetAllPricelistHistoriesInJob,
+	bkt *storage.BucketHandle,
+) chan GetAllPricelistHistoriesOutJob {
+	out := make(chan GetAllPricelistHistoriesOutJob)
+
+	// spinning up some workers
+	worker := func() {
+		for inJob := range in {
+			// resolving the data
+			data, err := func() (map[blizzard.ItemID][]byte, error) {
+				obj, err := b.GetFirmObject(
+					time.Unix(int64(inJob.TargetTimestamp), 0),
+					sotah.NewSkeletonRealm(inJob.RegionName, inJob.RealmSlug),
+					bkt,
+				)
+				if err != nil {
+					return map[blizzard.ItemID][]byte{}, err
+				}
+
+				// gathering the data from the object
+				reader, err := obj.NewReader(b.client.Context)
+				if err != nil {
+					return map[blizzard.ItemID][]byte{}, err
+				}
+				defer reader.Close()
+
+				out := map[blizzard.ItemID][]byte{}
+				r := csv.NewReader(reader)
+				for {
+					record, err := r.Read()
+					if err == io.EOF {
+						break
+					}
+					if err != nil {
+						return map[blizzard.ItemID][]byte{}, err
+					}
+
+					itemIdInt, err := strconv.Atoi(record[0])
+					if err != nil {
+						return map[blizzard.ItemID][]byte{}, err
+					}
+					itemId := blizzard.ItemID(itemIdInt)
+
+					base64DecodedPriceHistory, err := base64.StdEncoding.DecodeString(record[1])
+					if err != nil {
+						return map[blizzard.ItemID][]byte{}, err
+					}
+
+					out[itemId] = base64DecodedPriceHistory
+				}
+
+				return out, nil
+			}()
+			if err != nil {
+				out <- GetAllPricelistHistoriesOutJob{
+					Err:             err,
+					RegionName:      inJob.RegionName,
+					RealmSlug:       inJob.RealmSlug,
+					TargetTimestamp: inJob.TargetTimestamp,
+				}
+
+				continue
+			}
+
+			out <- GetAllPricelistHistoriesOutJob{
+				Err:             nil,
+				RegionName:      inJob.RegionName,
+				RealmSlug:       inJob.RealmSlug,
+				TargetTimestamp: inJob.TargetTimestamp,
+				Data:            data,
+			}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(4, worker, postWork)
+
+	return out
 }
 
 func (b PricelistHistoriesBaseV2) GetAllTimestamps(
