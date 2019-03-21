@@ -100,11 +100,11 @@ func (b base) ObjectExists(obj *storage.ObjectHandle) (bool, error) {
 	return true, nil
 }
 
-type RealmExpiredTimestamps map[blizzard.RealmSlug][]sotah.UnixTimestamp
+type RealmTimestamps map[blizzard.RealmSlug][]sotah.UnixTimestamp
 
-type RegionRealmExpiredTimestamps map[blizzard.RegionName]RealmExpiredTimestamps
+type RegionRealmTimestamps map[blizzard.RegionName]RealmTimestamps
 
-type GetExpiredTimestampsJob struct {
+type GetTimestampsJob struct {
 	Err        error
 	Realm      sotah.Realm
 	Timestamps []sotah.UnixTimestamp
