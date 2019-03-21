@@ -6,15 +6,43 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"cloud.google.com/go/pubsub"
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/bus/codes"
+	"github.com/sotah-inc/server/app/pkg/database"
 	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/metric"
+	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/util"
 	"github.com/twinj/uuid"
 )
+
+func NewCollectAuctionMessages(regionRealms sotah.RegionRealms) ([]Message, error) {
+	messages := []Message{}
+	for _, realms := range regionRealms {
+		for _, realm := range realms {
+			job := CollectAuctionsJob{
+				RegionName: string(realm.Region.Name),
+				RealmSlug:  string(realm.Slug),
+			}
+			jsonEncoded, err := json.Marshal(job)
+			if err != nil {
+				return []Message{}, err
+			}
+
+			msg := NewMessage()
+			msg.Data = string(jsonEncoded)
+			msg.ReplyToId = fmt.Sprintf("%s-%s", realm.Region.Name, realm.Slug)
+			messages = append(messages, msg)
+		}
+	}
+
+	return messages, nil
+}
 
 func NewMessage() Message {
 	return Message{Code: codes.Ok}
@@ -99,6 +127,49 @@ func (c Client) Publish(topic *pubsub.Topic, msg Message) (string, error) {
 	}
 
 	return topic.Publish(c.context, &pubsub.Message{Data: data}).Get(c.context)
+}
+
+type BulkPublishOutJob struct {
+	Err error
+	Msg Message
+}
+
+func (c Client) BulkPublish(topic *pubsub.Topic, messages []Message) chan BulkPublishOutJob {
+	// opening workers and channels
+	in := make(chan Message)
+	out := make(chan BulkPublishOutJob)
+	worker := func() {
+		for msg := range in {
+			if _, err := c.Publish(topic, msg); err != nil {
+				out <- BulkPublishOutJob{
+					Err: err,
+					Msg: msg,
+				}
+
+				continue
+			}
+
+			out <- BulkPublishOutJob{
+				Err: nil,
+				Msg: msg,
+			}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(32, worker, postWork)
+
+	// queueing it up
+	go func() {
+		for _, msg := range messages {
+			in <- msg
+		}
+
+		close(in)
+	}()
+
+	return out
 }
 
 func (c Client) subscriberName(topic *pubsub.Topic) string {
@@ -193,6 +264,134 @@ func (c Client) RequestFromTopic(topicName string, payload string, timeout time.
 	}
 
 	return c.Request(topic, payload, timeout)
+}
+
+type MessageResponses struct {
+	Items BulkRequestMessages
+	Mutex *sync.Mutex
+}
+
+func (r MessageResponses) IsComplete() bool {
+	for _, msg := range r.Items {
+		if len(msg.ReplyToId) == 0 {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (r MessageResponses) FilterInCompleted() BulkRequestMessages {
+	out := BulkRequestMessages{}
+	for k, v := range r.Items {
+		if len(v.ReplyToId) == 0 {
+			continue
+		}
+
+		out[k] = v
+	}
+
+	return out
+}
+
+func NewBulkRequestMessages(messages []Message) BulkRequestMessages {
+	out := BulkRequestMessages{}
+	for _, msg := range messages {
+		out[msg.ReplyToId] = NewMessage()
+	}
+
+	return out
+}
+
+type BulkRequestMessages map[string]Message
+
+func (c Client) BulkRequest(intakeTopic *pubsub.Topic, messages []Message, timeout time.Duration) (BulkRequestMessages, error) {
+	// producing a topic to receive responses
+	logging.Info("Producing a topic and subscription to receive responses")
+	recipientTopic, err := c.CreateTopic(fmt.Sprintf("bulk-request-%s", uuid.NewV4().String()))
+	if err != nil {
+		return BulkRequestMessages{}, err
+	}
+
+	// updating messages with reply-to topic
+	for i, msg := range messages {
+		msg.ReplyTo = recipientTopic.ID()
+		messages[i] = msg
+	}
+
+	// producing a blank list of message responses
+	responses := MessageResponses{
+		Mutex: &sync.Mutex{},
+		Items: NewBulkRequestMessages(messages),
+	}
+
+	// opening a listener
+	logging.Info("Opening a listener and waiting for it to finish opening")
+	onComplete := make(chan interface{})
+	receiveConfig := SubscribeConfig{
+		Topic:     recipientTopic,
+		OnReady:   make(chan interface{}),
+		Stop:      make(chan interface{}),
+		OnStopped: make(chan interface{}),
+		Callback: func(busMsg Message) {
+			responses.Mutex.Lock()
+			defer responses.Mutex.Unlock()
+			responses.Items[busMsg.ReplyToId] = busMsg
+
+			if !responses.IsComplete() {
+				return
+			}
+
+			onComplete <- struct{}{}
+
+			return
+		},
+	}
+	go func() {
+		if err := c.Subscribe(receiveConfig); err != nil {
+			logging.Fatalf("Failed to subscribe to recipient topic: %s", err.Error())
+
+			return
+		}
+	}()
+	<-receiveConfig.OnReady
+
+	// bulk publishing
+	logging.Info("Bulk publishing")
+	startTime := time.Now()
+	for outJob := range c.BulkPublish(intakeTopic, messages) {
+		if outJob.Err != nil {
+			return BulkRequestMessages{}, outJob.Err
+		}
+	}
+
+	// waiting for responses is complete or timer runs out
+	logging.Info("Waiting for responses to complete or timer runs out")
+	timer := time.After(timeout)
+	select {
+	case <-timer:
+		logging.Info("Timer timed out, going over results in allotted time")
+
+		break
+	case <-onComplete:
+		logging.Info("Received all responses, going over all responses")
+
+		break
+	}
+	responseItems := responses.FilterInCompleted()
+	duration := time.Now().Sub(startTime)
+
+	// stopping the receiver
+	logging.WithFields(
+		logrus.Fields{
+			"duration":  int(duration.Seconds()),
+			"responses": len(responseItems),
+		},
+	).Info("Finished receiving responses, stopping the listener and waiting for it to stop")
+	receiveConfig.Stop <- struct{}{}
+	<-receiveConfig.OnStopped
+
+	return responses.FilterInCompleted(), nil
 }
 
 type requestJob struct {
@@ -363,9 +562,59 @@ func (c Client) Request(recipientTopic *pubsub.Topic, payload string, timeout ti
 	return requestResult.Payload, nil
 }
 
+func (c Client) PublishMetrics(m metric.Metrics) error {
+	topic, err := c.FirmTopic(string(subjects.AppMetrics))
+	if err != nil {
+		return err
+	}
+
+	jsonEncoded, err := json.Marshal(m)
+	if err != nil {
+		return err
+	}
+
+	msg := NewMessage()
+	msg.Data = string(jsonEncoded)
+	if _, err := c.Publish(topic, msg); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 type CollectAuctionsJob struct {
 	RegionName string `json:"region_name"`
 	RealmSlug  string `json:"realm_slug"`
+}
+
+func NewRegionRealmTimestampTuplesFromMessages(messages BulkRequestMessages) (RegionRealmTimestampTuples, error) {
+	tuples := RegionRealmTimestampTuples{}
+	for _, msg := range messages {
+		var respData RegionRealmTimestampTuple
+		if err := json.Unmarshal([]byte(msg.Data), &respData); err != nil {
+			return RegionRealmTimestampTuples{}, err
+		}
+
+		tuples = append(tuples, respData)
+	}
+
+	return tuples, nil
+}
+
+func NewPricelistHistoriesComputeIntakeRequestsFromMessages(
+	messages BulkRequestMessages,
+) (database.PricelistHistoriesComputeIntakeRequests, error) {
+	out := database.PricelistHistoriesComputeIntakeRequests{}
+	for _, msg := range messages {
+		var respData database.PricelistHistoriesComputeIntakeRequest
+		if err := json.Unmarshal([]byte(msg.Data), &respData); err != nil {
+			return database.PricelistHistoriesComputeIntakeRequests{}, err
+		}
+
+		out = append(out, respData)
+	}
+
+	return out, nil
 }
 
 func NewRegionRealmTimestampTuples(data string) (RegionRealmTimestampTuples, error) {
@@ -403,10 +652,42 @@ func (s RegionRealmTimestampTuples) EncodeForDelivery() (string, error) {
 	return base64.RawStdEncoding.EncodeToString(gzipEncoded), nil
 }
 
+func (s RegionRealmTimestampTuples) ToMessages() ([]Message, error) {
+	out := []Message{}
+	for _, tuple := range s {
+		msg := NewMessage()
+		msg.ReplyToId = fmt.Sprintf("%s-%s", tuple.RegionName, tuple.RealmSlug)
+
+		job := LoadRegionRealmTimestampsInJob{
+			RegionName:      tuple.RegionName,
+			RealmSlug:       tuple.RealmSlug,
+			TargetTimestamp: tuple.TargetTimestamp,
+		}
+		data, err := job.EncodeForDelivery()
+		if err != nil {
+			return []Message{}, err
+		}
+		msg.Data = data
+
+		out = append(out, msg)
+	}
+
+	return out, nil
+}
+
 type RegionRealmTimestampTuple struct {
 	RegionName      string `json:"region_name"`
 	RealmSlug       string `json:"realm_slug"`
 	TargetTimestamp int    `json:"target_timestamp"`
+}
+
+func (t RegionRealmTimestampTuple) EncodeForDelivery() (string, error) {
+	data, err := json.Marshal(t)
+	if err != nil {
+		return "", err
+	}
+
+	return string(data), nil
 }
 
 type CleanupAuctionManifestJob = RegionRealmTimestampTuple

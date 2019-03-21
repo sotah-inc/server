@@ -3,7 +3,9 @@ package bullshit_intake
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"strconv"
@@ -22,23 +24,28 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-var projectId = os.Getenv("GCP_PROJECT")
+var (
+	projectId = os.Getenv("GCP_PROJECT")
 
-var storeClient store.Client
+	storeClient store.Client
 
-var auctionManifestStoreBaseV2 store.AuctionManifestBaseV2
-var manifestBucket *storage.BucketHandle
+	auctionManifestStoreBaseV2 store.AuctionManifestBaseV2
+	manifestBucket             *storage.BucketHandle
 
-var auctionsStoreBaseV2 store.AuctionsBaseV2
-var rawAuctionsBucket *storage.BucketHandle
+	auctionsStoreBaseV2 store.AuctionsBaseV2
+	rawAuctionsBucket   *storage.BucketHandle
 
-var busClient bus.Client
-var auctionsCleanupTopic *pubsub.Topic
+	bootBase   store.BootBase
+	bootBucket *storage.BucketHandle
+
+	busClient            bus.Client
+	auctionsCleanupTopic *pubsub.Topic
+)
 
 func init() {
 	var err error
 
-	busClient, err = bus.NewClient(projectId, "fn-cleanup-all-expired-manifests")
+	busClient, err = bus.NewClient(projectId, "fn-bullshit-intake")
 	if err != nil {
 		log.Fatalf("Failed to create new bus client: %s", err.Error())
 
@@ -61,7 +68,7 @@ func init() {
 	auctionsStoreBaseV2 = store.NewAuctionsBaseV2(storeClient, "us-central1")
 	rawAuctionsBucket, err = auctionsStoreBaseV2.GetFirmBucket()
 	if err != nil {
-		log.Fatalf("Failed to get new manifest bucket: %s", err.Error())
+		log.Fatalf("Failed to get firm bucket: %s", err.Error())
 
 		return
 	}
@@ -69,7 +76,15 @@ func init() {
 	auctionManifestStoreBaseV2 = store.NewAuctionManifestBaseV2(storeClient, "us-central1")
 	manifestBucket, err = auctionManifestStoreBaseV2.GetFirmBucket()
 	if err != nil {
-		log.Fatalf("Failed to get new manifest bucket: %s", err.Error())
+		log.Fatalf("Failed to get firm bucket: %s", err.Error())
+
+		return
+	}
+
+	bootBase = store.NewBootBase(storeClient, "us-central1")
+	bootBucket, err = bootBase.GetFirmBucket()
+	if err != nil {
+		log.Fatalf("Failed to get firm bucket: %s", err.Error())
 
 		return
 	}
@@ -193,6 +208,22 @@ type PubSubMessage struct {
 }
 
 func BullshitIntake(_ context.Context, m PubSubMessage) error {
+	obj, err := bootBase.GetFirmObject("bullshit.txt", bootBucket)
+	if err != nil {
+		return err
+	}
+	reader, err := obj.NewReader(storeClient.Context)
+	if err != nil {
+		return err
+	}
+	data, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return err
+	}
+	if string(data) != "PricelistHistories" {
+		return errors.New("unmatched")
+	}
+
 	job, err := func() (bus.CollectAuctionsJob, error) {
 		var in bus.Message
 		if err := json.Unmarshal(m.Data, &in); err != nil {
