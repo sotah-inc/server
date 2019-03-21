@@ -1,7 +1,13 @@
 package database
 
 import (
+	"errors"
 	"time"
+
+	"github.com/sotah-inc/server/app/pkg/database/codes"
+
+	"github.com/sotah-inc/server/app/pkg/sotah/sortdirections"
+	"github.com/sotah-inc/server/app/pkg/sotah/sortkinds"
 
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
@@ -238,4 +244,84 @@ func (ladBases LiveAuctionsDatabases) GetStats(realms sotah.Realms) chan GetStat
 	}()
 
 	return out
+}
+
+type QueryRequest struct {
+	RegionName    blizzard.RegionName          `json:"region_name"`
+	RealmSlug     blizzard.RealmSlug           `json:"realm_slug"`
+	Page          int                          `json:"page"`
+	Count         int                          `json:"count"`
+	SortDirection sortdirections.SortDirection `json:"sort_direction"`
+	SortKind      sortkinds.SortKind           `json:"sort_kind"`
+	OwnerFilters  []sotah.OwnerName            `json:"owner_filters"`
+	ItemFilters   []blizzard.ItemID            `json:"item_filters"`
+}
+
+type QueryResponse struct {
+	AuctionList sotah.MiniAuctionList `json:"auctions"`
+	Total       int                   `json:"total"`
+	TotalCount  int                   `json:"total_count"`
+}
+
+func (ladBases LiveAuctionsDatabases) Query(qr QueryRequest) (QueryResponse, codes.Code, error) {
+	regionLadBases, ok := ladBases[qr.RegionName]
+	if !ok {
+		return QueryResponse{}, codes.UserError, errors.New("invalid region")
+	}
+
+	realmLadbase, ok := regionLadBases[qr.RealmSlug]
+	if !ok {
+		return QueryResponse{}, codes.UserError, errors.New("invalid realm")
+	}
+
+	if qr.Page < 0 {
+		return QueryResponse{}, codes.UserError, errors.New("page must be >= 0")
+	}
+	if qr.Count == 0 {
+		return QueryResponse{}, codes.UserError, errors.New("count must be >= 0")
+	} else if qr.Count > 1000 {
+		return QueryResponse{}, codes.UserError, errors.New("page must be <= 1000")
+	}
+
+	maList, err := realmLadbase.GetMiniAuctionList()
+	if err != nil {
+		return QueryResponse{}, codes.GenericError, err
+	}
+
+	// initial response format
+	aResponse := QueryResponse{Total: -1, TotalCount: -1, AuctionList: maList}
+
+	// filtering in auctions by owners or items
+	if len(qr.OwnerFilters) > 0 {
+		aResponse.AuctionList = aResponse.AuctionList.FilterByOwnerNames(qr.OwnerFilters)
+	}
+	if len(qr.ItemFilters) > 0 {
+		aResponse.AuctionList = aResponse.AuctionList.FilterByItemIDs(qr.ItemFilters)
+	}
+
+	// calculating the total for paging
+	aResponse.Total = len(aResponse.AuctionList)
+
+	// calculating the total-count for review
+	totalCount := 0
+	for _, mAuction := range maList {
+		totalCount += len(mAuction.AucList)
+	}
+	aResponse.TotalCount = totalCount
+
+	// optionally sorting
+	if qr.SortKind != sortkinds.None && qr.SortDirection != sortdirections.None {
+		err = aResponse.AuctionList.Sort(qr.SortKind, qr.SortDirection)
+		if err != nil {
+			return QueryResponse{}, codes.UserError, err
+		}
+	}
+
+	// truncating the list
+	aResponse.AuctionList, err = aResponse.AuctionList.Limit(qr.Count, qr.Page)
+	if err != nil {
+		return QueryResponse{}, codes.UserError, err
+	}
+
+	return aResponse, codes.Ok, nil
 }
