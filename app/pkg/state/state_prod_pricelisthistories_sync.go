@@ -15,12 +15,14 @@ func (phState ProdPricelistHistoriesState) Sync() error {
 	}
 
 	// gathering existing pricelist-histories versions
+	logging.Info("Gathering existing versions")
 	versions, err := phState.PricelistHistoriesBase.GetVersions(regionRealms, phState.PricelistHistoriesBucket)
 	if err != nil {
 		return err
 	}
 
 	// trimming matching versions
+	logging.Info("Trimming existing versions")
 	versionsToSync := store.PricelistHistoryVersions{}
 	for regionName, realmTimestampVersions := range versions {
 		for realmSlug, timestampVersions := range realmTimestampVersions {
@@ -69,7 +71,7 @@ func (phState ProdPricelistHistoriesState) Sync() error {
 		}
 	}
 
-	logging.WithField("versions", versionsToSync).Info("Found versions to sync")
+	logging.WithField("jobs", len(versionsToSync.ToJobs())).Info("Found jobs to sync")
 
 	return nil
 }
