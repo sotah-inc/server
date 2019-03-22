@@ -3,6 +3,7 @@ package store
 import (
 	"encoding/base64"
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -11,6 +12,7 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/util"
 	"github.com/twinj/uuid"
@@ -248,6 +250,57 @@ func (b PricelistHistoriesBaseV2) GetAll(
 	util.Work(8, worker, postWork)
 
 	return out
+}
+
+type PricelistHistoryVersions map[blizzard.RegionName]map[blizzard.RealmSlug]map[sotah.UnixTimestamp]string
+
+func (v PricelistHistoryVersions) Insert(
+	regionName blizzard.RegionName,
+	realmSlug blizzard.RealmSlug,
+	targetTimestamp sotah.UnixTimestamp,
+	version string,
+) PricelistHistoryVersions {
+	if _, ok := v[regionName]; !ok {
+		v[regionName] = map[blizzard.RealmSlug]map[sotah.UnixTimestamp]string{}
+	}
+	if _, ok := v[regionName][realmSlug]; !ok {
+		v[regionName][realmSlug] = map[sotah.UnixTimestamp]string{}
+	}
+
+	v[regionName][realmSlug][targetTimestamp] = version
+
+	return v
+}
+
+func (v PricelistHistoryVersions) ToJobs() []GetAllPricelistHistoriesInJob {
+	out := []GetAllPricelistHistoriesInJob{}
+	for regionName, realmTimestampVersions := range v {
+		for realmSlug, timestampVersions := range realmTimestampVersions {
+			for targetTimestamp := range timestampVersions {
+				out = append(out, GetAllPricelistHistoriesInJob{
+					RegionName:      regionName,
+					RealmSlug:       realmSlug,
+					TargetTimestamp: targetTimestamp,
+				})
+			}
+		}
+	}
+
+	return out
+}
+
+func (b PricelistHistoriesBaseV2) GetVersions(
+	regionRealms map[blizzard.RegionName]sotah.Realms,
+	bkt *storage.BucketHandle,
+) (PricelistHistoryVersions, error) {
+	timestamps, err := b.GetAllTimestamps(regionRealms, bkt)
+	if err != nil {
+		return PricelistHistoryVersions{}, err
+	}
+
+	logging.WithField("timestamps", timestamps).Info("Received timestamps")
+
+	return PricelistHistoryVersions{}, errors.New("todo")
 }
 
 func (b PricelistHistoriesBaseV2) GetAllTimestamps(
