@@ -389,7 +389,7 @@ func (b PricelistHistoriesBaseV2) GetVersions(
 	postWork := func() {
 		close(outJobs)
 	}
-	util.Work(8, worker, postWork)
+	util.Work(16, worker, postWork)
 
 	// queueing it up
 	go func() {
@@ -451,7 +451,7 @@ func (b PricelistHistoriesBaseV2) GetAllTimestamps(
 	postWork := func() {
 		close(out)
 	}
-	util.Work(8, worker, postWork)
+	util.Work(16, worker, postWork)
 
 	// queueing it up
 	go func() {
