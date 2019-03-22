@@ -135,7 +135,7 @@ func (phState ProdPricelistHistoriesState) Sync() error {
 			job.RegionName,
 			job.RealmSlug,
 			job.NormalizedTargetTimestamp,
-			versionsToSync[job.RegionName][job.RealmSlug][job.NormalizedTargetTimestamp],
+			job.VersionId,
 		)
 		if err != nil {
 			return err

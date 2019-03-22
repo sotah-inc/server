@@ -39,7 +39,8 @@ func HandleComputedPricelistHistories(
 				RegionName:                outJob.RegionName,
 				RealmSlug:                 outJob.RealmSlug,
 				NormalizedTargetTimestamp: outJob.TargetTimestamp,
-				Data: outJob.Data,
+				Data:                      outJob.Data,
+				VersionId:                 outJob.VersionId,
 			}
 		}
 
@@ -50,8 +51,8 @@ func HandleComputedPricelistHistories(
 	go func() {
 		for _, request := range requests {
 			logging.WithFields(logrus.Fields{
-				"region": request.RegionName,
-				"realm":  request.RealmSlug,
+				"region":                      request.RegionName,
+				"realm":                       request.RealmSlug,
 				"normalized-target-timestamp": request.NormalizedTargetTimestamp,
 			}).Info("Loading request")
 
@@ -77,6 +78,18 @@ func HandleComputedPricelistHistories(
 			"region": job.RegionName,
 			"realm":  job.RealmSlug,
 		}).Info("Loaded job")
+
+		err := phState.IO.Databases.MetaDatabase.SetPricelistHistoriesVersion(
+			job.RegionName,
+			job.RealmSlug,
+			job.NormalizedTargetTimestamp,
+			job.VersionId,
+		)
+		if err != nil {
+			logging.WithFields(job.ToLogrusFields()).Error("Failed to persist pricelist-histories version")
+
+			continue
+		}
 	}
 }
 
