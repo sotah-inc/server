@@ -315,9 +315,9 @@ type PricelistHistoryDatabaseEncodedLoadOutJob struct {
 
 func (job PricelistHistoryDatabaseEncodedLoadOutJob) ToLogrusFields() logrus.Fields {
 	return logrus.Fields{
-		"error":  job.Err.Error(),
-		"region": job.RegionName,
-		"realm":  job.RealmSlug,
+		"error":                       job.Err.Error(),
+		"region":                      job.RegionName,
+		"realm":                       job.RealmSlug,
 		"normalized-target-timestamp": job.NormalizedTargetTimestamp,
 	}
 }
@@ -377,7 +377,7 @@ func (phdBases PricelistHistoryDatabases) LoadEncoded(
 	postWork := func() {
 		close(out)
 	}
-	util.Work(4, worker, postWork)
+	util.Work(2, worker, postWork)
 
 	return out
 }
