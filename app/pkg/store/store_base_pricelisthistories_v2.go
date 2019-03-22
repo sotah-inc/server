@@ -12,7 +12,6 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
-	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/util"
 	"github.com/twinj/uuid"
@@ -418,8 +417,6 @@ func (b PricelistHistoriesBaseV2) GetVersions(
 
 		versions = versions.Insert(outJob.RegionName, outJob.RealmSlug, outJob.TargetTimestamp, outJob.Version)
 	}
-
-	logging.WithField("versions", versions).Info("Received versions")
 
 	return versions, nil
 }
