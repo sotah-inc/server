@@ -8,8 +8,8 @@ import (
 	"github.com/sotah-inc/server/app/pkg/sotah"
 )
 
-func NewMetaDatabase(dbFilepath string) (MetaDatabase, error) {
-	db, err := bolt.Open(dbFilepath, 0600, nil)
+func NewMetaDatabase(dbDir string) (MetaDatabase, error) {
+	db, err := bolt.Open(metaDatabaseFilePath(dbDir), 0600, nil)
 	if err != nil {
 		return MetaDatabase{}, err
 	}
