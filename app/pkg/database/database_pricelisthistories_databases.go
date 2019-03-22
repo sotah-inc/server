@@ -303,6 +303,7 @@ type PricelistHistoryDatabaseEncodedLoadInJob struct {
 	RegionName                blizzard.RegionName
 	RealmSlug                 blizzard.RealmSlug
 	NormalizedTargetTimestamp sotah.UnixTimestamp
+	VersionId                 string
 	Data                      map[blizzard.ItemID][]byte
 }
 
@@ -311,6 +312,7 @@ type PricelistHistoryDatabaseEncodedLoadOutJob struct {
 	RegionName                blizzard.RegionName
 	RealmSlug                 blizzard.RealmSlug
 	NormalizedTargetTimestamp sotah.UnixTimestamp
+	VersionId                 string
 }
 
 func (job PricelistHistoryDatabaseEncodedLoadOutJob) ToLogrusFields() logrus.Fields {
@@ -371,6 +373,7 @@ func (phdBases PricelistHistoryDatabases) LoadEncoded(
 				RegionName:                job.RegionName,
 				RealmSlug:                 job.RealmSlug,
 				NormalizedTargetTimestamp: job.NormalizedTargetTimestamp,
+				VersionId:                 job.VersionId,
 			}
 		}
 	}

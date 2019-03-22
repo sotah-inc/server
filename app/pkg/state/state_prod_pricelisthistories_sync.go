@@ -94,7 +94,8 @@ func (phState ProdPricelistHistoriesState) Sync() error {
 				RegionName:                outJob.RegionName,
 				RealmSlug:                 outJob.RealmSlug,
 				NormalizedTargetTimestamp: outJob.TargetTimestamp,
-				Data: outJob.Data,
+				Data:                      outJob.Data,
+				VersionId:                 outJob.VersionId,
 			}
 		}
 
