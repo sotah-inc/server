@@ -19,6 +19,13 @@ func ProdPricelistHistories(config state.ProdPricelistHistoriesStateConfig) erro
 		return err
 	}
 
+	// syncing local pricelist-histories with base pricelist-histories
+	if err := pricelistHistoriesState.Sync(); err != nil {
+		logging.WithField("error", err.Error()).Error("Failed to sync pricelist-histories db with pricelist-histories base")
+
+		return err
+	}
+
 	// opening all listeners
 	if err := pricelistHistoriesState.Listeners.Listen(); err != nil {
 		return err
