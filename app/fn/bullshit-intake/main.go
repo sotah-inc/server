@@ -3,6 +3,7 @@ package bullshit_intake
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -20,7 +21,6 @@ import (
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
-	"github.com/twinj/uuid"
 	"google.golang.org/api/iterator"
 )
 
@@ -230,15 +230,16 @@ func SetMissingVersion(realm sotah.Realm) error {
 		}
 
 		if objAttrs.Metadata == nil {
-			logging.Info("Add missing version-id")
+			return errors.New("fuck off")
+		}
 
-			obj := pricelistHistoriesBucket.Object(objAttrs.Name)
-			nextAttrs := storage.ObjectAttrsToUpdate{
-				Metadata: map[string]string{"version_id": uuid.NewV4().String()},
-			}
-			if _, err := obj.Update(storeClient.Context, nextAttrs); err != nil {
-				return err
-			}
+		version, ok := objAttrs.Metadata["version_id"]
+		if !ok {
+			return errors.New("fuck offf")
+		}
+
+		if version == "" {
+			return errors.New("fuck offff")
 		}
 	}
 
@@ -262,7 +263,7 @@ func BullshitIntake(_ context.Context, m PubSubMessage) error {
 	if err != nil {
 		return err
 	}
-	shit := "SetMissingVersion\n"
+	shit := "wew-lad\n"
 	if string(data) != shit {
 		logging.Info("Unmatched")
 
