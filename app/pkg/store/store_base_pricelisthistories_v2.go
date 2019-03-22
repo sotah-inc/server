@@ -289,6 +289,20 @@ func (v PricelistHistoryVersions) ToJobs() []GetAllPricelistHistoriesInJob {
 	return out
 }
 
+type GetVersionsInJob struct {
+	RegionName      blizzard.RegionName
+	RealmSlug       blizzard.RealmSlug
+	TargetTimestamp sotah.UnixTimestamp
+}
+
+type GetVersionOutJob struct {
+	Err             error
+	RegionName      blizzard.RegionName
+	RealmSlug       blizzard.RealmSlug
+	TargetTimestamp sotah.UnixTimestamp
+	Version         string
+}
+
 func (b PricelistHistoriesBaseV2) GetVersions(
 	regionRealms map[blizzard.RegionName]sotah.Realms,
 	bkt *storage.BucketHandle,
@@ -298,9 +312,116 @@ func (b PricelistHistoriesBaseV2) GetVersions(
 		return PricelistHistoryVersions{}, err
 	}
 
-	logging.WithField("timestamps", timestamps).Info("Received timestamps")
+	inJobs := make(chan GetVersionsInJob)
+	outJobs := make(chan GetVersionOutJob)
 
-	return PricelistHistoryVersions{}, errors.New("todo")
+	// spinning up workers
+	worker := func() {
+		for inJob := range inJobs {
+			realm := sotah.NewSkeletonRealm(inJob.RegionName, inJob.RealmSlug)
+
+			obj, err := b.GetFirmObject(time.Unix(int64(inJob.TargetTimestamp), 0), realm, bkt)
+			if err != nil {
+				outJobs <- GetVersionOutJob{
+					Err:             err,
+					RegionName:      inJob.RegionName,
+					RealmSlug:       inJob.RealmSlug,
+					TargetTimestamp: inJob.TargetTimestamp,
+				}
+
+				continue
+			}
+
+			objAttrs, err := obj.Attrs(b.client.Context)
+			if err != nil {
+				outJobs <- GetVersionOutJob{
+					Err:             err,
+					RegionName:      inJob.RegionName,
+					RealmSlug:       inJob.RealmSlug,
+					TargetTimestamp: inJob.TargetTimestamp,
+				}
+
+				continue
+			}
+
+			if objAttrs.Metadata == nil {
+				outJobs <- GetVersionOutJob{
+					Err:             errors.New("metadata was blank"),
+					RegionName:      inJob.RegionName,
+					RealmSlug:       inJob.RealmSlug,
+					TargetTimestamp: inJob.TargetTimestamp,
+				}
+
+				continue
+			}
+
+			version, ok := objAttrs.Metadata["version_id"]
+			if !ok {
+				outJobs <- GetVersionOutJob{
+					Err:             errors.New("metadata did not have version_id"),
+					RegionName:      inJob.RegionName,
+					RealmSlug:       inJob.RealmSlug,
+					TargetTimestamp: inJob.TargetTimestamp,
+				}
+
+				continue
+			}
+			if version == "" {
+				outJobs <- GetVersionOutJob{
+					Err:             errors.New("version_id was blank"),
+					RegionName:      inJob.RegionName,
+					RealmSlug:       inJob.RealmSlug,
+					TargetTimestamp: inJob.TargetTimestamp,
+				}
+
+				continue
+			}
+
+			outJobs <- GetVersionOutJob{
+				Err:             nil,
+				RegionName:      inJob.RegionName,
+				RealmSlug:       inJob.RealmSlug,
+				TargetTimestamp: inJob.TargetTimestamp,
+				Version:         version,
+			}
+
+		}
+	}
+	postWork := func() {
+		close(outJobs)
+	}
+	util.Work(8, worker, postWork)
+
+	// queueing it up
+	go func() {
+		for regionName, realmTimestamps := range timestamps {
+			for realmSlug, timestamps := range realmTimestamps {
+				for _, timestamp := range timestamps {
+					inJobs <- GetVersionsInJob{
+						RegionName:      regionName,
+						RealmSlug:       realmSlug,
+						TargetTimestamp: timestamp,
+					}
+				}
+			}
+		}
+
+		close(inJobs)
+	}()
+
+	// going over results
+	versions := PricelistHistoryVersions{}
+	for outJob := range outJobs {
+		if outJob.Err != nil {
+			return PricelistHistoryVersions{}, outJob.Err
+		}
+
+		versions = versions.Insert(outJob.RegionName, outJob.RealmSlug, outJob.TargetTimestamp, outJob.Version)
+	}
+
+	logging.WithField("versions", versions).Info("Received versions")
+
+	return versions, nil
 }
 
 func (b PricelistHistoriesBaseV2) GetAllTimestamps(
