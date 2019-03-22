@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 
+	"github.com/Abramovic/logrus_influxdb"
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/cmd/app/commands"
 	"github.com/sotah-inc/server/app/pkg/command"
@@ -35,6 +37,8 @@ func main() {
 		verbosity      = app.Flag("verbosity", "Log verbosity").Default("info").Short('v').String()
 		cacheDir       = app.Flag("cache-dir", "Directory to cache data files to").Required().String()
 		projectID      = app.Flag("project-id", "GCloud Storage Project ID").Default("").Envar("PROJECT_ID").String()
+		influxHost     = app.Flag("influx-host", "Influx host").Default("").Envar("INFLUX_HOST").String()
+		influxPort     = app.Flag("influx-port", "Influx port").Default("8086").Envar("INFLUX_PORT").Int()
 
 		apiCommand                    = app.Command(string(commands.API), "For running sotah-server.")
 		liveAuctionsCommand           = app.Command(string(commands.LiveAuctions), "For in-memory storage of current auctions.")
@@ -81,6 +85,25 @@ func main() {
 		logging.AddHook(stackdriverHook)
 	}
 	logging.Info("Starting")
+
+	if cmd == prodPricelistHistoriesCommand.FullCommand() {
+		logrusInfluxdbConfig := &logrus_influxdb.Config{
+			Host:          *influxHost,
+			Port:          *influxPort,
+			Database:      "logrus",
+			UseHTTPS:      false,
+			Precision:     "ns",
+			BatchInterval: 5 * time.Second,
+			BatchCount:    200, // set to "0" to disable batching
+		}
+		influxHook, err := logrus_influxdb.NewInfluxDB(logrusInfluxdbConfig)
+		if err != nil {
+			logging.WithField("error", err.Error()).Fatal("Could not create new influxdb logrus hook")
+
+			return
+		}
+		logging.AddHook(influxHook)
+	}
 
 	logging.WithField("command", cmd).Info("Running command")
 
