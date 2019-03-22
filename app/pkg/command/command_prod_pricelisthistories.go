@@ -3,8 +3,10 @@ package command
 import (
 	"os"
 	"os/signal"
+	"time"
 
 	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/state"
 )
 
@@ -20,8 +22,17 @@ func ProdPricelistHistories(config state.ProdPricelistHistoriesStateConfig) erro
 	}
 
 	// syncing local pricelist-histories with base pricelist-histories
+	startTime := time.Now()
 	if err := pricelistHistoriesState.Sync(); err != nil {
 		logging.WithField("error", err.Error()).Error("Failed to sync pricelist-histories db with pricelist-histories base")
+
+		return err
+	}
+
+	// reporting sync duration
+	m := metric.Metrics{"pricelist_histories_sync": int(int64(time.Now().Sub(startTime)) / 1000 / 1000 / 1000)}
+	if err := pricelistHistoriesState.IO.BusClient.PublishMetrics(m); err != nil {
+		logging.WithField("error", err.Error()).Error("Failed to publish metric")
 
 		return err
 	}
