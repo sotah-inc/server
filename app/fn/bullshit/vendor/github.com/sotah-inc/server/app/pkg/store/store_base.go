@@ -4,10 +4,14 @@ import (
 	"errors"
 
 	"cloud.google.com/go/storage"
+	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 )
 
 type base struct {
-	client Client
+	client       Client
+	storageClass string
+	location     string
 }
 
 func (b base) getBucket(name string) *storage.BucketHandle {
@@ -16,8 +20,8 @@ func (b base) getBucket(name string) *storage.BucketHandle {
 
 func (b base) createBucket(bkt *storage.BucketHandle) error {
 	return bkt.Create(b.client.Context, b.client.projectID, &storage.BucketAttrs{
-		StorageClass: "REGIONAL",
-		Location:     "us-east1",
+		StorageClass: b.storageClass,
+		Location:     b.location,
 	})
 }
 
@@ -94,4 +98,14 @@ func (b base) ObjectExists(obj *storage.ObjectHandle) (bool, error) {
 	}
 
 	return true, nil
+}
+
+type RealmTimestamps map[blizzard.RealmSlug][]sotah.UnixTimestamp
+
+type RegionRealmTimestamps map[blizzard.RegionName]RealmTimestamps
+
+type GetTimestampsJob struct {
+	Err        error
+	Realm      sotah.Realm
+	Timestamps []sotah.UnixTimestamp
 }

@@ -2,18 +2,57 @@ package bus
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/sirupsen/logrus"
+	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
+func NewLoadRegionRealmTimestampsInJob(data string) (LoadRegionRealmTimestampsInJob, error) {
+	var out LoadRegionRealmTimestampsInJob
+	if err := json.Unmarshal([]byte(data), &out); err != nil {
+		return LoadRegionRealmTimestampsInJob{}, err
+	}
+
+	return out, nil
+}
+
 type LoadRegionRealmTimestampsInJob struct {
 	RegionName      string `json:"region_name"`
 	RealmSlug       string `json:"realm_slug"`
 	TargetTimestamp int    `json:"target_timestamp"`
+}
+
+func (j LoadRegionRealmTimestampsInJob) EncodeForDelivery() (string, error) {
+	out, err := json.Marshal(j)
+	if err != nil {
+		return "", err
+	}
+
+	return string(out), nil
+}
+
+func (j LoadRegionRealmTimestampsInJob) ToRegionRealmTimestampTuple() RegionRealmTimestampTuple {
+	return RegionRealmTimestampTuple{
+		RegionName:      string(j.RegionName),
+		RealmSlug:       string(j.RealmSlug),
+		TargetTimestamp: j.TargetTimestamp,
+	}
+}
+
+func (j LoadRegionRealmTimestampsInJob) ToRegionRealmTime() (sotah.Region, sotah.Realm, time.Time) {
+	region := sotah.Region{Name: blizzard.RegionName(j.RegionName)}
+	realm := sotah.Realm{
+		Realm:  blizzard.Realm{Slug: blizzard.RealmSlug(j.RealmSlug)},
+		Region: region,
+	}
+	targetTime := time.Unix(int64(j.TargetTimestamp), 0)
+
+	return region, realm, targetTime
 }
 
 func (c Client) LoadRegionRealmTimestamps(rTimestamps sotah.RegionRealmTimestamps, recipientSubject subjects.Subject) {
