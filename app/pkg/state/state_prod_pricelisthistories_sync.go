@@ -130,10 +130,20 @@ func (phState ProdPricelistHistoriesState) Sync() error {
 			continue
 		}
 
+		err := phState.IO.Databases.MetaDatabase.SetPricelistHistoriesVersion(
+			job.RegionName,
+			job.RealmSlug,
+			job.NormalizedTargetTimestamp,
+			versionsToSync[job.RegionName][job.RealmSlug][job.NormalizedTargetTimestamp],
+		)
+		if err != nil {
+			return err
+		}
+
 		logging.WithFields(logrus.Fields{
 			"region": job.RegionName,
 			"realm":  job.RealmSlug,
-		}).Info("Loaded job")
+		}).Info("Loaded job and written version")
 	}
 
 	return nil
