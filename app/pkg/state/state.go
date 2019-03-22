@@ -29,6 +29,7 @@ type Databases struct {
 	PricelistHistoryDatabases database.PricelistHistoryDatabases
 	LiveAuctionsDatabases     database.LiveAuctionsDatabases
 	ItemsDatabase             database.ItemsDatabase
+	MetaDatabase              database.MetaDatabase
 }
 
 // io bundle
