@@ -3,7 +3,6 @@ package bullshit_intake
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -21,6 +20,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
+	"github.com/twinj/uuid"
 	"google.golang.org/api/iterator"
 )
 
@@ -37,6 +37,9 @@ var (
 
 	bootBase   store.BootBase
 	bootBucket *storage.BucketHandle
+
+	pricelistHistoriesBase   store.PricelistHistoriesBaseV2
+	pricelistHistoriesBucket *storage.BucketHandle
 
 	busClient            bus.Client
 	auctionsCleanupTopic *pubsub.Topic
@@ -83,6 +86,14 @@ func init() {
 
 	bootBase = store.NewBootBase(storeClient, "us-central1")
 	bootBucket, err = bootBase.GetFirmBucket()
+	if err != nil {
+		log.Fatalf("Failed to get firm bucket: %s", err.Error())
+
+		return
+	}
+
+	pricelistHistoriesBase = store.NewPricelistHistoriesBaseV2(storeClient, "us-central1")
+	pricelistHistoriesBucket, err = pricelistHistoriesBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get firm bucket: %s", err.Error())
 
@@ -203,6 +214,37 @@ func CheckManifestForExpired(realm sotah.Realm) error {
 	return nil
 }
 
+func SetMissingVersion(realm sotah.Realm) error {
+	prefix := fmt.Sprintf("%s/%s/", realm.Region.Name, realm.Slug)
+	it := pricelistHistoriesBucket.Objects(storeClient.Context, &storage.Query{Prefix: prefix})
+	for {
+		objAttrs, err := it.Next()
+		if err != nil {
+			if err == iterator.Done {
+				break
+			}
+
+			if err != nil {
+				return err
+			}
+		}
+
+		if objAttrs.Metadata == nil {
+			logging.Info("Add missing version-id")
+
+			obj := pricelistHistoriesBucket.Object(objAttrs.Name)
+			nextAttrs := storage.ObjectAttrsToUpdate{
+				Metadata: map[string]string{"version_id": uuid.NewV4().String()},
+			}
+			if _, err := obj.Update(storeClient.Context, nextAttrs); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 type PubSubMessage struct {
 	Data []byte `json:"data"`
 }
@@ -220,8 +262,11 @@ func BullshitIntake(_ context.Context, m PubSubMessage) error {
 	if err != nil {
 		return err
 	}
-	if string(data) != "PricelistHistories" {
-		return errors.New("unmatched")
+	shit := "SetMissingVersion\n"
+	if string(data) != shit {
+		logging.Info("Unmatched")
+
+		return nil
 	}
 
 	job, err := func() (bus.CollectAuctionsJob, error) {
@@ -250,5 +295,5 @@ func BullshitIntake(_ context.Context, m PubSubMessage) error {
 
 	logging.WithField("realm", realm).Info("Derp")
 
-	return nil
+	return SetMissingVersion(realm)
 }
