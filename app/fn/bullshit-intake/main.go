@@ -288,12 +288,7 @@ func BullshitIntake(_ context.Context, m PubSubMessage) error {
 
 	logging.WithFields(logrus.Fields{"job": job}).Info("Handling")
 
-	realm := sotah.Realm{
-		Realm:  blizzard.Realm{Slug: blizzard.RealmSlug(job.RealmSlug)},
-		Region: sotah.Region{Name: blizzard.RegionName(job.RegionName)},
-	}
-
-	logging.WithField("realm", realm).Info("Derp")
+	realm := sotah.NewSkeletonRealm(blizzard.RegionName(job.RegionName), blizzard.RealmSlug(job.RealmSlug))
 
 	return SetMissingVersion(realm)
 }
