@@ -1,7 +1,9 @@
 package state
 
 import (
+	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/database"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/store"
@@ -71,7 +73,68 @@ func (phState ProdPricelistHistoriesState) Sync() error {
 		}
 	}
 
-	logging.WithField("jobs", len(versionsToSync.ToJobs())).Info("Found jobs to sync")
+	// declaring a get-in channel for gathering pricelist-histories
+	getInJobs := make(chan store.GetAllPricelistHistoriesInJob)
+	getOutJobs := phState.PricelistHistoriesBase.GetAll(getInJobs, phState.PricelistHistoriesBucket)
+
+	// declaring a load-in channel for the pricelist-histories db
+	loadInJobs := make(chan database.PricelistHistoryDatabaseEncodedLoadInJob)
+	loadOutJobs := phState.IO.Databases.PricelistHistoryDatabases.LoadEncoded(loadInJobs)
+
+	// spinning up a worker for translating get-out-jobs to load-in-jobs
+	go func() {
+		for outJob := range getOutJobs {
+			if outJob.Err != nil {
+				logging.WithFields(outJob.ToLogrusFields()).Error("Failed to get pricelist-histories")
+
+				continue
+			}
+
+			loadInJobs <- database.PricelistHistoryDatabaseEncodedLoadInJob{
+				RegionName:                outJob.RegionName,
+				RealmSlug:                 outJob.RealmSlug,
+				NormalizedTargetTimestamp: outJob.TargetTimestamp,
+				Data: outJob.Data,
+			}
+		}
+
+		close(loadInJobs)
+	}()
+
+	// queueing it all up
+	go func() {
+		jobs := versionsToSync.ToJobs()
+		logging.WithField("jobs", len(jobs)).Info("Queueing up jobs")
+		for _, job := range jobs {
+			logging.WithFields(logrus.Fields{
+				"region":           job.RegionName,
+				"realm":            job.RealmSlug,
+				"target-timestamp": job.TargetTimestamp,
+			}).Info("Loading job")
+
+			getInJobs <- store.GetAllPricelistHistoriesInJob{
+				RegionName:      job.RegionName,
+				RealmSlug:       job.RealmSlug,
+				TargetTimestamp: job.TargetTimestamp,
+			}
+		}
+
+		close(getInJobs)
+	}()
+
+	// waiting for the results to drain out
+	for job := range loadOutJobs {
+		if job.Err != nil {
+			logging.WithFields(job.ToLogrusFields()).Error("Failed to load job")
+
+			continue
+		}
+
+		logging.WithFields(logrus.Fields{
+			"region": job.RegionName,
+			"realm":  job.RealmSlug,
+		}).Info("Loaded job")
+	}
 
 	return nil
 }
