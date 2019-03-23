@@ -3,6 +3,9 @@ package database
 import (
 	"errors"
 
+	"github.com/sirupsen/logrus"
+	"github.com/sotah-inc/server/app/pkg/logging"
+
 	"github.com/boltdb/bolt"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/sotah"
@@ -99,6 +102,13 @@ func (d MetaDatabase) SetPricelistHistoriesVersions(versions sotah.PricelistHist
 				}
 
 				for targetTimestamp, versionId := range timestampVersions {
+					logging.WithFields(logrus.Fields{
+						"region":           regionName,
+						"realm":            realmSlug,
+						"target-timestamp": targetTimestamp,
+						"version-id":       versionId,
+					}).Info("Setting version")
+
 					if err := bkt.Put(metaPricelistHistoryVersionKeyName(targetTimestamp), []byte(versionId)); err != nil {
 						return err
 					}
