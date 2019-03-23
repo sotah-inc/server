@@ -251,27 +251,7 @@ func (b PricelistHistoriesBaseV2) GetAll(
 	return out
 }
 
-type PricelistHistoryVersions map[blizzard.RegionName]map[blizzard.RealmSlug]map[sotah.UnixTimestamp]string
-
-func (v PricelistHistoryVersions) Insert(
-	regionName blizzard.RegionName,
-	realmSlug blizzard.RealmSlug,
-	targetTimestamp sotah.UnixTimestamp,
-	version string,
-) PricelistHistoryVersions {
-	if _, ok := v[regionName]; !ok {
-		v[regionName] = map[blizzard.RealmSlug]map[sotah.UnixTimestamp]string{}
-	}
-	if _, ok := v[regionName][realmSlug]; !ok {
-		v[regionName][realmSlug] = map[sotah.UnixTimestamp]string{}
-	}
-
-	v[regionName][realmSlug][targetTimestamp] = version
-
-	return v
-}
-
-func (v PricelistHistoryVersions) ToJobs() []GetAllPricelistHistoriesInJob {
+func NewGetAllPricelistHistoriesInJobs(v sotah.PricelistHistoryVersions) []GetAllPricelistHistoriesInJob {
 	out := []GetAllPricelistHistoriesInJob{}
 	for regionName, realmTimestampVersions := range v {
 		for realmSlug, timestampVersions := range realmTimestampVersions {
@@ -305,10 +285,10 @@ type GetVersionOutJob struct {
 func (b PricelistHistoriesBaseV2) GetVersions(
 	regionRealms map[blizzard.RegionName]sotah.Realms,
 	bkt *storage.BucketHandle,
-) (PricelistHistoryVersions, error) {
+) (sotah.PricelistHistoryVersions, error) {
 	timestamps, err := b.GetAllTimestamps(regionRealms, bkt)
 	if err != nil {
-		return PricelistHistoryVersions{}, err
+		return sotah.PricelistHistoryVersions{}, err
 	}
 
 	inJobs := make(chan GetVersionsInJob)
@@ -409,10 +389,10 @@ func (b PricelistHistoriesBaseV2) GetVersions(
 	}()
 
 	// going over results
-	versions := PricelistHistoryVersions{}
+	versions := sotah.PricelistHistoryVersions{}
 	for outJob := range outJobs {
 		if outJob.Err != nil {
-			return PricelistHistoryVersions{}, outJob.Err
+			return sotah.PricelistHistoryVersions{}, outJob.Err
 		}
 
 		versions = versions.Insert(outJob.RegionName, outJob.RealmSlug, outJob.TargetTimestamp, outJob.Version)

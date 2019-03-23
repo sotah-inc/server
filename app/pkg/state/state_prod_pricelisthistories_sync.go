@@ -25,7 +25,7 @@ func (phState ProdPricelistHistoriesState) Sync() error {
 
 	// trimming matching versions
 	logging.Info("Trimming existing versions")
-	versionsToSync := store.PricelistHistoryVersions{}
+	versionsToSync := sotah.PricelistHistoryVersions{}
 	for regionName, realmTimestampVersions := range versions {
 		for realmSlug, timestampVersions := range realmTimestampVersions {
 			for targetTimestamp, version := range timestampVersions {
@@ -104,7 +104,7 @@ func (phState ProdPricelistHistoriesState) Sync() error {
 
 	// queueing it all up
 	go func() {
-		jobs := versionsToSync.ToJobs()
+		jobs := store.NewGetAllPricelistHistoriesInJobs(versions)
 		logging.WithField("jobs", len(jobs)).Info("Queueing up jobs")
 		for _, job := range jobs {
 			logging.WithFields(logrus.Fields{
@@ -124,6 +124,7 @@ func (phState ProdPricelistHistoriesState) Sync() error {
 	}()
 
 	// waiting for the results to drain out
+	versionsToSet := sotah.PricelistHistoryVersions{}
 	for job := range loadOutJobs {
 		if job.Err != nil {
 			logging.WithFields(job.ToLogrusFields()).Error("Failed to load job")
@@ -131,20 +132,22 @@ func (phState ProdPricelistHistoriesState) Sync() error {
 			continue
 		}
 
-		err := phState.IO.Databases.MetaDatabase.SetPricelistHistoriesVersion(
+		versionsToSet = versionsToSet.Insert(
 			job.RegionName,
 			job.RealmSlug,
 			job.NormalizedTargetTimestamp,
 			job.VersionId,
 		)
-		if err != nil {
-			return err
-		}
 
 		logging.WithFields(logrus.Fields{
 			"region": job.RegionName,
 			"realm":  job.RealmSlug,
-		}).Info("Loaded job and written version")
+		}).Info("Loaded job")
+	}
+
+	// setting versions
+	if err := phState.IO.Databases.MetaDatabase.SetPricelistHistoriesVersions(versionsToSet); err != nil {
+		return err
 	}
 
 	return nil

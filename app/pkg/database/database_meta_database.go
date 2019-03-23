@@ -89,19 +89,24 @@ func (d MetaDatabase) GetPricelistHistoriesVersion(
 	return out, nil
 }
 
-func (d MetaDatabase) SetPricelistHistoriesVersion(
-	regionName blizzard.RegionName,
-	realmSlug blizzard.RealmSlug,
-	targetTimestamp sotah.UnixTimestamp,
-	versionId string,
-) error {
-	err := d.db.Batch(func(tx *bolt.Tx) error {
-		bkt, err := tx.CreateBucketIfNotExists(metaBucketName(regionName, realmSlug))
-		if err != nil {
-			return err
+func (d MetaDatabase) SetPricelistHistoriesVersions(versions sotah.PricelistHistoryVersions) error {
+	err := d.db.Update(func(tx *bolt.Tx) error {
+		for regionName, realmVersions := range versions {
+			for realmSlug, timestampVersions := range realmVersions {
+				bkt, err := tx.CreateBucketIfNotExists(metaBucketName(regionName, realmSlug))
+				if err != nil {
+					return err
+				}
+
+				for targetTimestamp, versionId := range timestampVersions {
+					if err := bkt.Put(metaPricelistHistoryVersionKeyName(targetTimestamp), []byte(versionId)); err != nil {
+						return err
+					}
+				}
+			}
 		}
 
-		return bkt.Put(metaPricelistHistoryVersionKeyName(targetTimestamp), []byte(versionId))
+		return nil
 	})
 	if err != nil {
 		return err
