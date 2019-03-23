@@ -34,3 +34,7 @@ func (b ItemsBase) getObjectName(id blizzard.ItemID) string {
 func (b ItemsBase) GetObject(id blizzard.ItemID, bkt *storage.BucketHandle) *storage.ObjectHandle {
 	return b.base.getObject(b.getObjectName(id), bkt)
 }
+
+func (b ItemsBase) GetFirmObject(id blizzard.ItemID, bkt *storage.BucketHandle) (*storage.ObjectHandle, error) {
+	return b.base.getFirmObject(b.getObjectName(id), bkt)
+}
