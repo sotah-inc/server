@@ -38,6 +38,9 @@ const (
 	ValidateAllAuctions Subject = "validateAllAuctions"
 	ValidateAuctions    Subject = "validateAuctions"
 
+	ComputeAllItems Subject = "computeAllItems"
+	ComputeItems    Subject = "computeItems"
+
 	SyncAllItems       Subject = "syncAllItems"
 	SyncItem           Subject = "syncItem"
 	ReceiveSyncedItems Subject = "receiveSyncedItems"
