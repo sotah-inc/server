@@ -1,4 +1,4 @@
-package sync_items
+package sync_item
 
 import (
 	"context"
@@ -68,7 +68,7 @@ type PubSubMessage struct {
 	Data []byte `json:"data"`
 }
 
-func SyncItems(_ context.Context, m PubSubMessage) error {
+func SyncItem(_ context.Context, m PubSubMessage) error {
 	parsedId, err := strconv.Atoi(string(m.Data))
 	if err != nil {
 		return err

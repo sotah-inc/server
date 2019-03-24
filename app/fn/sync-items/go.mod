@@ -1,4 +1,4 @@
-module github.com/sotah-inc/server/app/fn/sync-items
+module github.com/sotah-inc/server/app/fn/sync-item
 
 require (
 	cloud.google.com/go v0.36.0
