@@ -25,9 +25,10 @@ var (
 
 	regionRealms map[blizzard.RegionName]sotah.Realms
 
-	busClient             bus.Client
-	downloadAuctionsTopic *pubsub.Topic
-	syncAllItemsTopic     *pubsub.Topic
+	busClient                         bus.Client
+	downloadAuctionsTopic             *pubsub.Topic
+	syncAllItemsTopic                 *pubsub.Topic
+	receivedComputedLiveAuctionsTopic *pubsub.Topic
 )
 
 func init() {
@@ -45,6 +46,12 @@ func init() {
 		return
 	}
 	syncAllItemsTopic, err = busClient.FirmTopic(string(subjects.SyncAllItems))
+	if err != nil {
+		log.Fatalf("Failed to get firm topic: %s", err.Error())
+
+		return
+	}
+	receivedComputedLiveAuctionsTopic, err = busClient.FirmTopic(string(subjects.ReceiveComputedLiveAuctions))
 	if err != nil {
 		log.Fatalf("Failed to get firm topic: %s", err.Error())
 
@@ -103,6 +110,30 @@ func PublishToSyncItems(tuples bus.RegionRealmTimestampTuples) error {
 	return nil
 }
 
+func PublishToReceiveComputedLiveAuctions(tuples bus.RegionRealmTimestampTuples) error {
+	// stripping non-essential data
+	bareTuples := bus.RegionRealmTimestampTuples{}
+	for _, tuple := range tuples {
+		bareTuples = append(bareTuples, tuple.Bare())
+	}
+
+	// producing a message for computation
+	data, err := bareTuples.EncodeForDelivery()
+	if err != nil {
+		return err
+	}
+	msg := bus.NewMessage()
+	msg.Data = data
+
+	// publishing to receive-computed-live-auctions
+	logging.Info("Publishing to receive-computed-live-auctions")
+	if _, err := busClient.Publish(receivedComputedLiveAuctionsTopic, msg); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 type PubSubMessage struct {
 	Data []byte `json:"data"`
 }
@@ -117,7 +148,7 @@ func DownloadAllAuctions(_ context.Context, _ PubSubMessage) error {
 
 	// enqueueing them and gathering result jobs
 	startTime := time.Now()
-	responseItems, err := busClient.BulkRequest(downloadAuctionsTopic, messages, 200*time.Second)
+	responseItems, err := busClient.BulkRequest(downloadAuctionsTopic, messages, 400*time.Second)
 	if err != nil {
 		return err
 	}
@@ -157,12 +188,18 @@ func DownloadAllAuctions(_ context.Context, _ PubSubMessage) error {
 		return err
 	}
 
-	//database.PricelistHistoriesComputeIntakeRequests
-
 	// publishing to sync-all-items
 	if err := PublishToSyncItems(tuples); err != nil {
 		return err
 	}
+
+	// publishing to receive-computed-live-auctions
+	if err := PublishToReceiveComputedLiveAuctions(tuples); err != nil {
+		return err
+	}
+
+	//database.PricelistHistoriesComputeIntakeRequests
+	// publishing to receive-live-auctions
 
 	return nil
 }
