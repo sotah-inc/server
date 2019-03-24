@@ -101,5 +101,10 @@ func ComputeAllItems(_ context.Context, m PubSubMessage) error {
 
 	logging.WithField("items", len(itemIds)).Info("Found items")
 
+	// reporting metrics
+	if err := busClient.PublishMetrics(metric.Metrics{"found_items": len(itemIds)}); err != nil {
+		return err
+	}
+
 	return nil
 }
