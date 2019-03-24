@@ -2,6 +2,7 @@ package sync_item
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"os"
 	"strconv"
@@ -69,7 +70,12 @@ type PubSubMessage struct {
 }
 
 func SyncItem(_ context.Context, m PubSubMessage) error {
-	parsedId, err := strconv.Atoi(string(m.Data))
+	var in bus.Message
+	if err := json.Unmarshal(m.Data, &in); err != nil {
+		return err
+	}
+
+	parsedId, err := strconv.Atoi(string(in.Data))
 	if err != nil {
 		return err
 	}
