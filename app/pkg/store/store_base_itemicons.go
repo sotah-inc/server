@@ -22,6 +22,10 @@ func (b ItemIcons) GetBucket() *storage.BucketHandle {
 	return b.base.getBucket(b.getBucketName())
 }
 
+func (b ItemIcons) GetFirmBucket() (*storage.BucketHandle, error) {
+	return b.base.getFirmBucket(b.getBucketName())
+}
+
 func (b ItemIcons) resolveBucket() (*storage.BucketHandle, error) {
 	return b.base.resolveBucket(b.getBucketName())
 }
@@ -32,4 +36,8 @@ func (b ItemIcons) getObjectName(name string) string {
 
 func (b ItemIcons) GetObject(name string, bkt *storage.BucketHandle) *storage.ObjectHandle {
 	return b.base.getObject(b.getObjectName(name), bkt)
+}
+
+func (b ItemIcons) GetFirmObject(name string, bkt *storage.BucketHandle) (*storage.ObjectHandle, error) {
+	return b.base.getFirmObject(b.getObjectName(name), bkt)
 }

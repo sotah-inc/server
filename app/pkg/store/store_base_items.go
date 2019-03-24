@@ -23,6 +23,10 @@ func (b ItemsBase) GetBucket() *storage.BucketHandle {
 	return b.base.getBucket(b.getBucketName())
 }
 
+func (b ItemsBase) GetFirmBucket() (*storage.BucketHandle, error) {
+	return b.base.getFirmBucket(b.getBucketName())
+}
+
 func (b ItemsBase) resolveBucket() (*storage.BucketHandle, error) {
 	return b.base.resolveBucket(b.getBucketName())
 }
