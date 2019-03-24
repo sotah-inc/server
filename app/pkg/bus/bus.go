@@ -45,6 +45,18 @@ func NewCollectAuctionMessages(regionRealms sotah.RegionRealms) ([]Message, erro
 	return messages, nil
 }
 
+func NewItemIdMessages(itemIds blizzard.ItemIds) []Message {
+	messages := []Message{}
+	for _, id := range itemIds {
+		msg := NewMessage()
+		msg.Data = string(id)
+		msg.ReplyToId = fmt.Sprintf("item-%d", id)
+		messages = append(messages, msg)
+	}
+
+	return messages
+}
+
 func NewMessage() Message {
 	return Message{Code: codes.Ok}
 }
