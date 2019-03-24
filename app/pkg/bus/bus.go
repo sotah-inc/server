@@ -711,11 +711,12 @@ func (s RegionRealmTimestampTuples) ToMessages() ([]Message, error) {
 }
 
 type RegionRealmTimestampTuple struct {
-	RegionName      string   `json:"region_name"`
-	RealmSlug       string   `json:"realm_slug"`
-	TargetTimestamp int      `json:"target_timestamp"`
-	ItemIds         []int    `json:"item_ids"`
-	OwnerNames      []string `json:"owner_names"`
+	RegionName                string   `json:"region_name"`
+	RealmSlug                 string   `json:"realm_slug"`
+	TargetTimestamp           int      `json:"target_timestamp"`
+	NormalizedTargetTimestamp int      `json:"normalized_target_timestamp"`
+	ItemIds                   []int    `json:"item_ids"`
+	OwnerNames                []string `json:"owner_names"`
 }
 
 func (t RegionRealmTimestampTuple) EncodeForDelivery() (string, error) {
