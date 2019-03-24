@@ -49,7 +49,7 @@ func NewItemIdMessages(itemIds blizzard.ItemIds) []Message {
 	messages := []Message{}
 	for _, id := range itemIds {
 		msg := NewMessage()
-		msg.Data = string(id)
+		msg.Data = string(int(id))
 		msg.ReplyToId = fmt.Sprintf("item-%d", id)
 		messages = append(messages, msg)
 	}
