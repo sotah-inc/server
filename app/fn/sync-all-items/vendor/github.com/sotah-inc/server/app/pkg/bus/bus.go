@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -49,7 +50,7 @@ func NewItemIdMessages(itemIds blizzard.ItemIds) []Message {
 	messages := []Message{}
 	for _, id := range itemIds {
 		msg := NewMessage()
-		msg.Data = string(id)
+		msg.Data = strconv.Itoa(int(id))
 		msg.ReplyToId = fmt.Sprintf("item-%d", id)
 		messages = append(messages, msg)
 	}
@@ -710,9 +711,11 @@ func (s RegionRealmTimestampTuples) ToMessages() ([]Message, error) {
 }
 
 type RegionRealmTimestampTuple struct {
-	RegionName      string `json:"region_name"`
-	RealmSlug       string `json:"realm_slug"`
-	TargetTimestamp int    `json:"target_timestamp"`
+	RegionName      string   `json:"region_name"`
+	RealmSlug       string   `json:"realm_slug"`
+	TargetTimestamp int      `json:"target_timestamp"`
+	ItemIds         []int    `json:"item_ids"`
+	OwnerNames      []string `json:"owner_names"`
 }
 
 func (t RegionRealmTimestampTuple) EncodeForDelivery() (string, error) {
