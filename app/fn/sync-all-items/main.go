@@ -56,7 +56,7 @@ func SyncAllItems(_ context.Context, m PubSubMessage) error {
 	}
 
 	// converting to messages for requesting
-	messages := bus.NewItemIdMessages(itemIds)
+	messages := bus.NewItemIdMessages(blizzard.ItemIds{itemIds[0]})
 
 	// enqueueing them and gathering result jobs
 	startTime := time.Now()
