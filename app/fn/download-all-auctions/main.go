@@ -25,9 +25,9 @@ var (
 
 	regionRealms map[blizzard.RegionName]sotah.Realms
 
-	busClient                bus.Client
-	downloadAuctionsTopic    *pubsub.Topic
-	validateAllAuctionsTopic *pubsub.Topic
+	busClient             bus.Client
+	downloadAuctionsTopic *pubsub.Topic
+	syncAllItemsTopic     *pubsub.Topic
 )
 
 func init() {
@@ -44,7 +44,7 @@ func init() {
 
 		return
 	}
-	validateAllAuctionsTopic, err = busClient.FirmTopic(string(subjects.ValidateAllAuctions))
+	syncAllItemsTopic, err = busClient.FirmTopic(string(subjects.SyncAllItems))
 	if err != nil {
 		log.Fatalf("Failed to get firm topic: %s", err.Error())
 
@@ -72,6 +72,35 @@ func init() {
 
 		return
 	}
+}
+
+func PublishToSyncItems(tuples bus.RegionRealmTimestampTuples) error {
+	itemIdsMap := sotah.ItemIdsMap{}
+	for _, tuple := range tuples {
+		for _, id := range tuple.ItemIds {
+			itemIdsMap[blizzard.ItemID(id)] = struct{}{}
+		}
+	}
+	itemIds := blizzard.ItemIds{}
+	for id := range itemIdsMap {
+		itemIds = append(itemIds, id)
+	}
+
+	// producing a item-ids message for syncing
+	data, err := itemIds.EncodeForDelivery()
+	if err != nil {
+		return err
+	}
+	msg := bus.NewMessage()
+	msg.Data = data
+
+	// publishing to sync-all-items
+	logging.Info("Publishing to sync-all-items")
+	if _, err := busClient.Publish(syncAllItemsTopic, msg); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type PubSubMessage struct {
@@ -128,16 +157,10 @@ func DownloadAllAuctions(_ context.Context, _ PubSubMessage) error {
 		return err
 	}
 
-	// producing a message for computation
-	data, err := tuples.EncodeForDelivery()
-	if err != nil {
-		return err
-	}
-	msg := bus.NewMessage()
-	msg.Data = data
+	//database.PricelistHistoriesComputeIntakeRequests
 
-	// publishing to validate-all-auctions
-	if _, err := busClient.Publish(validateAllAuctionsTopic, msg); err != nil {
+	// publishing to sync-all-items
+	if err := PublishToSyncItems(tuples); err != nil {
 		return err
 	}
 

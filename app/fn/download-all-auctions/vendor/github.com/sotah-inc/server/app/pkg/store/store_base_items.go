@@ -23,6 +23,10 @@ func (b ItemsBase) GetBucket() *storage.BucketHandle {
 	return b.base.getBucket(b.getBucketName())
 }
 
+func (b ItemsBase) GetFirmBucket() (*storage.BucketHandle, error) {
+	return b.base.getFirmBucket(b.getBucketName())
+}
+
 func (b ItemsBase) resolveBucket() (*storage.BucketHandle, error) {
 	return b.base.resolveBucket(b.getBucketName())
 }
@@ -33,4 +37,12 @@ func (b ItemsBase) getObjectName(id blizzard.ItemID) string {
 
 func (b ItemsBase) GetObject(id blizzard.ItemID, bkt *storage.BucketHandle) *storage.ObjectHandle {
 	return b.base.getObject(b.getObjectName(id), bkt)
+}
+
+func (b ItemsBase) GetFirmObject(id blizzard.ItemID, bkt *storage.BucketHandle) (*storage.ObjectHandle, error) {
+	return b.base.getFirmObject(b.getObjectName(id), bkt)
+}
+
+func (b ItemsBase) ObjectExists(id blizzard.ItemID, bkt *storage.BucketHandle) (bool, error) {
+	return b.base.ObjectExists(b.GetObject(id, bkt))
 }

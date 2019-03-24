@@ -170,6 +170,20 @@ func (aucs Auctions) OwnerNames() []string {
 	return out
 }
 
+func (aucs Auctions) ItemIds() ItemIds {
+	itemIdsMap := map[ItemID]interface{}{}
+	for _, auc := range aucs.Auctions {
+		itemIdsMap[auc.Item] = struct{}{}
+	}
+
+	out := ItemIds{}
+	for id := range itemIdsMap {
+		out = append(out, id)
+	}
+
+	return out
+}
+
 // AuctionRealm is the realm associated with an auctions response
 type AuctionRealm struct {
 	Name string    `json:"name"`
