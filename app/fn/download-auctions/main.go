@@ -128,43 +128,45 @@ func init() {
 	}
 }
 
+func ResolveRegionRealm(job bus.CollectAuctionsJob) (sotah.Region, sotah.Realm, error) {
+	region, err := func() (sotah.Region, error) {
+		for _, reg := range regions {
+			if reg.Name == blizzard.RegionName(job.RegionName) {
+				return reg, nil
+			}
+		}
+
+		return sotah.Region{}, errors.New("could not resolve region from job")
+	}()
+	if err != nil {
+		return sotah.Region{}, sotah.Realm{}, err
+	}
+
+	realm, err := func() (sotah.Realm, error) {
+		realms, ok := regionRealms[blizzard.RegionName(job.RegionName)]
+		if !ok {
+			return sotah.Realm{}, errors.New("could not resolve realms from job")
+		}
+
+		for _, realm := range realms {
+			if realm.Slug == blizzard.RealmSlug(job.RealmSlug) {
+				return realm, nil
+			}
+		}
+
+		return sotah.Realm{}, errors.New("could not resolve realm from job")
+	}()
+	if err != nil {
+		return sotah.Region{}, sotah.Realm{}, err
+	}
+
+	return region, realm, nil
+}
+
 func Handle(job bus.CollectAuctionsJob) bus.Message {
 	m := bus.NewMessage()
 
-	region, realm, err := func() (sotah.Region, sotah.Realm, error) {
-		region, err := func() (sotah.Region, error) {
-			for _, reg := range regions {
-				if reg.Name == blizzard.RegionName(job.RegionName) {
-					return reg, nil
-				}
-			}
-
-			return sotah.Region{}, errors.New("could not resolve region from job")
-		}()
-		if err != nil {
-			return sotah.Region{}, sotah.Realm{}, err
-		}
-
-		realm, err := func() (sotah.Realm, error) {
-			realms, ok := regionRealms[blizzard.RegionName(job.RegionName)]
-			if !ok {
-				return sotah.Realm{}, errors.New("could not resolve realms from job")
-			}
-
-			for _, realm := range realms {
-				if realm.Slug == blizzard.RealmSlug(job.RealmSlug) {
-					return realm, nil
-				}
-			}
-
-			return sotah.Realm{}, errors.New("could not resolve realm from job")
-		}()
-		if err != nil {
-			return sotah.Region{}, sotah.Realm{}, err
-		}
-
-		return region, realm, nil
-	}()
+	region, realm, err := ResolveRegionRealm(job)
 	if err != nil {
 		m.Err = err.Error()
 		m.Code = codes.NotFound
