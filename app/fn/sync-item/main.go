@@ -92,5 +92,11 @@ func SyncItem(_ context.Context, m PubSubMessage) error {
 		logging.WithField("id", itemId).Info("Item does not exists")
 	}
 
+	msg := bus.NewMessage()
+	msg.ReplyToId = in.ReplyToId
+	if _, err := busClient.ReplyTo(in, msg); err != nil {
+		return err
+	}
+
 	return nil
 }
