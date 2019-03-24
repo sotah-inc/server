@@ -21,6 +21,7 @@ var (
 
 	busClient         bus.Client
 	computeItemsTopic *pubsub.Topic
+	syncAllItemsTopic *pubsub.Topic
 )
 
 func init() {
@@ -32,6 +33,12 @@ func init() {
 		return
 	}
 	computeItemsTopic, err = busClient.FirmTopic(string(subjects.ComputeItems))
+	if err != nil {
+		log.Fatalf("Failed to get firm topic: %s", err.Error())
+
+		return
+	}
+	syncAllItemsTopic, err = busClient.FirmTopic(string(subjects.SyncAllItems))
 	if err != nil {
 		log.Fatalf("Failed to get firm topic: %s", err.Error())
 
@@ -98,6 +105,12 @@ func ComputeAllItems(_ context.Context, m PubSubMessage) error {
 	}
 	msg := bus.NewMessage()
 	msg.Data = data
+
+	// publishing to sync-all-items
+	logging.Info("Publishing to sync-all-items")
+	if _, err := busClient.Publish(syncAllItemsTopic, msg); err != nil {
+		return err
+	}
 
 	logging.WithField("items", len(itemIds)).Info("Found items")
 
