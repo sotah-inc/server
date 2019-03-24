@@ -50,9 +50,8 @@ func init() {
 
 		return
 	}
-	auctionsStoreBase = store.NewAuctionsBaseV2(storeClient, "us-central1")
-	auctionManifestStoreBase = store.NewAuctionManifestBaseV2(storeClient, "us-central1")
 
+	auctionsStoreBase = store.NewAuctionsBaseV2(storeClient, "us-central1")
 	auctionsBucket, err = auctionsStoreBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get firm raw-auctions bucket: %s", err.Error())
@@ -60,6 +59,7 @@ func init() {
 		return
 	}
 
+	auctionManifestStoreBase = store.NewAuctionManifestBaseV2(storeClient, "us-central1")
 	auctionsManifestBucket, err = auctionManifestStoreBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get firm auctions-manifest bucket: %s", err.Error())
