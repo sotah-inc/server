@@ -76,14 +76,14 @@ func Handle(job bus.LoadRegionRealmTimestampsInJob) bus.Message {
 		return m
 	}
 
-	data, err := json.Marshal(aucs.ItemIds())
+	data, err := aucs.ItemIds().EncodeForDelivery()
 	if err != nil {
 		m.Err = err.Error()
 		m.Code = codes.GenericError
 
 		return m
 	}
-	m.Data = string(data)
+	m.Data = data
 
 	return m
 }

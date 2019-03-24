@@ -1,6 +1,7 @@
 package blizzard
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -73,6 +74,41 @@ func NewItem(body []byte) (Item, error) {
 // ItemID the api-specific identifier
 type ItemID int64
 type inventoryType int
+
+func NewItemIds(data string) (ItemIds, error) {
+	base64Decoded, err := base64.StdEncoding.DecodeString(data)
+	if err != nil {
+		return ItemIds{}, err
+	}
+
+	gzipDecoded, err := util.GzipDecode(base64Decoded)
+	if err != nil {
+		return ItemIds{}, err
+	}
+
+	var out ItemIds
+	if err := json.Unmarshal(gzipDecoded, &out); err != nil {
+		return ItemIds{}, err
+	}
+
+	return out, nil
+}
+
+type ItemIds []ItemID
+
+func (s ItemIds) EncodeForDelivery() (string, error) {
+	jsonEncoded, err := json.Marshal(s)
+	if err != nil {
+		return "", err
+	}
+
+	gzipEncoded, err := util.GzipEncode(jsonEncoded)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(gzipEncoded), nil
+}
 
 type itemSpellID int
 type itemSpellSpell struct {

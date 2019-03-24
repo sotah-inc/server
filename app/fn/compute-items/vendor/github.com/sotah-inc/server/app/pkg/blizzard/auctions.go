@@ -170,13 +170,13 @@ func (aucs Auctions) OwnerNames() []string {
 	return out
 }
 
-func (aucs Auctions) ItemIds() []ItemID {
+func (aucs Auctions) ItemIds() ItemIds {
 	itemIdsMap := map[ItemID]interface{}{}
 	for _, auc := range aucs.Auctions {
 		itemIdsMap[auc.Item] = struct{}{}
 	}
 
-	out := []ItemID{}
+	out := ItemIds{}
 	for id := range itemIdsMap {
 		out = append(out, id)
 	}
