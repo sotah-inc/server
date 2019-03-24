@@ -25,11 +25,19 @@ var (
 
 	blizzardClient blizzard.Client
 
-	storeClient              store.Client
-	auctionsStoreBase        store.AuctionsBaseV2
-	auctionsBucket           *storage.BucketHandle
+	storeClient store.Client
+
+	auctionsStoreBase store.AuctionsBaseV2
+	auctionsBucket    *storage.BucketHandle
+
 	auctionManifestStoreBase store.AuctionManifestBaseV2
 	auctionsManifestBucket   *storage.BucketHandle
+
+	liveAuctionsStoreBase store.LiveAuctionsBase
+	liveAuctionsBucket    *storage.BucketHandle
+
+	pricelistHistoriesStoreBase store.PricelistHistoriesBaseV2
+	pricelistHistoriesBucket    *storage.BucketHandle
 
 	regions      sotah.RegionList
 	regionRealms map[blizzard.RegionName]sotah.Realms
@@ -54,7 +62,7 @@ func init() {
 	auctionsStoreBase = store.NewAuctionsBaseV2(storeClient, "us-central1")
 	auctionsBucket, err = auctionsStoreBase.GetFirmBucket()
 	if err != nil {
-		log.Fatalf("Failed to get firm raw-auctions bucket: %s", err.Error())
+		log.Fatalf("Failed to get firm bucket: %s", err.Error())
 
 		return
 	}
@@ -62,7 +70,23 @@ func init() {
 	auctionManifestStoreBase = store.NewAuctionManifestBaseV2(storeClient, "us-central1")
 	auctionsManifestBucket, err = auctionManifestStoreBase.GetFirmBucket()
 	if err != nil {
-		log.Fatalf("Failed to get firm auctions-manifest bucket: %s", err.Error())
+		log.Fatalf("Failed to get firm bucket: %s", err.Error())
+
+		return
+	}
+
+	liveAuctionsStoreBase = store.NewLiveAuctionsBase(storeClient, "us-central1")
+	liveAuctionsBucket, err = liveAuctionsStoreBase.GetFirmBucket()
+	if err != nil {
+		log.Fatalf("Failed to get firm bucket: %s", err.Error())
+
+		return
+	}
+
+	pricelistHistoriesStoreBase = store.NewPricelistHistoriesBaseV2(storeClient, "us-central1")
+	pricelistHistoriesBucket, err = pricelistHistoriesStoreBase.GetFirmBucket()
+	if err != nil {
+		log.Fatalf("Failed to get firm bucket: %s", err.Error())
 
 		return
 	}
@@ -199,7 +223,10 @@ func Handle(job bus.CollectAuctionsJob) bus.Message {
 		return m
 	}
 
-	obj := auctionsStoreBase.GetObject(realm, aucInfoFile.LastModifiedAsTime(), auctionsBucket)
+	lastModifiedTime := aucInfoFile.LastModifiedAsTime()
+	lastModifiedTimestamp := sotah.UnixTimestamp(lastModifiedTime.Unix())
+
+	obj := auctionsStoreBase.GetObject(realm, lastModifiedTime, auctionsBucket)
 	exists, err := auctionsStoreBase.ObjectExists(obj)
 	if err != nil {
 		m.Err = err.Error()
@@ -211,7 +238,7 @@ func Handle(job bus.CollectAuctionsJob) bus.Message {
 		logging.WithFields(logrus.Fields{
 			"region":        region.Name,
 			"realm":         realm.Slug,
-			"last-modified": aucInfoFile.LastModifiedAsTime().Unix(),
+			"last-modified": lastModifiedTimestamp,
 		}).Info("Object exists for region/ realm/ last-modified tuple, skipping")
 
 		m.Code = codes.Ok
@@ -248,7 +275,13 @@ func Handle(job bus.CollectAuctionsJob) bus.Message {
 		return m
 	}
 
-	if err := auctionsStoreBase.Handle(resp.Body, aucInfoFile.LastModifiedAsTime(), realm, auctionsBucket); err != nil {
+	logging.WithFields(logrus.Fields{
+		"region":        region.Name,
+		"realm":         realm.Slug,
+		"last-modified": lastModifiedTimestamp,
+	}).Info("Received body, parsing")
+	aucs, err := blizzard.NewAuctions(resp.Body)
+	if err != nil {
 		m.Err = err.Error()
 		m.Code = codes.GenericError
 
@@ -258,26 +291,72 @@ func Handle(job bus.CollectAuctionsJob) bus.Message {
 	logging.WithFields(logrus.Fields{
 		"region":        region.Name,
 		"realm":         realm.Slug,
-		"last-modified": aucInfoFile.LastModifiedAsTime().Unix(),
-	}).Info("Handled, adding to auction-manifest file")
-
-	if err := auctionManifestStoreBase.Handle(
-		sotah.UnixTimestamp(aucInfoFile.LastModifiedAsTime().Unix()),
-		realm,
-		auctionsManifestBucket,
-	); err != nil {
+		"last-modified": lastModifiedTimestamp,
+	}).Info("Parsed, saving to raw-auctions store")
+	if err := auctionsStoreBase.Handle(resp.Body, lastModifiedTime, realm, auctionsBucket); err != nil {
 		m.Err = err.Error()
 		m.Code = codes.GenericError
 
 		return m
 	}
 
-	respData := bus.RegionRealmTimestampTuple{
-		RegionName:      string(realm.Region.Name),
-		RealmSlug:       string(realm.Slug),
-		TargetTimestamp: int(aucInfoFile.LastModifiedAsTime().Unix()),
+	logging.WithFields(logrus.Fields{
+		"region":        region.Name,
+		"realm":         realm.Slug,
+		"last-modified": lastModifiedTimestamp,
+	}).Info("Saved, adding to auction-manifest file")
+	if err := auctionManifestStoreBase.Handle(lastModifiedTimestamp, realm, auctionsManifestBucket); err != nil {
+		m.Err = err.Error()
+		m.Code = codes.GenericError
+
+		return m
 	}
-	data, err := json.Marshal(respData)
+
+	logging.WithFields(logrus.Fields{
+		"region":        region.Name,
+		"realm":         realm.Slug,
+		"last-modified": lastModifiedTimestamp,
+	}).Info("Saved to manifest, parsing into live-auctions")
+	if err := liveAuctionsStoreBase.Handle(aucs, realm, liveAuctionsBucket); err != nil {
+		m.Err = err.Error()
+		m.Code = codes.GenericError
+
+		return m
+	}
+
+	logging.WithFields(logrus.Fields{
+		"region":        region.Name,
+		"realm":         realm.Slug,
+		"last-modified": lastModifiedTimestamp,
+	}).Info("Parsed into live-auctions, handling pricelist-history")
+	normalizedTargetTimestamp, err := pricelistHistoriesStoreBase.Handle(
+		aucs,
+		lastModifiedTime,
+		realm,
+		pricelistHistoriesBucket,
+	)
+	if err != nil {
+		m.Err = err.Error()
+		m.Code = codes.GenericError
+
+		return m
+	}
+
+	logging.WithFields(logrus.Fields{
+		"region":        region.Name,
+		"realm":         realm.Slug,
+		"last-modified": lastModifiedTimestamp,
+	}).Info("Handled pricelist-history")
+
+	respData := bus.RegionRealmTimestampTuple{
+		RegionName:                string(realm.Region.Name),
+		RealmSlug:                 string(realm.Slug),
+		TargetTimestamp:           int(lastModifiedTimestamp),
+		ItemIds:                   aucs.ItemIds().ToInts(),
+		OwnerNames:                aucs.OwnerNames(),
+		NormalizedTargetTimestamp: int(normalizedTargetTimestamp),
+	}
+	data, err := respData.EncodeForDelivery()
 	if err != nil {
 		m.Err = err.Error()
 		m.Code = codes.GenericError

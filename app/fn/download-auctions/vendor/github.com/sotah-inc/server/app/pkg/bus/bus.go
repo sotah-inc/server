@@ -6,14 +6,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
 	"cloud.google.com/go/pubsub"
 	"github.com/sirupsen/logrus"
+	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus/codes"
+	"github.com/sotah-inc/server/app/pkg/database"
 	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/util"
 	"github.com/twinj/uuid"
 )
@@ -39,6 +44,18 @@ func NewCollectAuctionMessages(regionRealms sotah.RegionRealms) ([]Message, erro
 	}
 
 	return messages, nil
+}
+
+func NewItemIdMessages(itemIds blizzard.ItemIds) []Message {
+	messages := []Message{}
+	for _, id := range itemIds {
+		msg := NewMessage()
+		msg.Data = strconv.Itoa(int(id))
+		msg.ReplyToId = fmt.Sprintf("item-%d", id)
+		messages = append(messages, msg)
+	}
+
+	return messages
 }
 
 func NewMessage() Message {
@@ -559,6 +576,26 @@ func (c Client) Request(recipientTopic *pubsub.Topic, payload string, timeout ti
 	return requestResult.Payload, nil
 }
 
+func (c Client) PublishMetrics(m metric.Metrics) error {
+	topic, err := c.FirmTopic(string(subjects.AppMetrics))
+	if err != nil {
+		return err
+	}
+
+	jsonEncoded, err := json.Marshal(m)
+	if err != nil {
+		return err
+	}
+
+	msg := NewMessage()
+	msg.Data = string(jsonEncoded)
+	if _, err := c.Publish(topic, msg); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 type CollectAuctionsJob struct {
 	RegionName string `json:"region_name"`
 	RealmSlug  string `json:"realm_slug"`
@@ -567,15 +604,52 @@ type CollectAuctionsJob struct {
 func NewRegionRealmTimestampTuplesFromMessages(messages BulkRequestMessages) (RegionRealmTimestampTuples, error) {
 	tuples := RegionRealmTimestampTuples{}
 	for _, msg := range messages {
-		var respData RegionRealmTimestampTuple
-		if err := json.Unmarshal([]byte(msg.Data), &respData); err != nil {
+		tuple, err := NewRegionRealmTimestampTuple(msg.Data)
+		if err != nil {
 			return RegionRealmTimestampTuples{}, err
 		}
 
-		tuples = append(tuples, respData)
+		tuples = append(tuples, tuple)
 	}
 
 	return tuples, nil
+}
+
+func NewItemIdsFromMessages(messages BulkRequestMessages) (blizzard.ItemIds, error) {
+	itemIdsMap := map[blizzard.ItemID]interface{}{}
+	for _, msg := range messages {
+		itemIds, err := blizzard.NewItemIds(msg.Data)
+		if err != nil {
+			return blizzard.ItemIds{}, err
+		}
+
+		for _, id := range itemIds {
+			itemIdsMap[id] = struct{}{}
+		}
+	}
+
+	out := blizzard.ItemIds{}
+	for id := range itemIdsMap {
+		out = append(out, id)
+	}
+
+	return out, nil
+}
+
+func NewPricelistHistoriesComputeIntakeRequestsFromMessages(
+	messages BulkRequestMessages,
+) (database.PricelistHistoriesComputeIntakeRequests, error) {
+	out := database.PricelistHistoriesComputeIntakeRequests{}
+	for _, msg := range messages {
+		var respData database.PricelistHistoriesComputeIntakeRequest
+		if err := json.Unmarshal([]byte(msg.Data), &respData); err != nil {
+			return database.PricelistHistoriesComputeIntakeRequests{}, err
+		}
+
+		out = append(out, respData)
+	}
+
+	return out, nil
 }
 
 func NewRegionRealmTimestampTuples(data string) (RegionRealmTimestampTuples, error) {
@@ -636,19 +710,54 @@ func (s RegionRealmTimestampTuples) ToMessages() ([]Message, error) {
 	return out, nil
 }
 
+func NewRegionRealmTimestampTuple(data string) (RegionRealmTimestampTuple, error) {
+	base64Decoded, err := base64.StdEncoding.DecodeString(data)
+	if err != nil {
+		return RegionRealmTimestampTuple{}, err
+	}
+
+	gzipDecoded, err := util.GzipDecode(base64Decoded)
+	if err != nil {
+		return RegionRealmTimestampTuple{}, err
+	}
+
+	var out RegionRealmTimestampTuple
+	if err := json.Unmarshal(gzipDecoded, &out); err != nil {
+		return RegionRealmTimestampTuple{}, err
+	}
+
+	return out, nil
+}
+
 type RegionRealmTimestampTuple struct {
-	RegionName      string `json:"region_name"`
-	RealmSlug       string `json:"realm_slug"`
-	TargetTimestamp int    `json:"target_timestamp"`
+	RegionName                string   `json:"region_name"`
+	RealmSlug                 string   `json:"realm_slug"`
+	TargetTimestamp           int      `json:"target_timestamp"`
+	NormalizedTargetTimestamp int      `json:"normalized_target_timestamp"`
+	ItemIds                   []int    `json:"item_ids"`
+	OwnerNames                []string `json:"owner_names"`
 }
 
 func (t RegionRealmTimestampTuple) EncodeForDelivery() (string, error) {
-	data, err := json.Marshal(t)
+	jsonEncoded, err := json.Marshal(t)
 	if err != nil {
 		return "", err
 	}
 
-	return string(data), nil
+	gzipEncoded, err := util.GzipEncode(jsonEncoded)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(gzipEncoded), nil
+}
+
+func (t RegionRealmTimestampTuple) Bare() RegionRealmTimestampTuple {
+	return RegionRealmTimestampTuple{
+		RegionName:      t.RegionName,
+		RealmSlug:       t.RealmSlug,
+		TargetTimestamp: t.TargetTimestamp,
+	}
 }
 
 type CleanupAuctionManifestJob = RegionRealmTimestampTuple

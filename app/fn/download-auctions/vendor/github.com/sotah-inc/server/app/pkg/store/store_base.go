@@ -4,6 +4,8 @@ import (
 	"errors"
 
 	"cloud.google.com/go/storage"
+	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 )
 
 type base struct {
@@ -96,4 +98,14 @@ func (b base) ObjectExists(obj *storage.ObjectHandle) (bool, error) {
 	}
 
 	return true, nil
+}
+
+type RealmTimestamps map[blizzard.RealmSlug][]sotah.UnixTimestamp
+
+type RegionRealmTimestamps map[blizzard.RegionName]RealmTimestamps
+
+type GetTimestampsJob struct {
+	Err        error
+	Realm      sotah.Realm
+	Timestamps []sotah.UnixTimestamp
 }
