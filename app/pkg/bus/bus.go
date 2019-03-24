@@ -48,6 +48,15 @@ func NewCollectAuctionMessages(regionRealms sotah.RegionRealms) ([]Message, erro
 func NewItemIdMessages(itemIds blizzard.ItemIds) []Message {
 	messages := []Message{}
 	for _, id := range itemIds {
+		logging.WithFields(logrus.Fields{
+			"id":              id,
+			"int-id":          int(id),
+			"int64-id":        int64(id),
+			"string-id":       string(id),
+			"string-int-id":   string(int(id)),
+			"string-int64-id": string(int64(id)),
+		}).Info("Converting to message")
+
 		msg := NewMessage()
 		msg.Data = string(int(id))
 		msg.ReplyToId = fmt.Sprintf("item-%d", id)
