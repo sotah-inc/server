@@ -42,3 +42,7 @@ func (b ItemsBase) GetObject(id blizzard.ItemID, bkt *storage.BucketHandle) *sto
 func (b ItemsBase) GetFirmObject(id blizzard.ItemID, bkt *storage.BucketHandle) (*storage.ObjectHandle, error) {
 	return b.base.getFirmObject(b.getObjectName(id), bkt)
 }
+
+func (b ItemsBase) ObjectExists(id blizzard.ItemID, bkt *storage.BucketHandle) (bool, error) {
+	return b.base.ObjectExists(b.GetObject(id, bkt))
+}
