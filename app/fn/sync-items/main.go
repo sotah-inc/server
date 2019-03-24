@@ -68,7 +68,7 @@ type PubSubMessage struct {
 	Data []byte `json:"data"`
 }
 
-func SyncAllItems(_ context.Context, m PubSubMessage) error {
+func SyncItems(_ context.Context, m PubSubMessage) error {
 	parsedId, err := strconv.Atoi(string(m.Data))
 	if err != nil {
 		return err
