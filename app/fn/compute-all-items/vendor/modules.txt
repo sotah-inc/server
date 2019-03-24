@@ -30,7 +30,7 @@ github.com/nats-io/nkeys
 github.com/nats-io/nuid
 # github.com/sirupsen/logrus v1.3.0
 github.com/sirupsen/logrus
-# github.com/sotah-inc/server/app v0.0.0-20190323131403-f298ed971353
+# github.com/sotah-inc/server/app v0.0.0-20190324003524-78c380b87381
 github.com/sotah-inc/server/app/pkg/bus
 github.com/sotah-inc/server/app/pkg/bus/codes
 github.com/sotah-inc/server/app/pkg/logging

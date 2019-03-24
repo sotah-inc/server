@@ -23,6 +23,7 @@ var (
 	validateAuctionsTopic             *pubsub.Topic
 	computeAllLiveAuctionsTopic       *pubsub.Topic
 	computeAllPricelistHistoriesTopic *pubsub.Topic
+	computeAllItemsTopic              *pubsub.Topic
 )
 
 func init() {
@@ -46,6 +47,12 @@ func init() {
 		return
 	}
 	computeAllPricelistHistoriesTopic, err = busClient.FirmTopic(string(subjects.ComputeAllPricelistHistories))
+	if err != nil {
+		log.Fatalf("Failed to get firm topic: %s", err.Error())
+
+		return
+	}
+	computeAllItemsTopic, err = busClient.FirmTopic(string(subjects.ComputeAllItems))
 	if err != nil {
 		log.Fatalf("Failed to get firm topic: %s", err.Error())
 
@@ -124,6 +131,12 @@ func ValidateAllAuctions(_ context.Context, m PubSubMessage) error {
 	// publishing to compute-all-pricelist-histories
 	logging.Info("Publishing to compute-all-pricelist-histories")
 	if _, err := busClient.Publish(computeAllPricelistHistoriesTopic, msg); err != nil {
+		return err
+	}
+
+	// publishing to compute-all-items
+	logging.Info("Publishing to compute-all-items")
+	if _, err := busClient.Publish(computeAllItemsTopic, msg); err != nil {
 		return err
 	}
 

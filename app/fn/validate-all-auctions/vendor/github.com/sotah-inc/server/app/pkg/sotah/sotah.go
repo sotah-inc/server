@@ -48,6 +48,13 @@ func NewRealms(reg Region, blizzRealms []blizzard.Realm) Realms {
 
 type Realms []Realm
 
+func NewSkeletonRealm(regionName blizzard.RegionName, realmSlug blizzard.RealmSlug) Realm {
+	return Realm{
+		Region: Region{Name: regionName},
+		Realm:  blizzard.Realm{Slug: realmSlug},
+	}
+}
+
 type Realm struct {
 	blizzard.Realm
 	Region       Region `json:"region"`
@@ -174,4 +181,24 @@ type BlizzardCredentials struct {
 
 func (c BlizzardCredentials) EncodeForStorage() ([]byte, error) {
 	return json.Marshal(c)
+}
+
+type PricelistHistoryVersions map[blizzard.RegionName]map[blizzard.RealmSlug]map[UnixTimestamp]string
+
+func (v PricelistHistoryVersions) Insert(
+	regionName blizzard.RegionName,
+	realmSlug blizzard.RealmSlug,
+	targetTimestamp UnixTimestamp,
+	version string,
+) PricelistHistoryVersions {
+	if _, ok := v[regionName]; !ok {
+		v[regionName] = map[blizzard.RealmSlug]map[UnixTimestamp]string{}
+	}
+	if _, ok := v[regionName][realmSlug]; !ok {
+		v[regionName][realmSlug] = map[UnixTimestamp]string{}
+	}
+
+	v[regionName][realmSlug][targetTimestamp] = version
+
+	return v
 }

@@ -86,24 +86,20 @@ func ComputeAllItems(_ context.Context, m PubSubMessage) error {
 	}
 
 	// formatting the response-items as tuples for processing
-	validatedTuples, err := bus.NewRegionRealmTimestampTuplesFromMessages(validatedResponseItems)
+	itemIds, err := bus.NewItemIdsFromMessages(validatedResponseItems)
 	if err != nil {
 		return err
 	}
 
 	// producing a message for computation
-	data, err := validatedTuples.EncodeForDelivery()
+	data, err := itemIds.EncodeForDelivery()
 	if err != nil {
 		return err
 	}
 	msg := bus.NewMessage()
 	msg.Data = data
 
-	// publishing to receive-computed-live-auctions
-	logging.Info("Publishing to receive-computed-live-auctions")
-	if _, err := busClient.Publish(receivedComputedLiveAuctionsTopic, msg); err != nil {
-		return err
-	}
+	logging.WithField("items", len(itemIds)).Info("Found items")
 
 	return nil
 }

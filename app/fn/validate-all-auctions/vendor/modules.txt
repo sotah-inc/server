@@ -6,6 +6,8 @@ cloud.google.com/go/internal/version
 cloud.google.com/go/pubsub/apiv1
 cloud.google.com/go/pubsub/internal/distribution
 cloud.google.com/go/compute/metadata
+# github.com/boltdb/bolt v1.3.1
+github.com/boltdb/bolt
 # github.com/golang/protobuf v1.2.0
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/ptypes
@@ -28,20 +30,22 @@ github.com/nats-io/nkeys
 github.com/nats-io/nuid
 # github.com/sirupsen/logrus v1.3.0
 github.com/sirupsen/logrus
-# github.com/sotah-inc/server/app v0.0.0-20190317004033-8aa3cdeff12c
+# github.com/sotah-inc/server/app v0.0.0-20190324003524-78c380b87381
 github.com/sotah-inc/server/app/pkg/bus
 github.com/sotah-inc/server/app/pkg/bus/codes
 github.com/sotah-inc/server/app/pkg/logging
+github.com/sotah-inc/server/app/pkg/metric
 github.com/sotah-inc/server/app/pkg/state/subjects
 github.com/sotah-inc/server/app/pkg/blizzard
-github.com/sotah-inc/server/app/pkg/metric
+github.com/sotah-inc/server/app/pkg/database
 github.com/sotah-inc/server/app/pkg/sotah
 github.com/sotah-inc/server/app/pkg/util
+github.com/sotah-inc/server/app/pkg/messenger
+github.com/sotah-inc/server/app/pkg/metric/kinds
 github.com/sotah-inc/server/app/pkg/blizzard/itembinds
 github.com/sotah-inc/server/app/pkg/blizzard/realmpopulations
 github.com/sotah-inc/server/app/pkg/blizzard/realmtypes
-github.com/sotah-inc/server/app/pkg/messenger
-github.com/sotah-inc/server/app/pkg/metric/kinds
+github.com/sotah-inc/server/app/pkg/database/codes
 github.com/sotah-inc/server/app/pkg/sotah/sortdirections
 github.com/sotah-inc/server/app/pkg/sotah/sortkinds
 github.com/sotah-inc/server/app/pkg/messenger/codes
@@ -85,7 +89,7 @@ golang.org/x/oauth2/jwt
 # golang.org/x/sync v0.0.0-20181108010431-42b317875d0f
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20181029174526-d69651ed3497
+# golang.org/x/sys v0.0.0-20181205085412-a5c9d58dba9a
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 # golang.org/x/text v0.3.1-0.20180807135948-17ff2d5776d2
