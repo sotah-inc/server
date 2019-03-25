@@ -12,16 +12,17 @@ import (
 )
 
 func ReceiveSyncedItems(itemsState ProdItemsState, ids blizzard.ItemIds) error {
-	getItemsJobs := itemsState.ItemsBase.GetItems(ids, itemsState.ItemsBucket)
+	logging.WithField("item-ids", len(ids)).Info("Fetching items")
+	items, err := itemsState.ItemsBase.GetItems(ids, itemsState.ItemsBucket)
+	if err != nil {
+		return err
+	}
 	itemsToPersist := sotah.ItemsMap{}
-	for job := range getItemsJobs {
-		if job.Err != nil {
-			return job.Err
-		}
-
-		itemsToPersist[job.Item.ID] = job.Item
+	for _, item := range items {
+		itemsToPersist[item.ID] = item
 	}
 
+	logging.WithField("item-ids", len(ids)).Info("Persisting items")
 	return itemsState.IO.Databases.ItemsDatabase.PersistItems(itemsToPersist)
 }
 

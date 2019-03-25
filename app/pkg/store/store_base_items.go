@@ -71,7 +71,8 @@ type GetItemsOutJob struct {
 	Item sotah.Item
 }
 
-func (b ItemsBase) GetItems(ids blizzard.ItemIds, bkt *storage.BucketHandle) chan GetItemsOutJob {
+func (b ItemsBase) GetItems(ids blizzard.ItemIds, bkt *storage.BucketHandle) ([]sotah.Item, error) {
+	// spinning up workers
 	in := make(chan blizzard.ItemID)
 	out := make(chan GetItemsOutJob)
 	worker := func() {
@@ -101,9 +102,27 @@ func (b ItemsBase) GetItems(ids blizzard.ItemIds, bkt *storage.BucketHandle) cha
 		}
 	}
 	postWork := func() {
-		close(in)
+		close(out)
 	}
 	util.Work(4, worker, postWork)
 
-	return out
+	// enqueueing it up
+	go func() {
+		for _, id := range ids {
+			in <- id
+		}
+
+		close(in)
+	}()
+
+	results := []sotah.Item{}
+	for outJob := range out {
+		if outJob.Err != nil {
+			return []sotah.Item{}, outJob.Err
+		}
+
+		results = append(results, outJob.Item)
+	}
+
+	return results, nil
 }
