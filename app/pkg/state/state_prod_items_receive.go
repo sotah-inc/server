@@ -31,12 +31,12 @@ func (itemsState ProdItemsState) ListenForSyncedItems(onReady chan interface{}, 
 	go func() {
 		for ids := range in {
 			// handling item-ids
-			logging.WithField("item-ids", len(ids)).Info("Received item-ids")
+			logging.WithField("item-ids", len(ids)).Info("Received synced item-ids")
 			startTime := time.Now()
 			if err := ReceiveSyncedItems(itemsState, ids); err != nil {
 				logging.WithField("error", err.Error()).Error("Failed to receive synced items")
 			}
-			logging.WithField("item-ids", len(ids)).Info("Done handling item-ids")
+			logging.WithField("item-ids", len(ids)).Info("Done receiving synced item-ids")
 
 			// reporting metrics
 			m := metric.Metrics{"receive_synced_items": int(int64(time.Now().Sub(startTime)) / 1000 / 1000 / 1000)}
