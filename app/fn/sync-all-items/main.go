@@ -3,11 +3,13 @@ package sync_all_items
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"os"
 	"time"
 
 	"cloud.google.com/go/pubsub"
+	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/bus/codes"
@@ -19,8 +21,9 @@ import (
 var (
 	projectId = os.Getenv("GCP_PROJECT")
 
-	busClient     bus.Client
-	syncItemTopic *pubsub.Topic
+	busClient                bus.Client
+	syncItemsTopic           *pubsub.Topic
+	filterInItemsToSyncTopic *pubsub.Topic
 )
 
 func init() {
@@ -31,7 +34,13 @@ func init() {
 
 		return
 	}
-	syncItemTopic, err = busClient.FirmTopic(string(subjects.SyncItem))
+	syncItemsTopic, err = busClient.FirmTopic(string(subjects.SyncItems))
+	if err != nil {
+		log.Fatalf("Failed to get firm topic: %s", err.Error())
+
+		return
+	}
+	filterInItemsToSyncTopic, err = busClient.FirmTopic(string(subjects.FilterInItemsToSync))
 	if err != nil {
 		log.Fatalf("Failed to get firm topic: %s", err.Error())
 
@@ -49,31 +58,59 @@ func SyncAllItems(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
-	// producing item-ids from bus message
-	itemIds, err := blizzard.NewItemIds(in.Data)
-	if err != nil {
-		return err
-	}
-
-	// converting to messages for requesting
-	messages := bus.NewItemIdMessages(blizzard.ItemIds{itemIds[0]})
-
-	// enqueueing them and gathering result jobs
 	startTime := time.Now()
-	responseItems, err := busClient.BulkRequest(syncItemTopic, messages, 400*time.Second)
+
+	// filtering in items-to-sync
+	response, err := busClient.Request(filterInItemsToSyncTopic, in.Data, 3*time.Second)
 	if err != nil {
 		return err
 	}
 
-	validatedResponseItems := bus.BulkRequestMessages{}
-	for k, msg := range responseItems {
-		if msg.Code != codes.Ok {
-			logging.WithField("msg", msg).Error("Received erroneous response")
+	// optionally halting
+	if response.Code != codes.Ok {
+		return errors.New("response code was not ok")
+	}
 
-			continue
+	// parsing response data
+	itemIds, err := blizzard.NewItemIds(response.Data)
+	if err != nil {
+		return err
+	}
+
+	// batching items together
+	batchSize := 1000
+	itemIdsBatches := map[int]blizzard.ItemIds{}
+	for i, id := range itemIds {
+		key := (i - (i % batchSize)) / batchSize
+		batch := func() blizzard.ItemIds {
+			out, ok := itemIdsBatches[key]
+			if !ok {
+				return blizzard.ItemIds{}
+			}
+
+			return out
+		}()
+		batch = append(batch, id)
+
+		itemIdsBatches[key] = batch
+	}
+
+	logging.WithFields(logrus.Fields{
+		"ids":     len(itemIds),
+		"batches": len(itemIdsBatches),
+	}).Info("Enqueueing batches")
+
+	for _, batch := range itemIdsBatches {
+		data, err := batch.EncodeForDelivery()
+		if err != nil {
+			return err
 		}
 
-		validatedResponseItems[k] = msg
+		msg := bus.NewMessage()
+		msg.Data = data
+		if _, err := busClient.Publish(syncItemsTopic, msg); err != nil {
+			return err
+		}
 	}
 
 	// reporting metrics

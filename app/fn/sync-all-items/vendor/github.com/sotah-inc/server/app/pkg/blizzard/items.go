@@ -94,6 +94,15 @@ func NewItemIds(data string) (ItemIds, error) {
 	return out, nil
 }
 
+func NewItemIdsFromInts(in []int) ItemIds {
+	out := ItemIds{}
+	for _, v := range in {
+		out = append(out, ItemID(v))
+	}
+
+	return out
+}
+
 type ItemIds []ItemID
 
 func (s ItemIds) EncodeForDelivery() (string, error) {
@@ -108,6 +117,15 @@ func (s ItemIds) EncodeForDelivery() (string, error) {
 	}
 
 	return base64.StdEncoding.EncodeToString(gzipEncoded), nil
+}
+
+func (s ItemIds) ToInts() []int {
+	out := []int{}
+	for _, id := range s {
+		out = append(out, int(id))
+	}
+
+	return out
 }
 
 type itemSpellID int

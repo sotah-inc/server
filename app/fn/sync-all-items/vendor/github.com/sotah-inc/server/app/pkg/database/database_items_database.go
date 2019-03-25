@@ -170,3 +170,15 @@ func (idBase ItemsDatabase) PersistItems(iMap sotah.ItemsMap) error {
 
 	return nil
 }
+
+func (idBase ItemsDatabase) FilterInItemsToSync(ids blizzard.ItemIds) (blizzard.ItemIds, error) {
+	out := blizzard.ItemIds{}
+	err := idBase.db.View(func(tx *bolt.Tx) error {
+		return nil
+	})
+	if err != nil {
+		return blizzard.ItemIds{}, err
+	}
+
+	return out, nil
+}
