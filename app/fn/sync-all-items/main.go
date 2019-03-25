@@ -103,6 +103,8 @@ func SyncAllItems(_ context.Context, m PubSubMessage) error {
 		batch = append(batch, id)
 
 		itemIdsBatches[key] = batch
+
+		break
 	}
 
 	logging.WithFields(logrus.Fields{
