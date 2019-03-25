@@ -2,6 +2,10 @@ package store
 
 import (
 	"fmt"
+	"io/ioutil"
+
+	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/util"
 
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
@@ -45,4 +49,61 @@ func (b ItemsBase) GetFirmObject(id blizzard.ItemID, bkt *storage.BucketHandle) 
 
 func (b ItemsBase) ObjectExists(id blizzard.ItemID, bkt *storage.BucketHandle) (bool, error) {
 	return b.base.ObjectExists(b.GetObject(id, bkt))
+}
+
+func (b ItemsBase) NewItem(obj *storage.ObjectHandle) (sotah.Item, error) {
+	reader, err := obj.NewReader(b.client.Context)
+	if err != nil {
+		return sotah.Item{}, err
+	}
+	defer reader.Close()
+
+	body, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return sotah.Item{}, err
+	}
+
+	return sotah.NewItem(body)
+}
+
+type GetItemsOutJob struct {
+	Err  error
+	Item sotah.Item
+}
+
+func (b ItemsBase) GetItems(ids blizzard.ItemIds, bkt *storage.BucketHandle) chan GetItemsOutJob {
+	in := make(chan blizzard.ItemID)
+	out := make(chan GetItemsOutJob)
+	worker := func() {
+		for id := range in {
+			obj, err := b.GetFirmObject(id, bkt)
+			if err != nil {
+				out <- GetItemsOutJob{
+					Err: err,
+				}
+
+				continue
+			}
+
+			item, err := b.NewItem(obj)
+			if err != nil {
+				out <- GetItemsOutJob{
+					Err: err,
+				}
+
+				continue
+			}
+
+			out <- GetItemsOutJob{
+				Err:  nil,
+				Item: item,
+			}
+		}
+	}
+	postWork := func() {
+		close(in)
+	}
+	util.Work(4, worker, postWork)
+
+	return out
 }
