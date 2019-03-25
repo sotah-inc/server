@@ -3,13 +3,16 @@ package sync_items
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
+	"net/http"
 	"os"
 
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/store"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
@@ -19,6 +22,8 @@ var (
 
 	busClient               bus.Client
 	receiveSyncedItemsTopic *pubsub.Topic
+
+	primaryRegion sotah.Region
 
 	blizzardClient blizzard.Client
 
@@ -60,9 +65,77 @@ func init() {
 
 		return
 	}
+
+	bootBase := store.NewBootBase(storeClient, "us-central1")
+	var bootBucket *storage.BucketHandle
+	bootBucket, err = bootBase.GetFirmBucket()
+	if err != nil {
+		log.Fatalf("Failed to get firm bucket: %s", err.Error())
+
+		return
+	}
+	regions, err := bootBase.GetRegions(bootBucket)
+	if err != nil {
+		log.Fatalf("Failed to get regions: %s", err.Error())
+
+		return
+	}
+	primaryRegion, err = regions.GetPrimaryRegion()
+	if err != nil {
+		log.Fatalf("Failed to get primary region: %s", err.Error())
+
+		return
+	}
 }
 
 func SyncItem(id blizzard.ItemID) error {
+	exists, err := itemsBase.ObjectExists(id, itemsBucket)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return nil
+	}
+
+	uri, err := blizzardClient.AppendAccessToken(blizzard.DefaultGetItemURL(primaryRegion.Hostname, id))
+	if err != nil {
+		return err
+	}
+
+	respMeta, err := blizzard.Download(uri)
+	if err != nil {
+		return err
+	}
+	if respMeta.Status != http.StatusOK {
+		return errors.New("status was not OK")
+	}
+
+	item, err := blizzard.NewItem(respMeta.Body)
+	if err != nil {
+		return err
+	}
+
+	jsonEncoded, err := json.Marshal(item)
+	if err != nil {
+		return err
+	}
+
+	gzipEncodedBody, err := util.GzipEncode(jsonEncoded)
+	if err != nil {
+		return err
+	}
+
+	// writing it out to the gcloud object
+	wc := itemsBase.GetObject(id, itemsBucket).NewWriter(storeClient.Context)
+	wc.ContentType = "application/json"
+	wc.ContentEncoding = "gzip"
+	if _, err := wc.Write(gzipEncodedBody); err != nil {
+		return err
+	}
+	if err := wc.Close(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
