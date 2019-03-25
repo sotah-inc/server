@@ -43,6 +43,7 @@ func main() {
 		prodMetricsCommand            = app.Command(string(commands.ProdMetrics), "For forwarding metrics to a nats channel.")
 		prodLiveAuctionsCommand       = app.Command(string(commands.ProdLiveAuctions), "For managing live-auctions in gcp ce vm.")
 		prodPricelistHistoriesCommand = app.Command(string(commands.ProdPricelistHistories), "For managing pricelist-histories in gcp ce vm.")
+		prodItemsCommand              = app.Command(string(commands.ProdItems), "For managing items in gcp ce vm.")
 	)
 	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
 
@@ -145,6 +146,14 @@ func main() {
 				MessengerHost:                 *natsHost,
 				GCloudProjectID:               *projectID,
 				PricelistHistoriesDatabaseDir: fmt.Sprintf("%s/databases", *cacheDir),
+			})
+		},
+		prodItemsCommand.FullCommand(): func() error {
+			return command.ProdItems(state.ProdItemsStateConfig{
+				MessengerPort:    *natsPort,
+				MessengerHost:    *natsHost,
+				GCloudProjectID:  *projectID,
+				ItemsDatabaseDir: fmt.Sprintf("%s/databases", *cacheDir),
 			})
 		},
 	}
