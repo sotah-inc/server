@@ -7,6 +7,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/sotah-inc/server/app/pkg/database"
+
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/storage"
 	"github.com/sirupsen/logrus"
@@ -25,10 +27,11 @@ var (
 
 	regionRealms map[blizzard.RegionName]sotah.Realms
 
-	busClient                         bus.Client
-	downloadAuctionsTopic             *pubsub.Topic
-	syncAllItemsTopic                 *pubsub.Topic
-	receivedComputedLiveAuctionsTopic *pubsub.Topic
+	busClient                               bus.Client
+	downloadAuctionsTopic                   *pubsub.Topic
+	syncAllItemsTopic                       *pubsub.Topic
+	receivedComputedLiveAuctionsTopic       *pubsub.Topic
+	receivedComputedPricelistHistoriesTopic *pubsub.Topic
 )
 
 func init() {
@@ -52,6 +55,12 @@ func init() {
 		return
 	}
 	receivedComputedLiveAuctionsTopic, err = busClient.FirmTopic(string(subjects.ReceiveComputedLiveAuctions))
+	if err != nil {
+		log.Fatalf("Failed to get firm topic: %s", err.Error())
+
+		return
+	}
+	receivedComputedPricelistHistoriesTopic, err = busClient.FirmTopic(string(subjects.ReceiveComputedPricelistHistories))
 	if err != nil {
 		log.Fatalf("Failed to get firm topic: %s", err.Error())
 
@@ -134,6 +143,34 @@ func PublishToReceiveComputedLiveAuctions(tuples bus.RegionRealmTimestampTuples)
 	return nil
 }
 
+func PublishToReceivePricelistHistories(tuples bus.RegionRealmTimestampTuples) error {
+	// producing pricelist-histories-compute-intake-requests
+	requests := database.PricelistHistoriesComputeIntakeRequests{}
+	for _, tuple := range tuples {
+		requests = append(requests, database.PricelistHistoriesComputeIntakeRequest{
+			RegionName:                tuple.RegionName,
+			RealmSlug:                 tuple.RealmSlug,
+			NormalizedTargetTimestamp: tuple.NormalizedTargetTimestamp,
+		})
+	}
+
+	// producing a message for computation
+	data, err := requests.EncodeForDelivery()
+	if err != nil {
+		return err
+	}
+	msg := bus.NewMessage()
+	msg.Data = data
+
+	// publishing to receive-computed-pricelist-histories
+	logging.Info("Publishing to receive-computed-pricelist-histories")
+	if _, err := busClient.Publish(receivedComputedLiveAuctionsTopic, msg); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 type PubSubMessage struct {
 	Data []byte `json:"data"`
 }
@@ -198,8 +235,10 @@ func DownloadAllAuctions(_ context.Context, _ PubSubMessage) error {
 		return err
 	}
 
-	//database.PricelistHistoriesComputeIntakeRequests
 	// publishing to receive-live-auctions
+	if err := PublishToReceivePricelistHistories(tuples); err != nil {
+		return err
+	}
 
 	return nil
 }
