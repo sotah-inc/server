@@ -3,6 +3,7 @@ package state
 import (
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/logging"
@@ -15,6 +16,11 @@ func HandleFilterInItemsToSync(busMsg bus.Message, itemsState ProdItemsState, id
 	if err != nil {
 		return err
 	}
+
+	logging.WithFields(logrus.Fields{
+		"provided": len(ids),
+		"new":      len(toSync),
+	}).Info("Filtered items to sync")
 
 	data, err := toSync.EncodeForDelivery()
 	if err != nil {
