@@ -61,7 +61,7 @@ func SyncAllItems(_ context.Context, m PubSubMessage) error {
 	startTime := time.Now()
 
 	// filtering in items-to-sync
-	response, err := busClient.Request(filterInItemsToSyncTopic, in.Data, 3*time.Second)
+	response, err := busClient.Request(filterInItemsToSyncTopic, in.Data, 30*time.Second)
 	if err != nil {
 		return err
 	}
