@@ -163,7 +163,7 @@ func PublishToReceivePricelistHistories(tuples bus.RegionRealmTimestampTuples) e
 
 	// publishing to receive-computed-pricelist-histories
 	logging.Info("Publishing to receive-computed-pricelist-histories")
-	if _, err := busClient.Publish(receivedComputedLiveAuctionsTopic, msg); err != nil {
+	if _, err := busClient.Publish(receivedComputedPricelistHistoriesTopic, msg); err != nil {
 		return err
 	}
 
