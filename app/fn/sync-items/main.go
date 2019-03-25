@@ -213,7 +213,9 @@ func Handle(ids blizzard.ItemIds) (blizzard.ItemIds, error) {
 	results := blizzard.ItemIds{}
 	for outJob := range out {
 		if outJob.Err != nil {
-			return blizzard.ItemIds{}, outJob.Err
+			logging.WithField("error", outJob.Err.Error()).Error("Failed to sync item")
+
+			continue
 		}
 
 		results = append(results, outJob.Id)
