@@ -33,6 +33,7 @@ type Item struct {
 
 	IconURL        string `json:"icon_url"`
 	IconObjectName string `json:"icon_object_name"`
+	LastModified   int    `json:"last_modified"`
 }
 
 // item-icon-item-ids map
