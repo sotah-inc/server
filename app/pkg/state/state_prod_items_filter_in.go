@@ -43,12 +43,12 @@ func (itemsState ProdItemsState) ListenForFilterIn(onReady chan interface{}, sto
 			}
 
 			// handling item-ids
-			logging.WithField("item-ids", len(ids)).Info("Received item-ids")
+			logging.WithField("item-ids", len(ids)).Info("Filtering item-ids")
 			startTime := time.Now()
 			if err := HandleFilterInItemsToSync(busMsg, itemsState, ids); err != nil {
 				logging.WithField("error", err.Error()).Error("Failed to filter in items to sync")
 			}
-			logging.WithField("item-ids", len(ids)).Info("Done handling item-ids")
+			logging.WithField("item-ids", len(ids)).Info("Done filtering item-ids")
 
 			// reporting metrics
 			m := metric.Metrics{"filter_in_items_to_sync": int(int64(time.Now().Sub(startTime)) / 1000 / 1000 / 1000)}
