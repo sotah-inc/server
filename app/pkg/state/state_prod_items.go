@@ -79,6 +79,7 @@ func NewProdItemsState(config ProdItemsStateConfig) (ProdItemsState, error) {
 	// establishing bus-listeners
 	itemsState.BusListeners = NewBusListeners(SubjectBusListeners{
 		subjects.FilterInItemsToSync: itemsState.ListenForFilterIn,
+		subjects.ReceiveSyncedItems:  itemsState.ListenForSyncedItems,
 	})
 
 	// establishing messenger-listeners
