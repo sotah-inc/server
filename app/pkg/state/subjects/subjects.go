@@ -43,7 +43,7 @@ const (
 
 	FilterInItemsToSync Subject = "filterInItemsToSync"
 	SyncAllItems        Subject = "syncAllItems"
-	SyncItem            Subject = "syncItem"
+	SyncItems           Subject = "syncItems"
 	ReceiveSyncedItems  Subject = "receiveSyncedItems"
 
 	ComputeAllLiveAuctions      Subject = "computeAllLiveAuctions"
