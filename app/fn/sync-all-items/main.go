@@ -58,10 +58,20 @@ func SyncAllItems(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
+	// validating that the provided item-ids are valid
+	providedItemIds, err := blizzard.NewItemIds(in.Data)
+	if err != nil {
+		return err
+	}
+	encodedItemIds, err := providedItemIds.EncodeForDelivery()
+	if err != nil {
+		return err
+	}
+
 	startTime := time.Now()
 
 	// filtering in items-to-sync
-	response, err := busClient.Request(filterInItemsToSyncTopic, in.Data, 30*time.Second)
+	response, err := busClient.Request(filterInItemsToSyncTopic, encodedItemIds, 30*time.Second)
 	if err != nil {
 		return err
 	}
