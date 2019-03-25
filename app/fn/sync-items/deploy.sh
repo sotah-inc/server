@@ -3,10 +3,10 @@
 # us-central1 because us-east1 does not fucking have go111 runtime yet
 
 # deploying func
-gcloud functions deploy SyncItem \
+gcloud functions deploy SyncItems \
     --runtime go111 \
-    --trigger-topic syncItem \
+    --trigger-topic syncItems \
     --source . \
-    --memory 128MB \
+    --memory 256MB \
     --timeout 500s \
     --region us-central1

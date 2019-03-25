@@ -1,21 +1,16 @@
-package sync_item
+package sync_items
 
 import (
 	"context"
 	"encoding/json"
 	"log"
 	"os"
-	"strconv"
-
-	"github.com/sotah-inc/server/app/pkg/logging"
 
 	"cloud.google.com/go/storage"
-
-	"github.com/sotah-inc/server/app/pkg/store"
-
 	"github.com/sotah-inc/server/app/pkg/blizzard"
-
 	"github.com/sotah-inc/server/app/pkg/bus"
+	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/store"
 )
 
 var (
@@ -75,28 +70,12 @@ func SyncItem(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
-	parsedId, err := strconv.Atoi(string(in.Data))
+	itemIds, err := blizzard.NewItemIds(in.Data)
 	if err != nil {
 		return err
 	}
 
-	itemId := blizzard.ItemID(parsedId)
-	exists, err := itemsBase.ObjectExists(itemId, itemsBucket)
-	if err != nil {
-		return err
-	}
-
-	if exists {
-		logging.WithField("id", itemId).Info("Item exists")
-	} else {
-		logging.WithField("id", itemId).Info("Item does not exists")
-	}
-
-	msg := bus.NewMessage()
-	msg.ReplyToId = in.ReplyToId
-	if _, err := busClient.ReplyTo(in, msg); err != nil {
-		return err
-	}
+	logging.WithField("item-ids", len(itemIds)).Info("Processing batch")
 
 	return nil
 }
