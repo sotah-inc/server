@@ -7,6 +7,4 @@ gcloud functions deploy SyncItems \
     --runtime go111 \
     --trigger-topic syncItems \
     --source . \
-    --memory 256MB \
-    --timeout 500s \
     --region us-central1
