@@ -77,6 +77,7 @@ func init() {
 	}
 
 	bootBase := store.NewBootBase(storeClient, "us-central1")
+
 	var bootBucket *storage.BucketHandle
 	bootBucket, err = bootBase.GetFirmBucket()
 	if err != nil {
@@ -84,6 +85,20 @@ func init() {
 
 		return
 	}
+
+	blizzardCredentials, err := bootBase.GetBlizzardCredentials(bootBucket)
+	if err != nil {
+		log.Fatalf("Failed to get blizzard-credentials: %s", err.Error())
+
+		return
+	}
+	blizzardClient, err = blizzard.NewClient(blizzardCredentials.ClientId, blizzardCredentials.ClientSecret)
+	if err != nil {
+		log.Fatalf("Failed to create blizzard client: %s", err.Error())
+
+		return
+	}
+
 	regions, err := bootBase.GetRegions(bootBucket)
 	if err != nil {
 		log.Fatalf("Failed to get regions: %s", err.Error())
