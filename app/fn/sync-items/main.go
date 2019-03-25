@@ -8,6 +8,10 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
+
+	"github.com/sotah-inc/server/app/pkg/logging"
+
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
@@ -39,6 +43,12 @@ func init() {
 	busClient, err = bus.NewClient(projectId, "fn-sync-all-items")
 	if err != nil {
 		log.Fatalf("Failed to create new bus client: %s", err.Error())
+
+		return
+	}
+	receiveSyncedItemsTopic, err = busClient.FirmTopic(string(subjects.ReceiveSyncedItems))
+	if err != nil {
+		log.Fatalf("Failed to get firm topic: %s", err.Error())
 
 		return
 	}
@@ -94,9 +104,12 @@ func SyncItem(id blizzard.ItemID) error {
 		return err
 	}
 	if exists {
+		logging.WithField("id", id).Info("Item already exists, skipping")
+
 		return nil
 	}
 
+	logging.WithField("id", id).Info("Downloading")
 	uri, err := blizzardClient.AppendAccessToken(blizzard.DefaultGetItemURL(primaryRegion.Hostname, id))
 	if err != nil {
 		return err
@@ -110,6 +123,7 @@ func SyncItem(id blizzard.ItemID) error {
 		return errors.New("status was not OK")
 	}
 
+	logging.WithField("id", id).Info("Parsing and encoding")
 	item, err := blizzard.NewItem(respMeta.Body)
 	if err != nil {
 		return err
@@ -125,6 +139,7 @@ func SyncItem(id blizzard.ItemID) error {
 		return err
 	}
 
+	logging.WithField("id", id).Info("Writing to items-base")
 	// writing it out to the gcloud object
 	wc := itemsBase.GetObject(id, itemsBucket).NewWriter(storeClient.Context)
 	wc.ContentType = "application/json"
