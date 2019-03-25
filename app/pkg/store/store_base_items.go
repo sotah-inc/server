@@ -104,7 +104,7 @@ func (b ItemsBase) GetItems(ids blizzard.ItemIds, bkt *storage.BucketHandle) ([]
 	postWork := func() {
 		close(out)
 	}
-	util.Work(8, worker, postWork)
+	util.Work(16, worker, postWork)
 
 	// enqueueing it up
 	go func() {
