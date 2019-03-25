@@ -172,11 +172,14 @@ func (idBase ItemsDatabase) PersistItems(iMap sotah.ItemsMap) error {
 }
 
 func (idBase ItemsDatabase) FilterInItemsToSync(ids blizzard.ItemIds) (blizzard.ItemIds, error) {
-	out := blizzard.ItemIds{}
+	logging.WithField("ids", len(ids)).Info("Fetching items corresponding to ids")
 	items, err := idBase.FindItems(ids)
 	if err != nil {
 		return blizzard.ItemIds{}, err
 	}
+
+	logging.WithField("items", len(items)).Info("Found items, filtering in non-existing")
+	out := blizzard.ItemIds{}
 	for _, id := range ids {
 		if _, ok := items[id]; ok {
 			continue
