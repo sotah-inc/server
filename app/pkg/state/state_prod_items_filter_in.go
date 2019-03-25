@@ -10,8 +10,24 @@ import (
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
-func HandleFilterInItemsToSync(itemsState ProdItemsState, ids blizzard.ItemIds) {
-	return
+func HandleFilterInItemsToSync(busMsg bus.Message, itemsState ProdItemsState, ids blizzard.ItemIds) error {
+	toSync, err := itemsState.IO.Databases.ItemsDatabase.FilterInItemsToSync(ids)
+	if err != nil {
+		return err
+	}
+
+	data, err := toSync.EncodeForDelivery()
+	if err != nil {
+		return err
+	}
+	reply := bus.NewMessage()
+	reply.Data = data
+
+	if _, err := itemsState.IO.BusClient.ReplyTo(busMsg, reply); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (itemsState ProdItemsState) ListenForFilterIn(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {
@@ -29,7 +45,9 @@ func (itemsState ProdItemsState) ListenForFilterIn(onReady chan interface{}, sto
 			// handling item-ids
 			logging.WithField("item-ids", len(ids)).Info("Received item-ids")
 			startTime := time.Now()
-			HandleFilterInItemsToSync(itemsState, ids)
+			if err := HandleFilterInItemsToSync(busMsg, itemsState, ids); err != nil {
+				logging.WithField("error", err.Error()).Error("Failed to filter in items to sync")
+			}
 			logging.WithField("item-ids", len(ids)).Info("Done handling item-ids")
 
 			// reporting metrics
