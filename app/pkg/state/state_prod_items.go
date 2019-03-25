@@ -3,6 +3,8 @@ package state
 import (
 	"fmt"
 
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
+
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/database"
@@ -75,7 +77,9 @@ func NewProdItemsState(config ProdItemsStateConfig) (ProdItemsState, error) {
 	itemsState.IO.Databases.ItemsDatabase = iBase
 
 	// establishing bus-listeners
-	itemsState.BusListeners = NewBusListeners(SubjectBusListeners{})
+	itemsState.BusListeners = NewBusListeners(SubjectBusListeners{
+		subjects.FilterInItemsToSync: itemsState.ListenForFilterIn,
+	})
 
 	// establishing messenger-listeners
 	itemsState.Listeners = NewListeners(SubjectListeners{})

@@ -41,9 +41,10 @@ const (
 	ComputeAllItems Subject = "computeAllItems"
 	ComputeItems    Subject = "computeItems"
 
-	SyncAllItems       Subject = "syncAllItems"
-	SyncItem           Subject = "syncItem"
-	ReceiveSyncedItems Subject = "receiveSyncedItems"
+	FilterInItemsToSync Subject = "filterInItemsToSync"
+	SyncAllItems        Subject = "syncAllItems"
+	SyncItem            Subject = "syncItem"
+	ReceiveSyncedItems  Subject = "receiveSyncedItems"
 
 	ComputeAllLiveAuctions      Subject = "computeAllLiveAuctions"
 	ComputeLiveAuctions         Subject = "computeLiveAuctions"
