@@ -7,11 +7,22 @@ import (
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/metric"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
 func ReceiveSyncedItems(itemsState ProdItemsState, ids blizzard.ItemIds) error {
-	return nil
+	getItemsJobs := itemsState.ItemsBase.GetItems(ids, itemsState.ItemsBucket)
+	itemsToPersist := sotah.ItemsMap{}
+	for job := range getItemsJobs {
+		if job.Err != nil {
+			return job.Err
+		}
+
+		itemsToPersist[job.Item.ID] = job.Item
+	}
+
+	return itemsState.IO.Databases.ItemsDatabase.PersistItems(itemsToPersist)
 }
 
 func (itemsState ProdItemsState) ListenForSyncedItems(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {
