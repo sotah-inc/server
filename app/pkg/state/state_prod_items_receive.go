@@ -10,26 +10,19 @@ import (
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
-func HandleSyncedItems(itemsState ProdItemsState, ids blizzard.ItemIds) error {
+func ReceiveSyncedItems(itemsState ProdItemsState, ids blizzard.ItemIds) error {
 	return nil
 }
 
 func (itemsState ProdItemsState) ListenForSyncedItems(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {
-	// establishing subscriber config
-	config := bus.SubscribeConfig{
-		Stop: stop,
-		Callback: func(busMsg bus.Message) {
-			ids, err := blizzard.NewItemIds(busMsg.Data)
-			if err != nil {
-				logging.WithField("error", err.Error()).Error("Failed to decode item-ids")
-
-				return
-			}
-
+	// spinning up a worker
+	in := make(chan blizzard.ItemIds, 50)
+	go func() {
+		for ids := range in {
 			// handling item-ids
 			logging.WithField("item-ids", len(ids)).Info("Received item-ids")
 			startTime := time.Now()
-			if err := HandleSyncedItems(itemsState, ids); err != nil {
+			if err := ReceiveSyncedItems(itemsState, ids); err != nil {
 				logging.WithField("error", err.Error()).Error("Failed to receive synced items")
 			}
 			logging.WithField("item-ids", len(ids)).Info("Done handling item-ids")
@@ -41,6 +34,21 @@ func (itemsState ProdItemsState) ListenForSyncedItems(onReady chan interface{}, 
 
 				return
 			}
+		}
+	}()
+
+	// establishing subscriber config
+	config := bus.SubscribeConfig{
+		Stop: stop,
+		Callback: func(busMsg bus.Message) {
+			ids, err := blizzard.NewItemIds(busMsg.Data)
+			if err != nil {
+				logging.WithField("error", err.Error()).Error("Failed to decode item-ids")
+
+				return
+			}
+
+			in <- ids
 
 			return
 		},
