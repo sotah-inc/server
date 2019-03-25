@@ -97,7 +97,7 @@ func NewItemIds(data string) (ItemIds, error) {
 func NewItemIdsFromInts(in []int) ItemIds {
 	out := ItemIds{}
 	for _, v := range in {
-		out = append(out, v)
+		out = append(out, ItemID(v))
 	}
 
 	return out
