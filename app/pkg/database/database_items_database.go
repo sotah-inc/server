@@ -146,17 +146,65 @@ func (idBase ItemsDatabase) PersistItems(iMap sotah.ItemsMap) error {
 	return nil
 }
 
+type PersistEncodedItemsInJob struct {
+	Id              blizzard.ItemID
+	GzipEncodedData []byte
+}
+
+func (idBase ItemsDatabase) PersistEncodedItems(in chan PersistEncodedItemsInJob) error {
+	logging.Info("Persisting encoded items")
+
+	err := idBase.db.Batch(func(tx *bolt.Tx) error {
+		bkt, err := tx.CreateBucketIfNotExists(databaseItemsBucketName())
+		if err != nil {
+			return err
+		}
+
+		for job := range in {
+			if err := bkt.Put(itemsKeyName(job.Id), job.GzipEncodedData); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (idBase ItemsDatabase) FilterInItemsToSync(ids blizzard.ItemIds) (blizzard.ItemIds, error) {
-	logging.WithField("ids", len(ids)).Info("Fetching items corresponding to ids")
-	items, err := idBase.FindItems(ids)
+	exists := map[blizzard.ItemID]bool{}
+	for _, id := range ids {
+		exists[id] = false
+	}
+
+	err := idBase.db.View(func(tx *bolt.Tx) error {
+		bkt := tx.Bucket(databaseItemsBucketName())
+		if bkt == nil {
+			return nil
+		}
+
+		for _, id := range ids {
+			value := bkt.Get(itemsKeyName(id))
+			if value == nil {
+				continue
+			}
+
+			exists[id] = true
+		}
+
+		return nil
+	})
 	if err != nil {
 		return blizzard.ItemIds{}, err
 	}
 
-	logging.WithField("items", len(items)).Info("Found items, filtering in non-existing")
 	out := blizzard.ItemIds{}
-	for _, id := range ids {
-		if _, ok := items[id]; ok {
+	for id, exists := range exists {
+		if exists {
 			continue
 		}
 
