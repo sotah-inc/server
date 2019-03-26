@@ -44,7 +44,7 @@ func (itemsState ProdItemsState) ListenForSyncedItems(onReady chan interface{}, 
 			if err := itemsState.IO.BusClient.PublishMetrics(m); err != nil {
 				logging.WithField("error", err.Error()).Error("Failed to publish metric")
 
-				return
+				continue
 			}
 		}
 	}()
