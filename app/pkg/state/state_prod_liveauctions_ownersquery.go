@@ -9,12 +9,12 @@ import (
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
-func (liveAuctionsState ProdLiveAuctionsState) ListenForAuctions(stop ListenStopChan) error {
-	err := liveAuctionsState.IO.Messenger.Subscribe(string(subjects.Auctions), stop, func(natsMsg nats.Msg) {
+func (liveAuctionsState ProdLiveAuctionsState) ListenForOwnersQuery(stop ListenStopChan) error {
+	err := liveAuctionsState.IO.Messenger.Subscribe(string(subjects.OwnersQuery), stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
 		// resolving the request
-		qRequest, err := database.NewQueryRequest(natsMsg.Data)
+		request, err := database.NewQueryOwnersRequest(natsMsg.Data)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = mCodes.MsgJSONParseError
@@ -23,17 +23,8 @@ func (liveAuctionsState ProdLiveAuctionsState) ListenForAuctions(stop ListenStop
 			return
 		}
 
-		qResponse, dCode, err := liveAuctionsState.IO.Databases.LiveAuctionsDatabases.QueryAuctions(qRequest)
-		if dCode != dCodes.Ok {
-			m.Err = err.Error()
-			m.Code = DatabaseCodeToMessengerCode(dCode)
-			liveAuctionsState.IO.Messenger.ReplyTo(natsMsg, m)
-
-			return
-		}
-
-		// encoding the auctions list for output
-		data, err := qResponse.EncodeForDelivery()
+		// querying the live-auctions-databases
+		resp, respCode, err := liveAuctionsState.IO.Databases.LiveAuctionsDatabases.QueryOwners(request)
 		if err != nil {
 			m.Err = err.Error()
 			m.Code = mCodes.GenericError
@@ -42,7 +33,27 @@ func (liveAuctionsState ProdLiveAuctionsState) ListenForAuctions(stop ListenStop
 			return
 		}
 
-		m.Data = data
+		// optionally halting on non-ok code
+		if respCode != dCodes.Ok {
+			m.Err = err.Error()
+			m.Code = DatabaseCodeToMessengerCode(respCode)
+			liveAuctionsState.IO.Messenger.ReplyTo(natsMsg, m)
+
+			return
+		}
+
+		// marshalling for messenger
+		encodedMessage, err := resp.EncodeForDelivery()
+		if err != nil {
+			m.Err = err.Error()
+			m.Code = mCodes.GenericError
+			liveAuctionsState.IO.Messenger.ReplyTo(natsMsg, m)
+
+			return
+		}
+
+		// dumping it out
+		m.Data = string(encodedMessage)
 		liveAuctionsState.IO.Messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {

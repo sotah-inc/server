@@ -110,7 +110,8 @@ func NewProdLiveAuctionsState(config ProdLiveAuctionsStateConfig) (ProdLiveAucti
 
 	// establishing messenger-listeners
 	liveAuctionsState.Listeners = NewListeners(SubjectListeners{
-		subjects.Auctions: liveAuctionsState.ListenForAuctions,
+		subjects.Auctions:    liveAuctionsState.ListenForAuctions,
+		subjects.OwnersQuery: liveAuctionsState.ListenForOwnersQuery,
 	})
 
 	return liveAuctionsState, nil
