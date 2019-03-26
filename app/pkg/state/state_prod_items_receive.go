@@ -53,6 +53,8 @@ func (itemsState ProdItemsState) ListenForSyncedItems(onReady chan interface{}, 
 	config := bus.SubscribeConfig{
 		Stop: stop,
 		Callback: func(busMsg bus.Message) {
+			logging.WithField("subject", subjects.ReceiveSyncedItems).Info("Received message")
+
 			ids, err := blizzard.NewItemIds(busMsg.Data)
 			if err != nil {
 				logging.WithField("error", err.Error()).Error("Failed to decode item-ids")
