@@ -84,7 +84,8 @@ func NewProdItemsState(config ProdItemsStateConfig) (ProdItemsState, error) {
 
 	// establishing messenger-listeners
 	itemsState.Listeners = NewListeners(SubjectListeners{
-		subjects.Items: itemsState.ListenForItems,
+		subjects.Items:      itemsState.ListenForItems,
+		subjects.ItemsQuery: itemsState.ListenForItemsQuery,
 	})
 
 	return itemsState, nil

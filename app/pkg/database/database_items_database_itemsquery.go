@@ -83,6 +83,10 @@ type QueryItemsResponse struct {
 	Items QueryItemsItems `json:"items"`
 }
 
+func (r QueryItemsResponse) EncodeForDelivery() ([]byte, error) {
+	return json.Marshal(r)
+}
+
 func (idBase ItemsDatabase) QueryItems(req QueryItemsRequest) (QueryItemsResponse, codes.Code, error) {
 	// gathering items
 	items, err := idBase.GetItems()
