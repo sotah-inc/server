@@ -29,11 +29,13 @@ var (
 
 	blizzardClient blizzard.Client
 
-	storeClient store.Client
-	bootBase    store.BootBase
-	bootBucket  *storage.BucketHandle
-	itemsBase   store.ItemsBase
-	itemsBucket *storage.BucketHandle
+	storeClient           store.Client
+	bootBase              store.BootBase
+	bootBucket            *storage.BucketHandle
+	itemsBase             store.ItemsBase
+	itemsBucket           *storage.BucketHandle
+	liveAuctionsStoreBase store.LiveAuctionsBase
+	liveAuctionsBucket    *storage.BucketHandle
 
 	busClient                bus.Client
 	filterInItemsToSyncTopic *pubsub.Topic
@@ -78,6 +80,14 @@ func init() {
 
 	itemsBase = store.NewItemsBase(storeClient, "us-central1")
 	itemsBucket, err = itemsBase.GetFirmBucket()
+	if err != nil {
+		log.Fatalf("Failed to get firm bucket: %s", err.Error())
+
+		return
+	}
+
+	liveAuctionsStoreBase = store.NewLiveAuctionsBase(storeClient, "us-central1")
+	liveAuctionsBucket, err = liveAuctionsStoreBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get firm bucket: %s", err.Error())
 
@@ -167,6 +177,61 @@ func SyncItem(id blizzard.ItemID) error {
 	return nil
 }
 
+type HandleJob struct {
+	Err error
+	Id  blizzard.ItemID
+}
+
+func Handle(ids blizzard.ItemIds) (blizzard.ItemIds, error) {
+	// spawning workers
+	in := make(chan blizzard.ItemID)
+	out := make(chan HandleJob)
+	worker := func() {
+		for id := range in {
+			if err := SyncItem(id); err != nil {
+				out <- HandleJob{
+					Err: err,
+					Id:  id,
+				}
+
+				continue
+			}
+
+			out <- HandleJob{
+				Err: nil,
+				Id:  id,
+			}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(8, worker, postWork)
+
+	// spinning it up
+	go func() {
+		for _, id := range ids {
+			in <- id
+		}
+
+		close(in)
+	}()
+
+	// waiting for the results to drain out
+	results := blizzard.ItemIds{}
+	for outJob := range out {
+		if outJob.Err != nil {
+			logging.WithField("error", outJob.Err.Error()).Error("Failed to sync item")
+
+			continue
+		}
+
+		results = append(results, outJob.Id)
+	}
+
+	return results, nil
+}
+
 type PubSubMessage struct {
 	Data []byte `json:"data"`
 }
@@ -184,14 +249,36 @@ func Welp(_ context.Context, _ PubSubMessage) error {
 	if err != nil {
 		return err
 	}
-	shit := "items-verification-5\n"
+	shit := "items-verification-7\n"
 	if string(data) != shit {
 		logging.Info("Unmatched")
 
 		return nil
 	}
 
-	providedItemIds := blizzard.ItemIds{45468}
+	realm := sotah.NewSkeletonRealm("us", "aegwynn")
+	obj, err = liveAuctionsStoreBase.GetFirmObject(realm, liveAuctionsBucket)
+	if err != nil {
+		return err
+	}
+
+	reader, err = obj.ReadCompressed(true).NewReader(storeClient.Context)
+	if err != nil {
+		return err
+	}
+	data, err = ioutil.ReadAll(reader)
+	if err != nil {
+		return err
+	}
+	maList, err := sotah.NewMiniAuctionListFromGzipped(data)
+	if err != nil {
+		return err
+	}
+
+	providedItemIds := blizzard.ItemIds{}
+	for _, id := range maList.ItemIds() {
+		providedItemIds = append(providedItemIds, id)
+	}
 
 	logging.WithField("item-ids", providedItemIds).Info("Filtering item-ids")
 
@@ -225,13 +312,9 @@ func Welp(_ context.Context, _ PubSubMessage) error {
 
 	logging.WithField("item-ids", filteredItemIds).Info("Received validated item-ids to sync, attempting to sync")
 
-	syncedItemIds := blizzard.ItemIds{}
-	for _, id := range filteredItemIds {
-		if err := SyncItem(id); err != nil {
-			return err
-		}
-
-		syncedItemIds = append(syncedItemIds, id)
+	syncedItemIds, err := Handle(filteredItemIds)
+	if err != nil {
+		return err
 	}
 
 	payload, err := syncedItemIds.EncodeForDelivery()
