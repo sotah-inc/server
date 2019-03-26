@@ -206,7 +206,7 @@ func Handle(ids blizzard.ItemIds) (blizzard.ItemIds, error) {
 	postWork := func() {
 		close(out)
 	}
-	util.Work(8, worker, postWork)
+	util.Work(16, worker, postWork)
 
 	// spinning it up
 	go func() {

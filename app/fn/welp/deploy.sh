@@ -7,5 +7,5 @@ gcloud functions deploy Welp \
     --runtime go111 \
     --trigger-topic welp \
     --source . \
-    --memory 128MB \
+    --memory 512MB \
     --region us-central1
