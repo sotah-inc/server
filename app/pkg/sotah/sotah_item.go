@@ -9,20 +9,20 @@ import (
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
+func NormalizeName(in string) (string, error) {
+	reg, err := regexp.Compile("[^a-z0-9 ]+")
+	if err != nil {
+		return "", err
+	}
+
+	return reg.ReplaceAllString(strings.ToLower(in), ""), nil
+}
+
 // item
 func NewItem(body []byte) (Item, error) {
 	i := &Item{}
 	if err := json.Unmarshal(body, i); err != nil {
 		return Item{}, err
-	}
-
-	reg, err := regexp.Compile("[^a-z0-9 ]+")
-	if err != nil {
-		return Item{}, err
-	}
-
-	if i.NormalizedName == "" {
-		i.NormalizedName = reg.ReplaceAllString(strings.ToLower(i.Name), "")
 	}
 
 	return *i, nil
