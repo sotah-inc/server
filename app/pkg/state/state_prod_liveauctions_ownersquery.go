@@ -25,15 +25,6 @@ func (liveAuctionsState ProdLiveAuctionsState) ListenForOwnersQuery(stop ListenS
 
 		// querying the live-auctions-databases
 		resp, respCode, err := liveAuctionsState.IO.Databases.LiveAuctionsDatabases.QueryOwners(request)
-		if err != nil {
-			m.Err = err.Error()
-			m.Code = mCodes.GenericError
-			liveAuctionsState.IO.Messenger.ReplyTo(natsMsg, m)
-
-			return
-		}
-
-		// optionally halting on non-ok code
 		if respCode != dCodes.Ok {
 			m.Err = err.Error()
 			m.Code = DatabaseCodeToMessengerCode(respCode)
