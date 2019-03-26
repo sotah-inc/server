@@ -249,7 +249,7 @@ func Welp(_ context.Context, _ PubSubMessage) error {
 	if err != nil {
 		return err
 	}
-	shit := "items-verification-7\n"
+	shit := "items-verification-8\n"
 	if string(data) != shit {
 		logging.Info("Unmatched")
 
