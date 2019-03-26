@@ -1,11 +1,10 @@
 package database
 
 import (
-	"github.com/sotah-inc/server/app/pkg/sotah"
-
 	"github.com/boltdb/bolt"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 )
 
 func NewItemsDatabase(dbDir string) (ItemsDatabase, error) {
