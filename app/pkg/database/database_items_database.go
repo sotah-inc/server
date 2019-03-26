@@ -2,6 +2,7 @@ package database
 
 import (
 	"encoding/json"
+	"strconv"
 
 	"github.com/boltdb/bolt"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
@@ -41,14 +42,23 @@ func (idBase ItemsDatabase) GetItems() (sotah.ItemsMap, error) {
 		}
 
 		err := bkt.ForEach(func(k, v []byte) error {
-			iMap, err := sotah.NewItemsMapFromGzipped(v)
+			parsedId, err := strconv.Atoi(string(k)[len("item-"):])
+			if err != nil {
+				return err
+			}
+			itemId := blizzard.ItemID(parsedId)
+
+			gzipDecoded, err := util.GzipDecode(v)
 			if err != nil {
 				return err
 			}
 
-			for ID, itemValue := range iMap {
-				out[ID] = itemValue
+			item, err := sotah.NewItem(gzipDecoded)
+			if err != nil {
+				return err
 			}
+
+			out[itemId] = item
 
 			return nil
 		})
