@@ -8,15 +8,14 @@ import (
 	"os"
 	"time"
 
-	"github.com/sotah-inc/server/app/pkg/database"
-
 	"cloud.google.com/go/pubsub"
-	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/bus/codes"
+	"github.com/sotah-inc/server/app/pkg/database"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/metric"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
@@ -90,40 +89,26 @@ func SyncAllItems(_ context.Context, m PubSubMessage) error {
 	}
 
 	// batching items together
-	batchSize := 1000
-	itemIdsBatches := map[int]blizzard.ItemIds{}
-	for i, id := range syncPayload.Ids {
-		key := (i - (i % batchSize)) / batchSize
-		batch := func() blizzard.ItemIds {
-			out, ok := itemIdsBatches[key]
-			if !ok {
-				return blizzard.ItemIds{}
-			}
+	itemIdsBatches := sotah.NewItemIdsBatches(syncPayload.Ids, 1000)
 
-			return out
-		}()
-		batch = append(batch, id)
-
-		itemIdsBatches[key] = batch
-
-		break
+	// producing messages
+	messages, err := bus.NewItemBatchesMessages(itemIdsBatches)
+	if err != nil {
+		return err
 	}
 
-	logging.WithFields(logrus.Fields{
-		"ids":     len(syncPayload.Ids),
-		"batches": len(itemIdsBatches),
-	}).Info("Enqueueing batches")
+	// enqueueing them
+	responses, err := busClient.BulkRequest(syncItemsTopic, messages, 60*time.Second)
+	if err != nil {
+		return err
+	}
 
-	for _, batch := range itemIdsBatches {
-		data, err := batch.EncodeForDelivery()
-		if err != nil {
-			return err
-		}
+	// going over the responses
+	for _, msg := range responses {
+		if msg.Code != codes.Ok {
+			logging.WithField("error", msg.Err).Error("Request from sync-items failed")
 
-		msg := bus.NewMessage()
-		msg.Data = data
-		if _, err := busClient.Publish(syncItemsTopic, msg); err != nil {
-			return err
+			continue
 		}
 	}
 

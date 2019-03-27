@@ -8,15 +8,14 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/sotah-inc/server/app/pkg/state/subjects"
-
-	"github.com/sotah-inc/server/app/pkg/logging"
-
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
+	"github.com/sotah-inc/server/app/pkg/bus/codes"
+	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
@@ -169,19 +168,19 @@ func SyncItem(id blizzard.ItemID) error {
 	return nil
 }
 
-type HandleJob struct {
+type HandleIdsJob struct {
 	Err error
 	Id  blizzard.ItemID
 }
 
-func Handle(ids blizzard.ItemIds) (blizzard.ItemIds, error) {
+func HandleIds(ids blizzard.ItemIds) (blizzard.ItemIds, error) {
 	// spawning workers
 	in := make(chan blizzard.ItemID)
-	out := make(chan HandleJob)
+	out := make(chan HandleIdsJob)
 	worker := func() {
 		for id := range in {
 			if err := SyncItem(id); err != nil {
-				out <- HandleJob{
+				out <- HandleIdsJob{
 					Err: err,
 					Id:  id,
 				}
@@ -189,7 +188,7 @@ func Handle(ids blizzard.ItemIds) (blizzard.ItemIds, error) {
 				continue
 			}
 
-			out <- HandleJob{
+			out <- HandleIdsJob{
 				Err: nil,
 				Id:  id,
 			}
@@ -224,6 +223,48 @@ func Handle(ids blizzard.ItemIds) (blizzard.ItemIds, error) {
 	return results, nil
 }
 
+func Handle(in bus.Message) bus.Message {
+	m := bus.NewMessage()
+
+	itemIds, err := blizzard.NewItemIds(in.Data)
+	if err != nil {
+		m.Err = err.Error()
+		m.Code = codes.GenericError
+
+		return m
+	}
+
+	results, err := HandleIds(itemIds)
+	if err != nil {
+		m.Err = err.Error()
+		m.Code = codes.GenericError
+
+		return m
+	}
+
+	data, err := results.EncodeForDelivery()
+	if err != nil {
+		m.Err = err.Error()
+		m.Code = codes.GenericError
+
+		return m
+	}
+
+	logging.WithField("results", len(results)).Info("Received synced items payload, pushing to receive-synced-items topic")
+	msg := bus.NewMessage()
+	msg.Data = data
+	if _, err := busClient.Publish(receiveSyncedItemsTopic, msg); err != nil {
+		m.Err = err.Error()
+		m.Code = codes.GenericError
+
+		return m
+	}
+
+	m.Code = codes.Ok
+
+	return m
+}
+
 type PubSubMessage struct {
 	Data []byte `json:"data"`
 }
@@ -234,25 +275,9 @@ func SyncItems(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
-	itemIds, err := blizzard.NewItemIds(in.Data)
-	if err != nil {
-		return err
-	}
-
-	results, err := Handle(itemIds)
-	if err != nil {
-		return err
-	}
-
-	data, err := results.EncodeForDelivery()
-	if err != nil {
-		return err
-	}
-
-	logging.WithField("results", len(results)).Info("Received synced items payload, pushing to receive-synced-items topic")
-	msg := bus.NewMessage()
-	msg.Data = data
-	if _, err := busClient.Publish(receiveSyncedItemsTopic, msg); err != nil {
+	msg := Handle(in)
+	msg.ReplyToId = in.ReplyToId
+	if _, err := busClient.ReplyTo(in, msg); err != nil {
 		return err
 	}
 
