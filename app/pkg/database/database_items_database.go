@@ -226,9 +226,9 @@ func (idBase ItemsDatabase) FilterInItemsToSync(ids blizzard.ItemIds) (ItemsSync
 
 	// peeking into the items database
 	err := idBase.db.View(func(tx *bolt.Tx) error {
-		bkt := tx.Bucket(databaseItemsBucketName())
-		if bkt == nil {
-			return nil
+		bkt, err := tx.CreateBucketIfNotExists(databaseItemsBucketName())
+		if err != nil {
+			return err
 		}
 
 		for _, id := range ids {
