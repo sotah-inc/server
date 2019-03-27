@@ -249,7 +249,7 @@ func Welp(_ context.Context, _ PubSubMessage) error {
 	if err != nil {
 		return err
 	}
-	shit := "items-verification-8\n"
+	shit := "items-verification-9\n"
 	if string(data) != shit {
 		logging.Info("Unmatched")
 
@@ -280,7 +280,7 @@ func Welp(_ context.Context, _ PubSubMessage) error {
 		providedItemIds = append(providedItemIds, id)
 	}
 
-	logging.WithField("item-ids", providedItemIds).Info("Filtering item-ids")
+	logging.WithField("item-ids", len(providedItemIds)).Info("Filtering item-ids")
 
 	encodedItemIds, err := providedItemIds.EncodeForDelivery()
 	if err != nil {
@@ -310,7 +310,7 @@ func Welp(_ context.Context, _ PubSubMessage) error {
 		return nil
 	}
 
-	logging.WithField("item-ids", filteredItemIds).Info("Received validated item-ids to sync, attempting to sync")
+	logging.WithField("item-ids", len(filteredItemIds)).Info("Received validated item-ids to sync, attempting to sync")
 
 	syncedItemIds, err := Handle(filteredItemIds)
 	if err != nil {
