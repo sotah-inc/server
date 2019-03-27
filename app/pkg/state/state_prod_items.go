@@ -1,18 +1,14 @@
 package state
 
 import (
-	"fmt"
-
-	"github.com/sotah-inc/server/app/pkg/state/subjects"
-
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/database"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/metric"
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
-	"github.com/sotah-inc/server/app/pkg/util"
 	"github.com/twinj/uuid"
 )
 
@@ -56,12 +52,6 @@ func NewProdItemsState(config ProdItemsStateConfig) (ProdItemsState, error) {
 	itemsState.ItemsBase = store.NewItemsBase(storeClient, "us-central1")
 	itemsState.ItemsBucket, err = itemsState.ItemsBase.GetFirmBucket()
 	if err != nil {
-		return ProdItemsState{}, err
-	}
-
-	// ensuring database paths exist
-	databasePaths := []string{fmt.Sprintf("%s/items", config.ItemsDatabaseDir)}
-	if err := util.EnsureDirsExist(databasePaths); err != nil {
 		return ProdItemsState{}, err
 	}
 
