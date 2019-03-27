@@ -202,3 +202,25 @@ func (v PricelistHistoryVersions) Insert(
 
 	return v
 }
+
+func NewItemIdsBatches(ids blizzard.ItemIds, batchSize int) ItemIdBatches {
+	batches := ItemIdBatches{}
+	for i, id := range ids {
+		key := (i - (i % batchSize)) / batchSize
+		batch := func() blizzard.ItemIds {
+			out, ok := batches[key]
+			if !ok {
+				return blizzard.ItemIds{}
+			}
+
+			return out
+		}()
+		batch = append(batch, id)
+
+		batches[key] = batch
+	}
+
+	return batches
+}
+
+type ItemIdBatches map[int]blizzard.ItemIds

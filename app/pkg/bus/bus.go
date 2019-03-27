@@ -23,6 +23,23 @@ import (
 	"github.com/twinj/uuid"
 )
 
+func NewItemBatchesMessages(batches sotah.ItemIdBatches) ([]Message, error) {
+	messages := []Message{}
+	for i, ids := range batches {
+		data, err := ids.EncodeForDelivery()
+		if err != nil {
+			return []Message{}, err
+		}
+
+		msg := NewMessage()
+		msg.Data = data
+		msg.ReplyToId = fmt.Sprintf("batch-%d", i)
+		messages = append(messages, msg)
+	}
+
+	return messages, nil
+}
+
 func NewCollectAuctionMessages(regionRealms sotah.RegionRealms) ([]Message, error) {
 	messages := []Message{}
 	for _, realms := range regionRealms {
