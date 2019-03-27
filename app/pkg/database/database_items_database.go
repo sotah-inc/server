@@ -175,12 +175,19 @@ func (idBase ItemsDatabase) PersistEncodedItems(in chan PersistEncodedItemsInJob
 	return nil
 }
 
-func (idBase ItemsDatabase) FilterInItemsToSync(ids blizzard.ItemIds) (blizzard.ItemIds, error) {
+func (idBase ItemsDatabase) FilterInItemsToSync(
+	ids blizzard.ItemIds,
+) (blizzard.ItemIds, map[string]blizzard.ItemIds, error) {
+	// producing a blank whitelist
 	syncWhitelist := map[blizzard.ItemID]bool{}
 	for _, id := range ids {
 		syncWhitelist[id] = false
 	}
 
+	// producing a blank map of icon->item-ids
+	iconsToSync := map[string]blizzard.ItemIds{}
+
+	// peeking into the items database
 	err := idBase.db.View(func(tx *bolt.Tx) error {
 		bkt := tx.Bucket(databaseItemsBucketName())
 		if bkt == nil {
@@ -207,6 +214,16 @@ func (idBase ItemsDatabase) FilterInItemsToSync(ids blizzard.ItemIds) (blizzard.
 
 			if item.IconURL == "" {
 				syncWhitelist[id] = true
+				iconItemIds := func() blizzard.ItemIds {
+					out, ok := iconsToSync[item.Icon]
+					if !ok {
+						return blizzard.ItemIds{}
+					}
+
+					return out
+				}()
+				iconItemIds = append(iconItemIds, id)
+				iconsToSync[item.Icon] = iconItemIds
 
 				continue
 			}
@@ -217,17 +234,18 @@ func (idBase ItemsDatabase) FilterInItemsToSync(ids blizzard.ItemIds) (blizzard.
 		return nil
 	})
 	if err != nil {
-		return blizzard.ItemIds{}, err
+		return blizzard.ItemIds{}, map[string]blizzard.ItemIds{}, err
 	}
 
-	out := blizzard.ItemIds{}
+	// reformatting the whitelist
+	idsToSync := blizzard.ItemIds{}
 	for id, shouldSync := range syncWhitelist {
 		if !shouldSync {
 			continue
 		}
 
-		out = append(out, id)
+		idsToSync = append(idsToSync, id)
 	}
 
-	return out, nil
+	return idsToSync, iconsToSync, nil
 }
