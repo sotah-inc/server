@@ -154,8 +154,8 @@ func SyncItem(id blizzard.ItemID) error {
 		return err
 	}
 
-	logging.WithField("id", id).Info("Writing to items-base")
 	// writing it out to the gcloud object
+	logging.WithField("id", id).Info("Writing to items-base")
 	wc := itemsBase.GetObject(id, itemsBucket).NewWriter(storeClient.Context)
 	wc.ContentType = "application/json"
 	wc.ContentEncoding = "gzip"
