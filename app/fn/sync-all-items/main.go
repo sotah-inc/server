@@ -82,6 +82,8 @@ func HandleItemIds(syncPayload database.ItemsSyncPayload) error {
 
 			continue
 		}
+
+		logging.WithField("batch", msg.ReplyToId).Info("Finished batch")
 	}
 
 	return nil
