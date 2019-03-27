@@ -249,7 +249,7 @@ func SyncItems(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
-	logging.Info("Received synced items payload, pushing to receive-synced-items topic")
+	logging.WithField("results", len(results)).Info("Received synced items payload, pushing to receive-synced-items topic")
 	msg := bus.NewMessage()
 	msg.Data = data
 	if _, err := busClient.Publish(receiveSyncedItemsTopic, msg); err != nil {
