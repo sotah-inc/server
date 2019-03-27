@@ -173,9 +173,9 @@ type HandleIdsJob struct {
 	Id  blizzard.ItemID
 }
 
-func HandleIds(ids blizzard.ItemIds) (blizzard.ItemIds, error) {
+func HandlePayloads(payloads store.IconItemsPayloads) (blizzard.ItemIds, error) {
 	// spawning workers
-	in := make(chan blizzard.ItemID)
+	in := make(chan store.IconItemsPayload)
 	out := make(chan HandleIdsJob)
 	worker := func() {
 		for id := range in {
@@ -226,7 +226,7 @@ func HandleIds(ids blizzard.ItemIds) (blizzard.ItemIds, error) {
 func Handle(in bus.Message) bus.Message {
 	m := bus.NewMessage()
 
-	itemIds, err := blizzard.NewItemIds(in.Data)
+	iconIdsPayloads, err := store.NewIconItemsPayloads(in.Data)
 	if err != nil {
 		m.Err = err.Error()
 		m.Code = codes.GenericError
@@ -269,7 +269,7 @@ type PubSubMessage struct {
 	Data []byte `json:"data"`
 }
 
-func SyncItems(_ context.Context, m PubSubMessage) error {
+func SyncItemIcons(_ context.Context, m PubSubMessage) error {
 	var in bus.Message
 	if err := json.Unmarshal(m.Data, &in); err != nil {
 		return err

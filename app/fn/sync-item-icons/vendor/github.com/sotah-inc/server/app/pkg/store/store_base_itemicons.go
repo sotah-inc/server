@@ -1,9 +1,11 @@
 package store
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"cloud.google.com/go/storage"
+	"github.com/sotah-inc/server/app/pkg/blizzard"
 )
 
 func NewItemIconsBase(c Client, location string) ItemIconsBase {
@@ -40,4 +42,29 @@ func (b ItemIconsBase) GetObject(name string, bkt *storage.BucketHandle) *storag
 
 func (b ItemIconsBase) GetFirmObject(name string, bkt *storage.BucketHandle) (*storage.ObjectHandle, error) {
 	return b.base.getFirmObject(b.getObjectName(name), bkt)
+}
+
+func NewIconItemsPayloads(data string) (IconItemsPayloads, error) {
+	var out IconItemsPayloads
+	if err := json.Unmarshal([]byte(data), &out); err != nil {
+		return IconItemsPayloads{}, err
+	}
+
+	return out, nil
+}
+
+type IconItemsPayloads []IconItemsPayload
+
+func (d IconItemsPayloads) EncodeForDelivery() (string, error) {
+	jsonEncoded, err := json.Marshal(d)
+	if err != nil {
+		return "", err
+	}
+
+	return string(jsonEncoded), nil
+}
+
+type IconItemsPayload struct {
+	Name string
+	Ids  blizzard.ItemIds
 }
