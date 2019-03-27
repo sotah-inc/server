@@ -44,25 +44,27 @@ func (b ItemIconsBase) GetFirmObject(name string, bkt *storage.BucketHandle) (*s
 	return b.base.getFirmObject(b.getObjectName(name), bkt)
 }
 
-func NewIconItemsPayload(data string) (IconItemsPayload, error) {
-	var out IconItemsPayload
+func NewIconItemsPayloads(data string) (IconItemsPayloads, error) {
+	var out IconItemsPayloads
 	if err := json.Unmarshal([]byte(data), &out); err != nil {
-		return IconItemsPayload{}, err
+		return IconItemsPayloads{}, err
 	}
 
 	return out, nil
 }
 
-type IconItemsPayload struct {
-	Name string
-	Ids  blizzard.ItemIds
-}
+type IconItemsPayloads []IconItemsPayload
 
-func (d IconItemsPayload) EncodeForDelivery() (string, error) {
+func (d IconItemsPayloads) EncodeForDelivery() (string, error) {
 	jsonEncoded, err := json.Marshal(d)
 	if err != nil {
 		return "", err
 	}
 
 	return string(jsonEncoded), nil
+}
+
+type IconItemsPayload struct {
+	Name string
+	Ids  blizzard.ItemIds
 }
