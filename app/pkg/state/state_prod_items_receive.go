@@ -3,6 +3,7 @@ package state
 import (
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/database"
@@ -45,7 +46,11 @@ func (itemsState ProdItemsState) ListenForSyncedItems(onReady chan interface{}, 
 	go func() {
 		for ids := range in {
 			// handling item-ids
-			logging.WithField("item-ids", len(ids)).Info("Received synced item-ids")
+			logging.WithFields(logrus.Fields{
+				"item-ids": len(ids),
+				"capacity": len(in),
+			}).Info("Received synced item-ids")
+
 			startTime := time.Now()
 			if err := ReceiveSyncedItems(itemsState, ids); err != nil {
 				logging.WithField("error", err.Error()).Error("Failed to receive synced items")
