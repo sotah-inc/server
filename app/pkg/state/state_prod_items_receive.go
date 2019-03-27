@@ -5,25 +5,38 @@ import (
 
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
+	"github.com/sotah-inc/server/app/pkg/database"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/metric"
-	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
 func ReceiveSyncedItems(itemsState ProdItemsState, ids blizzard.ItemIds) error {
-	logging.WithField("item-ids", len(ids)).Info("Fetching items")
-	items, err := itemsState.ItemsBase.GetItems(ids, itemsState.ItemsBucket)
-	if err != nil {
-		return err
-	}
-	itemsToPersist := sotah.ItemsMap{}
-	for _, item := range items {
-		itemsToPersist[item.ID] = item
-	}
+	// declare channels for persisting in
+	encodedIn := make(chan database.PersistEncodedItemsInJob)
 
-	logging.WithField("item-ids", len(ids)).Info("Persisting items")
-	return itemsState.IO.Databases.ItemsDatabase.PersistItems(itemsToPersist)
+	// declaring channel for fetching
+	getItemsOut := itemsState.ItemsBase.GetItems(ids, itemsState.ItemsBucket)
+
+	// spinning up a goroutine to multiplex the results between get-items and persist-encoded-items
+	go func() {
+		for outJob := range getItemsOut {
+			if outJob.Err != nil {
+				logging.WithFields(outJob.ToLogrusFields()).Error("Failed to fetch item")
+
+				continue
+			}
+
+			encodedIn <- database.PersistEncodedItemsInJob{
+				Id:              outJob.Id,
+				GzipEncodedData: outJob.GzipEncodedData,
+			}
+		}
+
+		close(encodedIn)
+	}()
+
+	return itemsState.IO.Databases.ItemsDatabase.PersistEncodedItems(encodedIn)
 }
 
 func (itemsState ProdItemsState) ListenForSyncedItems(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {
