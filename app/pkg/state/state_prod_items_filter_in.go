@@ -12,17 +12,18 @@ import (
 )
 
 func HandleFilterInItemsToSync(busMsg bus.Message, itemsState ProdItemsState, ids blizzard.ItemIds) error {
-	toSync, err := itemsState.IO.Databases.ItemsDatabase.FilterInItemsToSync(ids)
+	syncPayload, err := itemsState.IO.Databases.ItemsDatabase.FilterInItemsToSync(ids)
 	if err != nil {
 		return err
 	}
 
 	logging.WithFields(logrus.Fields{
 		"provided": len(ids),
-		"new":      len(toSync),
+		"new":      len(syncPayload.Ids),
+		"icons":    len(syncPayload.IconIdsMap),
 	}).Info("Filtered items to sync")
 
-	data, err := toSync.EncodeForDelivery()
+	data, err := syncPayload.EncodeForDelivery()
 	if err != nil {
 		return err
 	}

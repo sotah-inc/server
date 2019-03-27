@@ -1,6 +1,7 @@
 package database
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"strconv"
 
@@ -175,9 +176,45 @@ func (idBase ItemsDatabase) PersistEncodedItems(in chan PersistEncodedItemsInJob
 	return nil
 }
 
-func (idBase ItemsDatabase) FilterInItemsToSync(
-	ids blizzard.ItemIds,
-) (blizzard.ItemIds, map[string]blizzard.ItemIds, error) {
+func NewItemsSyncPayload(data string) (ItemsSyncPayload, error) {
+	base64Decoded, err := base64.StdEncoding.DecodeString(data)
+	if err != nil {
+		return ItemsSyncPayload{}, err
+	}
+
+	gzipDecoded, err := util.GzipDecode(base64Decoded)
+	if err != nil {
+		return ItemsSyncPayload{}, err
+	}
+
+	var out ItemsSyncPayload
+	if err := json.Unmarshal(gzipDecoded, &out); err != nil {
+		return ItemsSyncPayload{}, err
+	}
+
+	return out, nil
+}
+
+type ItemsSyncPayload struct {
+	Ids        blizzard.ItemIds
+	IconIdsMap map[string]blizzard.ItemIds
+}
+
+func (p ItemsSyncPayload) EncodeForDelivery() (string, error) {
+	jsonEncoded, err := json.Marshal(p)
+	if err != nil {
+		return "", err
+	}
+
+	gzipEncoded, err := util.GzipEncode(jsonEncoded)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(gzipEncoded), nil
+}
+
+func (idBase ItemsDatabase) FilterInItemsToSync(ids blizzard.ItemIds) (ItemsSyncPayload, error) {
 	// producing a blank whitelist
 	syncWhitelist := map[blizzard.ItemID]bool{}
 	for _, id := range ids {
@@ -234,7 +271,7 @@ func (idBase ItemsDatabase) FilterInItemsToSync(
 		return nil
 	})
 	if err != nil {
-		return blizzard.ItemIds{}, map[string]blizzard.ItemIds{}, err
+		return ItemsSyncPayload{}, err
 	}
 
 	// reformatting the whitelist
@@ -247,5 +284,5 @@ func (idBase ItemsDatabase) FilterInItemsToSync(
 		idsToSync = append(idsToSync, id)
 	}
 
-	return idsToSync, iconsToSync, nil
+	return ItemsSyncPayload{Ids: idsToSync, IconIdsMap: iconsToSync}, nil
 }
