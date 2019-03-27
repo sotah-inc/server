@@ -57,7 +57,7 @@ func HandleItemIds(syncPayload database.ItemsSyncPayload) error {
 	}
 
 	// batching items together
-	logging.WithField("ids", syncPayload.Ids).Info("Batching ids together")
+	logging.WithField("ids", len(syncPayload.Ids)).Info("Batching ids together")
 	itemIdsBatches := sotah.NewItemIdsBatches(syncPayload.Ids, 1000)
 
 	// producing messages
