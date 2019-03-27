@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"cloud.google.com/go/storage"
+	"github.com/sirupsen/logrus"
+	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/util"
-
-	"cloud.google.com/go/storage"
-	"github.com/sotah-inc/server/app/pkg/blizzard"
 )
 
 func NewItemsBase(c Client, location string) ItemsBase {
@@ -67,11 +67,19 @@ func (b ItemsBase) NewItem(obj *storage.ObjectHandle) (sotah.Item, error) {
 }
 
 type GetItemsOutJob struct {
-	Err  error
-	Item sotah.Item
+	Err             error
+	Id              blizzard.ItemID
+	GzipEncodedData []byte
 }
 
-func (b ItemsBase) GetItems(ids blizzard.ItemIds, bkt *storage.BucketHandle) ([]sotah.Item, error) {
+func (job GetItemsOutJob) ToLogrusFields() logrus.Fields {
+	return logrus.Fields{
+		"error": job.Err.Error(),
+		"id":    job.Id,
+	}
+}
+
+func (b ItemsBase) GetItems(ids blizzard.ItemIds, bkt *storage.BucketHandle) chan GetItemsOutJob {
 	// spinning up workers
 	in := make(chan blizzard.ItemID)
 	out := make(chan GetItemsOutJob)
@@ -81,23 +89,36 @@ func (b ItemsBase) GetItems(ids blizzard.ItemIds, bkt *storage.BucketHandle) ([]
 			if err != nil {
 				out <- GetItemsOutJob{
 					Err: err,
+					Id:  id,
 				}
 
 				continue
 			}
 
-			item, err := b.NewItem(obj)
+			reader, err := obj.ReadCompressed(true).NewReader(b.client.Context)
 			if err != nil {
 				out <- GetItemsOutJob{
 					Err: err,
+					Id:  id,
+				}
+
+				continue
+			}
+
+			gzipEncodedData, err := ioutil.ReadAll(reader)
+			if err != nil {
+				out <- GetItemsOutJob{
+					Err: err,
+					Id:  id,
 				}
 
 				continue
 			}
 
 			out <- GetItemsOutJob{
-				Err:  nil,
-				Item: item,
+				Err:             nil,
+				Id:              id,
+				GzipEncodedData: gzipEncodedData,
 			}
 		}
 	}
@@ -115,14 +136,5 @@ func (b ItemsBase) GetItems(ids blizzard.ItemIds, bkt *storage.BucketHandle) ([]
 		close(in)
 	}()
 
-	results := []sotah.Item{}
-	for outJob := range out {
-		if outJob.Err != nil {
-			return []sotah.Item{}, outJob.Err
-		}
-
-		results = append(results, outJob.Item)
-	}
-
-	return results, nil
+	return out
 }
