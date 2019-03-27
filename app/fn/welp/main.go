@@ -249,14 +249,14 @@ func Welp(_ context.Context, _ PubSubMessage) error {
 	if err != nil {
 		return err
 	}
-	shit := "items-verification-9\n"
+	shit := "items-verification-10\n"
 	if string(data) != shit {
 		logging.Info("Unmatched")
 
 		return nil
 	}
 
-	realm := sotah.NewSkeletonRealm("us", "aegwynn")
+	realm := sotah.NewSkeletonRealm("us", "earthen-ring")
 	obj, err = liveAuctionsStoreBase.GetFirmObject(realm, liveAuctionsBucket)
 	if err != nil {
 		return err
