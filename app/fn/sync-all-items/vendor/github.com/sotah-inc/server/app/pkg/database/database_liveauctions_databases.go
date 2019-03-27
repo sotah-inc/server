@@ -246,17 +246,17 @@ func (ladBases LiveAuctionsDatabases) GetStats(realms sotah.Realms) chan GetStat
 	return out
 }
 
-func NewQueryRequest(data []byte) (QueryRequest, error) {
-	ar := &QueryRequest{}
+func NewQueryRequest(data []byte) (QueryAuctionsRequest, error) {
+	ar := &QueryAuctionsRequest{}
 	err := json.Unmarshal(data, &ar)
 	if err != nil {
-		return QueryRequest{}, err
+		return QueryAuctionsRequest{}, err
 	}
 
 	return *ar, nil
 }
 
-type QueryRequest struct {
+type QueryAuctionsRequest struct {
 	RegionName    blizzard.RegionName          `json:"region_name"`
 	RealmSlug     blizzard.RealmSlug           `json:"realm_slug"`
 	Page          int                          `json:"page"`
@@ -267,13 +267,13 @@ type QueryRequest struct {
 	ItemFilters   []blizzard.ItemID            `json:"item_filters"`
 }
 
-type QueryResponse struct {
+type QueryAuctionsResponse struct {
 	AuctionList sotah.MiniAuctionList `json:"auctions"`
 	Total       int                   `json:"total"`
 	TotalCount  int                   `json:"total_count"`
 }
 
-func (qr QueryResponse) EncodeForDelivery() (string, error) {
+func (qr QueryAuctionsResponse) EncodeForDelivery() (string, error) {
 	jsonEncoded, err := json.Marshal(qr)
 	if err != nil {
 		return "", err
@@ -287,33 +287,33 @@ func (qr QueryResponse) EncodeForDelivery() (string, error) {
 	return base64.StdEncoding.EncodeToString(gzipEncoded), nil
 }
 
-func (ladBases LiveAuctionsDatabases) Query(qr QueryRequest) (QueryResponse, codes.Code, error) {
+func (ladBases LiveAuctionsDatabases) QueryAuctions(qr QueryAuctionsRequest) (QueryAuctionsResponse, codes.Code, error) {
 	regionLadBases, ok := ladBases[qr.RegionName]
 	if !ok {
-		return QueryResponse{}, codes.UserError, errors.New("invalid region")
+		return QueryAuctionsResponse{}, codes.UserError, errors.New("invalid region")
 	}
 
 	realmLadbase, ok := regionLadBases[qr.RealmSlug]
 	if !ok {
-		return QueryResponse{}, codes.UserError, errors.New("invalid realm")
+		return QueryAuctionsResponse{}, codes.UserError, errors.New("invalid realm")
 	}
 
 	if qr.Page < 0 {
-		return QueryResponse{}, codes.UserError, errors.New("page must be >= 0")
+		return QueryAuctionsResponse{}, codes.UserError, errors.New("page must be >= 0")
 	}
 	if qr.Count == 0 {
-		return QueryResponse{}, codes.UserError, errors.New("count must be >= 0")
+		return QueryAuctionsResponse{}, codes.UserError, errors.New("count must be >= 0")
 	} else if qr.Count > 1000 {
-		return QueryResponse{}, codes.UserError, errors.New("page must be <= 1000")
+		return QueryAuctionsResponse{}, codes.UserError, errors.New("page must be <= 1000")
 	}
 
 	maList, err := realmLadbase.GetMiniAuctionList()
 	if err != nil {
-		return QueryResponse{}, codes.GenericError, err
+		return QueryAuctionsResponse{}, codes.GenericError, err
 	}
 
 	// initial response format
-	aResponse := QueryResponse{Total: -1, TotalCount: -1, AuctionList: maList}
+	aResponse := QueryAuctionsResponse{Total: -1, TotalCount: -1, AuctionList: maList}
 
 	// filtering in auctions by owners or items
 	if len(qr.OwnerFilters) > 0 {
@@ -337,14 +337,14 @@ func (ladBases LiveAuctionsDatabases) Query(qr QueryRequest) (QueryResponse, cod
 	if qr.SortKind != sortkinds.None && qr.SortDirection != sortdirections.None {
 		err = aResponse.AuctionList.Sort(qr.SortKind, qr.SortDirection)
 		if err != nil {
-			return QueryResponse{}, codes.UserError, err
+			return QueryAuctionsResponse{}, codes.UserError, err
 		}
 	}
 
 	// truncating the list
 	aResponse.AuctionList, err = aResponse.AuctionList.Limit(qr.Count, qr.Page)
 	if err != nil {
-		return QueryResponse{}, codes.UserError, err
+		return QueryAuctionsResponse{}, codes.UserError, err
 	}
 
 	return aResponse, codes.Ok, nil

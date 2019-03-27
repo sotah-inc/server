@@ -8,6 +8,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/sotah-inc/server/app/pkg/database"
+
 	"cloud.google.com/go/pubsub"
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
@@ -82,7 +84,7 @@ func SyncAllItems(_ context.Context, m PubSubMessage) error {
 	}
 
 	// parsing response data
-	itemIds, err := blizzard.NewItemIds(response.Data)
+	syncPayload, err := database.NewItemsSyncPayload(response.Data)
 	if err != nil {
 		return err
 	}
@@ -90,7 +92,7 @@ func SyncAllItems(_ context.Context, m PubSubMessage) error {
 	// batching items together
 	batchSize := 1000
 	itemIdsBatches := map[int]blizzard.ItemIds{}
-	for i, id := range itemIds {
+	for i, id := range syncPayload.Ids {
 		key := (i - (i % batchSize)) / batchSize
 		batch := func() blizzard.ItemIds {
 			out, ok := itemIdsBatches[key]
@@ -108,7 +110,7 @@ func SyncAllItems(_ context.Context, m PubSubMessage) error {
 	}
 
 	logging.WithFields(logrus.Fields{
-		"ids":     len(itemIds),
+		"ids":     len(syncPayload.Ids),
 		"batches": len(itemIdsBatches),
 	}).Info("Enqueueing batches")
 
