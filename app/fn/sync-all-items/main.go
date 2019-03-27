@@ -49,6 +49,44 @@ func init() {
 	}
 }
 
+func HandleItemIds(syncPayload database.ItemsSyncPayload) error {
+	if len(syncPayload.Ids) == 0 {
+		logging.Info("No item-ids in sync-payload, skipping")
+
+		return nil
+	}
+
+	// batching items together
+	logging.WithField("ids", syncPayload.Ids).Info("Batching ids together")
+	itemIdsBatches := sotah.NewItemIdsBatches(syncPayload.Ids, 1000)
+
+	// producing messages
+	logging.WithField("batches", len(itemIdsBatches)).Info("Producing messages for enqueueing")
+	messages, err := bus.NewItemBatchesMessages(itemIdsBatches)
+	if err != nil {
+		return err
+	}
+
+	// enqueueing them
+	logging.WithField("messages", len(messages)).Info("Bulk-requesting with messages")
+	responses, err := busClient.BulkRequest(syncItemsTopic, messages, 60*time.Second)
+	if err != nil {
+		return err
+	}
+
+	// going over the responses
+	logging.WithField("responses", len(responses)).Info("Going over responses")
+	for _, msg := range responses {
+		if msg.Code != codes.Ok {
+			logging.WithField("error", msg.Err).Error("Request from sync-items failed")
+
+			continue
+		}
+	}
+
+	return nil
+}
+
 type PubSubMessage struct {
 	Data []byte `json:"data"`
 }
@@ -88,28 +126,9 @@ func SyncAllItems(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
-	// batching items together
-	itemIdsBatches := sotah.NewItemIdsBatches(syncPayload.Ids, 1000)
-
-	// producing messages
-	messages, err := bus.NewItemBatchesMessages(itemIdsBatches)
-	if err != nil {
+	// handling item-ids
+	if err := HandleItemIds(syncPayload); err != nil {
 		return err
-	}
-
-	// enqueueing them
-	responses, err := busClient.BulkRequest(syncItemsTopic, messages, 60*time.Second)
-	if err != nil {
-		return err
-	}
-
-	// going over the responses
-	for _, msg := range responses {
-		if msg.Code != codes.Ok {
-			logging.WithField("error", msg.Err).Error("Request from sync-items failed")
-
-			continue
-		}
 	}
 
 	// reporting metrics
