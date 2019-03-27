@@ -176,9 +176,9 @@ func (idBase ItemsDatabase) PersistEncodedItems(in chan PersistEncodedItemsInJob
 }
 
 func (idBase ItemsDatabase) FilterInItemsToSync(ids blizzard.ItemIds) (blizzard.ItemIds, error) {
-	exists := map[blizzard.ItemID]bool{}
+	syncWhitelist := map[blizzard.ItemID]bool{}
 	for _, id := range ids {
-		exists[id] = false
+		syncWhitelist[id] = false
 	}
 
 	err := idBase.db.View(func(tx *bolt.Tx) error {
@@ -190,10 +190,28 @@ func (idBase ItemsDatabase) FilterInItemsToSync(ids blizzard.ItemIds) (blizzard.
 		for _, id := range ids {
 			value := bkt.Get(itemsKeyName(id))
 			if value == nil {
+				syncWhitelist[id] = true
+
 				continue
 			}
 
-			exists[id] = true
+			gzipDecoded, err := util.GzipDecode(value)
+			if err != nil {
+				return err
+			}
+
+			item, err := sotah.NewItem(gzipDecoded)
+			if err != nil {
+				return err
+			}
+
+			if item.IconURL == "" {
+				syncWhitelist[id] = true
+
+				continue
+			}
+
+			syncWhitelist[id] = true
 		}
 
 		return nil
@@ -203,8 +221,8 @@ func (idBase ItemsDatabase) FilterInItemsToSync(ids blizzard.ItemIds) (blizzard.
 	}
 
 	out := blizzard.ItemIds{}
-	for id, exists := range exists {
-		if exists {
+	for id, shouldSync := range syncWhitelist {
+		if !shouldSync {
 			continue
 		}
 
