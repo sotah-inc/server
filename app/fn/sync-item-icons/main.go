@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -25,12 +26,15 @@ var (
 	busClient               bus.Client
 	receiveSyncedItemsTopic *pubsub.Topic
 
-	storeClient     store.Client
-	itemsBase       store.ItemsBase
-	itemsBucket     *storage.BucketHandle
-	itemIconsBase   store.ItemIconsBase
-	itemIconsBucket *storage.BucketHandle
+	storeClient         store.Client
+	itemsBase           store.ItemsBase
+	itemsBucket         *storage.BucketHandle
+	itemIconsBase       store.ItemIconsBase
+	itemIconsBucket     *storage.BucketHandle
+	itemIconsBucketName string
 )
+
+const storeItemIconURLFormat = "https://storage.googleapis.com/%s/%s"
 
 func init() {
 	var err error
@@ -69,6 +73,115 @@ func init() {
 
 		return
 	}
+
+	bktAttrs, err := itemIconsBucket.Attrs(storeClient.Context)
+	if err != nil {
+		log.Fatalf("Failed to get bucket attrs: %s", err.Error())
+
+		return
+	}
+
+	itemIconsBucketName = bktAttrs.Name
+}
+
+func UpdateItem(id blizzard.ItemID, objectUri string, objectName string) error {
+	// gathering the object
+	obj, err := itemsBase.GetFirmObject(id, itemsBucket)
+	if err != nil {
+		return err
+	}
+
+	// reading the item from the object
+	item, err := itemsBase.NewItem(obj)
+	if err != nil {
+		return err
+	}
+
+	// updating the icon data with the object uri (for non-cdn usage) and the object name (for cdn usage)
+	item.IconURL = objectUri
+	item.IconObjectName = objectName
+
+	jsonEncoded, err := json.Marshal(item)
+	if err != nil {
+		return err
+	}
+
+	gzipEncodedBody, err := util.GzipEncode(jsonEncoded)
+	if err != nil {
+		return err
+	}
+
+	// writing it out to the gcloud object
+	logging.WithField("id", id).Info("Writing to items-base")
+	wc := itemsBase.GetObject(id, itemsBucket).NewWriter(storeClient.Context)
+	wc.ContentType = "application/json"
+	wc.ContentEncoding = "gzip"
+	if _, err := wc.Write(gzipEncodedBody); err != nil {
+		return err
+	}
+	if err := wc.Close(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func UpdateItems(objectUri string, objectName string, ids blizzard.ItemIds) error {
+	// spawning workers
+	in := make(chan blizzard.ItemID)
+	out := make(chan error)
+	worker := func() {
+		for id := range in {
+			if err := UpdateItem(id, objectUri, objectName); err != nil {
+				out <- err
+
+				continue
+			}
+
+			out <- nil
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(8, worker, postWork)
+
+	// spinning it up
+	go func() {
+		for _, id := range ids {
+			in <- id
+		}
+
+		close(in)
+	}()
+
+	// waiting for the results to drain out
+	for err := range out {
+		if err != nil {
+			logging.WithField("error", err.Error()).Error("Failed to update items with icon data")
+
+			continue
+		}
+	}
+
+	return nil
+}
+
+func SyncExistingItemIcon(payload store.IconItemsPayload) error {
+	obj, err := itemIconsBase.GetFirmObject(payload.Name, itemIconsBucket)
+	if err != nil {
+		return err
+	}
+
+	// gathering obj attrs for generating a valid uri
+	objAttrs, err := obj.Attrs(storeClient.Context)
+	if err != nil {
+		return err
+	}
+
+	objectUri := fmt.Sprintf(storeItemIconURLFormat, itemIconsBucketName, objAttrs.Name)
+
+	return UpdateItems(objectUri, objAttrs.Name, payload.Ids)
 }
 
 func SyncItemIcon(payload store.IconItemsPayload) error {
@@ -78,9 +191,9 @@ func SyncItemIcon(payload store.IconItemsPayload) error {
 		return err
 	}
 	if exists {
-		logging.WithField("icon", payload.Name).Info("Item-icon already exists, skipping")
+		logging.WithField("icon", payload.Name).Info("Item-icon already exists, updating items")
 
-		return nil
+		return SyncExistingItemIcon(payload)
 	}
 
 	logging.WithField("icon", payload.Name).Info("Downloading")
@@ -103,7 +216,21 @@ func SyncItemIcon(payload store.IconItemsPayload) error {
 		return err
 	}
 
-	return nil
+	// setting acl of item-icon object to public
+	acl := obj.ACL()
+	if err := acl.Set(storeClient.Context, storage.AllUsers, storage.RoleReader); err != nil {
+		return err
+	}
+
+	// gathering obj attrs for generating a valid uri
+	objAttrs, err := obj.Attrs(storeClient.Context)
+	if err != nil {
+		return err
+	}
+
+	objectUri := fmt.Sprintf(storeItemIconURLFormat, itemIconsBucketName, objAttrs.Name)
+
+	return UpdateItems(objectUri, objAttrs.Name, payload.Ids)
 }
 
 type HandlePayloadsJob struct {
@@ -154,7 +281,7 @@ func HandlePayloads(payloads store.IconItemsPayloads) (blizzard.ItemIds, error) 
 		if outJob.Err != nil {
 			logging.WithField("error", outJob.Err.Error()).Error("Failed to sync item")
 
-			continue
+			return blizzard.ItemIds{}, outJob.Err
 		}
 
 		for _, id := range outJob.Ids {
