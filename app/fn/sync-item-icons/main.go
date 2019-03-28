@@ -14,7 +14,6 @@ import (
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/bus/codes"
 	"github.com/sotah-inc/server/app/pkg/logging"
-	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
 	"github.com/sotah-inc/server/app/pkg/util"
@@ -25,10 +24,6 @@ var (
 
 	busClient               bus.Client
 	receiveSyncedItemsTopic *pubsub.Topic
-
-	primaryRegion sotah.Region
-
-	blizzardClient blizzard.Client
 
 	storeClient     store.Client
 	itemsBase       store.ItemsBase
@@ -74,42 +69,6 @@ func init() {
 
 		return
 	}
-
-	bootBase := store.NewBootBase(storeClient, "us-central1")
-
-	var bootBucket *storage.BucketHandle
-	bootBucket, err = bootBase.GetFirmBucket()
-	if err != nil {
-		log.Fatalf("Failed to get firm bucket: %s", err.Error())
-
-		return
-	}
-
-	blizzardCredentials, err := bootBase.GetBlizzardCredentials(bootBucket)
-	if err != nil {
-		log.Fatalf("Failed to get blizzard-credentials: %s", err.Error())
-
-		return
-	}
-	blizzardClient, err = blizzard.NewClient(blizzardCredentials.ClientId, blizzardCredentials.ClientSecret)
-	if err != nil {
-		log.Fatalf("Failed to create blizzard client: %s", err.Error())
-
-		return
-	}
-
-	regions, err := bootBase.GetRegions(bootBucket)
-	if err != nil {
-		log.Fatalf("Failed to get regions: %s", err.Error())
-
-		return
-	}
-	primaryRegion, err = regions.GetPrimaryRegion()
-	if err != nil {
-		log.Fatalf("Failed to get primary region: %s", err.Error())
-
-		return
-	}
 }
 
 func SyncItemIcon(payload store.IconItemsPayload) error {
@@ -125,12 +84,7 @@ func SyncItemIcon(payload store.IconItemsPayload) error {
 	}
 
 	logging.WithField("icon", payload.Name).Info("Downloading")
-	uri, err := blizzardClient.AppendAccessToken(blizzard.DefaultGetItemIconURL(payload.Name))
-	if err != nil {
-		return err
-	}
-
-	respMeta, err := blizzard.Download(uri)
+	respMeta, err := blizzard.Download(blizzard.DefaultGetItemIconURL(payload.Name))
 	if err != nil {
 		return err
 	}
