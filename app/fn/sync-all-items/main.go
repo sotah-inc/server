@@ -24,6 +24,7 @@ var (
 
 	busClient                bus.Client
 	syncItemsTopic           *pubsub.Topic
+	syncItemIconsTopic       *pubsub.Topic
 	filterInItemsToSyncTopic *pubsub.Topic
 )
 
@@ -36,6 +37,12 @@ func init() {
 		return
 	}
 	syncItemsTopic, err = busClient.FirmTopic(string(subjects.SyncItems))
+	if err != nil {
+		log.Fatalf("Failed to get firm topic: %s", err.Error())
+
+		return
+	}
+	syncItemIconsTopic, err = busClient.FirmTopic(string(subjects.SyncItemIcons))
 	if err != nil {
 		log.Fatalf("Failed to get firm topic: %s", err.Error())
 
@@ -109,7 +116,7 @@ func HandleItemIcons(iconsMap map[string]blizzard.ItemIds) error {
 
 	// enqueueing them
 	logging.WithField("messages", len(messages)).Info("Bulk-requesting with messages")
-	responses, err := busClient.BulkRequest(syncItemsTopic, messages, 60*time.Second)
+	responses, err := busClient.BulkRequest(syncItemIconsTopic, messages, 60*time.Second)
 	if err != nil {
 		return err
 	}
