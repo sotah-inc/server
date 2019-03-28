@@ -249,8 +249,7 @@ func (idBase ItemsDatabase) FilterInItemsToSync(ids blizzard.ItemIds) (ItemsSync
 				return err
 			}
 
-			if item.IconURL == "" {
-				syncWhitelist[id] = true
+			if item.IconURL == "" || item.IconObjectName == "" {
 				iconItemIds := func() blizzard.ItemIds {
 					out, ok := iconsToSync[item.Icon]
 					if !ok {
