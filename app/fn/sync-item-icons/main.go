@@ -112,19 +112,20 @@ func init() {
 	}
 }
 
-func SyncItem(id blizzard.ItemID) error {
-	exists, err := itemsBase.ObjectExists(id, itemsBucket)
+func SyncItemIcon(payload store.IconItemsPayload) error {
+	obj := itemIconsBase.GetObject(payload.Name, itemIconsBucket)
+	exists, err := itemIconsBase.ObjectExists(obj)
 	if err != nil {
 		return err
 	}
 	if exists {
-		logging.WithField("id", id).Info("Item already exists, skipping")
+		logging.WithField("icon", payload.Name).Info("Item-icon already exists, skipping")
 
 		return nil
 	}
 
-	logging.WithField("id", id).Info("Downloading")
-	uri, err := blizzardClient.AppendAccessToken(blizzard.DefaultGetItemURL(primaryRegion.Hostname, id))
+	logging.WithField("icon", payload.Name).Info("Downloading")
+	uri, err := blizzardClient.AppendAccessToken(blizzard.DefaultGetItemIconURL(payload.Name))
 	if err != nil {
 		return err
 	}
@@ -137,28 +138,11 @@ func SyncItem(id blizzard.ItemID) error {
 		return errors.New("status was not OK")
 	}
 
-	logging.WithField("id", id).Info("Parsing and encoding")
-	item, err := blizzard.NewItem(respMeta.Body)
-	if err != nil {
-		return err
-	}
-
-	jsonEncoded, err := json.Marshal(item)
-	if err != nil {
-		return err
-	}
-
-	gzipEncodedBody, err := util.GzipEncode(jsonEncoded)
-	if err != nil {
-		return err
-	}
-
 	// writing it out to the gcloud object
-	logging.WithField("id", id).Info("Writing to items-base")
-	wc := itemsBase.GetObject(id, itemsBucket).NewWriter(storeClient.Context)
-	wc.ContentType = "application/json"
-	wc.ContentEncoding = "gzip"
-	if _, err := wc.Write(gzipEncodedBody); err != nil {
+	logging.WithField("icon", payload.Name).Info("Writing to item-icons-base")
+	wc := obj.NewWriter(storeClient.Context)
+	wc.ContentType = "image/jpeg"
+	if _, err := wc.Write(respMeta.Body); err != nil {
 		return err
 	}
 	if err := wc.Close(); err != nil {
@@ -179,19 +163,20 @@ func HandlePayloads(payloads store.IconItemsPayloads) (blizzard.ItemIds, error) 
 	in := make(chan store.IconItemsPayload)
 	out := make(chan HandlePayloadsJob)
 	worker := func() {
-		for id := range in {
-			if err := SyncItem(id); err != nil {
-				out <- HandleIdsJob{
-					Err: err,
-					Id:  id,
+		for payload := range in {
+			if err := SyncItemIcon(payload); err != nil {
+				out <- HandlePayloadsJob{
+					Err:      err,
+					IconName: payload.Name,
 				}
 
 				continue
 			}
 
-			out <- HandleIdsJob{
-				Err: nil,
-				Id:  id,
+			out <- HandlePayloadsJob{
+				Err:      nil,
+				IconName: payload.Name,
+				Ids:      payload.Ids,
 			}
 		}
 	}
@@ -202,8 +187,8 @@ func HandlePayloads(payloads store.IconItemsPayloads) (blizzard.ItemIds, error) 
 
 	// spinning it up
 	go func() {
-		for _, id := range ids {
-			in <- id
+		for _, payload := range payloads {
+			in <- payload
 		}
 
 		close(in)
@@ -218,7 +203,9 @@ func HandlePayloads(payloads store.IconItemsPayloads) (blizzard.ItemIds, error) 
 			continue
 		}
 
-		results = append(results, outJob.Id)
+		for _, id := range outJob.Ids {
+			results = append(results, id)
+		}
 	}
 
 	return results, nil
