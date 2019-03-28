@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/sotah-inc/server/app/pkg/sotah"
+
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
@@ -167,7 +169,7 @@ func UpdateItems(objectUri string, objectName string, ids blizzard.ItemIds) erro
 	return nil
 }
 
-func SyncExistingItemIcon(payload store.IconItemsPayload) error {
+func SyncExistingItemIcon(payload sotah.IconItemsPayload) error {
 	obj, err := itemIconsBase.GetFirmObject(payload.Name, itemIconsBucket)
 	if err != nil {
 		return err
@@ -184,7 +186,7 @@ func SyncExistingItemIcon(payload store.IconItemsPayload) error {
 	return UpdateItems(objectUri, objAttrs.Name, payload.Ids)
 }
 
-func SyncItemIcon(payload store.IconItemsPayload) error {
+func SyncItemIcon(payload sotah.IconItemsPayload) error {
 	obj := itemIconsBase.GetObject(payload.Name, itemIconsBucket)
 	exists, err := itemIconsBase.ObjectExists(obj)
 	if err != nil {
@@ -239,9 +241,9 @@ type HandlePayloadsJob struct {
 	Ids      blizzard.ItemIds
 }
 
-func HandlePayloads(payloads store.IconItemsPayloads) (blizzard.ItemIds, error) {
+func HandlePayloads(payloads sotah.IconItemsPayloads) (blizzard.ItemIds, error) {
 	// spawning workers
-	in := make(chan store.IconItemsPayload)
+	in := make(chan sotah.IconItemsPayload)
 	out := make(chan HandlePayloadsJob)
 	worker := func() {
 		for payload := range in {
@@ -295,7 +297,7 @@ func HandlePayloads(payloads store.IconItemsPayloads) (blizzard.ItemIds, error) 
 func Handle(in bus.Message) bus.Message {
 	m := bus.NewMessage()
 
-	iconIdsPayloads, err := store.NewIconItemsPayloads(in.Data)
+	iconIdsPayloads, err := sotah.NewIconItemsPayloads(in.Data)
 	if err != nil {
 		m.Err = err.Error()
 		m.Code = codes.GenericError
