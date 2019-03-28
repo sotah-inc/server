@@ -105,7 +105,7 @@ func HandleItemIcons(iconsMap map[string]blizzard.ItemIds) error {
 
 	// batching icons together
 	logging.WithField("icons", len(iconsMap)).Info("Batching icons together")
-	iconBatches := sotah.NewIconItemsPayloadsBatches(iconsMap, 1000)
+	iconBatches := sotah.NewIconItemsPayloadsBatches(iconsMap, 100)
 
 	// producing messages
 	logging.WithField("batches", len(iconBatches)).Info("Producing messages for enqueueing")
@@ -116,7 +116,7 @@ func HandleItemIcons(iconsMap map[string]blizzard.ItemIds) error {
 
 	// enqueueing them
 	logging.WithField("messages", len(messages)).Info("Bulk-requesting with messages")
-	responses, err := busClient.BulkRequest(syncItemIconsTopic, messages, 60*time.Second)
+	responses, err := busClient.BulkRequest(syncItemIconsTopic, messages, 120*time.Second)
 	if err != nil {
 		return err
 	}
