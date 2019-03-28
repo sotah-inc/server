@@ -89,7 +89,7 @@ func init() {
 	}
 }
 
-func PublishToSyncItems(tuples bus.RegionRealmTimestampTuples) error {
+func PublishToSyncAllItems(tuples bus.RegionRealmTimestampTuples) error {
 	itemIdsMap := sotah.ItemIdsMap{}
 	for _, tuple := range tuples {
 		for _, id := range tuple.ItemIds {
@@ -227,7 +227,7 @@ func DownloadAllAuctions(_ context.Context, _ PubSubMessage) error {
 	}
 
 	// publishing to sync-all-items
-	if err := PublishToSyncItems(tuples); err != nil {
+	if err := PublishToSyncAllItems(tuples); err != nil {
 		return err
 	}
 
