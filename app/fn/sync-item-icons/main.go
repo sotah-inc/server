@@ -168,15 +168,16 @@ func SyncItem(id blizzard.ItemID) error {
 	return nil
 }
 
-type HandleIdsJob struct {
-	Err error
-	Id  blizzard.ItemID
+type HandlePayloadsJob struct {
+	Err      error
+	IconName string
+	Ids      blizzard.ItemIds
 }
 
 func HandlePayloads(payloads store.IconItemsPayloads) (blizzard.ItemIds, error) {
 	// spawning workers
 	in := make(chan store.IconItemsPayload)
-	out := make(chan HandleIdsJob)
+	out := make(chan HandlePayloadsJob)
 	worker := func() {
 		for id := range in {
 			if err := SyncItem(id); err != nil {
@@ -234,7 +235,7 @@ func Handle(in bus.Message) bus.Message {
 		return m
 	}
 
-	results, err := HandleIds(itemIds)
+	results, err := HandlePayloads(iconIdsPayloads)
 	if err != nil {
 		m.Err = err.Error()
 		m.Code = codes.GenericError
