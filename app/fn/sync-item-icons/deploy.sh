@@ -7,4 +7,5 @@ gcloud functions deploy SyncItemIcons \
     --runtime go111 \
     --trigger-topic syncItemIcons \
     --source . \
+    --memory 512MB \
     --region us-central1
