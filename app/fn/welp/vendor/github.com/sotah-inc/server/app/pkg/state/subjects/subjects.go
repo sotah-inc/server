@@ -44,6 +44,7 @@ const (
 	FilterInItemsToSync Subject = "filterInItemsToSync"
 	SyncAllItems        Subject = "syncAllItems"
 	SyncItems           Subject = "syncItems"
+	SyncItemIcons       Subject = "syncItemIcons"
 	ReceiveSyncedItems  Subject = "receiveSyncedItems"
 
 	ComputeAllLiveAuctions      Subject = "computeAllLiveAuctions"

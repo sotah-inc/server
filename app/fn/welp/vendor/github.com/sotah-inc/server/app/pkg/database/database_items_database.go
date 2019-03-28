@@ -1,10 +1,15 @@
 package database
 
 import (
+	"encoding/base64"
+	"encoding/json"
+	"strconv"
+
 	"github.com/boltdb/bolt"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/util"
 )
 
 func NewItemsDatabase(dbDir string) (ItemsDatabase, error) {
@@ -38,14 +43,23 @@ func (idBase ItemsDatabase) GetItems() (sotah.ItemsMap, error) {
 		}
 
 		err := bkt.ForEach(func(k, v []byte) error {
-			iMap, err := sotah.NewItemsMapFromGzipped(v)
+			parsedId, err := strconv.Atoi(string(k)[len("item-"):])
+			if err != nil {
+				return err
+			}
+			itemId := blizzard.ItemID(parsedId)
+
+			gzipDecoded, err := util.GzipDecode(v)
 			if err != nil {
 				return err
 			}
 
-			for ID, itemValue := range iMap {
-				out[ID] = itemValue
+			item, err := sotah.NewItem(gzipDecoded)
+			if err != nil {
+				return err
 			}
+
+			out[itemId] = item
 
 			return nil
 		})
@@ -63,24 +77,6 @@ func (idBase ItemsDatabase) GetItems() (sotah.ItemsMap, error) {
 }
 
 func (idBase ItemsDatabase) FindItems(itemIds []blizzard.ItemID) (sotah.ItemsMap, error) {
-	// gathering item keyspaces for fetching
-	keyspaces := func() []itemKeyspace {
-		result := map[itemKeyspace]struct{}{}
-		for _, ID := range itemIds {
-			result[itemIDKeyspace(ID)] = struct{}{}
-		}
-
-		out := []itemKeyspace{}
-		for keyspace := range result {
-			out = append(out, keyspace)
-		}
-
-		return out
-	}()
-
-	// producing an id map for simpler filtering of results
-	itemIdsMap := sotah.NewItemIdsMap(itemIds)
-
 	out := sotah.ItemsMap{}
 	err := idBase.db.View(func(tx *bolt.Tx) error {
 		bkt := tx.Bucket(databaseItemsBucketName())
@@ -88,24 +84,23 @@ func (idBase ItemsDatabase) FindItems(itemIds []blizzard.ItemID) (sotah.ItemsMap
 			return nil
 		}
 
-		for _, keyspace := range keyspaces {
-			value := bkt.Get(itemsKeyName(keyspace))
+		for _, id := range itemIds {
+			value := bkt.Get(itemsKeyName(id))
 			if value == nil {
 				continue
 			}
 
-			iMap, err := sotah.NewItemsMapFromGzipped(value)
+			gzipDecoded, err := util.GzipDecode(value)
 			if err != nil {
 				return err
 			}
 
-			for itemId, item := range iMap {
-				if _, ok := itemIdsMap[itemId]; !ok {
-					continue
-				}
-
-				out[itemId] = item
+			item, err := sotah.NewItem(gzipDecoded)
+			if err != nil {
+				return err
 			}
+
+			out[id] = item
 		}
 
 		return nil
@@ -118,31 +113,8 @@ func (idBase ItemsDatabase) FindItems(itemIds []blizzard.ItemID) (sotah.ItemsMap
 }
 
 // persisting
-func newItemsMapBatch(iMap sotah.ItemsMap) itemsMapBatch {
-	out := itemsMapBatch{}
-	for ID, itemValue := range iMap {
-		keyspace := itemIDKeyspace(ID)
-		if _, ok := out[keyspace]; !ok {
-			out[keyspace] = sotah.ItemsMap{ID: itemValue}
-
-			continue
-		} else {
-			out[keyspace][ID] = itemValue
-		}
-	}
-
-	return out
-}
-
-type itemsMapBatch map[itemKeyspace]sotah.ItemsMap
-
 func (idBase ItemsDatabase) PersistItems(iMap sotah.ItemsMap) error {
 	logging.WithField("items", len(iMap)).Debug("Persisting items")
-
-	// grouping items into batches based on keyspace
-	imBatch := newItemsMapBatch(iMap)
-
-	logging.WithField("batches", len(imBatch)).Debug("Persisting batches")
 
 	err := idBase.db.Batch(func(tx *bolt.Tx) error {
 		bkt, err := tx.CreateBucketIfNotExists(databaseItemsBucketName())
@@ -150,13 +122,18 @@ func (idBase ItemsDatabase) PersistItems(iMap sotah.ItemsMap) error {
 			return err
 		}
 
-		for keyspace, batchMap := range imBatch {
-			encodedItemsMap, err := batchMap.EncodeForDatabase()
+		for id, item := range iMap {
+			jsonEncoded, err := json.Marshal(item)
 			if err != nil {
 				return err
 			}
 
-			if err := bkt.Put(itemsKeyName(keyspace), encodedItemsMap); err != nil {
+			gzipEncoded, err := util.GzipEncode(jsonEncoded)
+			if err != nil {
+				return err
+			}
+
+			if err := bkt.Put(itemsKeyName(id), gzipEncoded); err != nil {
 				return err
 			}
 		}
@@ -170,22 +147,141 @@ func (idBase ItemsDatabase) PersistItems(iMap sotah.ItemsMap) error {
 	return nil
 }
 
-func (idBase ItemsDatabase) FilterInItemsToSync(ids blizzard.ItemIds) (blizzard.ItemIds, error) {
-	logging.WithField("ids", len(ids)).Info("Fetching items corresponding to ids")
-	items, err := idBase.FindItems(ids)
-	if err != nil {
-		return blizzard.ItemIds{}, err
-	}
+type PersistEncodedItemsInJob struct {
+	Id              blizzard.ItemID
+	GzipEncodedData []byte
+}
 
-	logging.WithField("items", len(items)).Info("Found items, filtering in non-existing")
-	out := blizzard.ItemIds{}
-	for _, id := range ids {
-		if _, ok := items[id]; ok {
-			continue
+func (idBase ItemsDatabase) PersistEncodedItems(in chan PersistEncodedItemsInJob) error {
+	logging.Info("Persisting encoded items")
+
+	err := idBase.db.Batch(func(tx *bolt.Tx) error {
+		bkt, err := tx.CreateBucketIfNotExists(databaseItemsBucketName())
+		if err != nil {
+			return err
 		}
 
-		out = append(out, id)
+		for job := range in {
+			if err := bkt.Put(itemsKeyName(job.Id), job.GzipEncodedData); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func NewItemsSyncPayload(data string) (ItemsSyncPayload, error) {
+	base64Decoded, err := base64.StdEncoding.DecodeString(data)
+	if err != nil {
+		return ItemsSyncPayload{}, err
+	}
+
+	gzipDecoded, err := util.GzipDecode(base64Decoded)
+	if err != nil {
+		return ItemsSyncPayload{}, err
+	}
+
+	var out ItemsSyncPayload
+	if err := json.Unmarshal(gzipDecoded, &out); err != nil {
+		return ItemsSyncPayload{}, err
 	}
 
 	return out, nil
+}
+
+type ItemsSyncPayload struct {
+	Ids        blizzard.ItemIds
+	IconIdsMap map[string]blizzard.ItemIds
+}
+
+func (p ItemsSyncPayload) EncodeForDelivery() (string, error) {
+	jsonEncoded, err := json.Marshal(p)
+	if err != nil {
+		return "", err
+	}
+
+	gzipEncoded, err := util.GzipEncode(jsonEncoded)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(gzipEncoded), nil
+}
+
+func (idBase ItemsDatabase) FilterInItemsToSync(ids blizzard.ItemIds) (ItemsSyncPayload, error) {
+	// producing a blank whitelist
+	syncWhitelist := map[blizzard.ItemID]bool{}
+	for _, id := range ids {
+		syncWhitelist[id] = false
+	}
+
+	// producing a blank map of icon->item-ids
+	iconsToSync := map[string]blizzard.ItemIds{}
+
+	// peeking into the items database
+	err := idBase.db.Update(func(tx *bolt.Tx) error {
+		bkt, err := tx.CreateBucketIfNotExists(databaseItemsBucketName())
+		if err != nil {
+			return err
+		}
+
+		for _, id := range ids {
+			value := bkt.Get(itemsKeyName(id))
+			if value == nil {
+				syncWhitelist[id] = true
+
+				continue
+			}
+
+			gzipDecoded, err := util.GzipDecode(value)
+			if err != nil {
+				return err
+			}
+
+			item, err := sotah.NewItem(gzipDecoded)
+			if err != nil {
+				return err
+			}
+
+			if item.Icon != "" && (item.IconURL == "" || item.IconObjectName == "") {
+				iconItemIds := func() blizzard.ItemIds {
+					out, ok := iconsToSync[item.Icon]
+					if !ok {
+						return blizzard.ItemIds{}
+					}
+
+					return out
+				}()
+				iconItemIds = append(iconItemIds, id)
+				iconsToSync[item.Icon] = iconItemIds
+
+				continue
+			}
+
+			syncWhitelist[id] = true
+		}
+
+		return nil
+	})
+	if err != nil {
+		return ItemsSyncPayload{}, err
+	}
+
+	// reformatting the whitelist
+	idsToSync := blizzard.ItemIds{}
+	for id, shouldSync := range syncWhitelist {
+		if !shouldSync {
+			continue
+		}
+
+		idsToSync = append(idsToSync, id)
+	}
+
+	return ItemsSyncPayload{Ids: idsToSync, IconIdsMap: iconsToSync}, nil
 }
