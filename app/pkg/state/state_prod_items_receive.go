@@ -55,7 +55,10 @@ func (itemsState ProdItemsState) ListenForSyncedItems(onReady chan interface{}, 
 			if err := ReceiveSyncedItems(itemsState, ids); err != nil {
 				logging.WithField("error", err.Error()).Error("Failed to receive synced items")
 			}
-			logging.WithField("item-ids", len(ids)).Info("Done receiving synced item-ids")
+			logging.WithFields(logrus.Fields{
+				"item-ids": len(ids),
+				"capacity": len(in),
+			}).Info("Done receiving synced item-ids")
 
 			// reporting metrics
 			m := metric.Metrics{"receive_synced_items": int(int64(time.Now().Sub(startTime)) / 1000 / 1000 / 1000)}
