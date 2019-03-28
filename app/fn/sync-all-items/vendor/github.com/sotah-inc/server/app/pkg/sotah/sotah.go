@@ -224,3 +224,53 @@ func NewItemIdsBatches(ids blizzard.ItemIds, batchSize int) ItemIdBatches {
 }
 
 type ItemIdBatches map[int]blizzard.ItemIds
+
+func NewIconItemsPayloadsBatches(iconIdsMap map[string]blizzard.ItemIds, batchSize int) IconItemsPayloadsBatches {
+	batches := IconItemsPayloadsBatches{}
+	i := 0
+	for iconName, itemIds := range iconIdsMap {
+		key := (i - (i % batchSize)) / batchSize
+		batch := func() IconItemsPayloads {
+			out, ok := batches[key]
+			if !ok {
+				return IconItemsPayloads{}
+			}
+
+			return out
+		}()
+		batch = append(batch, IconItemsPayload{Name: iconName, Ids: itemIds})
+
+		batches[key] = batch
+
+		i += 1
+	}
+
+	return batches
+}
+
+type IconItemsPayloadsBatches map[int]IconItemsPayloads
+
+func NewIconItemsPayloads(data string) (IconItemsPayloads, error) {
+	var out IconItemsPayloads
+	if err := json.Unmarshal([]byte(data), &out); err != nil {
+		return IconItemsPayloads{}, err
+	}
+
+	return out, nil
+}
+
+type IconItemsPayloads []IconItemsPayload
+
+func (d IconItemsPayloads) EncodeForDelivery() (string, error) {
+	jsonEncoded, err := json.Marshal(d)
+	if err != nil {
+		return "", err
+	}
+
+	return string(jsonEncoded), nil
+}
+
+type IconItemsPayload struct {
+	Name string
+	Ids  blizzard.ItemIds
+}

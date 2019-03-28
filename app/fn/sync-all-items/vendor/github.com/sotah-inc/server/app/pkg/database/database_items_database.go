@@ -225,10 +225,10 @@ func (idBase ItemsDatabase) FilterInItemsToSync(ids blizzard.ItemIds) (ItemsSync
 	iconsToSync := map[string]blizzard.ItemIds{}
 
 	// peeking into the items database
-	err := idBase.db.View(func(tx *bolt.Tx) error {
-		bkt := tx.Bucket(databaseItemsBucketName())
-		if bkt == nil {
-			return nil
+	err := idBase.db.Update(func(tx *bolt.Tx) error {
+		bkt, err := tx.CreateBucketIfNotExists(databaseItemsBucketName())
+		if err != nil {
+			return err
 		}
 
 		for _, id := range ids {
