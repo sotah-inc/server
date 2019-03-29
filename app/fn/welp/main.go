@@ -2,7 +2,6 @@ package bullshit
 
 import (
 	"context"
-	"io/ioutil"
 	"log"
 	"os"
 
@@ -59,7 +58,7 @@ func init() {
 	}
 
 	itemsCentralBase = store.NewItemsCentralBase(storeClient, "us-central1")
-	itemsCentralBucket, err = itemsBase.GetFirmBucket()
+	itemsCentralBucket, err = itemsCentralBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get firm bucket: %s", err.Error())
 
@@ -72,20 +71,11 @@ type PubSubMessage struct {
 }
 
 func Welp(_ context.Context, _ PubSubMessage) error {
-	obj, err := bootBase.GetFirmObject("welp.txt", bootBucket)
+	matches, err := bootBase.Guard("welp.txt", "transfer-items\n", bootBucket)
 	if err != nil {
 		return err
 	}
-	reader, err := obj.NewReader(storeClient.Context)
-	if err != nil {
-		return err
-	}
-	data, err := ioutil.ReadAll(reader)
-	if err != nil {
-		return err
-	}
-	shit := "transfer-items\n"
-	if string(data) != shit {
+	if !matches {
 		logging.Info("Unmatched")
 
 		return nil
