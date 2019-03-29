@@ -227,9 +227,9 @@ func DownloadAllAuctions(_ context.Context, _ PubSubMessage) error {
 	}
 
 	// publishing to sync-all-items
-	// if err := PublishToSyncAllItems(tuples); err != nil {
-	// 	return err
-	// }
+	if err := PublishToSyncAllItems(tuples); err != nil {
+		return err
+	}
 
 	// publishing to receive-computed-live-auctions
 	if err := PublishToReceiveComputedLiveAuctions(tuples); err != nil {
