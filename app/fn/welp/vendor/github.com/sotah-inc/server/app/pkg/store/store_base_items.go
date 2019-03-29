@@ -47,10 +47,6 @@ func (b ItemsBase) GetFirmObject(id blizzard.ItemID, bkt *storage.BucketHandle) 
 	return b.base.getFirmObject(b.getObjectName(id), bkt)
 }
 
-func (b ItemsBase) ObjectExists(id blizzard.ItemID, bkt *storage.BucketHandle) (bool, error) {
-	return b.base.ObjectExists(b.GetObject(id, bkt))
-}
-
 func (b ItemsBase) NewItem(obj *storage.ObjectHandle) (sotah.Item, error) {
 	reader, err := obj.NewReader(b.client.Context)
 	if err != nil {

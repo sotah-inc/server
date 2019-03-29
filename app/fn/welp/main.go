@@ -4,6 +4,13 @@ import (
 	"context"
 	"log"
 	"os"
+	"strconv"
+
+	"google.golang.org/api/iterator"
+
+	"github.com/sotah-inc/server/app/pkg/util"
+
+	"github.com/sotah-inc/server/app/pkg/blizzard"
 
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/bus"
@@ -66,12 +73,44 @@ func init() {
 	}
 }
 
+func Transfer(id blizzard.ItemID) error {
+	src, err := itemsBase.GetFirmObject(id, itemsBucket)
+	if err != nil {
+		return err
+	}
+
+	dst := itemsCentralBase.GetObject(id, itemsCentralBucket)
+	exists, err := itemsCentralBase.ObjectExists(dst)
+	if err != nil {
+		return err
+	}
+
+	if exists {
+		logging.WithField("item", id).Info("Item exists in destination, deleting")
+
+		// if err := src.Delete(storeClient.Context); err != nil {
+		// 	return err
+		// }
+
+		return nil
+	}
+
+	logging.WithField("item", id).Info("Transferring")
+
+	copier := dst.CopierFrom(src)
+	if _, err := copier.Run(storeClient.Context); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 type PubSubMessage struct {
 	Data []byte `json:"data"`
 }
 
 func Welp(_ context.Context, _ PubSubMessage) error {
-	matches, err := bootBase.Guard("welp.txt", "transfer-items\n", bootBucket)
+	matches, err := bootBase.Guard("welp.txt", "transfer-items-7\n", bootBucket)
 	if err != nil {
 		return err
 	}
@@ -80,6 +119,59 @@ func Welp(_ context.Context, _ PubSubMessage) error {
 
 		return nil
 	}
+
+	// spinning up workers
+	logging.Info("Spinning up workers")
+	in := make(chan blizzard.ItemID)
+	out := make(chan error)
+	worker := func() {
+		for id := range in {
+			out <- Transfer(id)
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(16, worker, postWork)
+
+	// enqueueing it up
+	logging.Info("Queueing it up")
+	go func() {
+		it := itemsBucket.Objects(storeClient.Context, nil)
+		for {
+			objAttrs, err := it.Next()
+			if err != nil {
+				if err == iterator.Done {
+					break
+				}
+
+				logging.WithField("error", err.Error()).Error("Failed to iterate to next")
+
+				break
+			}
+
+			parsed, err := strconv.Atoi(objAttrs.Name[0:(len(objAttrs.Name) - len(".json.gz"))])
+			if err != nil {
+				logging.WithField("error", err.Error()).Error("Failed to parse name")
+
+				break
+			}
+
+			in <- blizzard.ItemID(parsed)
+		}
+
+		close(in)
+	}()
+
+	// waiting for results to drain out
+	logging.Info("Waiting for results to drain out")
+	for err := range out {
+		if err != nil {
+			return err
+		}
+	}
+
+	logging.Info("Done!")
 
 	return nil
 }
