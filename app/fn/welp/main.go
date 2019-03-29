@@ -6,16 +6,13 @@ import (
 	"os"
 	"strconv"
 
-	"google.golang.org/api/iterator"
-
-	"github.com/sotah-inc/server/app/pkg/util"
-
-	"github.com/sotah-inc/server/app/pkg/blizzard"
-
 	"cloud.google.com/go/storage"
+	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/store"
+	"github.com/sotah-inc/server/app/pkg/util"
+	"google.golang.org/api/iterator"
 )
 
 var (
@@ -79,7 +76,7 @@ type TransferJob struct {
 }
 
 func Transfer(id blizzard.ItemID) TransferJob {
-	src, err := itemsBase.GetFirmObject(id, itemsBucket)
+	src, err := itemsCentralBase.GetFirmObject(id, itemsCentralBucket)
 	if err != nil {
 		return TransferJob{
 			Err: err,
@@ -87,8 +84,8 @@ func Transfer(id blizzard.ItemID) TransferJob {
 		}
 	}
 
-	dst := itemsCentralBase.GetObject(id, itemsCentralBucket)
-	exists, err := itemsCentralBase.ObjectExists(dst)
+	dst := itemsBase.GetObject(id, itemsBucket)
+	exists, err := itemsBase.ObjectExists(dst)
 	if err != nil {
 		return TransferJob{
 			Err: err,
@@ -99,12 +96,12 @@ func Transfer(id blizzard.ItemID) TransferJob {
 	if exists {
 		logging.WithField("item", id).Info("Item exists in destination, deleting")
 
-		if err := src.Delete(storeClient.Context); err != nil {
-			return TransferJob{
-				Err: err,
-				Id:  id,
-			}
-		}
+		// if err := src.Delete(storeClient.Context); err != nil {
+		// 	return TransferJob{
+		// 		Err: err,
+		// 		Id:  id,
+		// 	}
+		// }
 
 		return TransferJob{
 			Err: nil,
@@ -133,7 +130,7 @@ type PubSubMessage struct {
 }
 
 func Welp(_ context.Context, _ PubSubMessage) error {
-	matches, err := bootBase.Guard("welp.txt", "transfer-items-11\n", bootBucket)
+	matches, err := bootBase.Guard("welp.txt", "transfer-items-12\n", bootBucket)
 	if err != nil {
 		return err
 	}
@@ -160,7 +157,7 @@ func Welp(_ context.Context, _ PubSubMessage) error {
 	// enqueueing it up
 	logging.Info("Queueing it up")
 	go func() {
-		it := itemsBucket.Objects(storeClient.Context, nil)
+		it := itemsCentralBucket.Objects(storeClient.Context, nil)
 		for {
 			objAttrs, err := it.Next()
 			if err != nil {
