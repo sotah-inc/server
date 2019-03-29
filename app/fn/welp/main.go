@@ -73,16 +73,27 @@ func init() {
 	}
 }
 
-func Transfer(id blizzard.ItemID) error {
+type TransferJob struct {
+	Id  blizzard.ItemID
+	Err error
+}
+
+func Transfer(id blizzard.ItemID) TransferJob {
 	src, err := itemsBase.GetFirmObject(id, itemsBucket)
 	if err != nil {
-		return err
+		return TransferJob{
+			Err: err,
+			Id:  id,
+		}
 	}
 
 	dst := itemsCentralBase.GetObject(id, itemsCentralBucket)
 	exists, err := itemsCentralBase.ObjectExists(dst)
 	if err != nil {
-		return err
+		return TransferJob{
+			Err: err,
+			Id:  id,
+		}
 	}
 
 	if exists {
@@ -92,17 +103,26 @@ func Transfer(id blizzard.ItemID) error {
 		// 	return err
 		// }
 
-		return nil
+		return TransferJob{
+			Err: nil,
+			Id:  id,
+		}
 	}
 
 	logging.WithField("item", id).Info("Transferring")
 
 	copier := dst.CopierFrom(src)
 	if _, err := copier.Run(storeClient.Context); err != nil {
-		return err
+		return TransferJob{
+			Err: err,
+			Id:  id,
+		}
 	}
 
-	return nil
+	return TransferJob{
+		Err: nil,
+		Id:  id,
+	}
 }
 
 type PubSubMessage struct {
@@ -110,7 +130,7 @@ type PubSubMessage struct {
 }
 
 func Welp(_ context.Context, _ PubSubMessage) error {
-	matches, err := bootBase.Guard("welp.txt", "transfer-items-7\n", bootBucket)
+	matches, err := bootBase.Guard("welp.txt", "transfer-items-8\n", bootBucket)
 	if err != nil {
 		return err
 	}
@@ -123,7 +143,7 @@ func Welp(_ context.Context, _ PubSubMessage) error {
 	// spinning up workers
 	logging.Info("Spinning up workers")
 	in := make(chan blizzard.ItemID)
-	out := make(chan error)
+	out := make(chan TransferJob)
 	worker := func() {
 		for id := range in {
 			out <- Transfer(id)
@@ -165,8 +185,8 @@ func Welp(_ context.Context, _ PubSubMessage) error {
 
 	// waiting for results to drain out
 	logging.Info("Waiting for results to drain out")
-	for err := range out {
-		if err != nil {
+	for job := range out {
+		if job.Err != nil {
 			return err
 		}
 	}

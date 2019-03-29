@@ -8,4 +8,5 @@ gcloud functions deploy Welp \
     --trigger-topic welp \
     --source . \
     --memory 512MB \
+    --timeout 500s \
     --region us-central1
