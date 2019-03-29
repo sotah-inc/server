@@ -99,9 +99,12 @@ func Transfer(id blizzard.ItemID) TransferJob {
 	if exists {
 		logging.WithField("item", id).Info("Item exists in destination, deleting")
 
-		// if err := src.Delete(storeClient.Context); err != nil {
-		// 	return err
-		// }
+		if err := src.Delete(storeClient.Context); err != nil {
+			return TransferJob{
+				Err: err,
+				Id:  id,
+			}
+		}
 
 		return TransferJob{
 			Err: nil,
@@ -130,7 +133,7 @@ type PubSubMessage struct {
 }
 
 func Welp(_ context.Context, _ PubSubMessage) error {
-	matches, err := bootBase.Guard("welp.txt", "transfer-items-8\n", bootBucket)
+	matches, err := bootBase.Guard("welp.txt", "transfer-items-11\n", bootBucket)
 	if err != nil {
 		return err
 	}
@@ -152,7 +155,7 @@ func Welp(_ context.Context, _ PubSubMessage) error {
 	postWork := func() {
 		close(out)
 	}
-	util.Work(16, worker, postWork)
+	util.Work(32, worker, postWork)
 
 	// enqueueing it up
 	logging.Info("Queueing it up")
