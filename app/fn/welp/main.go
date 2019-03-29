@@ -96,12 +96,12 @@ func Transfer(id blizzard.ItemID) TransferJob {
 	if exists {
 		logging.WithField("item", id).Info("Item exists in destination, deleting")
 
-		// if err := src.Delete(storeClient.Context); err != nil {
-		// 	return TransferJob{
-		// 		Err: err,
-		// 		Id:  id,
-		// 	}
-		// }
+		if err := src.Delete(storeClient.Context); err != nil {
+			return TransferJob{
+				Err: err,
+				Id:  id,
+			}
+		}
 
 		return TransferJob{
 			Err: nil,
@@ -130,7 +130,7 @@ type PubSubMessage struct {
 }
 
 func Welp(_ context.Context, _ PubSubMessage) error {
-	matches, err := bootBase.Guard("welp.txt", "transfer-items-12\n", bootBucket)
+	matches, err := bootBase.Guard("welp.txt", "transfer-items-13\n", bootBucket)
 	if err != nil {
 		return err
 	}
