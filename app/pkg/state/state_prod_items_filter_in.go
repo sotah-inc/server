@@ -34,6 +34,12 @@ func HandleFilterInItemsToSync(busMsg bus.Message, itemsState ProdItemsState, id
 		return err
 	}
 
+	itemsState.IO.Reporter.Report(metric.Metrics{
+		"items_to_filter": len(ids),
+		"items_to_sync":   len(syncPayload.Ids),
+		"icons_to_sync":   len(syncPayload.IconIdsMap),
+	})
+
 	return nil
 }
 
