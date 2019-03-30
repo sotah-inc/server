@@ -57,6 +57,22 @@ func NewLiveAuctionsState(config LiveAuctionsStateConfig) (LiveAuctionsState, er
 		laState.Statuses[reg.Name] = status
 	}
 
+	// ensuring database paths exist
+	databasePaths := []string{}
+	for regionName, status := range laState.Statuses {
+		for _, realm := range status.Realms {
+			databasePaths = append(databasePaths, fmt.Sprintf(
+				"%s/live-auctions/%s/%s",
+				config.LiveAuctionsDatabaseDir,
+				regionName,
+				realm.Slug,
+			))
+		}
+	}
+	if err := util.EnsureDirsExist(databasePaths); err != nil {
+		return LiveAuctionsState{}, err
+	}
+
 	// establishing a store
 	logging.Info("Connecting to disk store")
 	cacheDirs := []string{

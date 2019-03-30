@@ -51,6 +51,22 @@ func NewPricelistHistoriesState(config PricelistHistoriesStateConfig) (Pricelist
 		phState.Statuses[reg.Name] = status
 	}
 
+	// ensuring database paths exist
+	databasePaths := []string{}
+	for regionName, status := range phState.Statuses {
+		for _, realm := range status.Realms {
+			databasePaths = append(databasePaths, fmt.Sprintf(
+				"%s/pricelist-histories/%s/%s",
+				config.PricelistHistoriesDatabaseDir,
+				regionName,
+				realm.Slug,
+			))
+		}
+	}
+	if err := util.EnsureDirsExist(databasePaths); err != nil {
+		return PricelistHistoriesState{}, err
+	}
+
 	// establishing a store
 	cacheDirs := []string{
 		config.DiskStoreCacheDir,
