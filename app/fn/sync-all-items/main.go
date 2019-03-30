@@ -188,6 +188,8 @@ func SyncAllItems(_ context.Context, m PubSubMessage) error {
 	// reporting metrics
 	if err := busClient.PublishMetrics(metric.Metrics{
 		"sync_all_items_duration": int(int64(time.Now().Sub(startTime)) / 1000 / 1000 / 1000),
+		"sync_all_items_ids":      len(syncPayload.Ids),
+		"sync_all_items_icons":    len(syncPayload.IconIdsMap),
 	}); err != nil {
 		return err
 	}
