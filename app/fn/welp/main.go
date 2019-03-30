@@ -6,6 +6,8 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/sirupsen/logrus"
+
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
@@ -18,13 +20,11 @@ import (
 var (
 	projectId = os.Getenv("GCP_PROJECT")
 
-	storeClient        store.Client
-	bootBase           store.BootBase
-	bootBucket         *storage.BucketHandle
-	itemsBase          store.ItemsBase
-	itemsBucket        *storage.BucketHandle
-	itemsCentralBase   store.ItemsCentralBase
-	itemsCentralBucket *storage.BucketHandle
+	storeClient store.Client
+	bootBase    store.BootBase
+	bootBucket  *storage.BucketHandle
+	itemsBase   store.ItemsBase
+	itemsBucket *storage.BucketHandle
 
 	busClient bus.Client
 )
@@ -60,68 +60,37 @@ func init() {
 
 		return
 	}
-
-	itemsCentralBase = store.NewItemsCentralBase(storeClient, "us-central1")
-	itemsCentralBucket, err = itemsCentralBase.GetFirmBucket()
-	if err != nil {
-		log.Fatalf("Failed to get firm bucket: %s", err.Error())
-
-		return
-	}
 }
 
-type TransferJob struct {
-	Id  blizzard.ItemID
-	Err error
+type ValidateJob struct {
+	Err           error
+	Id            blizzard.ItemID
+	HasObjectName bool
+	HasObjectURI  bool
 }
 
-func Transfer(id blizzard.ItemID) TransferJob {
-	src, err := itemsCentralBase.GetFirmObject(id, itemsCentralBucket)
+func Validate(id blizzard.ItemID) ValidateJob {
+	obj, err := itemsBase.GetFirmObject(id, itemsBucket)
 	if err != nil {
-		return TransferJob{
+		return ValidateJob{
 			Err: err,
 			Id:  id,
 		}
 	}
 
-	dst := itemsBase.GetObject(id, itemsBucket)
-	exists, err := itemsBase.ObjectExists(dst)
+	item, err := itemsBase.NewItem(obj)
 	if err != nil {
-		return TransferJob{
+		return ValidateJob{
 			Err: err,
 			Id:  id,
 		}
 	}
 
-	if exists {
-		logging.WithField("item", id).Info("Item exists in destination, deleting")
-
-		if err := src.Delete(storeClient.Context); err != nil {
-			return TransferJob{
-				Err: err,
-				Id:  id,
-			}
-		}
-
-		return TransferJob{
-			Err: nil,
-			Id:  id,
-		}
-	}
-
-	logging.WithField("item", id).Info("Transferring")
-
-	copier := dst.CopierFrom(src)
-	if _, err := copier.Run(storeClient.Context); err != nil {
-		return TransferJob{
-			Err: err,
-			Id:  id,
-		}
-	}
-
-	return TransferJob{
-		Err: nil,
-		Id:  id,
+	return ValidateJob{
+		Err:           nil,
+		Id:            id,
+		HasObjectName: item.IconObjectName != "",
+		HasObjectURI:  item.IconURL != "",
 	}
 }
 
@@ -130,7 +99,7 @@ type PubSubMessage struct {
 }
 
 func Welp(_ context.Context, _ PubSubMessage) error {
-	matches, err := bootBase.Guard("welp.txt", "transfer-items-13\n", bootBucket)
+	matches, err := bootBase.Guard("welp.txt", "validate-items-3\n", bootBucket)
 	if err != nil {
 		return err
 	}
@@ -143,10 +112,10 @@ func Welp(_ context.Context, _ PubSubMessage) error {
 	// spinning up workers
 	logging.Info("Spinning up workers")
 	in := make(chan blizzard.ItemID)
-	out := make(chan TransferJob)
+	out := make(chan ValidateJob)
 	worker := func() {
 		for id := range in {
-			out <- Transfer(id)
+			out <- Validate(id)
 		}
 	}
 	postWork := func() {
@@ -157,7 +126,7 @@ func Welp(_ context.Context, _ PubSubMessage) error {
 	// enqueueing it up
 	logging.Info("Queueing it up")
 	go func() {
-		it := itemsCentralBucket.Objects(storeClient.Context, nil)
+		it := itemsBucket.Objects(storeClient.Context, nil)
 		for {
 			objAttrs, err := it.Next()
 			if err != nil {
@@ -185,13 +154,29 @@ func Welp(_ context.Context, _ PubSubMessage) error {
 
 	// waiting for results to drain out
 	logging.Info("Waiting for results to drain out")
+	total := 0
+	missing := 0
 	for job := range out {
 		if job.Err != nil {
 			return err
 		}
+
+		total += 1
+
+		if !job.HasObjectURI || !job.HasObjectName {
+			logging.WithFields(logrus.Fields{
+				"id":              job.Id,
+				"has-object-uri":  job.HasObjectURI,
+				"has-object-name": job.HasObjectName,
+			}).Info("Does not have both object-uri and object-name")
+			missing += 1
+		}
 	}
 
-	logging.Info("Done!")
+	logging.WithFields(logrus.Fields{
+		"total":   total,
+		"missing": missing,
+	}).Info("Done!")
 
 	return nil
 }

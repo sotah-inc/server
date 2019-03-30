@@ -35,15 +35,15 @@ github.com/nats-io/nkeys
 github.com/nats-io/nuid
 # github.com/sirupsen/logrus v1.3.0
 github.com/sirupsen/logrus
-# github.com/sotah-inc/server/app v0.0.0-20190329124624-06a8c0b86581
+# github.com/sotah-inc/server/app v0.0.0-20190330144446-1078a67570ba
 github.com/sotah-inc/server/app/pkg/blizzard
 github.com/sotah-inc/server/app/pkg/bus
 github.com/sotah-inc/server/app/pkg/logging
 github.com/sotah-inc/server/app/pkg/store
+github.com/sotah-inc/server/app/pkg/util
 github.com/sotah-inc/server/app/pkg/blizzard/itembinds
 github.com/sotah-inc/server/app/pkg/blizzard/realmpopulations
 github.com/sotah-inc/server/app/pkg/blizzard/realmtypes
-github.com/sotah-inc/server/app/pkg/util
 github.com/sotah-inc/server/app/pkg/bus/codes
 github.com/sotah-inc/server/app/pkg/database
 github.com/sotah-inc/server/app/pkg/metric
@@ -104,8 +104,8 @@ golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 golang.org/x/text/transform
 # google.golang.org/api v0.1.0
-google.golang.org/api/googleapi
 google.golang.org/api/iterator
+google.golang.org/api/googleapi
 google.golang.org/api/option
 google.golang.org/api/storage/v1
 google.golang.org/api/transport/http
