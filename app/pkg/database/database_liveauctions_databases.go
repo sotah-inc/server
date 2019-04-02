@@ -349,3 +349,66 @@ func (ladBases LiveAuctionsDatabases) QueryAuctions(qr QueryAuctionsRequest) (Qu
 
 	return aResponse, codes.Ok, nil
 }
+
+func NewGetPricelistRequest(data []byte) (GetPricelistRequest, error) {
+	plRequest := &GetPricelistRequest{}
+	err := json.Unmarshal(data, &plRequest)
+	if err != nil {
+		return GetPricelistRequest{}, err
+	}
+
+	return *plRequest, nil
+}
+
+type GetPricelistRequest struct {
+	RegionName blizzard.RegionName `json:"region_name"`
+	RealmSlug  blizzard.RealmSlug  `json:"realm_slug"`
+	ItemIds    []blizzard.ItemID   `json:"item_ids"`
+}
+
+type GetPricelistResponse struct {
+	Pricelist sotah.ItemPrices `json:"price_list"`
+}
+
+func (plResponse GetPricelistResponse) EncodeForDelivery() (string, error) {
+	jsonEncoded, err := json.Marshal(plResponse)
+	if err != nil {
+		return "", err
+	}
+
+	gzipEncoded, err := util.GzipEncode(jsonEncoded)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(gzipEncoded), nil
+}
+
+func (ladBases LiveAuctionsDatabases) GetPricelist(plRequest GetPricelistRequest) (GetPricelistResponse, codes.Code, error) {
+	regionLadBases, ok := ladBases[plRequest.RegionName]
+	if !ok {
+		return GetPricelistResponse{}, codes.UserError, errors.New("invalid region")
+	}
+
+	ladBase, ok := regionLadBases[plRequest.RealmSlug]
+	if !ok {
+		return GetPricelistResponse{}, codes.UserError, errors.New("invalid realm")
+	}
+
+	maList, err := ladBase.GetMiniAuctionList()
+	if err != nil {
+		return GetPricelistResponse{}, codes.GenericError, err
+	}
+
+	iPrices := sotah.NewItemPrices(maList)
+	responseItemPrices := sotah.ItemPrices{}
+	for _, itemId := range plRequest.ItemIds {
+		if iPrice, ok := iPrices[itemId]; ok {
+			responseItemPrices[itemId] = iPrice
+
+			continue
+		}
+	}
+
+	return GetPricelistResponse{Pricelist: responseItemPrices}, codes.Ok, nil
+}
