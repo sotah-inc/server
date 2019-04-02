@@ -412,3 +412,85 @@ func (ladBases LiveAuctionsDatabases) GetPricelist(plRequest GetPricelistRequest
 
 	return GetPricelistResponse{Pricelist: responseItemPrices}, codes.Ok, nil
 }
+
+func NewQueryOwnersByItemsRequest(data []byte) (QueryOwnersByItemsRequest, error) {
+	req := &QueryOwnersByItemsRequest{}
+	err := json.Unmarshal(data, &req)
+	if err != nil {
+		return QueryOwnersByItemsRequest{}, err
+	}
+
+	return *req, nil
+}
+
+type QueryOwnersByItemsRequest struct {
+	RegionName blizzard.RegionName `json:"region_name"`
+	RealmSlug  blizzard.RealmSlug  `json:"realm_slug"`
+	Items      []blizzard.ItemID   `json:"items"`
+}
+
+type ownerItemsOwnership struct {
+	OwnedValue  int64 `json:"owned_value"`
+	OwnedVolume int64 `json:"owned_volume"`
+}
+
+type QueryOwnersByItemsResponse struct {
+	Ownership   map[sotah.OwnerName]ownerItemsOwnership `json:"ownership"`
+	TotalValue  int64                                   `json:"total_value"`
+	TotalVolume int64                                   `json:"total_volume"`
+}
+
+func (plResponse QueryOwnersByItemsResponse) EncodeForDelivery() (string, error) {
+	jsonEncoded, err := json.Marshal(plResponse)
+	if err != nil {
+		return "", err
+	}
+
+	return string(jsonEncoded), nil
+}
+
+func (ladBases LiveAuctionsDatabases) QueryOwnersByItems(req QueryOwnersByItemsRequest) (QueryOwnersByItemsResponse, codes.Code, error) {
+	regionLadBases, ok := ladBases[req.RegionName]
+	if !ok {
+		return QueryOwnersByItemsResponse{}, codes.UserError, errors.New("invalid region")
+	}
+
+	ladBase, ok := regionLadBases[req.RealmSlug]
+	if !ok {
+		return QueryOwnersByItemsResponse{}, codes.UserError, errors.New("invalid realm")
+	}
+
+	maList, err := ladBase.GetMiniAuctionList()
+	if err != nil {
+		return QueryOwnersByItemsResponse{}, codes.GenericError, err
+	}
+
+	iMap := sotah.ItemIdsMap{}
+	result := QueryOwnersByItemsResponse{
+		Ownership:   map[sotah.OwnerName]ownerItemsOwnership{},
+		TotalValue:  0,
+		TotalVolume: 0,
+	}
+	for _, mAuction := range maList {
+		if _, ok := iMap[mAuction.ItemID]; !ok {
+			continue
+		}
+
+		aucListValue := mAuction.Buyout * mAuction.Quantity * int64(len(mAuction.AucList))
+		aucListVolume := int64(len(mAuction.AucList)) * mAuction.Quantity
+
+		result.TotalValue += aucListValue
+		result.TotalVolume += aucListVolume
+
+		if _, ok := result.Ownership[mAuction.Owner]; !ok {
+			result.Ownership[mAuction.Owner] = ownerItemsOwnership{0, 0}
+		}
+
+		result.Ownership[mAuction.Owner] = ownerItemsOwnership{
+			OwnedValue:  result.Ownership[mAuction.Owner].OwnedValue + aucListValue,
+			OwnedVolume: result.Ownership[mAuction.Owner].OwnedVolume + aucListVolume,
+		}
+	}
+
+	return result, codes.Ok, nil
+}
