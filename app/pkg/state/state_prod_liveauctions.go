@@ -112,6 +112,7 @@ func NewProdLiveAuctionsState(config ProdLiveAuctionsStateConfig) (ProdLiveAucti
 	liveAuctionsState.Listeners = NewListeners(SubjectListeners{
 		subjects.Auctions:    liveAuctionsState.ListenForAuctions,
 		subjects.OwnersQuery: liveAuctionsState.ListenForOwnersQuery,
+		subjects.PriceList:   liveAuctionsState.ListenForPricelist,
 	})
 
 	return liveAuctionsState, nil
