@@ -264,7 +264,7 @@ type QueryAuctionsRequest struct {
 	SortDirection sortdirections.SortDirection `json:"sort_direction"`
 	SortKind      sortkinds.SortKind           `json:"sort_kind"`
 	OwnerFilters  []sotah.OwnerName            `json:"owner_filters"`
-	ItemFilters   []blizzard.ItemID            `json:"item_filters"`
+	ItemFilters   blizzard.ItemIds             `json:"item_filters"`
 }
 
 type QueryAuctionsResponse struct {
@@ -363,7 +363,7 @@ func NewGetPricelistRequest(data []byte) (GetPricelistRequest, error) {
 type GetPricelistRequest struct {
 	RegionName blizzard.RegionName `json:"region_name"`
 	RealmSlug  blizzard.RealmSlug  `json:"realm_slug"`
-	ItemIds    []blizzard.ItemID   `json:"item_ids"`
+	ItemIds    blizzard.ItemIds    `json:"item_ids"`
 }
 
 type GetPricelistResponse struct {
@@ -426,7 +426,7 @@ func NewQueryOwnersByItemsRequest(data []byte) (QueryOwnersByItemsRequest, error
 type QueryOwnersByItemsRequest struct {
 	RegionName blizzard.RegionName `json:"region_name"`
 	RealmSlug  blizzard.RealmSlug  `json:"realm_slug"`
-	Items      []blizzard.ItemID   `json:"items"`
+	Items      blizzard.ItemIds    `json:"items"`
 }
 
 type ownerItemsOwnership struct {
@@ -465,11 +465,7 @@ func (ladBases LiveAuctionsDatabases) QueryOwnersByItems(req QueryOwnersByItemsR
 		return QueryOwnersByItemsResponse{}, codes.GenericError, err
 	}
 
-	iMap := sotah.ItemIdsMap{}
-	for _, ID := range req.Items {
-		iMap[ID] = struct{}{}
-	}
-
+	iMap := sotah.NewItemIdsMap(req.Items)
 	result := QueryOwnersByItemsResponse{
 		Ownership:   map[sotah.OwnerName]ownerItemsOwnership{},
 		TotalValue:  0,
