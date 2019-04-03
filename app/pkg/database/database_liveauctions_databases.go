@@ -466,6 +466,10 @@ func (ladBases LiveAuctionsDatabases) QueryOwnersByItems(req QueryOwnersByItemsR
 	}
 
 	iMap := sotah.ItemIdsMap{}
+	for _, ID := range req.Items {
+		iMap[ID] = struct{}{}
+	}
+
 	result := QueryOwnersByItemsResponse{
 		Ownership:   map[sotah.OwnerName]ownerItemsOwnership{},
 		TotalValue:  0,
