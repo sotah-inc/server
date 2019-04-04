@@ -260,11 +260,11 @@ func (idBase ItemsDatabase) FilterInItemsToSync(ids blizzard.ItemIds) (ItemsSync
 				}()
 				iconItemIds = append(iconItemIds, id)
 				iconsToSync[item.Icon] = iconItemIds
-
-				continue
 			}
 
-			syncWhitelist[id] = true
+			if item.NormalizedName == "" {
+				syncWhitelist[id] = true
+			}
 		}
 
 		return nil
