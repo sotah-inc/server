@@ -113,7 +113,7 @@ func SyncExistingItem(id blizzard.ItemID) error {
 		return err
 	}
 
-	if item.NormalizedName == "" {
+	if item.NormalizedName != "" {
 		return nil
 	}
 
