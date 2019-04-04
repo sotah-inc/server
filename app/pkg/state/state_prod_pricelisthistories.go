@@ -116,6 +116,11 @@ func NewProdPricelistHistoriesState(config ProdPricelistHistoriesStateConfig) (P
 		subjects.ReceiveComputedPricelistHistories: phState.ListenForComputedPricelistHistories,
 	})
 
+	// establishing messenger-listeners
+	phState.Listeners = NewListeners(SubjectListeners{
+		subjects.PriceListHistory: phState.ListenForPriceListHistory,
+	})
+
 	return phState, nil
 }
 
