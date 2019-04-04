@@ -30,11 +30,9 @@ var (
 
 	blizzardClient blizzard.Client
 
-	storeClient     store.Client
-	itemsBase       store.ItemsBase
-	itemsBucket     *storage.BucketHandle
-	itemIconsBase   store.ItemIconsBase
-	itemIconsBucket *storage.BucketHandle
+	storeClient store.Client
+	itemsBase   store.ItemsBase
+	itemsBucket *storage.BucketHandle
 )
 
 func init() {
@@ -61,14 +59,6 @@ func init() {
 
 	itemsBase = store.NewItemsBase(storeClient, "us-central1")
 	itemsBucket, err = itemsBase.GetFirmBucket()
-	if err != nil {
-		log.Fatalf("Failed to get firm bucket: %s", err.Error())
-
-		return
-	}
-
-	itemIconsBase = store.NewItemIconsBase(storeClient, "us-central1")
-	itemIconsBucket, err = itemIconsBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get firm bucket: %s", err.Error())
 
@@ -112,6 +102,40 @@ func init() {
 	}
 }
 
+func SyncExistingItem(id blizzard.ItemID) error {
+	itemObj, err := itemsBase.GetFirmObject(id, itemsBucket)
+	if err != nil {
+		return err
+	}
+
+	item, err := itemsBase.NewItem(itemObj)
+	if err != nil {
+		return err
+	}
+
+	if item.NormalizedName == "" {
+		return nil
+	}
+
+	normalizedName, err := sotah.NormalizeName(item.Name)
+	if err != nil {
+		return err
+	}
+	item.NormalizedName = normalizedName
+
+	jsonEncoded, err := json.Marshal(item)
+	if err != nil {
+		return err
+	}
+
+	gzipEncodedBody, err := util.GzipEncode(jsonEncoded)
+	if err != nil {
+		return err
+	}
+
+	return itemsBase.WriteItem(itemObj, gzipEncodedBody)
+}
+
 func SyncItem(id blizzard.ItemID) error {
 	itemObj := itemsBase.GetObject(id, itemsBucket)
 
@@ -120,9 +144,9 @@ func SyncItem(id blizzard.ItemID) error {
 		return err
 	}
 	if exists {
-		logging.WithField("id", id).Info("Item already exists, skipping")
+		logging.WithField("id", id).Info("Item already exists, calling func for existing item")
 
-		return nil
+		return SyncExistingItem(id)
 	}
 
 	logging.WithField("id", id).Info("Downloading")
