@@ -134,3 +134,14 @@ func (b ItemsBase) GetItems(ids blizzard.ItemIds, bkt *storage.BucketHandle) cha
 
 	return out
 }
+
+func (b ItemsBase) WriteItem(obj *storage.ObjectHandle, gzipEncodedBody []byte) error {
+	wc := obj.NewWriter(b.client.Context)
+	wc.ContentType = "application/json"
+	wc.ContentEncoding = "gzip"
+	if _, err := wc.Write(gzipEncodedBody); err != nil {
+		return err
+	}
+
+	return wc.Close()
+}
