@@ -433,6 +433,11 @@ func (phdBases PricelistHistoryDatabases) GetPricelistHistory(req GetPricelistHi
 		return GetPricelistHistoryResponse{}, codes.UserError, errors.New("invalid realm")
 	}
 
+	logging.WithFields(logrus.Fields{
+		"shards": len(realmShards),
+		"req":    fmt.Sprintf("+%v", req),
+	}).Info("Querying shards")
+
 	realm := sotah.NewSkeletonRealm(req.RegionName, req.RealmSlug)
 
 	res := GetPricelistHistoryResponse{History: sotah.ItemPriceHistories{}}
