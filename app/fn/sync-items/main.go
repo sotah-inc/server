@@ -169,6 +169,12 @@ func SyncItem(id blizzard.ItemID) error {
 		return err
 	}
 
+	normalizedName, err := sotah.NormalizeName(item.Name)
+	if err != nil {
+		return err
+	}
+	item.NormalizedName = normalizedName
+
 	jsonEncoded, err := json.Marshal(item)
 	if err != nil {
 		return err
