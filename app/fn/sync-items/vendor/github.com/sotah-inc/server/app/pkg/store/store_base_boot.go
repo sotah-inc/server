@@ -128,3 +128,20 @@ func (b BootBase) GetBlizzardCredentials(bkt *storage.BucketHandle) (sotah.Blizz
 
 	return out, nil
 }
+
+func (b BootBase) Guard(objName string, contents string, bkt *storage.BucketHandle) (bool, error) {
+	obj, err := b.GetFirmObject(objName, bkt)
+	if err != nil {
+		return false, err
+	}
+	reader, err := obj.NewReader(b.client.Context)
+	if err != nil {
+		return false, err
+	}
+	data, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return false, err
+	}
+
+	return string(data) == contents, nil
+}

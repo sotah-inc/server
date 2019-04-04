@@ -113,7 +113,9 @@ func init() {
 }
 
 func SyncItem(id blizzard.ItemID) error {
-	exists, err := itemsBase.ObjectExists(id, itemsBucket)
+	itemObj := itemsBase.GetObject(id, itemsBucket)
+
+	exists, err := itemsBase.ObjectExists(itemObj)
 	if err != nil {
 		return err
 	}
@@ -155,17 +157,8 @@ func SyncItem(id blizzard.ItemID) error {
 
 	// writing it out to the gcloud object
 	logging.WithField("id", id).Info("Writing to items-base")
-	wc := itemsBase.GetObject(id, itemsBucket).NewWriter(storeClient.Context)
-	wc.ContentType = "application/json"
-	wc.ContentEncoding = "gzip"
-	if _, err := wc.Write(gzipEncodedBody); err != nil {
-		return err
-	}
-	if err := wc.Close(); err != nil {
-		return err
-	}
 
-	return nil
+	return itemsBase.WriteItem(itemObj, gzipEncodedBody)
 }
 
 type HandleIdsJob struct {
