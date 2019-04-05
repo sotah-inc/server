@@ -104,7 +104,7 @@ func (phState ProdPricelistHistoriesState) Sync() error {
 
 	// queueing it all up
 	go func() {
-		jobs := store.NewGetAllPricelistHistoriesInJobs(versions)
+		jobs := store.NewGetAllPricelistHistoriesInJobs(versionsToSync)
 		logging.WithField("jobs", len(jobs)).Info("Queueing up jobs")
 		for _, job := range jobs {
 			logging.WithFields(logrus.Fields{
