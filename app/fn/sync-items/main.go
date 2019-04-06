@@ -123,17 +123,7 @@ func SyncExistingItem(id blizzard.ItemID) error {
 	}
 	item.NormalizedName = normalizedName
 
-	jsonEncoded, err := json.Marshal(item)
-	if err != nil {
-		return err
-	}
-
-	gzipEncodedBody, err := util.GzipEncode(jsonEncoded)
-	if err != nil {
-		return err
-	}
-
-	return itemsBase.WriteItem(itemObj, gzipEncodedBody)
+	return itemsBase.WriteItem(itemObj, item)
 }
 
 func SyncItem(id blizzard.ItemID) error {
@@ -164,10 +154,11 @@ func SyncItem(id blizzard.ItemID) error {
 	}
 
 	logging.WithField("id", id).Info("Parsing and encoding")
-	item, err := blizzard.NewItem(respMeta.Body)
+	blizzardItem, err := blizzard.NewItem(respMeta.Body)
 	if err != nil {
 		return err
 	}
+	item := sotah.Item{Item: blizzardItem}
 
 	normalizedName, err := sotah.NormalizeName(item.Name)
 	if err != nil {
@@ -175,20 +166,10 @@ func SyncItem(id blizzard.ItemID) error {
 	}
 	item.NormalizedName = normalizedName
 
-	jsonEncoded, err := json.Marshal(item)
-	if err != nil {
-		return err
-	}
-
-	gzipEncodedBody, err := util.GzipEncode(jsonEncoded)
-	if err != nil {
-		return err
-	}
-
 	// writing it out to the gcloud object
 	logging.WithField("id", id).Info("Writing to items-base")
 
-	return itemsBase.WriteItem(itemObj, gzipEncodedBody)
+	return itemsBase.WriteItem(itemObj, item)
 }
 
 type HandleIdsJob struct {

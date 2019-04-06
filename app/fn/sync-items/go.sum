@@ -105,8 +105,8 @@ github.com/shurcooL/users v0.0.0-20180125191416-49c67e49c537/go.mod h1:QJTqeLYED
 github.com/shurcooL/webdavfs v0.0.0-20170829043945-18c3829fa133/go.mod h1:hKmq5kWdCj2z2KEozexVbfEZIWiTjhE0+UjmZgPqehw=
 github.com/sirupsen/logrus v1.3.0 h1:hI/7Q+DtNZ2kINb6qt/lS+IyXnHQe9e90POfeewL/ME=
 github.com/sirupsen/logrus v1.3.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
-github.com/sotah-inc/server/app v0.0.0-20190404190537-8c7e33c68d80 h1:dh82QizO15U1dSMTAB2rs3h8BTl1T/v21sQ/VAFKjE4=
-github.com/sotah-inc/server/app v0.0.0-20190404190537-8c7e33c68d80/go.mod h1:UBrKsxoQMEj+uCyU936XZY2jC3vK5GbWmkvlfL3Coi4=
+github.com/sotah-inc/server/app v0.0.0-20190406221433-8c5ea99e8f0b h1:EIdIds8azFGbWhZ4bIL2DukDk2j9lqJQ4nifWTigjtc=
+github.com/sotah-inc/server/app v0.0.0-20190406221433-8c5ea99e8f0b/go.mod h1:UBrKsxoQMEj+uCyU936XZY2jC3vK5GbWmkvlfL3Coi4=
 github.com/sourcegraph/annotate v0.0.0-20160123013949-f4cad6c6324d/go.mod h1:UdhH50NIW0fCiwBSr0co2m7BnFLdv4fQTgdqdJTHFeE=
 github.com/sourcegraph/syntaxhighlight v0.0.0-20170531221838-bd320f5d308e/go.mod h1:HuIsMU8RRBOtsCgI77wP899iHVBQpCmg4ErYMZB+2IA=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=

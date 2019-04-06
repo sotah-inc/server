@@ -30,6 +30,10 @@ type QueryItemsItem struct {
 func NewQueryItemsItems(items sotah.ItemsMap) QueryItemsItems {
 	out := QueryItemsItems{}
 	for _, item := range items {
+		if item.NormalizedName == "" {
+			continue
+		}
+
 		out = append(out, QueryItemsItem{
 			Item:   item,
 			Target: item.NormalizedName,
