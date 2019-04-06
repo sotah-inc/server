@@ -5,19 +5,17 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/sotah-inc/server/app/pkg/logging"
-
-	"github.com/sotah-inc/server/app/pkg/util"
-	"google.golang.org/api/iterator"
-
-	"github.com/sotah-inc/server/app/pkg/sotah"
-
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
+	"github.com/sotah-inc/server/app/pkg/store/regions"
+	"github.com/sotah-inc/server/app/pkg/util"
+	"google.golang.org/api/iterator"
 )
 
-func NewRealmsBase(c Client, location string, version gameversions.GameVersion) RealmsBase {
+func NewRealmsBase(c Client, location regions.Region, version gameversions.GameVersion) RealmsBase {
 	return RealmsBase{
 		base{client: c, location: location},
 		version,
