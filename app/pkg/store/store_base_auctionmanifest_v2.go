@@ -151,15 +151,13 @@ func (b AuctionManifestBaseV2) DeleteAll(regionRealms map[blizzard.RegionName]so
 						break
 					}
 
-					if err != nil {
-						out <- DeleteAuctionManifestJob{
-							Err:   err,
-							Realm: realm,
-							Count: count,
-						}
-
-						break
+					out <- DeleteAuctionManifestJob{
+						Err:   err,
+						Realm: realm,
+						Count: count,
 					}
+
+					break
 				}
 
 				obj := bkt.Object(objAttrs.Name)
