@@ -162,5 +162,7 @@ func (sta DownloadAllAuctionsState) Run() error {
 		return err
 	}
 
+	logging.Info("Finished")
+
 	return nil
 }
