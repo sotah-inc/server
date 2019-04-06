@@ -8,9 +8,10 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/store/regions"
 )
 
-func NewBootBase(c Client, location string) BootBase {
+func NewBootBase(c Client, location regions.Region) BootBase {
 	return BootBase{base{client: c, location: location}}
 }
 

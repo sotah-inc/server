@@ -4,11 +4,12 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/storage"
+	"github.com/sotah-inc/server/app/pkg/store/regions"
 )
 
 const StoreItemIconURLFormat = "https://storage.googleapis.com/%s/%s"
 
-func NewItemIconsBase(c Client, location string) ItemIconsBase {
+func NewItemIconsBase(c Client, location regions.Region) ItemIconsBase {
 	return ItemIconsBase{base{client: c, location: location}}
 }
 

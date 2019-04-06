@@ -8,10 +8,11 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/store/regions"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
-func NewItemsBase(c Client, location string) ItemsBase {
+func NewItemsBase(c Client, location regions.Region) ItemsBase {
 	return ItemsBase{base{client: c, location: location}}
 }
 
