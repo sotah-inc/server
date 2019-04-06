@@ -11,6 +11,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/logging/stackdriver"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state"
+	"github.com/sotah-inc/server/app/pkg/state/fn"
 	"github.com/twinj/uuid"
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
 )
@@ -36,14 +37,17 @@ func main() {
 		cacheDir       = app.Flag("cache-dir", "Directory to cache data files to").Required().String()
 		projectID      = app.Flag("project-id", "GCloud Storage Project ID").Default("").Envar("PROJECT_ID").String()
 
-		apiCommand                    = app.Command(string(commands.API), "For running sotah-server.")
-		liveAuctionsCommand           = app.Command(string(commands.LiveAuctions), "For in-memory storage of current auctions.")
-		pricelistHistoriesCommand     = app.Command(string(commands.PricelistHistories), "For on-disk storage of pricelist histories.")
+		apiCommand                = app.Command(string(commands.API), "For running sotah-server.")
+		liveAuctionsCommand       = app.Command(string(commands.LiveAuctions), "For in-memory storage of current auctions.")
+		pricelistHistoriesCommand = app.Command(string(commands.PricelistHistories), "For on-disk storage of pricelist histories.")
+
 		prodApiCommand                = app.Command(string(commands.ProdApi), "For running sotah-server in prod-mode.")
 		prodMetricsCommand            = app.Command(string(commands.ProdMetrics), "For forwarding metrics to a nats channel.")
 		prodLiveAuctionsCommand       = app.Command(string(commands.ProdLiveAuctions), "For managing live-auctions in gcp ce vm.")
 		prodPricelistHistoriesCommand = app.Command(string(commands.ProdPricelistHistories), "For managing pricelist-histories in gcp ce vm.")
 		prodItemsCommand              = app.Command(string(commands.ProdItems), "For managing items in gcp ce vm.")
+
+		fnDownloadAllAuctions = app.Command(string(commands.FnDownloadAllAuctions), "For enqueueing downloading of auctions in gcp ce vm.")
 	)
 	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
 
@@ -154,6 +158,11 @@ func main() {
 				MessengerHost:    *natsHost,
 				GCloudProjectID:  *projectID,
 				ItemsDatabaseDir: fmt.Sprintf("%s/databases", *cacheDir),
+			})
+		},
+		fnDownloadAllAuctions.FullCommand(): func() error {
+			return command.FnDownloadAllAuctions(fn.DownloadAllAuctionsStateConfig{
+				ProjectId: *projectID,
 			})
 		},
 	}

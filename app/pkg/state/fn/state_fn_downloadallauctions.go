@@ -7,6 +7,7 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
+	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
@@ -78,6 +79,11 @@ func NewDownloadAllAuctionsState(config DownloadAllAuctionsStateConfig) (Downloa
 		return DownloadAllAuctionsState{}, err
 	}
 
+	// establishing bus-listeners
+	sta.BusListeners = state.NewBusListeners(state.SubjectBusListeners{
+		subjects.DownloadAllAuctions: sta.ListenForDownloadAllAuctions,
+	})
+
 	return sta, nil
 }
 
@@ -90,4 +96,25 @@ type DownloadAllAuctionsState struct {
 	syncAllItemsTopic                       *pubsub.Topic
 	receivedComputedLiveAuctionsTopic       *pubsub.Topic
 	receivedComputedPricelistHistoriesTopic *pubsub.Topic
+}
+
+func (sta DownloadAllAuctionsState) ListenForDownloadAllAuctions(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {
+	// establishing subscriber config
+	config := bus.SubscribeConfig{
+		Stop: stop,
+		Callback: func(busMsg bus.Message) {
+			if err := sta.Run(); err != nil {
+				logging.WithField("error", err.Error()).Error("Failed to run")
+			}
+		},
+		OnReady:   onReady,
+		OnStopped: onStopped,
+	}
+
+	// starting up worker for the subscription
+	go func() {
+		if err := sta.IO.BusClient.SubscribeToTopic(string(subjects.DownloadAllAuctions), config); err != nil {
+			logging.WithField("error", err.Error()).Fatal("Failed to subscribe to topic")
+		}
+	}()
 }
