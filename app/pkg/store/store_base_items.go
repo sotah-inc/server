@@ -1,6 +1,7 @@
 package store
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 
@@ -136,7 +137,17 @@ func (b ItemsBase) GetItems(ids blizzard.ItemIds, bkt *storage.BucketHandle) cha
 	return out
 }
 
-func (b ItemsBase) WriteItem(obj *storage.ObjectHandle, gzipEncodedBody []byte) error {
+func (b ItemsBase) WriteItem(obj *storage.ObjectHandle, item sotah.Item) error {
+	jsonEncoded, err := json.Marshal(item)
+	if err != nil {
+		return err
+	}
+
+	gzipEncodedBody, err := util.GzipEncode(jsonEncoded)
+	if err != nil {
+		return err
+	}
+
 	wc := obj.NewWriter(b.client.Context)
 	wc.ContentType = "application/json"
 	wc.ContentEncoding = "gzip"
