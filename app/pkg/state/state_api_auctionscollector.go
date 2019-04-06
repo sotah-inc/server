@@ -10,7 +10,6 @@ import (
 	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
-	"github.com/sotah-inc/server/app/pkg/store"
 )
 
 func (sta APIState) StartCollector(stopChan sotah.WorkerStopChan) sotah.WorkerStopChan {
@@ -205,49 +204,11 @@ func (sta APIState) collectRegions() {
 					return inItemsMap, inHasNewResults, nil
 				}
 
-				// optionally halting on non-gcloud environment
-				if !sta.UseGCloud {
-					for iconName, IDs := range missingItemIcons {
-						for _, ID := range IDs {
-							itemValue := inItemsMap[ID]
-							itemValue.IconURL = blizzard.DefaultGetItemIconURL(iconName)
-							inItemsMap[ID] = itemValue
-						}
-					}
-
-					return inItemsMap, inHasNewResults, nil
-				}
-
-				// starting channels for persisting item-icons
-				persistItemIconsInJobs := make(chan store.PersistItemIconsInJob)
-				persistItemIconsOutJobs := sta.IO.StoreClient.PersistItemIcons(persistItemIconsInJobs)
-
-				// queueing up the jobs
-				go func() {
-					for outJob := range sta.IO.Resolver.GetItemIcons(missingItemIcons.GetItemIcons()) {
-						if outJob.Err != nil {
-							logging.WithFields(outJob.ToLogrusFields()).Error("Failed to fetch item-icon")
-
-							continue
-						}
-
-						persistItemIconsInJobs <- store.PersistItemIconsInJob{
-							IconName: outJob.IconName,
-							Data:     outJob.Data,
-						}
-					}
-
-					close(persistItemIconsInJobs)
-				}()
-
-				// gathering results for persistence
-				for job := range persistItemIconsOutJobs {
-					inHasNewResults = true
-
-					for _, itemId := range missingItemIcons[job.IconName] {
-						item := inItemsMap[itemId]
-						item.IconURL = job.IconURL
-						inItemsMap[itemId] = item
+				for iconName, IDs := range missingItemIcons {
+					for _, ID := range IDs {
+						itemValue := inItemsMap[ID]
+						itemValue.IconURL = blizzard.DefaultGetItemIconURL(iconName)
+						inItemsMap[ID] = itemValue
 					}
 				}
 
