@@ -109,3 +109,11 @@ type GetTimestampsJob struct {
 	Realm      sotah.Realm
 	Timestamps []sotah.UnixTimestamp
 }
+
+func (b base) Write(wc *storage.Writer, body []byte) error {
+	if _, err := wc.Write(body); err != nil {
+		return err
+	}
+
+	return wc.Close()
+}

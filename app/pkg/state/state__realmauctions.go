@@ -33,34 +33,12 @@ func (sta State) GetAuctionsFromTimes(times RegionRealmTimes) chan GetAuctionsFr
 	// spinning up the workers for fetching Auctions
 	worker := func() {
 		for timeTuple := range in {
-			if !sta.UseGCloud {
-				aucs, lastModified, err := sta.IO.DiskStore.GetAuctionsByRealm(timeTuple.Realm)
-				if err != nil {
-					out <- GetAuctionsFromTimesOutJob{
-						Err:        err,
-						Realm:      timeTuple.Realm,
-						TargetTime: time.Unix(0, 0),
-						Auctions:   blizzard.Auctions{},
-					}
-
-					continue
-				}
-
-				out <- GetAuctionsFromTimesOutJob{
-					Realm:      timeTuple.Realm,
-					TargetTime: lastModified,
-					Auctions:   aucs,
-				}
-
-				continue
-			}
-
-			aucs, err := sta.IO.StoreClient.GetAuctions(timeTuple.Realm, timeTuple.TargetTime)
+			aucs, lastModified, err := sta.IO.DiskStore.GetAuctionsByRealm(timeTuple.Realm)
 			if err != nil {
 				out <- GetAuctionsFromTimesOutJob{
 					Err:        err,
 					Realm:      timeTuple.Realm,
-					TargetTime: timeTuple.TargetTime,
+					TargetTime: time.Unix(0, 0),
 					Auctions:   blizzard.Auctions{},
 				}
 
@@ -68,9 +46,8 @@ func (sta State) GetAuctionsFromTimes(times RegionRealmTimes) chan GetAuctionsFr
 			}
 
 			out <- GetAuctionsFromTimesOutJob{
-				Err:        nil,
 				Realm:      timeTuple.Realm,
-				TargetTime: timeTuple.TargetTime,
+				TargetTime: lastModified,
 				Auctions:   aucs,
 			}
 		}
@@ -150,15 +127,7 @@ func (sta State) StoreAuctions(in chan StoreAuctionsInJob) chan StoreAuctionsOut
 				continue
 			}
 
-			err = func() error {
-				if sta.UseGCloud {
-					return sta.IO.StoreClient.WriteRealmAuctions(inJob.Realm, inJob.TargetTime, gzipEncodedData)
-				}
-
-				return sta.IO.DiskStore.WriteAuctions(inJob.Realm, gzipEncodedData)
-			}()
-
-			if err != nil {
+			if err := sta.IO.DiskStore.WriteAuctions(inJob.Realm, gzipEncodedData); err != nil {
 				out <- StoreAuctionsOutJob{
 					Err:        err,
 					Realm:      inJob.Realm,

@@ -114,7 +114,7 @@ func (sta APIState) collectRegions() {
 					continue
 				}
 
-				sta.Statuses[job.Realm.Region.Name].Realms[i].LastModified = job.TargetTime.Unix()
+				sta.Statuses[job.Realm.Region.Name].Realms[i].RealmModificationDates.Downloaded = job.TargetTime.Unix()
 
 				break
 			}
