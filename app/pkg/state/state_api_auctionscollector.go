@@ -51,7 +51,7 @@ func (sta APIState) collectRegions() {
 	logging.Info("Collecting regions")
 
 	// for subsequently pushing to the live-auctions-intake listener
-	regionRealmTimestamps := sotah.RegionRealmTimestamps{}
+	regionRealmTimestamps := sotah.RegionRealmTimestampMaps{}
 
 	// going over the list of regions
 	startTime := time.Now()

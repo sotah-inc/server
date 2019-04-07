@@ -25,7 +25,7 @@ func newLiveAuctionsIntakeRequest(data []byte) (liveAuctionsIntakeRequest, error
 }
 
 type liveAuctionsIntakeRequest struct {
-	RegionRealmTimestamps sotah.RegionRealmTimestamps `json:"realm_timestamps"`
+	RegionRealmTimestamps sotah.RegionRealmTimestampMaps `json:"realm_timestamps"`
 }
 
 func (iRequest liveAuctionsIntakeRequest) resolve(statuses sotah.Statuses) (RegionRealmTimes, sotah.RegionRealmMap) {

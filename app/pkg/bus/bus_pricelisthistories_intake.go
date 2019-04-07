@@ -55,7 +55,7 @@ func (j LoadRegionRealmTimestampsInJob) ToRegionRealmTime() (sotah.Region, sotah
 	return region, realm, targetTime
 }
 
-func (c Client) LoadRegionRealmTimestamps(rTimestamps sotah.RegionRealmTimestamps, recipientSubject subjects.Subject) {
+func (c Client) LoadRegionRealmTimestamps(rTimestamps sotah.RegionRealmTimestampMaps, recipientSubject subjects.Subject) {
 	// establishing channels for intake
 	in := make(chan LoadRegionRealmTimestampsInJob)
 
