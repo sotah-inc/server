@@ -140,3 +140,20 @@ func (b RealmsBase) GetRealms(regionName blizzard.RegionName, bkt *storage.Bucke
 
 	return results, nil
 }
+
+func (b ItemsBase) WriteRealm(obj *storage.ObjectHandle, realm sotah.Realm) error {
+	jsonEncoded, err := json.Marshal(realm)
+	if err != nil {
+		return err
+	}
+
+	gzipEncodedBody, err := util.GzipEncode(jsonEncoded)
+	if err != nil {
+		return err
+	}
+
+	wc := obj.NewWriter(b.client.Context)
+	wc.ContentType = "application/json"
+	wc.ContentEncoding = "gzip"
+	return b.Write(wc, gzipEncodedBody)
+}
