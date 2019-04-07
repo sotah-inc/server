@@ -38,9 +38,14 @@ const (
 	ValidateAllAuctions Subject = "validateAllAuctions"
 	ValidateAuctions    Subject = "validateAuctions"
 
-	SyncAllItems       Subject = "syncAllItems"
-	SyncItem           Subject = "syncItem"
-	ReceiveSyncedItems Subject = "receiveSyncedItems"
+	ComputeAllItems Subject = "computeAllItems"
+	ComputeItems    Subject = "computeItems"
+
+	FilterInItemsToSync Subject = "filterInItemsToSync"
+	SyncAllItems        Subject = "syncAllItems"
+	SyncItems           Subject = "syncItems"
+	SyncItemIcons       Subject = "syncItemIcons"
+	ReceiveSyncedItems  Subject = "receiveSyncedItems"
 
 	ComputeAllLiveAuctions      Subject = "computeAllLiveAuctions"
 	ComputeLiveAuctions         Subject = "computeLiveAuctions"

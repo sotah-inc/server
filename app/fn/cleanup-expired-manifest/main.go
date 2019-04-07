@@ -19,6 +19,8 @@ import (
 var (
 	projectId = os.Getenv("GCP_PROJECT")
 
+	busClient bus.Client
+
 	storeClient store.Client
 
 	auctionsStoreBase  store.AuctionsBaseV2
@@ -30,6 +32,13 @@ var (
 
 func init() {
 	var err error
+
+	busClient, err = bus.NewClient(projectId, "fn-cleanup-expired-manifest")
+	if err != nil {
+		log.Fatalf("Failed to create new bus client: %s", err.Error())
+
+		return
+	}
 
 	storeClient, err = store.NewClient(projectId)
 	if err != nil {
@@ -55,10 +64,10 @@ func init() {
 	}
 }
 
-func handleManifestCleaning(realm sotah.Realm, targetTimestamp sotah.UnixTimestamp) error {
+func handleManifestCleaning(realm sotah.Realm, targetTimestamp sotah.UnixTimestamp) (int, error) {
 	obj, err := auctionManifestStoreBase.GetFirmObject(targetTimestamp, realm, auctionManifestBucket)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	manifest, err := func() (sotah.AuctionManifest, error) {
@@ -80,12 +89,13 @@ func handleManifestCleaning(realm sotah.Realm, targetTimestamp sotah.UnixTimesta
 		return out, nil
 	}()
 	if err != nil {
-		return err
+		return 0, err
 	}
 
+	totalDeleted := 0
 	for outJob := range auctionsStoreBase.DeleteAll(auctionStoreBucket, realm, manifest) {
 		if outJob.Err != nil {
-			return outJob.Err
+			return 0, outJob.Err
 		}
 
 		logging.WithFields(logrus.Fields{
@@ -93,10 +103,11 @@ func handleManifestCleaning(realm sotah.Realm, targetTimestamp sotah.UnixTimesta
 			"realm":            realm.Slug,
 			"target-timestamp": outJob.TargetTimestamp,
 		}).Info("Deleted raw-auctions object")
+		totalDeleted += 1
 	}
 
 	if err := obj.Delete(storeClient.Context); err != nil {
-		return err
+		return 0, err
 	}
 
 	logging.WithFields(logrus.Fields{
@@ -105,7 +116,7 @@ func handleManifestCleaning(realm sotah.Realm, targetTimestamp sotah.UnixTimesta
 		"target-timestamp": targetTimestamp,
 	}).Info("Deleted manifest object")
 
-	return nil
+	return totalDeleted, nil
 }
 
 type PubSubMessage struct {
@@ -113,32 +124,36 @@ type PubSubMessage struct {
 }
 
 func CleanupExpiredManifest(_ context.Context, m PubSubMessage) error {
-	job, err := func() (bus.CleanupAuctionManifestJob, error) {
-		var in bus.Message
-		if err := json.Unmarshal(m.Data, &in); err != nil {
-			return bus.CleanupAuctionManifestJob{}, err
-		}
+	var in bus.Message
+	if err := json.Unmarshal(m.Data, &in); err != nil {
+		return err
+	}
 
-		var out bus.CleanupAuctionManifestJob
-		if err := json.Unmarshal([]byte(in.Data), &out); err != nil {
-			return bus.CleanupAuctionManifestJob{}, err
-		}
-
-		return out, nil
-	}()
+	job, err := bus.NewCleanupAuctionManifestJob(in.Data)
 	if err != nil {
 		return err
 	}
 
 	logging.WithFields(logrus.Fields{"job": job}).Info("Handling")
 
-	realm := sotah.Realm{
-		Realm:  blizzard.Realm{Slug: blizzard.RealmSlug(job.RealmSlug)},
-		Region: sotah.Region{Name: blizzard.RegionName(job.RegionName)},
-	}
+	realm := sotah.NewSkeletonRealm(blizzard.RegionName(job.RegionName), blizzard.RealmSlug(job.RealmSlug))
 	targetTimestamp := sotah.UnixTimestamp(job.TargetTimestamp)
 
-	if err := handleManifestCleaning(realm, targetTimestamp); err != nil {
+	totalDeleted, err := handleManifestCleaning(realm, targetTimestamp)
+	if err != nil {
+		return err
+	}
+
+	jobResponse := bus.CleanupAuctionManifestJobResponse{TotalDeleted: totalDeleted}
+	data, err := jobResponse.EncodeForDelivery()
+	if err != nil {
+		return err
+	}
+
+	reply := bus.NewMessage()
+	reply.Data = data
+	reply.ReplyToId = in.ReplyToId
+	if _, err := busClient.ReplyTo(in, reply); err != nil {
 		return err
 	}
 

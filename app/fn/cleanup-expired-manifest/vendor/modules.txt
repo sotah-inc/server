@@ -23,6 +23,8 @@ github.com/golang/protobuf/ptypes/empty
 github.com/googleapis/gax-go/v2
 # github.com/konsorten/go-windows-terminal-sequences v1.0.1
 github.com/konsorten/go-windows-terminal-sequences
+# github.com/lithammer/fuzzysearch v1.0.2
+github.com/lithammer/fuzzysearch/fuzzy
 # github.com/nats-io/go-nats v1.7.0
 github.com/nats-io/go-nats
 github.com/nats-io/go-nats/encoders/builtin
@@ -33,7 +35,7 @@ github.com/nats-io/nkeys
 github.com/nats-io/nuid
 # github.com/sirupsen/logrus v1.3.0
 github.com/sirupsen/logrus
-# github.com/sotah-inc/server/app v0.0.0-20190320010926-6aa392f7b4f7
+# github.com/sotah-inc/server/app v0.0.0-20190407171032-e7860f0d55d8
 github.com/sotah-inc/server/app/pkg/blizzard
 github.com/sotah-inc/server/app/pkg/bus
 github.com/sotah-inc/server/app/pkg/logging
@@ -49,6 +51,9 @@ github.com/sotah-inc/server/app/pkg/metric
 github.com/sotah-inc/server/app/pkg/state/subjects
 github.com/sotah-inc/server/app/pkg/sotah/sortdirections
 github.com/sotah-inc/server/app/pkg/sotah/sortkinds
+github.com/sotah-inc/server/app/pkg/sotah/gameversions
+github.com/sotah-inc/server/app/pkg/store/regions
+github.com/sotah-inc/server/app/pkg/database/codes
 github.com/sotah-inc/server/app/pkg/messenger
 github.com/sotah-inc/server/app/pkg/metric/kinds
 github.com/sotah-inc/server/app/pkg/messenger/codes
@@ -92,7 +97,7 @@ golang.org/x/oauth2/jwt
 # golang.org/x/sync v0.0.0-20181108010431-42b317875d0f
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20181029174526-d69651ed3497
+# golang.org/x/sys v0.0.0-20181205085412-a5c9d58dba9a
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 # golang.org/x/text v0.3.1-0.20180807135948-17ff2d5776d2

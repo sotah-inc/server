@@ -12,17 +12,8 @@ func databaseItemsBucketName() []byte {
 }
 
 // keying
-type itemKeyspace int64
-
-func itemIDKeyspace(itemId blizzard.ItemID) itemKeyspace {
-	keyspaceSize := int64(1000)
-	keyspace := (int64(itemId) - (int64(itemId) % keyspaceSize)) / keyspaceSize
-
-	return itemKeyspace(keyspace)
-}
-
-func itemsKeyName(keyspace itemKeyspace) []byte {
-	return []byte(fmt.Sprintf("item-batch-%d", keyspace))
+func itemsKeyName(id blizzard.ItemID) []byte {
+	return []byte(fmt.Sprintf("item-%d", id))
 }
 
 // db
