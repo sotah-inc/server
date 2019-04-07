@@ -17,20 +17,7 @@ func (sta CleanupAllExpiredManifestsState) Run() error {
 		return err
 	}
 
-	jobs := []bus.CleanupAuctionManifestJob{}
-	for regionName, realmExpiredTimestamps := range regionExpiredTimestamps {
-		for realmSlug, expiredTimestamps := range realmExpiredTimestamps {
-			for _, timestamp := range expiredTimestamps {
-				job := bus.CleanupAuctionManifestJob{
-					RegionName:      string(regionName),
-					RealmSlug:       string(realmSlug),
-					TargetTimestamp: int(timestamp),
-				}
-				jobs = append(jobs, job)
-			}
-		}
-	}
-
+	jobs := bus.NewCleanupAuctionManifestJobs(regionExpiredTimestamps)
 	for outJob := range sta.IO.BusClient.LoadAuctionsCleanupJobs(jobs, sta.auctionsCleanupTopic) {
 		if outJob.Err != nil {
 			return outJob.Err
