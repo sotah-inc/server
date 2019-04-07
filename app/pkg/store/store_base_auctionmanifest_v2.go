@@ -395,7 +395,7 @@ func (b AuctionManifestBaseV2) GetTimestamps(realm sotah.Realm, bkt *storage.Buc
 			}
 		}
 
-		targetTimestamp, err := strconv.Atoi(objAttrs.Name[len(prefix):(len(objAttrs.Name) - len(".txt.gz"))])
+		targetTimestamp, err := strconv.Atoi(objAttrs.Name[len(prefix):(len(objAttrs.Name) - len(".json"))])
 		if err != nil {
 			return []sotah.UnixTimestamp{}, err
 		}
