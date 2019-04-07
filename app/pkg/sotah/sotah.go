@@ -112,9 +112,9 @@ type UnixTimestamp int64
 
 type WorkerStopChan chan struct{}
 
-type RealmTimestamps map[blizzard.RealmSlug]int64
+type RealmTimestampMap map[blizzard.RealmSlug]int64
 
-type RegionRealmTimestamps map[blizzard.RegionName]RealmTimestamps
+type RegionRealmTimestamps map[blizzard.RegionName]RealmTimestampMap
 
 func NormalizeTargetDate(targetDate time.Time) time.Time {
 	nearestWeekStartOffset := targetDate.Second() + targetDate.Minute()*60 + targetDate.Hour()*60*60

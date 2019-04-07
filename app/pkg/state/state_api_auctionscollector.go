@@ -103,7 +103,7 @@ func (sta APIState) collectRegions() {
 			}
 
 			if _, ok := regionRealmTimestamps[job.Realm.Region.Name]; !ok {
-				regionRealmTimestamps[job.Realm.Region.Name] = sotah.RealmTimestamps{}
+				regionRealmTimestamps[job.Realm.Region.Name] = sotah.RealmTimestampMap{}
 			}
 			regionRealmTimestamps[job.Realm.Region.Name][job.Realm.Slug] = job.TargetTime.Unix()
 
