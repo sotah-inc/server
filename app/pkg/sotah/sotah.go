@@ -116,6 +116,10 @@ type RealmTimestampMap map[blizzard.RealmSlug]int64
 
 type RegionRealmTimestampMaps map[blizzard.RegionName]RealmTimestampMap
 
+type RealmTimestamps map[blizzard.RealmSlug][]UnixTimestamp
+
+type RegionRealmTimestamps map[blizzard.RegionName]RealmTimestamps
+
 func NormalizeTargetDate(targetDate time.Time) time.Time {
 	nearestWeekStartOffset := targetDate.Second() + targetDate.Minute()*60 + targetDate.Hour()*60*60
 	return time.Unix(targetDate.Unix()-int64(nearestWeekStartOffset), 0)
