@@ -13,12 +13,13 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/store/regions"
 	"github.com/sotah-inc/server/app/pkg/util"
 	"github.com/twinj/uuid"
 	"google.golang.org/api/iterator"
 )
 
-func NewPricelistHistoriesBaseV2(c Client, location string) PricelistHistoriesBaseV2 {
+func NewPricelistHistoriesBaseV2(c Client, location regions.Region) PricelistHistoriesBaseV2 {
 	return PricelistHistoriesBaseV2{base{client: c, location: location}}
 }
 

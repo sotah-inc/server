@@ -6,9 +6,10 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/store/regions"
 )
 
-func NewLiveAuctionsBase(c Client, location string) LiveAuctionsBase {
+func NewLiveAuctionsBase(c Client, location regions.Region) LiveAuctionsBase {
 	return LiveAuctionsBase{base{client: c, location: location}}
 }
 

@@ -10,11 +10,12 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/store/regions"
 	"github.com/sotah-inc/server/app/pkg/util"
 	"google.golang.org/api/iterator"
 )
 
-func NewAuctionManifestBaseV2(c Client, location string) AuctionManifestBaseV2 {
+func NewAuctionManifestBaseV2(c Client, location regions.Region) AuctionManifestBaseV2 {
 	return AuctionManifestBaseV2{base{client: c, location: location}}
 }
 
@@ -151,15 +152,13 @@ func (b AuctionManifestBaseV2) DeleteAll(regionRealms map[blizzard.RegionName]so
 						break
 					}
 
-					if err != nil {
-						out <- DeleteAuctionManifestJob{
-							Err:   err,
-							Realm: realm,
-							Count: count,
-						}
-
-						break
+					out <- DeleteAuctionManifestJob{
+						Err:   err,
+						Realm: realm,
+						Count: count,
 					}
+
+					break
 				}
 
 				obj := bkt.Object(objAttrs.Name)
