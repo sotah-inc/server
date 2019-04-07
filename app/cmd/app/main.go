@@ -48,6 +48,7 @@ func main() {
 		prodItemsCommand              = app.Command(string(commands.ProdItems), "For managing items in gcp ce vm.")
 
 		fnDownloadAllAuctions = app.Command(string(commands.FnDownloadAllAuctions), "For enqueueing downloading of auctions in gcp ce vm.")
+		fnSyncAllItems        = app.Command(string(commands.FnSyncAllItems), "For enqueueing syncing of items and item-icons in gcp ce vm.")
 	)
 	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
 
@@ -162,6 +163,11 @@ func main() {
 		},
 		fnDownloadAllAuctions.FullCommand(): func() error {
 			return command.FnDownloadAllAuctions(fn.DownloadAllAuctionsStateConfig{
+				ProjectId: *projectID,
+			})
+		},
+		fnSyncAllItems.FullCommand(): func() error {
+			return command.FnSyncAllItems(fn.SyncAllItemsStateConfig{
 				ProjectId: *projectID,
 			})
 		},
