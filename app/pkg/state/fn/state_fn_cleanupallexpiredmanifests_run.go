@@ -29,6 +29,12 @@ func (sta CleanupAllExpiredManifestsState) Run() error {
 		return err
 	}
 
+	if len(messages) == 0 {
+		logging.Info("No expired-manifest job messages found, exiting early")
+
+		return nil
+	}
+
 	logging.Info("Bulk publishing")
 	responses, err := sta.IO.BusClient.BulkRequest(sta.auctionsCleanupTopic, messages, 120*time.Second)
 	if err != nil {
