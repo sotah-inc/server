@@ -40,7 +40,7 @@ type Region struct {
 func NewRealms(reg Region, blizzRealms []blizzard.Realm) Realms {
 	reas := make([]Realm, len(blizzRealms))
 	for i, rea := range blizzRealms {
-		reas[i] = Realm{rea, reg, 0}
+		reas[i] = Realm{rea, reg, RealmModificationDates{}}
 	}
 
 	return reas
@@ -55,10 +55,16 @@ func NewSkeletonRealm(regionName blizzard.RegionName, realmSlug blizzard.RealmSl
 	}
 }
 
+type RealmModificationDates struct {
+	Downloaded                 int64 `json:"downloaded"`
+	LiveAuctionsReceived       int64 `json:"live_auctions_received"`
+	PricelistHistoriesReceived int64 `json:"pricelist_histories_received"`
+}
+
 type Realm struct {
 	blizzard.Realm
-	Region       Region `json:"region"`
-	LastModified int64  `json:"last_modified"`
+	Region                 Region                 `json:"region"`
+	RealmModificationDates RealmModificationDates `json:"realm_modification_dates"`
 }
 
 func NewStatus(reg Region, stat blizzard.Status) Status {

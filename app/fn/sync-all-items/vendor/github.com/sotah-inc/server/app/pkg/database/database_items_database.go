@@ -234,6 +234,7 @@ func (idBase ItemsDatabase) FilterInItemsToSync(ids blizzard.ItemIds) (ItemsSync
 		for _, id := range ids {
 			value := bkt.Get(itemsKeyName(id))
 			if value == nil {
+				logging.WithField("item", id).Info("Item was not in bucket")
 				syncWhitelist[id] = true
 
 				continue
@@ -249,8 +250,7 @@ func (idBase ItemsDatabase) FilterInItemsToSync(ids blizzard.ItemIds) (ItemsSync
 				return err
 			}
 
-			if item.IconURL == "" {
-				syncWhitelist[id] = true
+			if item.Icon != "" && (item.IconURL == "" || item.IconObjectName == "") {
 				iconItemIds := func() blizzard.ItemIds {
 					out, ok := iconsToSync[item.Icon]
 					if !ok {
@@ -261,11 +261,12 @@ func (idBase ItemsDatabase) FilterInItemsToSync(ids blizzard.ItemIds) (ItemsSync
 				}()
 				iconItemIds = append(iconItemIds, id)
 				iconsToSync[item.Icon] = iconItemIds
-
-				continue
 			}
 
-			syncWhitelist[id] = true
+			if item.NormalizedName == "" {
+				logging.WithField("item", item.ID).Info("Normalized-name is blank")
+				syncWhitelist[id] = true
+			}
 		}
 
 		return nil
