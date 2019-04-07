@@ -287,7 +287,7 @@ func (b AuctionManifestBaseV2) NewAuctionManifest(obj *storage.ObjectHandle) (so
 func (b AuctionManifestBaseV2) GetAllTimestamps(
 	regionRealms map[blizzard.RegionName]sotah.Realms,
 	bkt *storage.BucketHandle,
-) (RegionRealmTimestamps, error) {
+) (sotah.RegionRealmTimestamps, error) {
 	out := make(chan GetTimestampsJob)
 	in := make(chan sotah.Realm)
 
@@ -328,15 +328,15 @@ func (b AuctionManifestBaseV2) GetAllTimestamps(
 	}()
 
 	// going over results
-	results := RegionRealmTimestamps{}
+	results := sotah.RegionRealmTimestamps{}
 	for job := range out {
 		if job.Err != nil {
-			return RegionRealmTimestamps{}, job.Err
+			return sotah.RegionRealmTimestamps{}, job.Err
 		}
 
 		regionName := job.Realm.Region.Name
 		if _, ok := results[regionName]; !ok {
-			results[regionName] = RealmTimestamps{}
+			results[regionName] = sotah.RealmTimestamps{}
 		}
 
 		results[regionName][job.Realm.Slug] = job.Timestamps
@@ -348,13 +348,13 @@ func (b AuctionManifestBaseV2) GetAllTimestamps(
 func (b AuctionManifestBaseV2) GetAllExpiredTimestamps(
 	regionRealms map[blizzard.RegionName]sotah.Realms,
 	bkt *storage.BucketHandle,
-) (RegionRealmTimestamps, error) {
+) (sotah.RegionRealmTimestamps, error) {
 	regionRealmTimestamps, err := b.GetAllTimestamps(regionRealms, bkt)
 	if err != nil {
-		return RegionRealmTimestamps{}, err
+		return sotah.RegionRealmTimestamps{}, err
 	}
 
-	out := RegionRealmTimestamps{}
+	out := sotah.RegionRealmTimestamps{}
 	limit := sotah.NormalizeTargetDate(time.Now()).AddDate(0, 0, -14)
 	for regionName, realmTimestamps := range regionRealmTimestamps {
 		for realmSlug, timestamps := range realmTimestamps {
@@ -365,7 +365,7 @@ func (b AuctionManifestBaseV2) GetAllExpiredTimestamps(
 				}
 
 				if _, ok := out[regionName]; !ok {
-					out[regionName] = RealmTimestamps{}
+					out[regionName] = sotah.RealmTimestamps{}
 				}
 				if _, ok := out[regionName][realmSlug]; !ok {
 					out[regionName][realmSlug] = []sotah.UnixTimestamp{}

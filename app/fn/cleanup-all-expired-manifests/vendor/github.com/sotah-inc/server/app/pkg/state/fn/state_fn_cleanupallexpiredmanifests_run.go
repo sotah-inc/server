@@ -1,13 +1,19 @@
 package fn
 
 import (
+	"time"
+
+	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/bus"
+	"github.com/sotah-inc/server/app/pkg/bus/codes"
 	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/metric"
 )
 
 func (sta CleanupAllExpiredManifestsState) Run() error {
 	logging.Info("Starting CleanupAllExpiredManifests.Run()")
 
+	logging.Info("Gathering expired timestamps")
 	regionExpiredTimestamps, err := sta.auctionManifestStoreBase.GetAllExpiredTimestamps(
 		sta.regionRealms,
 		sta.auctionManifestBucket,
@@ -16,27 +22,43 @@ func (sta CleanupAllExpiredManifestsState) Run() error {
 		return err
 	}
 
-	jobs := []bus.CleanupAuctionManifestJob{}
-	for regionName, realmExpiredTimestamps := range regionExpiredTimestamps {
-		for realmSlug, expiredTimestamps := range realmExpiredTimestamps {
-			for _, timestamp := range expiredTimestamps {
-				job := bus.CleanupAuctionManifestJob{
-					RegionName:      string(regionName),
-					RealmSlug:       string(realmSlug),
-					TargetTimestamp: int(timestamp),
-				}
-				jobs = append(jobs, job)
-			}
-		}
+	logging.Info("Converting to jobs and jobs messages")
+	jobs := bus.NewCleanupAuctionManifestJobs(regionExpiredTimestamps)
+	messages, err := bus.NewCleanupAuctionManifestJobsMessages(jobs)
+	if err != nil {
+		return err
 	}
 
-	for outJob := range sta.IO.BusClient.LoadAuctionsCleanupJobs(jobs, sta.auctionsCleanupTopic) {
-		if outJob.Err != nil {
-			return outJob.Err
-		}
+	logging.Info("Bulk publishing")
+	responses, err := sta.IO.BusClient.BulkRequest(sta.auctionsCleanupTopic, messages, 120*time.Second)
+	if err != nil {
+		return err
 	}
 
-	logging.Info("Finished CleanupAllExpiredManifests.Run()")
+	totalRemoved := 0
+	for _, res := range responses {
+		if res.Code != codes.Ok {
+			logging.WithFields(logrus.Fields{
+				"error":       res.Err,
+				"reply-to-id": res.ReplyToId,
+			}).Error("Job failure")
+
+			continue
+		}
+
+		jobResponse, err := bus.NewCleanupAuctionManifestJobResponse(res.Data)
+		if err != nil {
+			return err
+		}
+
+		totalRemoved += jobResponse.TotalDeleted
+	}
+
+	if err := sta.IO.BusClient.PublishMetrics(metric.Metrics{"total_expired_manifests_removed": totalRemoved}); err != nil {
+		return err
+	}
+
+	logging.WithField("total-removed", totalRemoved).Info("Finished CleanupAllExpiredManifests.Run()")
 
 	return nil
 }

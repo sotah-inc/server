@@ -112,7 +112,11 @@ type UnixTimestamp int64
 
 type WorkerStopChan chan struct{}
 
-type RealmTimestamps map[blizzard.RealmSlug]int64
+type RealmTimestampMap map[blizzard.RealmSlug]int64
+
+type RegionRealmTimestampMaps map[blizzard.RegionName]RealmTimestampMap
+
+type RealmTimestamps map[blizzard.RealmSlug][]UnixTimestamp
 
 type RegionRealmTimestamps map[blizzard.RegionName]RealmTimestamps
 

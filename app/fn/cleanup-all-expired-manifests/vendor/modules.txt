@@ -35,7 +35,7 @@ github.com/nats-io/nkeys
 github.com/nats-io/nuid
 # github.com/sirupsen/logrus v1.3.0
 github.com/sirupsen/logrus
-# github.com/sotah-inc/server/app v0.0.0-20190407152405-26cfe5c47f35
+# github.com/sotah-inc/server/app v0.0.0-20190407173449-bfbdbc7734bd
 github.com/sotah-inc/server/app/pkg/logging
 github.com/sotah-inc/server/app/pkg/state/fn
 github.com/sotah-inc/server/app/pkg/blizzard
