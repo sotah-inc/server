@@ -11,6 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
+	"github.com/sotah-inc/server/app/pkg/bus/codes"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/store"
@@ -119,6 +120,36 @@ func handleManifestCleaning(realm sotah.Realm, targetTimestamp sotah.UnixTimesta
 	return totalDeleted, nil
 }
 
+func Handle(job bus.CleanupAuctionManifestJob) bus.Message {
+	m := bus.NewMessage()
+
+	logging.WithFields(logrus.Fields{"job": job}).Info("Handling")
+
+	realm := sotah.NewSkeletonRealm(blizzard.RegionName(job.RegionName), blizzard.RealmSlug(job.RealmSlug))
+	targetTimestamp := sotah.UnixTimestamp(job.TargetTimestamp)
+
+	totalDeleted, err := handleManifestCleaning(realm, targetTimestamp)
+	if err != nil {
+		m.Err = err.Error()
+		m.Code = codes.GenericError
+
+		return m
+	}
+
+	jobResponse := bus.CleanupAuctionManifestJobResponse{TotalDeleted: totalDeleted}
+	data, err := jobResponse.EncodeForDelivery()
+	if err != nil {
+		m.Err = err.Error()
+		m.Code = codes.GenericError
+
+		return m
+	}
+
+	m.Data = data
+
+	return m
+}
+
 type PubSubMessage struct {
 	Data []byte `json:"data"`
 }
@@ -134,24 +165,7 @@ func CleanupExpiredManifest(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
-	logging.WithFields(logrus.Fields{"job": job}).Info("Handling")
-
-	realm := sotah.NewSkeletonRealm(blizzard.RegionName(job.RegionName), blizzard.RealmSlug(job.RealmSlug))
-	targetTimestamp := sotah.UnixTimestamp(job.TargetTimestamp)
-
-	totalDeleted, err := handleManifestCleaning(realm, targetTimestamp)
-	if err != nil {
-		return err
-	}
-
-	jobResponse := bus.CleanupAuctionManifestJobResponse{TotalDeleted: totalDeleted}
-	data, err := jobResponse.EncodeForDelivery()
-	if err != nil {
-		return err
-	}
-
-	reply := bus.NewMessage()
-	reply.Data = data
+	reply := Handle(job)
 	reply.ReplyToId = in.ReplyToId
 	if _, err := busClient.ReplyTo(in, reply); err != nil {
 		return err
