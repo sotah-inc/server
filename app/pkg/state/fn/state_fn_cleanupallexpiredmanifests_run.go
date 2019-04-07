@@ -58,7 +58,7 @@ func (sta CleanupAllExpiredManifestsState) Run() error {
 		return err
 	}
 
-	logging.Info("Finished CleanupAllExpiredManifests.Run()")
+	logging.WithField("total-removed", totalRemoved).Info("Finished CleanupAllExpiredManifests.Run()")
 
 	return nil
 }
