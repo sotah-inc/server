@@ -8,9 +8,10 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/store/regions"
 )
 
-func NewBootBase(c Client, location string) BootBase {
+func NewBootBase(c Client, location regions.Region) BootBase {
 	return BootBase{base{client: c, location: location}}
 }
 
@@ -127,4 +128,21 @@ func (b BootBase) GetBlizzardCredentials(bkt *storage.BucketHandle) (sotah.Blizz
 	}
 
 	return out, nil
+}
+
+func (b BootBase) Guard(objName string, contents string, bkt *storage.BucketHandle) (bool, error) {
+	obj, err := b.GetFirmObject(objName, bkt)
+	if err != nil {
+		return false, err
+	}
+	reader, err := obj.NewReader(b.client.Context)
+	if err != nil {
+		return false, err
+	}
+	data, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return false, err
+	}
+
+	return string(data) == contents, nil
 }

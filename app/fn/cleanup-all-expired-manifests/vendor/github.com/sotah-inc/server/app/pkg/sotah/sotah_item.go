@@ -2,16 +2,38 @@ package sotah
 
 import (
 	"encoding/json"
+	"regexp"
+	"strings"
 
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
+func NormalizeName(in string) (string, error) {
+	reg, err := regexp.Compile("[^a-z0-9 ]+")
+	if err != nil {
+		return "", err
+	}
+
+	return reg.ReplaceAllString(strings.ToLower(in), ""), nil
+}
+
 // item
+func NewItem(body []byte) (Item, error) {
+	i := &Item{}
+	if err := json.Unmarshal(body, i); err != nil {
+		return Item{}, err
+	}
+
+	return *i, nil
+}
+
 type Item struct {
 	blizzard.Item
 
-	IconURL string `json:"icon_url"`
+	IconURL        string `json:"icon_url"`
+	IconObjectName string `json:"icon_object_name"`
+	LastModified   int    `json:"last_modified"`
 }
 
 // item-icon-item-ids map

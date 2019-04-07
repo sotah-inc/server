@@ -3,15 +3,53 @@ package database
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"os"
 	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/database/codes"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
+
+func NewPricelistHistoryDatabases(dirPath string, statuses sotah.Statuses) (PricelistHistoryDatabases, error) {
+	if len(dirPath) == 0 {
+		return PricelistHistoryDatabases{}, errors.New("dir-path cannot be blank")
+	}
+
+	phdBases := PricelistHistoryDatabases{
+		databaseDir: dirPath,
+		Databases:   regionRealmDatabaseShards{},
+	}
+
+	for regionName, regionStatuses := range statuses {
+		phdBases.Databases[regionName] = realmDatabaseShards{}
+
+		for _, rea := range regionStatuses.Realms {
+			phdBases.Databases[regionName][rea.Slug] = PricelistHistoryDatabaseShards{}
+
+			dbPathPairs, err := Paths(fmt.Sprintf("%s/pricelist-histories/%s/%s", dirPath, regionName, rea.Slug))
+			if err != nil {
+				return PricelistHistoryDatabases{}, err
+			}
+
+			for _, dbPathPair := range dbPathPairs {
+				phdBase, err := newPricelistHistoryDatabase(dbPathPair.FullPath, dbPathPair.TargetTime)
+				if err != nil {
+					return PricelistHistoryDatabases{}, err
+				}
+
+				phdBases.Databases[regionName][rea.Slug][sotah.UnixTimestamp(dbPathPair.TargetTime.Unix())] = phdBase
+			}
+		}
+	}
+
+	return phdBases, nil
+}
 
 type PricelistHistoryDatabases struct {
 	databaseDir string
@@ -266,6 +304,7 @@ type PricelistHistoryDatabaseEncodedLoadInJob struct {
 	RegionName                blizzard.RegionName
 	RealmSlug                 blizzard.RealmSlug
 	NormalizedTargetTimestamp sotah.UnixTimestamp
+	VersionId                 string
 	Data                      map[blizzard.ItemID][]byte
 }
 
@@ -274,13 +313,14 @@ type PricelistHistoryDatabaseEncodedLoadOutJob struct {
 	RegionName                blizzard.RegionName
 	RealmSlug                 blizzard.RealmSlug
 	NormalizedTargetTimestamp sotah.UnixTimestamp
+	VersionId                 string
 }
 
 func (job PricelistHistoryDatabaseEncodedLoadOutJob) ToLogrusFields() logrus.Fields {
 	return logrus.Fields{
-		"error":  job.Err.Error(),
-		"region": job.RegionName,
-		"realm":  job.RealmSlug,
+		"error":                       job.Err.Error(),
+		"region":                      job.RegionName,
+		"realm":                       job.RealmSlug,
 		"normalized-target-timestamp": job.NormalizedTargetTimestamp,
 	}
 }
@@ -334,13 +374,86 @@ func (phdBases PricelistHistoryDatabases) LoadEncoded(
 				RegionName:                job.RegionName,
 				RealmSlug:                 job.RealmSlug,
 				NormalizedTargetTimestamp: job.NormalizedTargetTimestamp,
+				VersionId:                 job.VersionId,
 			}
 		}
 	}
 	postWork := func() {
 		close(out)
 	}
-	util.Work(4, worker, postWork)
+	util.Work(2, worker, postWork)
 
 	return out
+}
+
+func NewGetPricelistHistoryRequest(data []byte) (GetPricelistHistoryRequest, error) {
+	req := &GetPricelistHistoryRequest{}
+	err := json.Unmarshal(data, &req)
+	if err != nil {
+		return GetPricelistHistoryRequest{}, err
+	}
+
+	return *req, nil
+}
+
+type GetPricelistHistoryRequest struct {
+	RegionName  blizzard.RegionName `json:"region_name"`
+	RealmSlug   blizzard.RealmSlug  `json:"realm_slug"`
+	ItemIds     []blizzard.ItemID   `json:"item_ids"`
+	LowerBounds int64               `json:"lower_bounds"`
+	UpperBounds int64               `json:"upper_bounds"`
+}
+
+type GetPricelistHistoryResponse struct {
+	History sotah.ItemPriceHistories `json:"history"`
+}
+
+func (res GetPricelistHistoryResponse) EncodeForDelivery() (string, error) {
+	jsonEncoded, err := json.Marshal(res)
+	if err != nil {
+		return "", err
+	}
+
+	gzipEncoded, err := util.GzipEncode(jsonEncoded)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(gzipEncoded), nil
+}
+
+func (phdBases PricelistHistoryDatabases) GetPricelistHistory(req GetPricelistHistoryRequest) (GetPricelistHistoryResponse, codes.Code, error) {
+	regionShards, ok := phdBases.Databases[req.RegionName]
+	if !ok {
+		return GetPricelistHistoryResponse{}, codes.UserError, errors.New("invalid region")
+	}
+
+	realmShards, ok := regionShards[req.RealmSlug]
+	if !ok {
+		return GetPricelistHistoryResponse{}, codes.UserError, errors.New("invalid realm")
+	}
+
+	logging.WithFields(logrus.Fields{
+		"shards": len(realmShards),
+		"req":    fmt.Sprintf("+%v", req),
+	}).Info("Querying shards")
+
+	realm := sotah.NewSkeletonRealm(req.RegionName, req.RealmSlug)
+
+	res := GetPricelistHistoryResponse{History: sotah.ItemPriceHistories{}}
+	for _, ID := range req.ItemIds {
+		plHistory, err := realmShards.GetPriceHistory(
+			realm,
+			ID,
+			time.Unix(req.LowerBounds, 0),
+			time.Unix(req.UpperBounds, 0),
+		)
+		if err != nil {
+			return GetPricelistHistoryResponse{}, codes.GenericError, err
+		}
+
+		res.History[ID] = plHistory
+	}
+
+	return res, codes.Ok, nil
 }

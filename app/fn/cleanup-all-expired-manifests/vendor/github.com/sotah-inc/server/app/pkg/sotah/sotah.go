@@ -40,7 +40,7 @@ type Region struct {
 func NewRealms(reg Region, blizzRealms []blizzard.Realm) Realms {
 	reas := make([]Realm, len(blizzRealms))
 	for i, rea := range blizzRealms {
-		reas[i] = Realm{rea, reg, 0}
+		reas[i] = Realm{rea, reg, RealmModificationDates{}}
 	}
 
 	return reas
@@ -48,10 +48,23 @@ func NewRealms(reg Region, blizzRealms []blizzard.Realm) Realms {
 
 type Realms []Realm
 
+func NewSkeletonRealm(regionName blizzard.RegionName, realmSlug blizzard.RealmSlug) Realm {
+	return Realm{
+		Region: Region{Name: regionName},
+		Realm:  blizzard.Realm{Slug: realmSlug},
+	}
+}
+
+type RealmModificationDates struct {
+	Downloaded                 int64 `json:"downloaded"`
+	LiveAuctionsReceived       int64 `json:"live_auctions_received"`
+	PricelistHistoriesReceived int64 `json:"pricelist_histories_received"`
+}
+
 type Realm struct {
 	blizzard.Realm
-	Region       Region `json:"region"`
-	LastModified int64  `json:"last_modified"`
+	Region                 Region                 `json:"region"`
+	RealmModificationDates RealmModificationDates `json:"realm_modification_dates"`
 }
 
 func NewStatus(reg Region, stat blizzard.Status) Status {
@@ -174,4 +187,96 @@ type BlizzardCredentials struct {
 
 func (c BlizzardCredentials) EncodeForStorage() ([]byte, error) {
 	return json.Marshal(c)
+}
+
+type PricelistHistoryVersions map[blizzard.RegionName]map[blizzard.RealmSlug]map[UnixTimestamp]string
+
+func (v PricelistHistoryVersions) Insert(
+	regionName blizzard.RegionName,
+	realmSlug blizzard.RealmSlug,
+	targetTimestamp UnixTimestamp,
+	version string,
+) PricelistHistoryVersions {
+	if _, ok := v[regionName]; !ok {
+		v[regionName] = map[blizzard.RealmSlug]map[UnixTimestamp]string{}
+	}
+	if _, ok := v[regionName][realmSlug]; !ok {
+		v[regionName][realmSlug] = map[UnixTimestamp]string{}
+	}
+
+	v[regionName][realmSlug][targetTimestamp] = version
+
+	return v
+}
+
+func NewItemIdsBatches(ids blizzard.ItemIds, batchSize int) ItemIdBatches {
+	batches := ItemIdBatches{}
+	for i, id := range ids {
+		key := (i - (i % batchSize)) / batchSize
+		batch := func() blizzard.ItemIds {
+			out, ok := batches[key]
+			if !ok {
+				return blizzard.ItemIds{}
+			}
+
+			return out
+		}()
+		batch = append(batch, id)
+
+		batches[key] = batch
+	}
+
+	return batches
+}
+
+type ItemIdBatches map[int]blizzard.ItemIds
+
+func NewIconItemsPayloadsBatches(iconIdsMap map[string]blizzard.ItemIds, batchSize int) IconItemsPayloadsBatches {
+	batches := IconItemsPayloadsBatches{}
+	i := 0
+	for iconName, itemIds := range iconIdsMap {
+		key := (i - (i % batchSize)) / batchSize
+		batch := func() IconItemsPayloads {
+			out, ok := batches[key]
+			if !ok {
+				return IconItemsPayloads{}
+			}
+
+			return out
+		}()
+		batch = append(batch, IconItemsPayload{Name: iconName, Ids: itemIds})
+
+		batches[key] = batch
+
+		i += 1
+	}
+
+	return batches
+}
+
+type IconItemsPayloadsBatches map[int]IconItemsPayloads
+
+func NewIconItemsPayloads(data string) (IconItemsPayloads, error) {
+	var out IconItemsPayloads
+	if err := json.Unmarshal([]byte(data), &out); err != nil {
+		return IconItemsPayloads{}, err
+	}
+
+	return out, nil
+}
+
+type IconItemsPayloads []IconItemsPayload
+
+func (d IconItemsPayloads) EncodeForDelivery() (string, error) {
+	jsonEncoded, err := json.Marshal(d)
+	if err != nil {
+		return "", err
+	}
+
+	return string(jsonEncoded), nil
+}
+
+type IconItemsPayload struct {
+	Name string
+	Ids  blizzard.ItemIds
 }
