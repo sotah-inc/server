@@ -68,6 +68,13 @@ func init() {
 func handleManifestCleaning(realm sotah.Realm, targetTimestamp sotah.UnixTimestamp) (int, error) {
 	obj, err := auctionManifestStoreBase.GetFirmObject(targetTimestamp, realm, auctionManifestBucket)
 	if err != nil {
+		logging.WithFields(logrus.Fields{
+			"error":            err.Error(),
+			"region":           realm.Region.Name,
+			"realm":            realm.Slug,
+			"target-timestamp": targetTimestamp,
+		}).Error("Failed to get firm object of auctions-manifest")
+
 		return 0, err
 	}
 
