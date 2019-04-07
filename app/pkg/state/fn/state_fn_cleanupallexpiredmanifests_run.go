@@ -5,7 +5,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/logging"
 )
 
-func (sta CleanupAllExpiredManifestsState) Run(in bus.Message) error {
+func (sta CleanupAllExpiredManifestsState) Run() error {
 	logging.Info("Starting CleanupAllExpiredManifests.Run()")
 
 	regionExpiredTimestamps, err := sta.auctionManifestStoreBase.GetAllExpiredTimestamps(

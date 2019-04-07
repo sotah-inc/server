@@ -94,8 +94,8 @@ func (sta CleanupAllExpiredManifestsState) ListenForCleanupAllExpiredManifests(o
 	// establishing subscriber config
 	config := bus.SubscribeConfig{
 		Stop: stop,
-		Callback: func(busMsg bus.Message) {
-			if err := sta.Run(busMsg); err != nil {
+		Callback: func(_ bus.Message) {
+			if err := sta.Run(); err != nil {
 				logging.WithField("error", err.Error()).Error("Failed to run")
 			}
 		},
