@@ -16,6 +16,7 @@ var (
 	ProdPricelistHistories command = "prod-pricelist-histories"
 	ProdItems              command = "prod-items"
 
-	FnDownloadAllAuctions command = "fn-download-all-auctions"
-	FnSyncAllItems        command = "fn-sync-all-items"
+	FnDownloadAllAuctions        command = "fn-download-all-auctions"
+	FnSyncAllItems               command = "fn-sync-all-items"
+	FnCleanupAllExpiredManifests command = "fn-cleanup-all-expired-manifests"
 )

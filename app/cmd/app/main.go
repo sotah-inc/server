@@ -47,8 +47,9 @@ func main() {
 		prodPricelistHistoriesCommand = app.Command(string(commands.ProdPricelistHistories), "For managing pricelist-histories in gcp ce vm.")
 		prodItemsCommand              = app.Command(string(commands.ProdItems), "For managing items in gcp ce vm.")
 
-		fnDownloadAllAuctions = app.Command(string(commands.FnDownloadAllAuctions), "For enqueueing downloading of auctions in gcp ce vm.")
-		fnSyncAllItems        = app.Command(string(commands.FnSyncAllItems), "For enqueueing syncing of items and item-icons in gcp ce vm.")
+		fnDownloadAllAuctions        = app.Command(string(commands.FnDownloadAllAuctions), "For enqueueing downloading of auctions in gcp ce vm.")
+		fnSyncAllItems               = app.Command(string(commands.FnSyncAllItems), "For enqueueing syncing of items and item-icons in gcp ce vm.")
+		fnCleanupAllExpiredManifests = app.Command(string(commands.FnCleanupAllExpiredManifests), "For gathering all expired auction-manifests for deletion in gcp ce vm.")
 	)
 	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
 
@@ -168,6 +169,11 @@ func main() {
 		},
 		fnSyncAllItems.FullCommand(): func() error {
 			return command.FnSyncAllItems(fn.SyncAllItemsStateConfig{
+				ProjectId: *projectID,
+			})
+		},
+		fnCleanupAllExpiredManifests.FullCommand(): func() error {
+			return command.FnCleanupAllExpiredManifests(fn.CleanupAllExpiredManifestsStateConfig{
 				ProjectId: *projectID,
 			})
 		},
