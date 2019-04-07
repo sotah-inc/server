@@ -92,6 +92,23 @@ func NewItemIdMessages(itemIds blizzard.ItemIds) []Message {
 	return messages
 }
 
+func NewCleanupAuctionManifestJobsMessages(jobs CleanupAuctionManifestJobs) ([]Message, error) {
+	messages := []Message{}
+	for i, job := range jobs {
+		data, err := job.EncodeForDelivery()
+		if err != nil {
+			return []Message{}, err
+		}
+
+		msg := NewMessage()
+		msg.Data = data
+		msg.ReplyToId = fmt.Sprintf("job-%d", i)
+		messages = append(messages, msg)
+	}
+
+	return messages, nil
+}
+
 func NewMessage() Message {
 	return Message{Code: codes.Ok}
 }
@@ -826,6 +843,37 @@ type CleanupAuctionManifestJob struct {
 	RegionName      string `json:"region_name"`
 	RealmSlug       string `json:"realm_slug"`
 	TargetTimestamp int    `json:"target_timestamp"`
+}
+
+func (c CleanupAuctionManifestJob) EncodeForDelivery() (string, error) {
+	jsonEncoded, err := json.Marshal(c)
+	if err != nil {
+		return "", err
+	}
+
+	return string(jsonEncoded), nil
+}
+
+func NewCleanupAuctionManifestJobResponse(data string) (CleanupAuctionManifestJobResponse, error) {
+	var out CleanupAuctionManifestJobResponse
+	if err := json.Unmarshal([]byte(data), &out); err != nil {
+		return CleanupAuctionManifestJobResponse{}, err
+	}
+
+	return out, nil
+}
+
+type CleanupAuctionManifestJobResponse struct {
+	TotalDeleted int `json:"total_deleted"`
+}
+
+func (c CleanupAuctionManifestJobResponse) EncodeForDelivery() (string, error) {
+	jsonEncoded, err := json.Marshal(c)
+	if err != nil {
+		return "", err
+	}
+
+	return string(jsonEncoded), nil
 }
 
 func NewLoadRegionRealmTimestampsInJob(data string) (LoadRegionRealmTimestampsInJob, error) {
