@@ -109,6 +109,23 @@ func NewCleanupAuctionManifestJobsMessages(jobs CleanupAuctionManifestJobs) ([]M
 	return messages, nil
 }
 
+func NewCleanupPricelistPayloadsMessages(payload sotah.CleanupPricelistPayloads) ([]Message, error) {
+	messages := []Message{}
+	for i, payload := range payload {
+		data, err := payload.EncodeForDelivery()
+		if err != nil {
+			return []Message{}, err
+		}
+
+		msg := NewMessage()
+		msg.Data = data
+		msg.ReplyToId = fmt.Sprintf("payload-%d", i)
+		messages = append(messages, msg)
+	}
+
+	return messages, nil
+}
+
 func NewMessage() Message {
 	return Message{Code: codes.Ok}
 }

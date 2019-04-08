@@ -284,3 +284,42 @@ type IconItemsPayload struct {
 	Name string
 	Ids  blizzard.ItemIds
 }
+
+func NewCleanupPricelistPayloads(regionRealmMap RegionRealmMap) CleanupPricelistPayloads {
+	out := CleanupPricelistPayloads{}
+	for regionName, realms := range regionRealmMap {
+		for realmSlug := range realms {
+			out = append(out, CleanupPricelistPayload{
+				RegionName: string(regionName),
+				RealmSlug:  string(realmSlug),
+			})
+		}
+	}
+
+	return out
+}
+
+type CleanupPricelistPayloads []CleanupPricelistPayload
+
+func NewCleanupPricelistPayload(data string) (CleanupPricelistPayload, error) {
+	var out CleanupPricelistPayload
+	if err := json.Unmarshal([]byte(data), &out); err != nil {
+		return CleanupPricelistPayload{}, err
+	}
+
+	return out, nil
+}
+
+type CleanupPricelistPayload struct {
+	RegionName string `json:"region_name"`
+	RealmSlug  string `json:"realm_slug"`
+}
+
+func (p CleanupPricelistPayload) EncodeForDelivery() (string, error) {
+	jsonEncoded, err := json.Marshal(p)
+	if err != nil {
+		return "", err
+	}
+
+	return string(jsonEncoded), nil
+}
