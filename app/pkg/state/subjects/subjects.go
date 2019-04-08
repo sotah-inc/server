@@ -35,25 +35,14 @@ const (
 	DownloadAllAuctions Subject = "downloadAllAuctions"
 	DownloadAuctions    Subject = "downloadAuctions"
 
-	ValidateAllAuctions Subject = "validateAllAuctions"
-	ValidateAuctions    Subject = "validateAuctions"
-
-	ComputeAllItems Subject = "computeAllItems"
-	ComputeItems    Subject = "computeItems"
+	ReceiveComputedLiveAuctions       Subject = "receiveComputedLiveAuctions"
+	ReceiveComputedPricelistHistories Subject = "receiveComputedPricelistHistories"
 
 	FilterInItemsToSync Subject = "filterInItemsToSync"
 	SyncAllItems        Subject = "syncAllItems"
 	SyncItems           Subject = "syncItems"
 	SyncItemIcons       Subject = "syncItemIcons"
 	ReceiveSyncedItems  Subject = "receiveSyncedItems"
-
-	ComputeAllLiveAuctions      Subject = "computeAllLiveAuctions"
-	ComputeLiveAuctions         Subject = "computeLiveAuctions"
-	ReceiveComputedLiveAuctions Subject = "receiveComputedLiveAuctions"
-
-	ComputeAllPricelistHistories      Subject = "computeAllPricelistHistories"
-	ComputePricelistHistories         Subject = "computePricelistHistories"
-	ReceiveComputedPricelistHistories Subject = "receiveComputedPricelistHistories"
 
 	CleanupAllExpiredManifests Subject = "cleanupAllExpiredManifests"
 	CleanupExpiredManifest     Subject = "cleanupExpiredManifest"
