@@ -50,6 +50,7 @@ func main() {
 		fnDownloadAllAuctions        = app.Command(string(commands.FnDownloadAllAuctions), "For enqueueing downloading of auctions in gcp ce vm.")
 		fnSyncAllItems               = app.Command(string(commands.FnSyncAllItems), "For enqueueing syncing of items and item-icons in gcp ce vm.")
 		fnCleanupAllExpiredManifests = app.Command(string(commands.FnCleanupAllExpiredManifests), "For gathering all expired auction-manifests for deletion in gcp ce vm.")
+		fnCleanupPricelistHistories  = app.Command(string(commands.FnCleanupPricelistHistories), "For gathering all expired pricelist-histories for deletion in gcp ce vm.")
 	)
 	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
 
@@ -174,6 +175,11 @@ func main() {
 		},
 		fnCleanupAllExpiredManifests.FullCommand(): func() error {
 			return command.FnCleanupAllExpiredManifests(fn.CleanupAllExpiredManifestsStateConfig{
+				ProjectId: *projectID,
+			})
+		},
+		fnCleanupPricelistHistories.FullCommand(): func() error {
+			return command.FnCleanupPricelistHistories(fn.CleanupPricelistHistoriesStateConfig{
 				ProjectId: *projectID,
 			})
 		},
