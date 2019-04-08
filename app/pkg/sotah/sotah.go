@@ -285,13 +285,13 @@ type IconItemsPayload struct {
 	Ids  blizzard.ItemIds
 }
 
-func NewCleanupPricelistPayloads(regionRealmMap RegionRealmMap) CleanupPricelistPayloads {
+func NewCleanupPricelistPayloads(regionRealmMap map[blizzard.RegionName]Realms) CleanupPricelistPayloads {
 	out := CleanupPricelistPayloads{}
 	for regionName, realms := range regionRealmMap {
-		for realmSlug := range realms {
+		for _, realm := range realms {
 			out = append(out, CleanupPricelistPayload{
 				RegionName: string(regionName),
-				RealmSlug:  string(realmSlug),
+				RealmSlug:  string(realm.Slug),
 			})
 		}
 	}
@@ -316,6 +316,30 @@ type CleanupPricelistPayload struct {
 }
 
 func (p CleanupPricelistPayload) EncodeForDelivery() (string, error) {
+	jsonEncoded, err := json.Marshal(p)
+	if err != nil {
+		return "", err
+	}
+
+	return string(jsonEncoded), nil
+}
+
+func NewCleanupPricelistPayloadResponse(data string) (CleanupPricelistPayloadResponse, error) {
+	var out CleanupPricelistPayloadResponse
+	if err := json.Unmarshal([]byte(data), &out); err != nil {
+		return CleanupPricelistPayloadResponse{}, err
+	}
+
+	return out, nil
+}
+
+type CleanupPricelistPayloadResponse struct {
+	RegionName   string `json:"region_name"`
+	RealmSlug    string `json:"realm_slug"`
+	TotalDeleted int    `json:"total_removed"`
+}
+
+func (p CleanupPricelistPayloadResponse) EncodeForDelivery() (string, error) {
 	jsonEncoded, err := json.Marshal(p)
 	if err != nil {
 		return "", err
