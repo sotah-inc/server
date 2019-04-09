@@ -64,7 +64,7 @@ func NewCleanupPricelistHistoriesState(
 
 	// establishing bus-listeners
 	sta.BusListeners = state.NewBusListeners(state.SubjectBusListeners{
-		subjects.CleanupPricelistHistories: sta.ListenForCleanupPricelistHistories,
+		subjects.CleanupAllPricelistHistories: sta.ListenForCleanupAllPricelistHistories,
 	})
 
 	return sta, nil
@@ -82,7 +82,7 @@ type CleanupPricelistHistoriesState struct {
 	bootBucket    *storage.BucketHandle
 }
 
-func (sta CleanupPricelistHistoriesState) ListenForCleanupPricelistHistories(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {
+func (sta CleanupPricelistHistoriesState) ListenForCleanupAllPricelistHistories(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {
 	// establishing subscriber config
 	config := bus.SubscribeConfig{
 		Stop: stop,
@@ -97,7 +97,7 @@ func (sta CleanupPricelistHistoriesState) ListenForCleanupPricelistHistories(onR
 
 	// starting up worker for the subscription
 	go func() {
-		if err := sta.IO.BusClient.SubscribeToTopic(string(subjects.CleanupPricelistHistories), config); err != nil {
+		if err := sta.IO.BusClient.SubscribeToTopic(string(subjects.CleanupAllPricelistHistories), config); err != nil {
 			logging.WithField("error", err.Error()).Fatal("Failed to subscribe to topic")
 		}
 	}()
