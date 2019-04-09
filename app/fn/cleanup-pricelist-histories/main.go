@@ -3,7 +3,6 @@ package cleanup_pricelist_histories
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
 	"log"
 	"os"
 
@@ -54,77 +53,13 @@ func init() {
 	}
 }
 
-func handleManifestCleaning(realm sotah.Realm, targetTimestamp sotah.UnixTimestamp) (int, error) {
-	obj, err := auctionManifestStoreBase.GetFirmObject(targetTimestamp, realm, auctionManifestBucket)
-	if err != nil {
-		logging.WithFields(logrus.Fields{
-			"error":            err.Error(),
-			"region":           realm.Region.Name,
-			"realm":            realm.Slug,
-			"target-timestamp": targetTimestamp,
-		}).Error("Failed to get firm object of auctions-manifest")
-
-		return 0, err
-	}
-
-	manifest, err := func() (sotah.AuctionManifest, error) {
-		reader, err := obj.NewReader(storeClient.Context)
-		if err != nil {
-			return sotah.AuctionManifest{}, err
-		}
-
-		data, err := ioutil.ReadAll(reader)
-		if err != nil {
-			return sotah.AuctionManifest{}, err
-		}
-
-		var out sotah.AuctionManifest
-		if err := json.Unmarshal(data, &out); err != nil {
-			return sotah.AuctionManifest{}, err
-		}
-
-		return out, nil
-	}()
-	if err != nil {
-		return 0, err
-	}
-
-	totalDeleted := 0
-	for outJob := range auctionsStoreBase.DeleteAll(auctionStoreBucket, realm, manifest) {
-		if outJob.Err != nil {
-			return 0, outJob.Err
-		}
-
-		logging.WithFields(logrus.Fields{
-			"region":           realm.Region.Name,
-			"realm":            realm.Slug,
-			"target-timestamp": outJob.TargetTimestamp,
-		}).Info("Deleted raw-auctions object")
-		totalDeleted += 1
-	}
-
-	if err := obj.Delete(storeClient.Context); err != nil {
-		return 0, err
-	}
-
-	logging.WithFields(logrus.Fields{
-		"region":           realm.Region.Name,
-		"realm":            realm.Slug,
-		"target-timestamp": targetTimestamp,
-	}).Info("Deleted manifest object")
-
-	return totalDeleted, nil
-}
-
-func Handle(job bus.CleanupAuctionManifestJob) bus.Message {
+func Handle(job sotah.CleanupPricelistPayload) bus.Message {
 	m := bus.NewMessage()
 
 	logging.WithFields(logrus.Fields{"job": job}).Info("Handling")
 
 	realm := sotah.NewSkeletonRealm(blizzard.RegionName(job.RegionName), blizzard.RealmSlug(job.RealmSlug))
-	targetTimestamp := sotah.UnixTimestamp(job.TargetTimestamp)
-
-	totalDeleted, err := handleManifestCleaning(realm, targetTimestamp)
+	expiredTimestamps, err := pricelistHistoriesBase.GetExpiredTimestamps(realm, pricelistHistoriesBucket)
 	if err != nil {
 		m.Err = err.Error()
 		m.Code = codes.GenericError
@@ -132,15 +67,28 @@ func Handle(job bus.CleanupAuctionManifestJob) bus.Message {
 		return m
 	}
 
-	jobResponse := bus.CleanupAuctionManifestJobResponse{TotalDeleted: totalDeleted}
-	data, err := jobResponse.EncodeForDelivery()
+	totalDeleted := len(expiredTimestamps)
+
+	//totalDeleted, err := pricelistHistoriesBase.DeleteAll(realm, expiredTimestamps, pricelistHistoriesBucket)
+	//if err != nil {
+	//	m.Err = err.Error()
+	//	m.Code = codes.GenericError
+	//
+	//	return m
+	//}
+
+	res := sotah.CleanupPricelistPayloadResponse{
+		RegionName:   job.RegionName,
+		RealmSlug:    job.RealmSlug,
+		TotalDeleted: totalDeleted,
+	}
+	data, err := res.EncodeForDelivery()
 	if err != nil {
 		m.Err = err.Error()
 		m.Code = codes.GenericError
 
 		return m
 	}
-
 	m.Data = data
 
 	return m
@@ -156,7 +104,7 @@ func CleanupExpiredManifest(_ context.Context, m PubSubMessage) error {
 		return err
 	}
 
-	job, err := sotah.(in.Data)
+	job, err := sotah.NewCleanupPricelistPayload(in.Data)
 	if err != nil {
 		return err
 	}
