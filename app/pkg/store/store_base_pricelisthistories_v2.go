@@ -508,9 +508,7 @@ func (b PricelistHistoriesBaseV2) GetTimestamps(realm sotah.Realm, bkt *storage.
 				break
 			}
 
-			if err != nil {
-				return []sotah.UnixTimestamp{}, err
-			}
+			return []sotah.UnixTimestamp{}, err
 		}
 
 		targetTimestamp, err := strconv.Atoi(objAttrs.Name[len(prefix):(len(objAttrs.Name) - len(".txt.gz"))])
