@@ -53,7 +53,7 @@ func (sta CleanupPricelistHistoriesState) Run() error {
 		return err
 	}
 
-	logging.Info("Finished CleanupPricelistHistories.Run()")
+	logging.WithField("total-removed", totalRemoved).Info("Finished CleanupPricelistHistories.Run()")
 
 	return nil
 }
