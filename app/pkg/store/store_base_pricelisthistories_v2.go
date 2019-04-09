@@ -588,16 +588,16 @@ func (b PricelistHistoriesBaseV2) DeleteAll(
 				continue
 			}
 
-			//if err := obj.Delete(b.client.Context); err != nil {
-			//	entry.WithField("error", err.Error()).Error("Could not delete obj")
-			//
-			//	out <- DeletePricelistHistoryJob{
-			//		Err:             err,
-			//		TargetTimestamp: targetTimestamp,
-			//	}
-			//
-			//	continue
-			//}
+			if err := obj.Delete(b.client.Context); err != nil {
+				entry.WithField("error", err.Error()).Error("Could not delete obj")
+
+				out <- DeletePricelistHistoryJob{
+					Err:             err,
+					TargetTimestamp: targetTimestamp,
+				}
+
+				continue
+			}
 
 			entry.Info("Obj deleted")
 
