@@ -12,6 +12,7 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/store/regions"
 	"github.com/sotah-inc/server/app/pkg/util"
@@ -557,9 +558,18 @@ func (b PricelistHistoriesBaseV2) DeleteAll(
 	out := make(chan DeletePricelistHistoryJob)
 	worker := func() {
 		for targetTimestamp := range in {
+			entry := logging.WithFields(logrus.Fields{
+				"region":           realm.Region.Name,
+				"realm":            realm.Slug,
+				"target-timestamp": targetTimestamp,
+			})
+			entry.Info("Handling target-timestamp")
+
 			obj := bkt.Object(b.getObjectName(time.Unix(int64(targetTimestamp), 0), realm))
 			exists, err := b.ObjectExists(obj)
 			if err != nil {
+				entry.WithField("error", err.Error()).Error("Failed to check if obj exists")
+
 				out <- DeletePricelistHistoryJob{
 					Err:             err,
 					TargetTimestamp: targetTimestamp,
@@ -568,6 +578,8 @@ func (b PricelistHistoriesBaseV2) DeleteAll(
 				continue
 			}
 			if !exists {
+				entry.Info("Obj does not exist")
+
 				out <- DeletePricelistHistoryJob{
 					Err:             nil,
 					TargetTimestamp: targetTimestamp,
@@ -576,14 +588,18 @@ func (b PricelistHistoriesBaseV2) DeleteAll(
 				continue
 			}
 
-			if err := obj.Delete(b.client.Context); err != nil {
-				out <- DeletePricelistHistoryJob{
-					Err:             err,
-					TargetTimestamp: targetTimestamp,
-				}
+			//if err := obj.Delete(b.client.Context); err != nil {
+			//	entry.WithField("error", err.Error()).Error("Could not delete obj")
+			//
+			//	out <- DeletePricelistHistoryJob{
+			//		Err:             err,
+			//		TargetTimestamp: targetTimestamp,
+			//	}
+			//
+			//	continue
+			//}
 
-				continue
-			}
+			entry.Info("Obj deleted")
 
 			out <- DeletePricelistHistoryJob{
 				Err:             nil,

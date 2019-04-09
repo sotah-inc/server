@@ -67,15 +67,13 @@ func Handle(job sotah.CleanupPricelistPayload) bus.Message {
 		return m
 	}
 
-	totalDeleted := len(expiredTimestamps)
+	totalDeleted, err := pricelistHistoriesBase.DeleteAll(realm, expiredTimestamps, pricelistHistoriesBucket)
+	if err != nil {
+		m.Err = err.Error()
+		m.Code = codes.GenericError
 
-	//totalDeleted, err := pricelistHistoriesBase.DeleteAll(realm, expiredTimestamps, pricelistHistoriesBucket)
-	//if err != nil {
-	//	m.Err = err.Error()
-	//	m.Code = codes.GenericError
-	//
-	//	return m
-	//}
+		return m
+	}
 
 	res := sotah.CleanupPricelistPayloadResponse{
 		RegionName:   job.RegionName,
