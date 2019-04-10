@@ -28,6 +28,13 @@ var (
 func init() {
 	var err error
 
+	storeClient, err = store.NewClient(projectId)
+	if err != nil {
+		log.Fatalf("Failed to create new store client: %s", err.Error())
+
+		return
+	}
+
 	bootBase = store.NewBootBase(storeClient, "us-central1")
 	bootBucket, err = bootBase.GetFirmBucket()
 	if err != nil {
@@ -57,7 +64,7 @@ type PubSubMessage struct {
 }
 
 func Welp(_ context.Context, _ PubSubMessage) error {
-	matches, err := bootBase.Guard("welp.txt", "validate-items-3\n", bootBucket)
+	matches, err := bootBase.Guard("welp.txt", "vpc-connector\n", bootBucket)
 	if err != nil {
 		return err
 	}
