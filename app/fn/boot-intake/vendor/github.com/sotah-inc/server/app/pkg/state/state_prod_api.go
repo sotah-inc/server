@@ -1,6 +1,9 @@
 package state
 
 import (
+	"fmt"
+
+	"cloud.google.com/go/storage"
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
@@ -25,8 +28,6 @@ type ProdApiStateConfig struct {
 
 	BlizzardClientId     string
 	BlizzardClientSecret string
-
-	ItemsDatabaseDir string
 }
 
 func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
@@ -50,10 +51,18 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 		return ProdApiState{}, err
 	}
 	apiState.IO.StoreClient = stor
+	apiState.ItemIconsBase = store.NewItemIconsBase(stor, "us-central1")
+	apiState.ItemIconsBucket, err = apiState.ItemIconsBase.GetFirmBucket()
+	if err != nil {
+		return ProdApiState{}, err
+	}
 
 	// establishing a bus
 	logging.Info("Connecting bus-client")
 	busClient, err := bus.NewClient(config.GCloudProjectID, "prod-api")
+	if err != nil {
+		return ProdApiState{}, err
+	}
 	apiState.IO.BusClient = busClient
 
 	// connecting to the messenger host
@@ -109,18 +118,20 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 	// gathering profession icons
 	for i, prof := range apiState.Professions {
 		itemIconUrl, err := func() (string, error) {
-			exists, err := apiState.IO.StoreClient.ItemIconExists(prof.Icon)
+			obj := apiState.ItemIconsBase.GetObject(prof.Icon, apiState.ItemIconsBucket)
+			exists, err := apiState.ItemIconsBase.ObjectExists(obj)
 			if err != nil {
 				return "", err
 			}
 
-			if exists {
-				obj, err := apiState.IO.StoreClient.GetItemIconObject(prof.Icon)
-				if err != nil {
-					return "", err
-				}
+			url := fmt.Sprintf(
+				store.StoreItemIconURLFormat,
+				apiState.ItemIconsBase.GetObjectName(prof.Icon),
+				apiState.ItemIconsBase.GetBucketName(),
+			)
 
-				return apiState.IO.StoreClient.GetStoreItemIconURLFunc(obj)
+			if exists {
+				return url, nil
 			}
 
 			body, err := util.Download(blizzard.DefaultGetItemIconURL(prof.Icon))
@@ -128,7 +139,11 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 				return "", err
 			}
 
-			return apiState.IO.StoreClient.WriteItemIcon(prof.Icon, body)
+			if err := apiState.ItemIconsBase.Write(obj.NewWriter(stor.Context), body); err != nil {
+				return "", err
+			}
+
+			return url, nil
 		}()
 		if err != nil {
 			return ProdApiState{}, err
@@ -139,8 +154,15 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 
 	// establishing bus-listeners
 	apiState.BusListeners = NewBusListeners(SubjectBusListeners{
-		subjects.Boot:   apiState.ListenForBoot,
-		subjects.Status: apiState.ListenForStatus,
+		subjects.Boot:   apiState.ListenForBusAuthenticatedBoot,
+		subjects.Status: apiState.ListenForBusStatus,
+	})
+
+	// establishing messenger-listeners
+	apiState.Listeners = NewListeners(SubjectListeners{
+		subjects.Boot:          apiState.ListenForMessengerBoot,
+		subjects.Status:        apiState.ListenForMessengerStatus,
+		subjects.SessionSecret: apiState.ListenForSessionSecret,
 	})
 
 	return apiState, nil
@@ -148,6 +170,9 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 
 type ProdApiState struct {
 	State
+
+	ItemIconsBase   store.ItemIconsBase
+	ItemIconsBucket *storage.BucketHandle
 
 	SessionSecret uuid.UUID
 	ItemClasses   blizzard.ItemClasses

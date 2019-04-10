@@ -22,9 +22,7 @@ const (
 	SessionSecret                   Subject = "sessionSecret"
 	RuntimeInfo                     Subject = "runtimeInfo"
 	LiveAuctionsIntake              Subject = "liveAuctionsIntake"
-	LiveAuctionsIntakeV2            Subject = "liveAuctionsIntakeV2"
 	LiveAuctionsCompute             Subject = "liveAuctionsCompute"
-	LiveAuctionsComputeIntake       Subject = "liveAuctionsComputeIntake"
 	PricelistHistoriesIntake        Subject = "pricelistHistoriesIntake"
 	AppMetrics                      Subject = "appMetrics"
 	PricelistHistoriesIntakeV2      Subject = "pricelistHistoriesIntakeV2"
@@ -37,23 +35,20 @@ const (
 	DownloadAllAuctions Subject = "downloadAllAuctions"
 	DownloadAuctions    Subject = "downloadAuctions"
 
-	ValidateAllAuctions Subject = "validateAllAuctions"
-	ValidateAuctions    Subject = "validateAuctions"
-
-	SyncAllItems       Subject = "syncAllItems"
-	SyncItem           Subject = "syncItem"
-	ReceiveSyncedItems Subject = "receiveSyncedItems"
-
-	ComputeAllLiveAuctions      Subject = "computeAllLiveAuctions"
-	ComputeLiveAuctions         Subject = "computeLiveAuctions"
-	ReceiveComputedLiveAuctions Subject = "receiveComputedLiveAuctions"
-
-	ComputeAllPricelistHistories      Subject = "computeAllPricelistHistories"
-	ComputePricelistHistories         Subject = "computePricelistHistories"
+	ReceiveComputedLiveAuctions       Subject = "receiveComputedLiveAuctions"
 	ReceiveComputedPricelistHistories Subject = "receiveComputedPricelistHistories"
+
+	FilterInItemsToSync Subject = "filterInItemsToSync"
+	SyncAllItems        Subject = "syncAllItems"
+	SyncItems           Subject = "syncItems"
+	SyncItemIcons       Subject = "syncItemIcons"
+	ReceiveSyncedItems  Subject = "receiveSyncedItems"
 
 	CleanupAllExpiredManifests Subject = "cleanupAllExpiredManifests"
 	CleanupExpiredManifest     Subject = "cleanupExpiredManifest"
+
+	CleanupAllPricelistHistories Subject = "cleanupAllPricelistHistories"
+	CleanupPricelistHistories    Subject = "cleanupPricelistHistories"
 
 	Bullshit       Subject = "bullshit"
 	BullshitIntake Subject = "bullshitIntake"

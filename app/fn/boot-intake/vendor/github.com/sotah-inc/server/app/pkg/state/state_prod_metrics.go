@@ -18,7 +18,7 @@ type ProdMetricsStateConfig struct {
 	MessengerPort int
 }
 
-func NewProdMetricstate(config ProdMetricsStateConfig) (ProdMetricsState, error) {
+func NewProdMetricsState(config ProdMetricsStateConfig) (ProdMetricsState, error) {
 	// establishing an initial state
 	metricsState := ProdMetricsState{
 		State: NewState(uuid.NewV4(), true),
@@ -30,6 +30,14 @@ func NewProdMetricstate(config ProdMetricsStateConfig) (ProdMetricsState, error)
 		return ProdMetricsState{}, err
 	}
 	metricsState.IO.Messenger = mess
+
+	// establishing a bus
+	logging.Info("Connecting bus-client")
+	busClient, err := bus.NewClient(config.GCloudProjectID, "prod-metrics")
+	if err != nil {
+		return ProdMetricsState{}, err
+	}
+	metricsState.IO.BusClient = busClient
 
 	// initializing a reporter
 	metricsState.IO.Reporter = metric.NewReporter(mess)

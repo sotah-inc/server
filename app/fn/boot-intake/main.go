@@ -3,10 +3,11 @@ package boot_intake
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"os"
 	"time"
+
+	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
 
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
@@ -15,7 +16,6 @@ import (
 	"github.com/sotah-inc/server/app/pkg/state"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
-	"github.com/sotah-inc/server/app/pkg/util"
 )
 
 var (
@@ -25,12 +25,11 @@ var (
 
 	busClient bus.Client
 
-	storeClient store.Client
-	bootBase    store.BootBase
-	bootBucket  *storage.BucketHandle
-
-	regions      sotah.RegionList
-	regionRealms map[blizzard.RegionName]sotah.Realms
+	storeClient  store.Client
+	bootBase     store.BootBase
+	bootBucket   *storage.BucketHandle
+	realmsBase   store.RealmsBase
+	realmsBucket *storage.BucketHandle
 )
 
 func init() {
@@ -57,33 +56,34 @@ func init() {
 		return
 	}
 
-	bootResponse, err := func() (state.BootResponse, error) {
-		msg, err := busClient.RequestFromTopic(string(subjects.Boot), "", 5*time.Second)
-		if err != nil {
-			return state.BootResponse{}, err
-		}
-
-		var out state.BootResponse
-		if err := json.Unmarshal([]byte(msg.Data), &out); err != nil {
-			return state.BootResponse{}, err
-		}
-
-		return out, nil
-	}()
+	realmsBase = store.NewRealmsBase(storeClient, "us-central1", gameversions.Retail)
+	realmsBucket, err = bootBase.GetFirmBucket()
 	if err != nil {
-		log.Fatalf("Failed to get boot response: %s", err.Error())
+		log.Fatalf("Failed to get firm bucket: %s", err.Error())
 
 		return
 	}
+}
 
-	regions = bootResponse.Regions
+func GetRegions() (sotah.RegionList, error) {
+	msg, err := busClient.RequestFromTopic(string(subjects.Boot), "", 5*time.Second)
+	if err != nil {
+		return sotah.RegionList{}, err
+	}
 
-	regionRealms = map[blizzard.RegionName]sotah.Realms{}
+	var out state.BootResponse
+	if err := json.Unmarshal([]byte(msg.Data), &out); err != nil {
+		return sotah.RegionList{}, err
+	}
+
+	return out.Regions, nil
+}
+
+func GetRegionRealms(regions sotah.RegionList) (map[blizzard.RegionName]sotah.Realms, error) {
+	regionRealms := map[blizzard.RegionName]sotah.Realms{}
 	for job := range busClient.LoadStatuses(regions) {
 		if job.Err != nil {
-			log.Fatalf("Failed to fetch status: %s", job.Err.Error())
-
-			return
+			return map[blizzard.RegionName]sotah.Realms{}, job.Err
 		}
 
 		realms := sotah.Realms{}
@@ -93,6 +93,8 @@ func init() {
 
 		regionRealms[job.Region.Name] = realms
 	}
+
+	return regionRealms, nil
 }
 
 type PubSubMessage struct {
@@ -100,11 +102,12 @@ type PubSubMessage struct {
 }
 
 func BootIntake(_ context.Context, _ PubSubMessage) error {
-	jsonEncodedRegions, err := json.Marshal(regions)
+	regions, err := GetRegions()
 	if err != nil {
 		return err
 	}
-	gzipEncodedRegions, err := util.GzipEncode(jsonEncodedRegions)
+
+	gzipEncoded, err := regions.EncodeForStorage()
 	if err != nil {
 		return err
 	}
@@ -112,31 +115,21 @@ func BootIntake(_ context.Context, _ PubSubMessage) error {
 	wc := bootBase.GetObject("regions.json.gz", bootBucket).NewWriter(storeClient.Context)
 	wc.ContentType = "application/json"
 	wc.ContentEncoding = "gzip"
-	if _, err := wc.Write(gzipEncodedRegions); err != nil {
+	if err := bootBase.Write(wc, gzipEncoded); err != nil {
 		return err
 	}
-	if err := wc.Close(); err != nil {
+
+	regionRealms, err := GetRegionRealms(regions)
+	if err != nil {
 		return err
 	}
 
 	for regionName, realms := range regionRealms {
-		jsonEncodedRealms, err := json.Marshal(realms)
-		if err != nil {
-			return err
-		}
-		gzipEncodedRealms, err := util.GzipEncode(jsonEncodedRealms)
-		if err != nil {
-			return err
-		}
-
-		wc := bootBase.GetObject(fmt.Sprintf("%s/realms.json.gz", regionName), bootBucket).NewWriter(storeClient.Context)
-		wc.ContentType = "application/json"
-		wc.ContentEncoding = "gzip"
-		if _, err := wc.Write(gzipEncodedRealms); err != nil {
-			return err
-		}
-		if err := wc.Close(); err != nil {
-			return err
+		for _, realm := range realms {
+			obj := realmsBase.GetObject(regionName, realm.Slug, realmsBucket)
+			if err := realmsBase.WriteRealm(obj, realm); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -150,10 +143,7 @@ func BootIntake(_ context.Context, _ PubSubMessage) error {
 
 	wc = bootBase.GetObject("blizzard-credentials.json", bootBucket).NewWriter(storeClient.Context)
 	wc.ContentType = "application/json"
-	if _, err := wc.Write(jsonEncodedCredentials); err != nil {
-		return err
-	}
-	if err := wc.Close(); err != nil {
+	if err := bootBase.Write(wc, jsonEncodedCredentials); err != nil {
 		return err
 	}
 

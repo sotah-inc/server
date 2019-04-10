@@ -6,9 +6,10 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/store/regions"
 )
 
-func NewLiveAuctionsBase(c Client, location string) LiveAuctionsBase {
+func NewLiveAuctionsBase(c Client, location regions.Region) LiveAuctionsBase {
 	return LiveAuctionsBase{base{client: c, location: location}}
 }
 
@@ -38,6 +39,10 @@ func (b LiveAuctionsBase) getObjectName(realm sotah.Realm) string {
 
 func (b LiveAuctionsBase) GetObject(realm sotah.Realm, bkt *storage.BucketHandle) *storage.ObjectHandle {
 	return b.base.getObject(b.getObjectName(realm), bkt)
+}
+
+func (b LiveAuctionsBase) GetFirmObject(realm sotah.Realm, bkt *storage.BucketHandle) (*storage.ObjectHandle, error) {
+	return b.base.getFirmObject(b.getObjectName(realm), bkt)
 }
 
 func (b LiveAuctionsBase) Handle(aucs blizzard.Auctions, realm sotah.Realm, bkt *storage.BucketHandle) error {

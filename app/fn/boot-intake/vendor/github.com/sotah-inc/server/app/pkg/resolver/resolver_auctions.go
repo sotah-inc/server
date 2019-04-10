@@ -50,7 +50,7 @@ func (r Resolver) GetAuctionsForRealm(rea sotah.Realm) (blizzard.Auctions, time.
 	aFile := aInfo.Files[0]
 
 	// optionally downloading where the Realm has stale data
-	if rea.LastModified == 0 || time.Unix(rea.LastModified, 0).Before(aFile.LastModifiedAsTime()) {
+	if rea.RealmModificationDates.Downloaded == 0 || time.Unix(rea.RealmModificationDates.Downloaded, 0).Before(aFile.LastModifiedAsTime()) {
 		aucs, err := r.NewAuctionsFromHTTP(aFile.URL)
 		if err != nil {
 			return blizzard.Auctions{}, time.Time{}, err

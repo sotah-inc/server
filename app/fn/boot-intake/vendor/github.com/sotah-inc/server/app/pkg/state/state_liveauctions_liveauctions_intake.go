@@ -25,7 +25,7 @@ func newLiveAuctionsIntakeRequest(data []byte) (liveAuctionsIntakeRequest, error
 }
 
 type liveAuctionsIntakeRequest struct {
-	RegionRealmTimestamps sotah.RegionRealmTimestamps `json:"realm_timestamps"`
+	RegionRealmTimestamps sotah.RegionRealmTimestampMaps `json:"realm_timestamps"`
 }
 
 func (iRequest liveAuctionsIntakeRequest) resolve(statuses sotah.Statuses) (RegionRealmTimes, sotah.RegionRealmMap) {
@@ -156,7 +156,7 @@ func (iRequest liveAuctionsIntakeRequest) handle(laState LiveAuctionsState) {
 	// publishing for pricelist-histories-intake
 	err := func() error {
 		if laState.UseGCloud {
-			phiRequest := pricelistHistoriesIntakeV2Request{RegionRealmTimestamps: iRequest.RegionRealmTimestamps}
+			phiRequest := pricelistHistoriesIntakeRequest{RegionRealmTimestamps: iRequest.RegionRealmTimestamps}
 			return func() error {
 				encodedRequest, err := json.Marshal(phiRequest)
 				if err != nil {

@@ -60,6 +60,9 @@ func NewAPIState(config APIStateConfig) (APIState, error) {
 		// establishing a bus
 		logging.Info("Connecting bus-client")
 		busClient, err := bus.NewClient(config.GCloudProjectID, "api")
+		if err != nil {
+			return APIState{}, err
+		}
 		apiState.IO.BusClient = busClient
 	} else {
 		cacheDirs := []string{
@@ -132,40 +135,8 @@ func NewAPIState(config APIStateConfig) (APIState, error) {
 	apiState.IO.Databases.ItemsDatabase = itemsDatabase
 
 	// gathering profession icons
-	if apiState.UseGCloud {
-		for i, prof := range apiState.Professions {
-			itemIconUrl, err := func() (string, error) {
-				exists, err := apiState.IO.StoreClient.ItemIconExists(prof.Icon)
-				if err != nil {
-					return "", err
-				}
-
-				if exists {
-					obj, err := apiState.IO.StoreClient.GetItemIconObject(prof.Icon)
-					if err != nil {
-						return "", err
-					}
-
-					return apiState.IO.StoreClient.GetStoreItemIconURLFunc(obj)
-				}
-
-				body, err := util.Download(blizzard.DefaultGetItemIconURL(prof.Icon))
-				if err != nil {
-					return "", err
-				}
-
-				return apiState.IO.StoreClient.WriteItemIcon(prof.Icon, body)
-			}()
-			if err != nil {
-				return APIState{}, err
-			}
-
-			apiState.Professions[i].IconURL = itemIconUrl
-		}
-	} else {
-		for i, prof := range apiState.Professions {
-			apiState.Professions[i].IconURL = blizzard.DefaultGetItemIconURL(prof.Icon)
-		}
+	for i, prof := range apiState.Professions {
+		apiState.Professions[i].IconURL = blizzard.DefaultGetItemIconURL(prof.Icon)
 	}
 
 	// establishing listeners
