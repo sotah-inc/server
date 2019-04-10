@@ -31,6 +31,20 @@ func (rl RegionList) GetRegion(name blizzard.RegionName) Region {
 	return Region{}
 }
 
+func (rl RegionList) EncodeForStorage() ([]byte, error) {
+	jsonEncoded, err := json.Marshal(rl)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	gzipEncoded, err := util.GzipEncode(jsonEncoded)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return gzipEncoded, nil
+}
+
 type Region struct {
 	Name     blizzard.RegionName `json:"name"`
 	Hostname string              `json:"hostname"`
