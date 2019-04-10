@@ -81,6 +81,20 @@ type Realm struct {
 	RealmModificationDates RealmModificationDates `json:"realm_modification_dates"`
 }
 
+func (r Realm) EncodeForStorage() ([]byte, error) {
+	jsonEncoded, err := json.Marshal(r)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	gzipEncoded, err := util.GzipEncode(jsonEncoded)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return gzipEncoded, nil
+}
+
 func NewStatus(reg Region, stat blizzard.Status) Status {
 	return Status{stat, reg, NewRealms(reg, stat.Realms)}
 }
