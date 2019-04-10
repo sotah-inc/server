@@ -99,13 +99,21 @@ type DownloadAllAuctionsState struct {
 }
 
 func (sta DownloadAllAuctionsState) ListenForDownloadAllAuctions(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {
+	in := make(chan interface{})
+	go func() {
+		for {
+			<-in
+			if err := sta.Run(); err != nil {
+				logging.WithField("error", err.Error()).Error("Failed to run")
+			}
+		}
+	}()
+
 	// establishing subscriber config
 	config := bus.SubscribeConfig{
 		Stop: stop,
 		Callback: func(busMsg bus.Message) {
-			if err := sta.Run(); err != nil {
-				logging.WithField("error", err.Error()).Error("Failed to run")
-			}
+			in <- struct{}{}
 		},
 		OnReady:   onReady,
 		OnStopped: onStopped,

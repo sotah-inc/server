@@ -64,13 +64,20 @@ type SyncAllItemsState struct {
 }
 
 func (sta SyncAllItemsState) ListenForSyncAllItems(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {
+	in := make(chan bus.Message)
+	go func() {
+		for busMsg := range in {
+			if err := sta.Run(busMsg); err != nil {
+				logging.WithField("error", err.Error()).Error("Failed to run")
+			}
+		}
+	}()
+
 	// establishing subscriber config
 	config := bus.SubscribeConfig{
 		Stop: stop,
 		Callback: func(busMsg bus.Message) {
-			if err := sta.Run(busMsg); err != nil {
-				logging.WithField("error", err.Error()).Error("Failed to run")
-			}
+			in <- busMsg
 		},
 		OnReady:   onReady,
 		OnStopped: onStopped,
