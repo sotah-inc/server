@@ -1,3 +1,0 @@
-service: collector
-runtime: go111
-instance_class: F1
