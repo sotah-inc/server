@@ -141,7 +141,7 @@ func (b RealmsBase) GetRealms(regionName blizzard.RegionName, bkt *storage.Bucke
 	return results, nil
 }
 
-func (b ItemsBase) WriteRealm(obj *storage.ObjectHandle, realm sotah.Realm) error {
+func (b RealmsBase) WriteRealm(obj *storage.ObjectHandle, realm sotah.Realm) error {
 	jsonEncoded, err := json.Marshal(realm)
 	if err != nil {
 		return err
