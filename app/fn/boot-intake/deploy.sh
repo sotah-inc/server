@@ -8,5 +8,5 @@ gcloud functions deploy BootIntake \
     --trigger-topic bootIntake \
     --env-vars-file ./.env.yaml \
     --source . \
-    --memory 128MB \
+    --memory 512MB \
     --region us-central1
