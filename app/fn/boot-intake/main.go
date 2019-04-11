@@ -57,7 +57,7 @@ func init() {
 	}
 
 	realmsBase = store.NewRealmsBase(storeClient, "us-central1", gameversions.Retail)
-	realmsBucket, err = bootBase.GetFirmBucket()
+	realmsBucket, err = realmsBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get firm bucket: %s", err.Error())
 
