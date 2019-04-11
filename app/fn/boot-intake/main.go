@@ -7,12 +7,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
-
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
+	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
 	"github.com/sotah-inc/server/app/pkg/state"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
@@ -102,6 +102,7 @@ type PubSubMessage struct {
 }
 
 func BootIntake(_ context.Context, _ PubSubMessage) error {
+	logging.Info("Fetching regions and writing")
 	regions, err := GetRegions()
 	if err != nil {
 		return err
@@ -115,24 +116,24 @@ func BootIntake(_ context.Context, _ PubSubMessage) error {
 	wc := bootBase.GetObject("regions.json.gz", bootBucket).NewWriter(storeClient.Context)
 	wc.ContentType = "application/json"
 	wc.ContentEncoding = "gzip"
-	if err := bootBase.Write(wc, gzipEncoded); err != nil {
+	if _, err := wc.Write(gzipEncoded); err != nil {
+		return err
+	}
+	if err := wc.Close(); err != nil {
 		return err
 	}
 
+	logging.WithField("regions", len(regions)).Info("Fetching region-realms and writing")
 	regionRealms, err := GetRegionRealms(regions)
 	if err != nil {
 		return err
 	}
 
-	for regionName, realms := range regionRealms {
-		for _, realm := range realms {
-			obj := realmsBase.GetObject(regionName, realm.Slug, realmsBucket)
-			if err := realmsBase.WriteRealm(obj, realm); err != nil {
-				return err
-			}
-		}
+	if err := realmsBase.WriteRealmsMap(regionRealms, realmsBucket); err != nil {
+		return err
 	}
 
+	logging.Info("Writing blizzard-credentials")
 	jsonEncodedCredentials, err := json.Marshal(sotah.BlizzardCredentials{
 		ClientId:     blizzardClientId,
 		ClientSecret: blizzardClientSecret,
@@ -143,9 +144,14 @@ func BootIntake(_ context.Context, _ PubSubMessage) error {
 
 	wc = bootBase.GetObject("blizzard-credentials.json", bootBucket).NewWriter(storeClient.Context)
 	wc.ContentType = "application/json"
-	if err := bootBase.Write(wc, jsonEncodedCredentials); err != nil {
+	if _, err := wc.Write(jsonEncodedCredentials); err != nil {
 		return err
 	}
+	if err := wc.Close(); err != nil {
+		return err
+	}
+
+	logging.Info("Finished")
 
 	return nil
 }

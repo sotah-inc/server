@@ -141,7 +141,9 @@ func (b RealmsBase) GetRealms(regionName blizzard.RegionName, bkt *storage.Bucke
 	return results, nil
 }
 
-func (b RealmsBase) WriteRealm(obj *storage.ObjectHandle, realm sotah.Realm) error {
+func (b RealmsBase) WriteRealm(realm sotah.Realm, bkt *storage.BucketHandle) error {
+	obj := b.GetObject(realm.Region.Name, realm.Slug, bkt)
+
 	jsonEncoded, err := json.Marshal(realm)
 	if err != nil {
 		return err
@@ -156,4 +158,56 @@ func (b RealmsBase) WriteRealm(obj *storage.ObjectHandle, realm sotah.Realm) err
 	wc.ContentType = "application/json"
 	wc.ContentEncoding = "gzip"
 	return b.Write(wc, gzipEncodedBody)
+}
+
+type WriteRealmsMapJob struct {
+	Err   error
+	Realm sotah.Realm
+}
+
+func (b RealmsBase) WriteRealmsMap(regionRealms map[blizzard.RegionName]sotah.Realms, bkt *storage.BucketHandle) error {
+	// spinning up the workers
+	in := make(chan sotah.Realm)
+	out := make(chan WriteRealmsMapJob)
+	worker := func() {
+		for realm := range in {
+			if err := b.WriteRealm(realm, bkt); err != nil {
+				out <- WriteRealmsMapJob{
+					Err:   err,
+					Realm: realm,
+				}
+
+				continue
+			}
+
+			out <- WriteRealmsMapJob{
+				Err:   nil,
+				Realm: realm,
+			}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(8, worker, postWork)
+
+	// queueing it up
+	go func() {
+		for _, realms := range regionRealms {
+			for _, realm := range realms {
+				in <- realm
+			}
+		}
+
+		close(in)
+	}()
+
+	// waiting for it to drain out
+	for job := range out {
+		if job.Err != nil {
+			return job.Err
+		}
+	}
+
+	return nil
 }
