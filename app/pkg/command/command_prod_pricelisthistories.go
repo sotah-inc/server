@@ -7,6 +7,7 @@ import (
 
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/metric"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state"
 )
 
@@ -23,11 +24,11 @@ func ProdPricelistHistories(config state.ProdPricelistHistoriesStateConfig) erro
 
 	// syncing local pricelist-histories with base pricelist-histories
 	startTime := time.Now()
-	if err := pricelistHistoriesState.Sync(); err != nil {
-		logging.WithField("error", err.Error()).Error("Failed to sync pricelist-histories db with pricelist-histories base")
-
-		return err
-	}
+	//if err := pricelistHistoriesState.Sync(); err != nil {
+	//	logging.WithField("error", err.Error()).Error("Failed to sync pricelist-histories db with pricelist-histories base")
+	//
+	//	return err
+	//}
 
 	// reporting sync duration
 	m := metric.Metrics{"pricelist_histories_sync": int(int64(time.Now().Sub(startTime)) / 1000 / 1000 / 1000)}
@@ -36,6 +37,11 @@ func ProdPricelistHistories(config state.ProdPricelistHistoriesStateConfig) erro
 
 		return err
 	}
+
+	// starting up a pruner
+	logging.Info("Starting up the pricelist-histories file pruner")
+	prunerStop := make(sotah.WorkerStopChan)
+	onPrunerStop := pricelistHistoriesState.IO.Databases.PricelistHistoryDatabases.StartPruner(prunerStop)
 
 	// opening all listeners
 	if err := pricelistHistoriesState.Listeners.Listen(); err != nil {
@@ -56,6 +62,13 @@ func ProdPricelistHistories(config state.ProdPricelistHistoriesStateConfig) erro
 
 	// stopping listeners
 	pricelistHistoriesState.Listeners.Stop()
+
+	// stopping pruner
+	logging.Info("Stopping pruner")
+	prunerStop <- struct{}{}
+
+	logging.Info("Waiting for pruner to stop")
+	<-onPrunerStop
 
 	logging.Info("Exiting")
 	return nil
