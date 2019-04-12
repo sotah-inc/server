@@ -132,6 +132,15 @@ type Expansion struct {
 
 type RegionRealms map[blizzard.RegionName]Realms
 
+func (regionRealms RegionRealms) TotalRealms() int {
+	out := 0
+	for _, realms := range regionRealms {
+		out += len(realms)
+	}
+
+	return out
+}
+
 type RegionRealmMap map[blizzard.RegionName]RealmMap
 
 func (regionRealmMap RegionRealmMap) ToRegionRealms() RegionRealms {

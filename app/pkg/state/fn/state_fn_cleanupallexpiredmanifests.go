@@ -5,7 +5,6 @@ import (
 
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/storage"
-	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
@@ -103,7 +102,7 @@ type CleanupAllExpiredManifestsState struct {
 	auctionManifestStoreBase store.AuctionManifestBaseV2
 	auctionManifestBucket    *storage.BucketHandle
 
-	regionRealms map[blizzard.RegionName]sotah.Realms
+	regionRealms sotah.RegionRealms
 }
 
 func (sta CleanupAllExpiredManifestsState) ListenForCleanupAllExpiredManifests(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {

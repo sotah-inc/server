@@ -13,7 +13,7 @@ import (
 func (sta CleanupAllExpiredManifestsState) Run() error {
 	logging.Info("Starting CleanupAllExpiredManifests.Run()")
 
-	logging.Info("Gathering expired timestamps")
+	logging.WithField("realms", sta.regionRealms.TotalRealms()).Info("Gathering expired timestamps")
 	regionExpiredTimestamps, err := sta.auctionManifestStoreBase.GetAllExpiredTimestamps(
 		sta.regionRealms,
 		sta.auctionManifestBucket,
