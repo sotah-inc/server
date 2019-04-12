@@ -40,7 +40,11 @@ func (b RealmsBase) GetFirmBucket() (*storage.BucketHandle, error) {
 }
 
 func (b RealmsBase) GetObjectName(regionName blizzard.RegionName, realmSlug blizzard.RealmSlug) string {
-	return fmt.Sprintf("%s/%s/%s.json.gz", b.GameVersion, regionName, realmSlug)
+	return fmt.Sprintf("%s/%s.json.gz", b.GetObjectPrefix(regionName), realmSlug)
+}
+
+func (b RealmsBase) GetObjectPrefix(regionName blizzard.RegionName) string {
+	return fmt.Sprintf("%s/%s", b.GameVersion, regionName)
 }
 
 func (b RealmsBase) GetObject(
@@ -107,7 +111,7 @@ func (b RealmsBase) GetRealms(regionName blizzard.RegionName, bkt *storage.Bucke
 	util.Work(8, worker, postWork)
 
 	// queueing it up
-	prefix := fmt.Sprintf("%s/", regionName)
+	prefix := fmt.Sprintf("%s/", b.GetObjectPrefix(regionName))
 	it := bkt.Objects(b.client.Context, &storage.Query{Prefix: prefix})
 	go func() {
 		for {
