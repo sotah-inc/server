@@ -5,10 +5,8 @@ import (
 
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/storage"
-	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/logging"
-	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
 	"github.com/sotah-inc/server/app/pkg/state"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
@@ -49,41 +47,18 @@ func NewCleanupAllExpiredManifestsState(
 		return CleanupAllExpiredManifestsState{}, err
 	}
 
-	bootBase := store.NewBootBase(storeClient, "us-central1")
-	var bootBucket *storage.BucketHandle
-	bootBucket, err = bootBase.GetFirmBucket()
+	sta.bootBase = store.NewBootBase(storeClient, "us-central1")
+	sta.bootBucket, err = sta.bootBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get firm bucket: %s", err.Error())
 
 		return CleanupAllExpiredManifestsState{}, err
 	}
 
-	regions, err := bootBase.GetRegions(bootBucket)
+	sta.realmsBase = store.NewRealmsBase(storeClient, "us-central1", gameversions.Retail)
+	sta.realmsBucket, err = sta.realmsBase.GetFirmBucket()
 	if err != nil {
 		return CleanupAllExpiredManifestsState{}, err
-	}
-
-	logging.WithField("regions", len(regions)).Info("Found regions")
-
-	realmsBase := store.NewRealmsBase(storeClient, "us-central1", gameversions.Retail)
-	realmsBucket, err := realmsBase.GetFirmBucket()
-	if err != nil {
-		return CleanupAllExpiredManifestsState{}, err
-	}
-
-	sta.regionRealms = sotah.RegionRealms{}
-	for _, region := range regions {
-		realms, err := realmsBase.GetRealms(region.Name, realmsBucket)
-		if err != nil {
-			return CleanupAllExpiredManifestsState{}, err
-		}
-
-		logging.WithFields(logrus.Fields{
-			"region": region.Name,
-			"realms": len(realms),
-		}).Info("Found realms")
-
-		sta.regionRealms[region.Name] = realms
 	}
 
 	sta.auctionManifestStoreBase = store.NewAuctionManifestBaseV2(storeClient, "us-central1")
@@ -109,8 +84,10 @@ type CleanupAllExpiredManifestsState struct {
 
 	auctionManifestStoreBase store.AuctionManifestBaseV2
 	auctionManifestBucket    *storage.BucketHandle
-
-	regionRealms sotah.RegionRealms
+	realmsBase               store.RealmsBase
+	realmsBucket             *storage.BucketHandle
+	bootBase                 store.BootBase
+	bootBucket               *storage.BucketHandle
 }
 
 func (sta CleanupAllExpiredManifestsState) ListenForCleanupAllExpiredManifests(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {

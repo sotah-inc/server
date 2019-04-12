@@ -8,14 +8,37 @@ import (
 	"github.com/sotah-inc/server/app/pkg/bus/codes"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/metric"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 )
 
 func (sta CleanupAllExpiredManifestsState) Run() error {
 	logging.Info("Starting CleanupAllExpiredManifests.Run()")
 
-	logging.WithField("realms", sta.regionRealms.TotalRealms()).Info("Gathering expired timestamps")
+	regions, err := sta.bootBase.GetRegions(sta.bootBucket)
+	if err != nil {
+		return err
+	}
+
+	logging.WithField("regions", len(regions)).Info("Found regions")
+
+	regionRealms := sotah.RegionRealms{}
+	for _, region := range regions {
+		realms, err := sta.realmsBase.GetRealms(region.Name, sta.realmsBucket)
+		if err != nil {
+			return err
+		}
+
+		logging.WithFields(logrus.Fields{
+			"region": region.Name,
+			"realms": len(realms),
+		}).Info("Found realms")
+
+		regionRealms[region.Name] = realms
+	}
+
+	logging.WithField("realms", regionRealms.TotalRealms()).Info("Gathering expired timestamps")
 	regionExpiredTimestamps, err := sta.auctionManifestStoreBase.GetAllExpiredTimestamps(
-		sta.regionRealms,
+		regionRealms,
 		sta.auctionManifestBucket,
 	)
 	if err != nil {
