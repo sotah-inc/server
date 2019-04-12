@@ -167,6 +167,12 @@ func (sta DownloadAllAuctionsState) Run() error {
 		realm := regionRealmMap[blizzard.RegionName(tuple.RegionName)][blizzard.RealmSlug(tuple.RealmSlug)]
 		realm.RealmModificationDates.Downloaded = int64(tuple.TargetTimestamp)
 		regionRealmMap[blizzard.RegionName(tuple.RegionName)][blizzard.RealmSlug(tuple.RealmSlug)] = realm
+
+		logging.WithFields(logrus.Fields{
+			"region":           realm.Region.Name,
+			"realm":            realm.Slug,
+			"target-timestamp": tuple.TargetTimestamp,
+		}).Info("Flagged realm as having been downloaded")
 	}
 	if err := sta.realmsBase.WriteRealms(regionRealmMap.ToRegionRealms(), sta.realmsBucket); err != nil {
 		return err
