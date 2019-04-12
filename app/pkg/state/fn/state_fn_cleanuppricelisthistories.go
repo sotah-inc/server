@@ -40,14 +40,14 @@ func NewCleanupPricelistHistoriesState(
 		return CleanupPricelistHistoriesState{}, err
 	}
 
-	storeClient, err := store.NewClient(config.ProjectId)
+	sta.IO.StoreClient, err = store.NewClient(config.ProjectId)
 	if err != nil {
 		log.Fatalf("Failed to create new store client: %s", err.Error())
 
 		return CleanupPricelistHistoriesState{}, err
 	}
 
-	sta.bootStoreBase = store.NewBootBase(storeClient, "us-central1")
+	sta.bootStoreBase = store.NewBootBase(sta.IO.StoreClient, "us-central1")
 	sta.bootBucket, err = sta.bootStoreBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get firm bucket: %s", err.Error())
@@ -55,7 +55,7 @@ func NewCleanupPricelistHistoriesState(
 		return CleanupPricelistHistoriesState{}, err
 	}
 
-	sta.pricelistHistoriesStoreBase = store.NewPricelistHistoriesBaseV2(storeClient, "us-central1")
+	sta.pricelistHistoriesStoreBase = store.NewPricelistHistoriesBaseV2(sta.IO.StoreClient, "us-central1")
 	sta.pricelistHistoriesBucket, err = sta.pricelistHistoriesStoreBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get firm bucket: %s", err.Error())

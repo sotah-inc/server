@@ -40,14 +40,14 @@ func NewCleanupAllExpiredManifestsState(
 		return CleanupAllExpiredManifestsState{}, err
 	}
 
-	storeClient, err := store.NewClient(config.ProjectId)
+	sta.IO.StoreClient, err = store.NewClient(config.ProjectId)
 	if err != nil {
 		log.Fatalf("Failed to create new store client: %s", err.Error())
 
 		return CleanupAllExpiredManifestsState{}, err
 	}
 
-	sta.bootBase = store.NewBootBase(storeClient, "us-central1")
+	sta.bootBase = store.NewBootBase(sta.IO.StoreClient, "us-central1")
 	sta.bootBucket, err = sta.bootBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get firm bucket: %s", err.Error())
@@ -55,13 +55,13 @@ func NewCleanupAllExpiredManifestsState(
 		return CleanupAllExpiredManifestsState{}, err
 	}
 
-	sta.realmsBase = store.NewRealmsBase(storeClient, "us-central1", gameversions.Retail)
+	sta.realmsBase = store.NewRealmsBase(sta.IO.StoreClient, "us-central1", gameversions.Retail)
 	sta.realmsBucket, err = sta.realmsBase.GetFirmBucket()
 	if err != nil {
 		return CleanupAllExpiredManifestsState{}, err
 	}
 
-	sta.auctionManifestStoreBase = store.NewAuctionManifestBaseV2(storeClient, "us-central1")
+	sta.auctionManifestStoreBase = store.NewAuctionManifestBaseV2(sta.IO.StoreClient, "us-central1")
 	sta.auctionManifestBucket, err = sta.auctionManifestStoreBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get firm auction-manifest bucket: %s", err.Error())
