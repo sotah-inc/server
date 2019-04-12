@@ -164,11 +164,9 @@ func (sta DownloadAllAuctionsState) Run() error {
 
 	// updating the list of realms' timestamps
 	for _, tuple := range tuples {
-		regionRealmMap[blizzard.RegionName(
-			tuple.RegionName,
-		)][blizzard.RealmSlug(
-			tuple.RealmSlug,
-		)].RealmModificationDates.Downloaded = int64(tuple.TargetTimestamp)
+		realm := regionRealmMap[blizzard.RegionName(tuple.RegionName)][blizzard.RealmSlug(tuple.RealmSlug)]
+		realm.RealmModificationDates.Downloaded = int64(tuple.TargetTimestamp)
+		regionRealmMap[blizzard.RegionName(tuple.RegionName)][blizzard.RealmSlug(tuple.RealmSlug)] = realm
 	}
 	if err := sta.realmsBase.WriteRealms(regionRealmMap.ToRegionRealms(), sta.realmsBucket); err != nil {
 		return err
