@@ -12,6 +12,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/resolver"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
 	"github.com/sotah-inc/server/app/pkg/util"
@@ -56,6 +57,11 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 	if err != nil {
 		return ProdApiState{}, err
 	}
+	apiState.RealmsBase = store.NewRealmsBase(apiState.IO.StoreClient, "us-central1", gameversions.Retail)
+	apiState.RealmsBucket, err = apiState.RealmsBase.GetFirmBucket()
+	if err != nil {
+		return ProdApiState{}, err
+	}
 
 	// establishing a bus
 	logging.Info("Connecting bus-client")
@@ -83,15 +89,14 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 	apiState.IO.Resolver = resolver.NewResolver(blizzardClient, apiState.IO.Reporter)
 
 	// filling state with region statuses
-	for job := range apiState.IO.Resolver.GetStatuses(apiState.Regions) {
-		if job.Err != nil {
-			return ProdApiState{}, job.Err
+	for _, region := range apiState.Regions {
+		realms, err := apiState.RealmsBase.GetRealms(region.Name, apiState.RealmsBucket)
+		if err != nil {
+			return ProdApiState{}, err
 		}
 
-		region := job.Region
-		status := job.Status
-
-		status.Realms = config.SotahConfig.FilterInRealms(region, status.Realms)
+		status := apiState.Statuses[region.Name]
+		status.Realms = config.SotahConfig.FilterInRealms(region, realms)
 		apiState.Statuses[region.Name] = status
 	}
 
@@ -173,6 +178,9 @@ type ProdApiState struct {
 
 	ItemIconsBase   store.ItemIconsBase
 	ItemIconsBucket *storage.BucketHandle
+
+	RealmsBase   store.RealmsBase
+	RealmsBucket *storage.BucketHandle
 
 	SessionSecret uuid.UUID
 	ItemClasses   blizzard.ItemClasses
