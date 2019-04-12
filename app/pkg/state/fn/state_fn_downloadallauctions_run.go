@@ -174,9 +174,6 @@ func (sta DownloadAllAuctionsState) Run() error {
 			"target-timestamp": tuple.TargetTimestamp,
 		}).Info("Flagged realm as having been downloaded")
 	}
-	if err := sta.realmsBase.WriteRealms(regionRealmMap.ToRegionRealms(), sta.realmsBucket); err != nil {
-		return err
-	}
 
 	// publishing to sync-all-items
 	if err := sta.PublishToSyncAllItems(tuples); err != nil {
@@ -188,8 +185,39 @@ func (sta DownloadAllAuctionsState) Run() error {
 		return err
 	}
 
+	// updating the list of realms' timestamps
+	for _, tuple := range tuples {
+		realm := regionRealmMap[blizzard.RegionName(tuple.RegionName)][blizzard.RealmSlug(tuple.RealmSlug)]
+		realm.RealmModificationDates.LiveAuctionsReceived = time.Now().Unix()
+		regionRealmMap[blizzard.RegionName(tuple.RegionName)][blizzard.RealmSlug(tuple.RealmSlug)] = realm
+
+		logging.WithFields(logrus.Fields{
+			"region":           realm.Region.Name,
+			"realm":            realm.Slug,
+			"target-timestamp": tuple.TargetTimestamp,
+		}).Info("Flagged realm as having live-auctions been updated")
+	}
+
 	// publishing to receive-live-auctions
 	if err := sta.PublishToReceivePricelistHistories(tuples); err != nil {
+		return err
+	}
+
+	// updating the list of realms' timestamps
+	for _, tuple := range tuples {
+		realm := regionRealmMap[blizzard.RegionName(tuple.RegionName)][blizzard.RealmSlug(tuple.RealmSlug)]
+		realm.RealmModificationDates.PricelistHistoriesReceived = time.Now().Unix()
+		regionRealmMap[blizzard.RegionName(tuple.RegionName)][blizzard.RealmSlug(tuple.RealmSlug)] = realm
+
+		logging.WithFields(logrus.Fields{
+			"region":           realm.Region.Name,
+			"realm":            realm.Slug,
+			"target-timestamp": tuple.TargetTimestamp,
+		}).Info("Flagged realm as having pricelist-histories been updated")
+	}
+
+	// writing updated realms
+	if err := sta.realmsBase.WriteRealms(regionRealmMap.ToRegionRealms(), sta.realmsBucket); err != nil {
 		return err
 	}
 
