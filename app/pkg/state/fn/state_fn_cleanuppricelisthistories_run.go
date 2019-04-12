@@ -9,14 +9,32 @@ import (
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
+	"github.com/sotah-inc/server/app/pkg/store"
 )
 
 func (sta CleanupPricelistHistoriesState) Run() error {
 	logging.Info("Starting CleanupPricelistHistories.Run()")
 
-	regionRealms, err := sta.bootStoreBase.GetRegionRealms(sta.bootBucket)
+	regions, err := sta.bootStoreBase.GetRegions(sta.bootBucket)
 	if err != nil {
 		return err
+	}
+
+	realmsBase := store.NewRealmsBase(sta.IO.StoreClient, "us-central1", gameversions.Retail)
+	realmsBucket, err := realmsBase.GetFirmBucket()
+	if err != nil {
+		return err
+	}
+
+	regionRealms := sotah.RegionRealms{}
+	for _, region := range regions {
+		realms, err := realmsBase.GetRealms(region.Name, realmsBucket)
+		if err != nil {
+			return err
+		}
+
+		regionRealms[region.Name] = realms
 	}
 
 	payloads := sotah.NewCleanupPricelistPayloads(regionRealms)

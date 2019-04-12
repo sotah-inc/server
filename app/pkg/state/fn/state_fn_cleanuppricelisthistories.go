@@ -7,6 +7,7 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
 	"github.com/sotah-inc/server/app/pkg/state"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
@@ -62,6 +63,14 @@ func NewCleanupPricelistHistoriesState(
 		return CleanupPricelistHistoriesState{}, err
 	}
 
+	sta.realmsBase = store.NewRealmsBase(sta.IO.StoreClient, "us-central1", gameversions.Retail)
+	sta.realmsBucket, err = sta.realmsBase.GetFirmBucket()
+	if err != nil {
+		log.Fatalf("Failed to get firm bucket: %s", err.Error())
+
+		return CleanupPricelistHistoriesState{}, err
+	}
+
 	// establishing bus-listeners
 	sta.BusListeners = state.NewBusListeners(state.SubjectBusListeners{
 		subjects.CleanupAllPricelistHistories: sta.ListenForCleanupAllPricelistHistories,
@@ -80,6 +89,8 @@ type CleanupPricelistHistoriesState struct {
 
 	bootStoreBase store.BootBase
 	bootBucket    *storage.BucketHandle
+	realmsBase    store.RealmsBase
+	realmsBucket  *storage.BucketHandle
 }
 
 func (sta CleanupPricelistHistoriesState) ListenForCleanupAllPricelistHistories(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {

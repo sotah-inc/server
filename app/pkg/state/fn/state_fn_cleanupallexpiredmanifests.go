@@ -9,6 +9,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
 	"github.com/sotah-inc/server/app/pkg/state"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
@@ -56,11 +57,26 @@ func NewCleanupAllExpiredManifestsState(
 
 		return CleanupAllExpiredManifestsState{}, err
 	}
-	sta.regionRealms, err = bootBase.GetRegionRealms(bootBucket)
-	if err != nil {
-		log.Fatalf("Failed to get region-realms: %s", err.Error())
 
+	regions, err := bootBase.GetRegions(bootBucket)
+	if err != nil {
 		return CleanupAllExpiredManifestsState{}, err
+	}
+
+	realmsBase := store.NewRealmsBase(storeClient, "us-central1", gameversions.Retail)
+	realmsBucket, err := realmsBase.GetFirmBucket()
+	if err != nil {
+		return CleanupAllExpiredManifestsState{}, err
+	}
+
+	sta.regionRealms = sotah.RegionRealms{}
+	for _, region := range regions {
+		realms, err := realmsBase.GetRealms(region.Name, realmsBucket)
+		if err != nil {
+			return CleanupAllExpiredManifestsState{}, err
+		}
+
+		sta.regionRealms[region.Name] = realms
 	}
 
 	sta.auctionManifestStoreBase = store.NewAuctionManifestBaseV2(storeClient, "us-central1")
