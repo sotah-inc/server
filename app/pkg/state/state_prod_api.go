@@ -90,7 +90,7 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 
 	// filling state with region statuses
 	for _, region := range apiState.Regions {
-		realms, err := apiState.RealmsBase.GetRealms(region.Name, apiState.RealmsBucket)
+		realms, err := apiState.RealmsBase.GetAllRealms(region.Name, apiState.RealmsBucket)
 		if err != nil {
 			return ProdApiState{}, err
 		}
@@ -168,6 +168,7 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 		subjects.Boot:          apiState.ListenForMessengerBoot,
 		subjects.Status:        apiState.ListenForMessengerStatus,
 		subjects.SessionSecret: apiState.ListenForSessionSecret,
+		subjects.ReceiveRealms: apiState.ListenForReceiveRealms,
 	})
 
 	return apiState, nil
