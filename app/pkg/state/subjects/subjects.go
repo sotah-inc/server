@@ -37,6 +37,7 @@ const (
 
 	ReceiveComputedLiveAuctions       Subject = "receiveComputedLiveAuctions"
 	ReceiveComputedPricelistHistories Subject = "receiveComputedPricelistHistories"
+	ReceiveRealms                     Subject = "receiveRealms"
 
 	FilterInItemsToSync Subject = "filterInItemsToSync"
 	SyncAllItems        Subject = "syncAllItems"
