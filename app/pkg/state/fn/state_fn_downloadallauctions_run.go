@@ -2,16 +2,19 @@ package fn
 
 import (
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
-	"github.com/sotah-inc/server/app/pkg/bus/codes"
+	bCodes "github.com/sotah-inc/server/app/pkg/bus/codes"
 	"github.com/sotah-inc/server/app/pkg/database"
 	"github.com/sotah-inc/server/app/pkg/logging"
+	mCodes "github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
 func (sta DownloadAllAuctionsState) PublishToSyncAllItems(tuples bus.RegionRealmTimestampTuples) error {
@@ -95,6 +98,38 @@ func (sta DownloadAllAuctionsState) PublishToReceivePricelistHistories(tuples bu
 	return nil
 }
 
+func (sta DownloadAllAuctionsState) PublishToReceiveRealms(tuples bus.RegionRealmTimestampTuples) error {
+	regionRealmSlugs := map[blizzard.RegionName][]blizzard.RealmSlug{}
+	for _, tuple := range tuples {
+		realmSlugWhitelist := func() []blizzard.RealmSlug {
+			out, ok := regionRealmSlugs[blizzard.RegionName(tuple.RegionName)]
+			if !ok {
+				return []blizzard.RealmSlug{}
+			}
+
+			return out
+		}()
+		realmSlugWhitelist = append(realmSlugWhitelist, blizzard.RealmSlug(tuple.RealmSlug))
+		regionRealmSlugs[blizzard.RegionName(tuple.RegionName)] = realmSlugWhitelist
+	}
+
+	jsonEncoded, err := json.Marshal(regionRealmSlugs)
+	if err != nil {
+		return err
+	}
+
+	req, err := sta.IO.Messenger.Request(string(subjects.ReceiveRealms), jsonEncoded)
+	if err != nil {
+		return err
+	}
+
+	if req.Code != mCodes.Ok {
+		return errors.New(req.Err)
+	}
+
+	return nil
+}
+
 func (sta DownloadAllAuctionsState) Run() error {
 	regions, err := sta.bootBase.GetRegions(sta.bootBucket)
 	if err != nil {
@@ -127,8 +162,8 @@ func (sta DownloadAllAuctionsState) Run() error {
 
 	validatedResponseItems := bus.BulkRequestMessages{}
 	for k, msg := range responseItems {
-		if msg.Code != codes.Ok {
-			if msg.Code == codes.BlizzardError {
+		if msg.Code != bCodes.Ok {
+			if msg.Code == bCodes.BlizzardError {
 				var respError blizzard.ResponseError
 				if err := json.Unmarshal([]byte(msg.Data), &respError); err != nil {
 					return err
@@ -218,6 +253,11 @@ func (sta DownloadAllAuctionsState) Run() error {
 
 	// writing updated realms
 	if err := sta.realmsBase.WriteRealms(regionRealmMap.ToRegionRealms(), sta.realmsBucket); err != nil {
+		return err
+	}
+
+	// publishing to receive-realms
+	if err := sta.PublishToReceiveRealms(tuples); err != nil {
 		return err
 	}
 

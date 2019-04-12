@@ -3,12 +3,12 @@ package fn
 import (
 	"log"
 
-	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
-
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/messenger"
+	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
 	"github.com/sotah-inc/server/app/pkg/state"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
@@ -17,6 +17,9 @@ import (
 
 type DownloadAllAuctionsStateConfig struct {
 	ProjectId string
+
+	MessengerHost string
+	MessengerPort int
 }
 
 func NewDownloadAllAuctionsState(config DownloadAllAuctionsStateConfig) (DownloadAllAuctionsState, error) {
@@ -56,6 +59,13 @@ func NewDownloadAllAuctionsState(config DownloadAllAuctionsStateConfig) (Downloa
 
 		return DownloadAllAuctionsState{}, err
 	}
+
+	// connecting to the messenger host
+	mess, err := messenger.NewMessenger(config.MessengerHost, config.MessengerPort)
+	if err != nil {
+		return DownloadAllAuctionsState{}, err
+	}
+	sta.IO.Messenger = mess
 
 	sta.IO.StoreClient, err = store.NewClient(config.ProjectId)
 	if err != nil {
