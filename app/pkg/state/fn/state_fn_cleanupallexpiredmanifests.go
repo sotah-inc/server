@@ -5,6 +5,7 @@ import (
 
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/storage"
+	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
@@ -62,6 +63,8 @@ func NewCleanupAllExpiredManifestsState(
 		return CleanupAllExpiredManifestsState{}, err
 	}
 
+	logging.WithField("regions", len(regions)).Info("Found regions")
+
 	realmsBase := store.NewRealmsBase(storeClient, "us-central1", gameversions.Retail)
 	realmsBucket, err := realmsBase.GetFirmBucket()
 	if err != nil {
@@ -74,6 +77,11 @@ func NewCleanupAllExpiredManifestsState(
 		if err != nil {
 			return CleanupAllExpiredManifestsState{}, err
 		}
+
+		logging.WithFields(logrus.Fields{
+			"region": region.Name,
+			"realms": len(realms),
+		}).Info("Found realms")
 
 		sta.regionRealms[region.Name] = realms
 	}
