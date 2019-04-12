@@ -3,6 +3,8 @@ package state
 import (
 	"fmt"
 
+	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
+
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/database"
@@ -64,12 +66,26 @@ func NewProdPricelistHistoriesState(config ProdPricelistHistoriesStateConfig) (P
 	// gathering region-realms
 	statuses := sotah.Statuses{}
 	bootBucket, err := bootBase.GetFirmBucket()
+
+	regions, err := bootBase.GetRegions(bootBucket)
 	if err != nil {
 		return ProdPricelistHistoriesState{}, err
 	}
-	regionRealms, err := bootBase.GetRegionRealms(bootBucket)
+
+	realmsBase := store.NewRealmsBase(storeClient, "us-central1", gameversions.Retail)
+	realmsBucket, err := realmsBase.GetFirmBucket()
 	if err != nil {
 		return ProdPricelistHistoriesState{}, err
+	}
+
+	regionRealms := sotah.RegionRealms{}
+	for _, region := range regions {
+		realms, err := realmsBase.GetRealms(region.Name, realmsBucket)
+		if err != nil {
+			return ProdPricelistHistoriesState{}, err
+		}
+
+		regionRealms[region.Name] = realms
 	}
 	for regionName, realms := range regionRealms {
 		statuses[regionName] = sotah.Status{Realms: realms}

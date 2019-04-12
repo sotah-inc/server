@@ -3,6 +3,8 @@ package state
 import (
 	"fmt"
 
+	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
+
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/database"
@@ -67,9 +69,26 @@ func NewProdLiveAuctionsState(config ProdLiveAuctionsStateConfig) (ProdLiveAucti
 	if err != nil {
 		return ProdLiveAuctionsState{}, err
 	}
-	regionRealms, err := bootBase.GetRegionRealms(bootBucket)
+
+	regions, err := bootBase.GetRegions(bootBucket)
 	if err != nil {
 		return ProdLiveAuctionsState{}, err
+	}
+
+	realmsBase := store.NewRealmsBase(storeClient, "us-central1", gameversions.Retail)
+	realmsBucket, err := realmsBase.GetFirmBucket()
+	if err != nil {
+		return ProdLiveAuctionsState{}, err
+	}
+
+	regionRealms := sotah.RegionRealms{}
+	for _, region := range regions {
+		realms, err := realmsBase.GetRealms(region.Name, realmsBucket)
+		if err != nil {
+			return ProdLiveAuctionsState{}, err
+		}
+
+		regionRealms[region.Name] = realms
 	}
 	for regionName, realms := range regionRealms {
 		statuses[regionName] = sotah.Status{Realms: realms}

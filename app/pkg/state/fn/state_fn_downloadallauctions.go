@@ -3,12 +3,12 @@ package fn
 import (
 	"log"
 
+	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
+
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/storage"
-	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/logging"
-	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
@@ -64,17 +64,18 @@ func NewDownloadAllAuctionsState(config DownloadAllAuctionsStateConfig) (Downloa
 		return DownloadAllAuctionsState{}, err
 	}
 
-	bootBase := store.NewBootBase(sta.IO.StoreClient, "us-central1")
-	var bootBucket *storage.BucketHandle
-	bootBucket, err = bootBase.GetFirmBucket()
+	sta.bootBase = store.NewBootBase(sta.IO.StoreClient, "us-central1")
+	sta.bootBucket, err = sta.bootBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get firm bucket: %s", err.Error())
 
 		return DownloadAllAuctionsState{}, err
 	}
-	sta.regionRealms, err = bootBase.GetRegionRealms(bootBucket)
+
+	sta.realmsBase = store.NewRealmsBase(sta.IO.StoreClient, "us-central1", gameversions.Retail)
+	sta.realmsBucket, err = sta.realmsBase.GetFirmBucket()
 	if err != nil {
-		log.Fatalf("Failed to get region-realms: %s", err.Error())
+		log.Fatalf("Failed to get firm bucket: %s", err.Error())
 
 		return DownloadAllAuctionsState{}, err
 	}
@@ -90,7 +91,10 @@ func NewDownloadAllAuctionsState(config DownloadAllAuctionsStateConfig) (Downloa
 type DownloadAllAuctionsState struct {
 	state.State
 
-	regionRealms map[blizzard.RegionName]sotah.Realms
+	bootBase     store.BootBase
+	bootBucket   *storage.BucketHandle
+	realmsBase   store.RealmsBase
+	realmsBucket *storage.BucketHandle
 
 	downloadAuctionsTopic                   *pubsub.Topic
 	syncAllItemsTopic                       *pubsub.Topic

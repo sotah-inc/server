@@ -62,6 +62,15 @@ func NewRealms(reg Region, blizzRealms []blizzard.Realm) Realms {
 
 type Realms []Realm
 
+func (realms Realms) ToRealmMap() RealmMap {
+	out := RealmMap{}
+	for _, realm := range realms {
+		out[realm.Slug] = realm
+	}
+
+	return out
+}
+
 func NewSkeletonRealm(regionName blizzard.RegionName, realmSlug blizzard.RealmSlug) Realm {
 	return Realm{
 		Region: Region{Name: regionName},
@@ -124,6 +133,15 @@ type Expansion struct {
 type RegionRealms map[blizzard.RegionName]Realms
 
 type RegionRealmMap map[blizzard.RegionName]RealmMap
+
+func (regionRealmMap RegionRealmMap) ToRegionRealms() RegionRealms {
+	out := RegionRealms{}
+	for regionName, realmMap := range regionRealmMap {
+		out[regionName] = realmMap.ToRealms()
+	}
+
+	return out
+}
 
 type RealmMap map[blizzard.RealmSlug]Realm
 

@@ -165,7 +165,7 @@ type WriteRealmsMapJob struct {
 	Realm sotah.Realm
 }
 
-func (b RealmsBase) WriteRealmsMap(regionRealms map[blizzard.RegionName]sotah.Realms, bkt *storage.BucketHandle) error {
+func (b RealmsBase) WriteRealms(regionRealms sotah.RegionRealms, bkt *storage.BucketHandle) error {
 	// spinning up the workers
 	in := make(chan sotah.Realm)
 	out := make(chan WriteRealmsMapJob)

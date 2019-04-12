@@ -96,9 +96,24 @@ func (sta DownloadAllAuctionsState) PublishToReceivePricelistHistories(tuples bu
 }
 
 func (sta DownloadAllAuctionsState) Run() error {
+	regions, err := sta.bootBase.GetRegions(sta.bootBucket)
+	if err != nil {
+		return err
+	}
+
+	regionRealmMap := sotah.RegionRealmMap{}
+	for _, region := range regions {
+		realms, err := sta.realmsBase.GetRealms(region.Name, sta.realmsBucket)
+		if err != nil {
+			return err
+		}
+
+		regionRealmMap[region.Name] = realms.ToRealmMap()
+	}
+
 	// producing messages
 	logging.Info("Producing messages for bulk requesting")
-	messages, err := bus.NewCollectAuctionMessages(sta.regionRealms)
+	messages, err := bus.NewCollectAuctionMessages(regionRealmMap.ToRegionRealms())
 	if err != nil {
 		return err
 	}
@@ -144,6 +159,18 @@ func (sta DownloadAllAuctionsState) Run() error {
 	// formatting the response-items as tuples for processing
 	tuples, err := bus.NewRegionRealmTimestampTuplesFromMessages(validatedResponseItems)
 	if err != nil {
+		return err
+	}
+
+	// updating the list of realms' timestamps
+	for _, tuple := range tuples {
+		regionRealmMap[blizzard.RegionName(
+			tuple.RegionName,
+		)][blizzard.RealmSlug(
+			tuple.RealmSlug,
+		)].RealmModificationDates.Downloaded = int64(tuple.TargetTimestamp)
+	}
+	if err := sta.realmsBase.WriteRealms(regionRealmMap.ToRegionRealms(), sta.realmsBucket); err != nil {
 		return err
 	}
 
