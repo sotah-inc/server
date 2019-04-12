@@ -29,7 +29,7 @@ func (sta CleanupPricelistHistoriesState) Run() error {
 
 	regionRealms := sotah.RegionRealms{}
 	for _, region := range regions {
-		realms, err := realmsBase.GetRealms(region.Name, realmsBucket)
+		realms, err := realmsBase.GetAllRealms(region.Name, realmsBucket)
 		if err != nil {
 			return err
 		}

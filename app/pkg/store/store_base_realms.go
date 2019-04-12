@@ -78,12 +78,20 @@ func (b RealmsBase) NewRealm(obj *storage.ObjectHandle) (sotah.Realm, error) {
 	return out, nil
 }
 
+func (b RealmsBase) GetAllRealms(regionName blizzard.RegionName, bkt *storage.BucketHandle) (sotah.Realms, error) {
+	return b.GetRealms(regionName, map[blizzard.RealmSlug]interface{}{}, bkt)
+}
+
 type GetRealmsOutJob struct {
 	Err   error
 	Realm sotah.Realm
 }
 
-func (b RealmsBase) GetRealms(regionName blizzard.RegionName, bkt *storage.BucketHandle) (sotah.Realms, error) {
+func (b RealmsBase) GetRealms(
+	regionName blizzard.RegionName,
+	realmSlugWhitelist map[blizzard.RealmSlug]interface{},
+	bkt *storage.BucketHandle,
+) (sotah.Realms, error) {
 	// spinning up the workers
 	in := make(chan string)
 	out := make(chan GetRealmsOutJob)
@@ -124,6 +132,17 @@ func (b RealmsBase) GetRealms(regionName blizzard.RegionName, bkt *storage.Bucke
 				logging.WithField("error", err.Error()).Error("Failed to iterate to next")
 
 				break
+			}
+
+			if len(realmSlugWhitelist) == 0 {
+				in <- objAttrs.Name
+
+				continue
+			}
+
+			realmSlug := blizzard.RealmSlug(objAttrs.Name[0:(len(objAttrs.Name) - len(".json.gz"))])
+			if _, ok := realmSlugWhitelist[realmSlug]; !ok {
+				continue
 			}
 
 			in <- objAttrs.Name

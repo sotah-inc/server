@@ -103,7 +103,7 @@ func (sta DownloadAllAuctionsState) Run() error {
 
 	regionRealmMap := sotah.RegionRealmMap{}
 	for _, region := range regions {
-		realms, err := sta.realmsBase.GetRealms(region.Name, sta.realmsBucket)
+		realms, err := sta.realmsBase.GetAllRealms(region.Name, sta.realmsBucket)
 		if err != nil {
 			return err
 		}
