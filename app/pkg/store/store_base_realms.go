@@ -193,7 +193,7 @@ func (b RealmsBase) WriteRealms(regionRealms sotah.RegionRealms, bkt *storage.Bu
 	postWork := func() {
 		close(out)
 	}
-	util.Work(8, worker, postWork)
+	util.Work(2, worker, postWork)
 
 	// queueing it up
 	go func() {
