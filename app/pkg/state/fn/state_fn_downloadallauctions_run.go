@@ -252,11 +252,13 @@ func (sta DownloadAllAuctionsState) Run() error {
 	}
 
 	// writing updated realms
+	logging.Info("Writing realms to realms-base")
 	if err := sta.realmsBase.WriteRealms(regionRealmMap.ToRegionRealms(), sta.realmsBucket); err != nil {
 		return err
 	}
 
 	// publishing to receive-realms
+	logging.Info("Publishing realms to receive-realms")
 	if err := sta.PublishToReceiveRealms(tuples); err != nil {
 		return err
 	}
