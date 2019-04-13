@@ -18,8 +18,6 @@ func (sta ProdApiState) ListenForReceiveRealms(stop ListenStopChan) error {
 	err := sta.IO.Messenger.Subscribe(string(subjects.ReceiveRealms), stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 
-		logging.WithField("realms", string(natsMsg.Data)).Info("Received realms")
-
 		var regionRealmSlugs map[blizzard.RegionName][]blizzard.RealmSlug
 		if err := json.Unmarshal(natsMsg.Data, &regionRealmSlugs); err != nil {
 			m.Err = err.Error()

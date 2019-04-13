@@ -118,8 +118,6 @@ func (sta DownloadAllAuctionsState) PublishToReceiveRealms(tuples bus.RegionReal
 		return err
 	}
 
-	logging.WithField("realms", string(jsonEncoded)).Info("Sending realms")
-
 	req, err := sta.IO.Messenger.Request(string(subjects.ReceiveRealms), jsonEncoded)
 	if err != nil {
 		return err
