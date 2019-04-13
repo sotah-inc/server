@@ -3,14 +3,13 @@ package state
 import (
 	"encoding/json"
 
-	"github.com/sirupsen/logrus"
-	"github.com/sotah-inc/server/app/pkg/logging"
-
-	"github.com/sotah-inc/server/app/pkg/blizzard"
-
 	nats "github.com/nats-io/go-nats"
+	"github.com/sirupsen/logrus"
+	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	mCodes "github.com/sotah-inc/server/app/pkg/messenger/codes"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
@@ -46,9 +45,25 @@ func (sta ProdApiState) ListenForReceiveRealms(stop ListenStopChan) error {
 				"region": regionName,
 				"realms": len(realms),
 			}).Info("Received realms")
-			status := sta.Statuses[regionName]
-			status.Realms = realms
-			sta.Statuses[regionName] = status
+			sta.Statuses[regionName] = func() sotah.Status {
+				status := sta.Statuses[regionName]
+				status.Realms = func() sotah.Realms {
+					statusRealms := status.Realms
+					realmMap := realms.ToRealmMap()
+					for i, realm := range statusRealms {
+						replacedRealm, ok := realmMap[realm.Slug]
+						if !ok {
+							continue
+						}
+
+						statusRealms[i] = replacedRealm
+					}
+
+					return statusRealms
+				}()
+
+				return status
+			}()
 		}
 
 		sta.IO.Messenger.ReplyTo(natsMsg, m)
