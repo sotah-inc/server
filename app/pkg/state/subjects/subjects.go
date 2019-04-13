@@ -28,6 +28,7 @@ const (
 	PricelistHistoriesIntakeV2      Subject = "pricelistHistoriesIntakeV2"
 	PricelistHistoriesCompute       Subject = "pricelistHistoriesCompute"
 	PricelistHistoriesComputeIntake Subject = "pricelistHistoriesComputeIntake"
+	AuctionsQuery                   Subject = "auctionsQuery"
 )
 
 // gcloud fn-related
