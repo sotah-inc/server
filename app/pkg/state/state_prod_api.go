@@ -130,7 +130,7 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 			}
 
 			url := fmt.Sprintf(
-				store.StoreItemIconURLFormat,
+				store.ItemIconURLFormat,
 				apiState.ItemIconsBase.GetObjectName(prof.Icon),
 				apiState.ItemIconsBase.GetBucketName(),
 			)
