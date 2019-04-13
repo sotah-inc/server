@@ -131,8 +131,8 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 
 			url := fmt.Sprintf(
 				store.ItemIconURLFormat,
-				apiState.ItemIconsBase.GetObjectName(prof.Icon),
 				apiState.ItemIconsBase.GetBucketName(),
+				apiState.ItemIconsBase.GetObjectName(prof.Icon),
 			)
 
 			if exists {
