@@ -140,6 +140,8 @@ func (b RealmsBase) GetRealms(
 				continue
 			}
 
+			logging.WithField("obj-name", objAttrs.Name).Info("Checking")
+
 			realmSlug := blizzard.RealmSlug(objAttrs.Name[0:(len(objAttrs.Name) - len(".json.gz"))])
 			if _, ok := realmSlugWhitelist[realmSlug]; !ok {
 				continue
