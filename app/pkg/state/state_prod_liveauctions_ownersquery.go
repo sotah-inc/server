@@ -1,9 +1,13 @@
 package state
 
 import (
+	"time"
+
 	nats "github.com/nats-io/go-nats"
+	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/database"
 	dCodes "github.com/sotah-inc/server/app/pkg/database/codes"
+	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	mCodes "github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
@@ -24,6 +28,7 @@ func (liveAuctionsState ProdLiveAuctionsState) ListenForOwnersQuery(stop ListenS
 		}
 
 		// querying the live-auctions-databases
+		startTime := time.Now()
 		resp, respCode, err := liveAuctionsState.IO.Databases.LiveAuctionsDatabases.QueryOwners(request)
 		if respCode != dCodes.Ok {
 			m.Err = err.Error()
@@ -32,6 +37,13 @@ func (liveAuctionsState ProdLiveAuctionsState) ListenForOwnersQuery(stop ListenS
 
 			return
 		}
+		duration := time.Now().Sub(startTime)
+		logging.WithFields(logrus.Fields{
+			"region":         request.RegionName,
+			"realm":          request.RealmSlug,
+			"query":          request.Query,
+			"duration-in-ms": int64(duration) / 1000 / 1000,
+		}).Info("Queried owners")
 
 		// marshalling for messenger
 		encodedMessage, err := resp.EncodeForDelivery()
