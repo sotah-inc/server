@@ -165,10 +165,11 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 
 	// establishing messenger-listeners
 	apiState.Listeners = NewListeners(SubjectListeners{
-		subjects.Boot:          apiState.ListenForMessengerBoot,
-		subjects.Status:        apiState.ListenForMessengerStatus,
-		subjects.SessionSecret: apiState.ListenForSessionSecret,
-		subjects.ReceiveRealms: apiState.ListenForReceiveRealms,
+		subjects.Boot:                   apiState.ListenForMessengerBoot,
+		subjects.Status:                 apiState.ListenForMessengerStatus,
+		subjects.SessionSecret:          apiState.ListenForSessionSecret,
+		subjects.ReceiveRealms:          apiState.ListenForReceiveRealms,
+		subjects.RealmModificationDates: apiState.ListenForRealmModificationDates,
 	})
 
 	return apiState, nil
