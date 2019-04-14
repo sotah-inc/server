@@ -255,13 +255,18 @@ func (idBase ItemsDatabase) FilterInItemsToSync(ids blizzard.ItemIds) (ItemsSync
 
 	// peeking into the items database
 	err := idBase.db.Update(func(tx *bolt.Tx) error {
-		bkt, err := tx.CreateBucketIfNotExists(databaseItemsBucketName())
+		itemsBucket, err := tx.CreateBucketIfNotExists(databaseItemsBucketName())
+		if err != nil {
+			return err
+		}
+
+		itemNamesBucket, err := tx.CreateBucketIfNotExists(databaseItemNamesBucketName())
 		if err != nil {
 			return err
 		}
 
 		for _, id := range ids {
-			value := bkt.Get(itemsKeyName(id))
+			value := itemsBucket.Get(itemsKeyName(id))
 			if value == nil {
 				logging.WithField("item", id).Info("Item was not in bucket")
 				syncWhitelist[id] = true
@@ -295,6 +300,22 @@ func (idBase ItemsDatabase) FilterInItemsToSync(ids blizzard.ItemIds) (ItemsSync
 			if item.NormalizedName == "" {
 				logging.WithField("item", item.ID).Info("Normalized-name is blank")
 				syncWhitelist[id] = true
+			}
+
+			normalizedNameValue := itemNamesBucket.Get(itemNameKeyName(id))
+			if normalizedNameValue == nil {
+				logging.WithField("item", item.ID).Info("Normalized-name not in bucket")
+				syncWhitelist[id] = true
+			} else {
+				if string(normalizedNameValue) == "" {
+					logging.WithField("item", item.ID).Info("Normalized-name was a blank string")
+					syncWhitelist[id] = true
+				} else {
+					if string(normalizedNameValue) != item.NormalizedName {
+						logging.WithField("item", item.ID).Info("Normalized-name did not match item normalized-name")
+						syncWhitelist[id] = true
+					}
+				}
 			}
 		}
 
