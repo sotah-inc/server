@@ -11,7 +11,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
-func (sta ProdApiState) ListenForRealmModificationDates(stop ListenStopChan) error {
+func (sta APIState) ListenForRealmModificationDates(stop ListenStopChan) error {
 	err := sta.IO.Messenger.Subscribe(string(subjects.RealmModificationDates), stop, func(natsMsg nats.Msg) {
 		m := messenger.NewMessage()
 

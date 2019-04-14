@@ -1,6 +1,7 @@
 package state
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/sotah-inc/server/app/pkg/blizzard"
@@ -175,4 +176,26 @@ func DatabaseCodeToMessengerCode(dCode dCodes.Code) mCodes.Code {
 	}
 
 	return mCodes.Blank
+}
+
+func NewRealmModificationDatesRequest(data []byte) (RealmModificationDatesRequest, error) {
+	var r RealmModificationDatesRequest
+	if err := json.Unmarshal(data, &r); err != nil {
+		return RealmModificationDatesRequest{}, err
+	}
+
+	return r, nil
+}
+
+type RealmModificationDatesRequest struct {
+	RegionName string `json:"region_name"`
+	RealmSlug  string `json:"realm_slug"`
+}
+
+type RealmModificationDatesResponse struct {
+	sotah.RealmModificationDates
+}
+
+func (r RealmModificationDatesResponse) EncodeForDelivery() ([]byte, error) {
+	return json.Marshal(r)
 }
