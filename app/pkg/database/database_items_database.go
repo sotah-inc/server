@@ -118,7 +118,12 @@ func (idBase ItemsDatabase) PersistItems(iMap sotah.ItemsMap) error {
 	logging.WithField("items", len(iMap)).Debug("Persisting items")
 
 	err := idBase.db.Batch(func(tx *bolt.Tx) error {
-		bkt, err := tx.CreateBucketIfNotExists(databaseItemsBucketName())
+		itemsBucket, err := tx.CreateBucketIfNotExists(databaseItemsBucketName())
+		if err != nil {
+			return err
+		}
+
+		itemNamesBucket, err := tx.CreateBucketIfNotExists(databaseItemNamesBucketName())
 		if err != nil {
 			return err
 		}
@@ -134,7 +139,16 @@ func (idBase ItemsDatabase) PersistItems(iMap sotah.ItemsMap) error {
 				return err
 			}
 
-			if err := bkt.Put(itemsKeyName(id), gzipEncoded); err != nil {
+			if err := itemsBucket.Put(itemsKeyName(id), gzipEncoded); err != nil {
+				return err
+			}
+
+			normalizedName, err := sotah.NormalizeName(item.NormalizedName)
+			if err != nil {
+				return err
+			}
+
+			if err := itemNamesBucket.Put(itemNameKeyName(id), []byte(normalizedName)); err != nil {
 				return err
 			}
 		}
@@ -181,15 +195,15 @@ func (idBase ItemsDatabase) PersistEncodedItems(
 		}
 
 		i := 0
-		for id, name := range idNameMap {
-			if err := itemNamesBucket.Put(itemNameKeyName(id), []byte(name)); err != nil {
+		for id, normalizedName := range idNameMap {
+			if err := itemNamesBucket.Put(itemNameKeyName(id), []byte(normalizedName)); err != nil {
 				return err
 			}
 
 			if i%100 == 0 {
 				logging.WithFields(logrus.Fields{
 					"id":   id,
-					"name": name,
+					"name": normalizedName,
 				}).Info("Inserted into item-names bucket")
 			}
 
