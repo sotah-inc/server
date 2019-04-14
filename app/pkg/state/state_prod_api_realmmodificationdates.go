@@ -64,7 +64,7 @@ func (sta ProdApiState) ListenForRealmModificationDates(stop ListenStopChan) err
 		}()
 		if err != nil {
 			m.Err = err.Error()
-			m.Code = mCodes.UserError
+			m.Code = mCodes.NotFound
 			sta.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
@@ -83,7 +83,7 @@ func (sta ProdApiState) ListenForRealmModificationDates(stop ListenStopChan) err
 		}()
 		if err != nil {
 			m.Err = err.Error()
-			m.Code = mCodes.UserError
+			m.Code = mCodes.NotFound
 			sta.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
