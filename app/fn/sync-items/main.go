@@ -114,7 +114,7 @@ func SyncExistingItem(id blizzard.ItemID) (string, error) {
 	}
 
 	if item.NormalizedName != "" {
-		return "", nil
+		return item.NormalizedName, nil
 	}
 
 	normalizedName, err := sotah.NormalizeName(item.Name)
