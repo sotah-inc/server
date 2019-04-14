@@ -132,6 +132,25 @@ func (iMap ItemsMap) EncodeForDatabase() ([]byte, error) {
 	return gzipEncodedData, nil
 }
 
+func NewItemIdNameMap(data string) (ItemIdNameMap, error) {
+	base64Decoded, err := base64.StdEncoding.DecodeString(data)
+	if err != nil {
+		return ItemIdNameMap{}, err
+	}
+
+	gzipDecoded, err := util.GzipDecode(base64Decoded)
+	if err != nil {
+		return ItemIdNameMap{}, err
+	}
+
+	var out ItemIdNameMap
+	if err := json.Unmarshal(gzipDecoded, &out); err != nil {
+		return ItemIdNameMap{}, err
+	}
+
+	return out, nil
+}
+
 type ItemIdNameMap map[blizzard.ItemID]string
 
 func (idNameMap ItemIdNameMap) EncodeForDelivery() (string, error) {
