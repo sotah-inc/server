@@ -166,3 +166,15 @@ func (idNameMap ItemIdNameMap) EncodeForDelivery() (string, error) {
 
 	return base64.StdEncoding.EncodeToString(gzipEncodedData), nil
 }
+
+func (idNameMap ItemIdNameMap) ItemIds() blizzard.ItemIds {
+	out := make(blizzard.ItemIds, len(idNameMap))
+	i := 0
+	for id := range idNameMap {
+		out[i] = id
+
+		i++
+	}
+
+	return out
+}
