@@ -4,20 +4,20 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/database"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/metric"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
-func ReceiveSyncedItems(itemsState ProdItemsState, ids blizzard.ItemIds) error {
+func ReceiveSyncedItems(itemsState ProdItemsState, idNameMap sotah.ItemIdNameMap) error {
 	// declare channels for persisting in
 	encodedIn := make(chan database.PersistEncodedItemsInJob)
 
 	// declaring channel for fetching
-	getItemsOut := itemsState.ItemsBase.GetItems(ids, itemsState.ItemsBucket)
+	getItemsOut := itemsState.ItemsBase.GetItems(idNameMap.ItemIds(), itemsState.ItemsBucket)
 
 	// spinning up a goroutine to multiplex the results between get-items and persist-encoded-items
 	go func() {
@@ -37,26 +37,26 @@ func ReceiveSyncedItems(itemsState ProdItemsState, ids blizzard.ItemIds) error {
 		close(encodedIn)
 	}()
 
-	return itemsState.IO.Databases.ItemsDatabase.PersistEncodedItems(encodedIn)
+	return itemsState.IO.Databases.ItemsDatabase.PersistEncodedItems(encodedIn, idNameMap)
 }
 
 func (itemsState ProdItemsState) ListenForSyncedItems(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {
 	// spinning up a worker
-	in := make(chan blizzard.ItemIds, 50)
+	in := make(chan sotah.ItemIdNameMap, 50)
 	go func() {
-		for ids := range in {
+		for idNameMap := range in {
 			// handling item-ids
 			logging.WithFields(logrus.Fields{
-				"item-ids": len(ids),
+				"item-ids": len(idNameMap),
 				"capacity": len(in),
 			}).Info("Received synced item-ids")
 
 			startTime := time.Now()
-			if err := ReceiveSyncedItems(itemsState, ids); err != nil {
+			if err := ReceiveSyncedItems(itemsState, idNameMap); err != nil {
 				logging.WithField("error", err.Error()).Error("Failed to receive synced items")
 			}
 			logging.WithFields(logrus.Fields{
-				"item-ids": len(ids),
+				"item-ids": len(idNameMap),
 				"capacity": len(in),
 			}).Info("Done receiving synced item-ids")
 
@@ -76,14 +76,14 @@ func (itemsState ProdItemsState) ListenForSyncedItems(onReady chan interface{}, 
 		Callback: func(busMsg bus.Message) {
 			logging.WithField("subject", subjects.ReceiveSyncedItems).Info("Received message")
 
-			ids, err := blizzard.NewItemIds(busMsg.Data)
+			idNormalizedNameMap, err := sotah.NewItemIdNameMap(busMsg.Data)
 			if err != nil {
 				logging.WithField("error", err.Error()).Error("Failed to decode item-ids")
 
 				return
 			}
 
-			in <- ids
+			in <- idNormalizedNameMap
 
 			return
 		},
