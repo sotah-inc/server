@@ -28,6 +28,7 @@ const (
 	PricelistHistoriesIntakeV2      Subject = "pricelistHistoriesIntakeV2"
 	PricelistHistoriesCompute       Subject = "pricelistHistoriesCompute"
 	PricelistHistoriesComputeIntake Subject = "pricelistHistoriesComputeIntake"
+	AuctionsQuery                   Subject = "auctionsQuery"
 )
 
 // gcloud fn-related
@@ -35,11 +36,9 @@ const (
 	DownloadAllAuctions Subject = "downloadAllAuctions"
 	DownloadAuctions    Subject = "downloadAuctions"
 
-	ValidateAllAuctions Subject = "validateAllAuctions"
-	ValidateAuctions    Subject = "validateAuctions"
-
-	ComputeAllItems Subject = "computeAllItems"
-	ComputeItems    Subject = "computeItems"
+	ReceiveComputedLiveAuctions       Subject = "receiveComputedLiveAuctions"
+	ReceiveComputedPricelistHistories Subject = "receiveComputedPricelistHistories"
+	ReceiveRealms                     Subject = "receiveRealms"
 
 	FilterInItemsToSync Subject = "filterInItemsToSync"
 	SyncAllItems        Subject = "syncAllItems"
@@ -47,16 +46,11 @@ const (
 	SyncItemIcons       Subject = "syncItemIcons"
 	ReceiveSyncedItems  Subject = "receiveSyncedItems"
 
-	ComputeAllLiveAuctions      Subject = "computeAllLiveAuctions"
-	ComputeLiveAuctions         Subject = "computeLiveAuctions"
-	ReceiveComputedLiveAuctions Subject = "receiveComputedLiveAuctions"
-
-	ComputeAllPricelistHistories      Subject = "computeAllPricelistHistories"
-	ComputePricelistHistories         Subject = "computePricelistHistories"
-	ReceiveComputedPricelistHistories Subject = "receiveComputedPricelistHistories"
-
 	CleanupAllExpiredManifests Subject = "cleanupAllExpiredManifests"
 	CleanupExpiredManifest     Subject = "cleanupExpiredManifest"
+
+	CleanupAllPricelistHistories Subject = "cleanupAllPricelistHistories"
+	CleanupPricelistHistories    Subject = "cleanupPricelistHistories"
 
 	Bullshit       Subject = "bullshit"
 	BullshitIntake Subject = "bullshitIntake"

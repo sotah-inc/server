@@ -102,36 +102,40 @@ func init() {
 	}
 }
 
-func SyncExistingItem(id blizzard.ItemID) error {
+func SyncExistingItem(id blizzard.ItemID) (string, error) {
 	itemObj, err := itemsBase.GetFirmObject(id, itemsBucket)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	item, err := itemsBase.NewItem(itemObj)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	if item.NormalizedName != "" {
-		return nil
+		return "", nil
 	}
 
 	normalizedName, err := sotah.NormalizeName(item.Name)
 	if err != nil {
-		return err
+		return "", err
 	}
 	item.NormalizedName = normalizedName
 
-	return itemsBase.WriteItem(itemObj, item)
+	if err := itemsBase.WriteItem(itemObj, item); err != nil {
+		return "", err
+	}
+
+	return normalizedName, nil
 }
 
-func SyncItem(id blizzard.ItemID) error {
+func SyncItem(id blizzard.ItemID) (string, error) {
 	itemObj := itemsBase.GetObject(id, itemsBucket)
 
 	exists, err := itemsBase.ObjectExists(itemObj)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if exists {
 		logging.WithField("id", id).Info("Item already exists, calling func for existing item")
@@ -142,48 +146,54 @@ func SyncItem(id blizzard.ItemID) error {
 	logging.WithField("id", id).Info("Downloading")
 	uri, err := blizzardClient.AppendAccessToken(blizzard.DefaultGetItemURL(primaryRegion.Hostname, id))
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	respMeta, err := blizzard.Download(uri)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if respMeta.Status != http.StatusOK {
-		return errors.New("status was not OK")
+		return "", errors.New("status was not OK")
 	}
 
 	logging.WithField("id", id).Info("Parsing and encoding")
 	blizzardItem, err := blizzard.NewItem(respMeta.Body)
 	if err != nil {
-		return err
+		return "", err
 	}
 	item := sotah.Item{Item: blizzardItem}
 
 	normalizedName, err := sotah.NormalizeName(item.Name)
 	if err != nil {
-		return err
+		return "", err
 	}
 	item.NormalizedName = normalizedName
 
 	// writing it out to the gcloud object
 	logging.WithField("id", id).Info("Writing to items-base")
 
-	return itemsBase.WriteItem(itemObj, item)
+	if err := itemsBase.WriteItem(itemObj, item); err != nil {
+		return "", err
+	}
+
+	return normalizedName, nil
 }
 
 type HandleIdsJob struct {
-	Err error
-	Id  blizzard.ItemID
+	Err            error
+	Id             blizzard.ItemID
+	NormalizedName string
 }
 
-func HandleIds(ids blizzard.ItemIds) (blizzard.ItemIds, error) {
+func HandleIds(ids blizzard.ItemIds) (sotah.ItemIdNameMap, error) {
 	// spawning workers
 	in := make(chan blizzard.ItemID)
 	out := make(chan HandleIdsJob)
 	worker := func() {
 		for id := range in {
-			if err := SyncItem(id); err != nil {
+			normalizedName, err := SyncItem(id)
+			if err != nil {
 				out <- HandleIdsJob{
 					Err: err,
 					Id:  id,
@@ -193,8 +203,9 @@ func HandleIds(ids blizzard.ItemIds) (blizzard.ItemIds, error) {
 			}
 
 			out <- HandleIdsJob{
-				Err: nil,
-				Id:  id,
+				Err:            nil,
+				Id:             id,
+				NormalizedName: normalizedName,
 			}
 		}
 	}
@@ -213,7 +224,7 @@ func HandleIds(ids blizzard.ItemIds) (blizzard.ItemIds, error) {
 	}()
 
 	// waiting for the results to drain out
-	results := blizzard.ItemIds{}
+	results := sotah.ItemIdNameMap{}
 	for outJob := range out {
 		if outJob.Err != nil {
 			logging.WithField("error", outJob.Err.Error()).Error("Failed to sync item")
@@ -221,7 +232,7 @@ func HandleIds(ids blizzard.ItemIds) (blizzard.ItemIds, error) {
 			continue
 		}
 
-		results = append(results, outJob.Id)
+		results[outJob.Id] = outJob.NormalizedName
 	}
 
 	return results, nil

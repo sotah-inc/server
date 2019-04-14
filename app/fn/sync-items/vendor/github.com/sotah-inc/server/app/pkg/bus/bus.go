@@ -92,6 +92,40 @@ func NewItemIdMessages(itemIds blizzard.ItemIds) []Message {
 	return messages
 }
 
+func NewCleanupAuctionManifestJobsMessages(jobs CleanupAuctionManifestJobs) ([]Message, error) {
+	messages := []Message{}
+	for i, job := range jobs {
+		data, err := job.EncodeForDelivery()
+		if err != nil {
+			return []Message{}, err
+		}
+
+		msg := NewMessage()
+		msg.Data = data
+		msg.ReplyToId = fmt.Sprintf("job-%d", i)
+		messages = append(messages, msg)
+	}
+
+	return messages, nil
+}
+
+func NewCleanupPricelistPayloadsMessages(payload sotah.CleanupPricelistPayloads) ([]Message, error) {
+	messages := []Message{}
+	for i, payload := range payload {
+		data, err := payload.EncodeForDelivery()
+		if err != nil {
+			return []Message{}, err
+		}
+
+		msg := NewMessage()
+		msg.Data = data
+		msg.ReplyToId = fmt.Sprintf("payload-%d", i)
+		messages = append(messages, msg)
+	}
+
+	return messages, nil
+}
+
 func NewMessage() Message {
 	return Message{Code: codes.Ok}
 }
@@ -794,4 +828,110 @@ func (t RegionRealmTimestampTuple) Bare() RegionRealmTimestampTuple {
 	}
 }
 
-type CleanupAuctionManifestJob = RegionRealmTimestampTuple
+func NewCleanupAuctionManifestJobs(regionExpiredTimestamps sotah.RegionRealmTimestamps) CleanupAuctionManifestJobs {
+	out := CleanupAuctionManifestJobs{}
+	for regionName, realmExpiredTimestamps := range regionExpiredTimestamps {
+		for realmSlug, expiredTimestamps := range realmExpiredTimestamps {
+			for _, timestamp := range expiredTimestamps {
+				out = append(out, CleanupAuctionManifestJob{
+					RegionName:      string(regionName),
+					RealmSlug:       string(realmSlug),
+					TargetTimestamp: int(timestamp),
+				})
+			}
+		}
+	}
+
+	return out
+}
+
+type CleanupAuctionManifestJobs []CleanupAuctionManifestJob
+
+func NewCleanupAuctionManifestJob(data string) (CleanupAuctionManifestJob, error) {
+	var out CleanupAuctionManifestJob
+	if err := json.Unmarshal([]byte(data), &out); err != nil {
+		return CleanupAuctionManifestJob{}, err
+	}
+
+	return out, nil
+}
+
+type CleanupAuctionManifestJob struct {
+	RegionName      string `json:"region_name"`
+	RealmSlug       string `json:"realm_slug"`
+	TargetTimestamp int    `json:"target_timestamp"`
+}
+
+func (c CleanupAuctionManifestJob) EncodeForDelivery() (string, error) {
+	jsonEncoded, err := json.Marshal(c)
+	if err != nil {
+		return "", err
+	}
+
+	return string(jsonEncoded), nil
+}
+
+func NewCleanupAuctionManifestJobResponse(data string) (CleanupAuctionManifestJobResponse, error) {
+	var out CleanupAuctionManifestJobResponse
+	if err := json.Unmarshal([]byte(data), &out); err != nil {
+		return CleanupAuctionManifestJobResponse{}, err
+	}
+
+	return out, nil
+}
+
+type CleanupAuctionManifestJobResponse struct {
+	TotalDeleted int `json:"total_deleted"`
+}
+
+func (c CleanupAuctionManifestJobResponse) EncodeForDelivery() (string, error) {
+	jsonEncoded, err := json.Marshal(c)
+	if err != nil {
+		return "", err
+	}
+
+	return string(jsonEncoded), nil
+}
+
+func NewLoadRegionRealmTimestampsInJob(data string) (LoadRegionRealmTimestampsInJob, error) {
+	var out LoadRegionRealmTimestampsInJob
+	if err := json.Unmarshal([]byte(data), &out); err != nil {
+		return LoadRegionRealmTimestampsInJob{}, err
+	}
+
+	return out, nil
+}
+
+type LoadRegionRealmTimestampsInJob struct {
+	RegionName      string `json:"region_name"`
+	RealmSlug       string `json:"realm_slug"`
+	TargetTimestamp int    `json:"target_timestamp"`
+}
+
+func (j LoadRegionRealmTimestampsInJob) EncodeForDelivery() (string, error) {
+	out, err := json.Marshal(j)
+	if err != nil {
+		return "", err
+	}
+
+	return string(out), nil
+}
+
+func (j LoadRegionRealmTimestampsInJob) ToRegionRealmTimestampTuple() RegionRealmTimestampTuple {
+	return RegionRealmTimestampTuple{
+		RegionName:      string(j.RegionName),
+		RealmSlug:       string(j.RealmSlug),
+		TargetTimestamp: j.TargetTimestamp,
+	}
+}
+
+func (j LoadRegionRealmTimestampsInJob) ToRegionRealmTime() (sotah.Region, sotah.Realm, time.Time) {
+	region := sotah.Region{Name: blizzard.RegionName(j.RegionName)}
+	realm := sotah.Realm{
+		Realm:  blizzard.Realm{Slug: blizzard.RealmSlug(j.RealmSlug)},
+		Region: region,
+	}
+	targetTime := time.Unix(int64(j.TargetTimestamp), 0)
+
+	return region, realm, targetTime
+}

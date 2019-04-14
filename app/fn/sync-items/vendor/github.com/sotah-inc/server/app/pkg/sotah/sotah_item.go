@@ -1,6 +1,7 @@
 package sotah
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"regexp"
 	"strings"
@@ -129,4 +130,20 @@ func (iMap ItemsMap) EncodeForDatabase() ([]byte, error) {
 	}
 
 	return gzipEncodedData, nil
+}
+
+type ItemIdNameMap map[blizzard.ItemID]string
+
+func (idNameMap ItemIdNameMap) EncodeForDelivery() (string, error) {
+	jsonEncodedData, err := json.Marshal(idNameMap)
+	if err != nil {
+		return "", err
+	}
+
+	gzipEncodedData, err := util.GzipEncode(jsonEncodedData)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(gzipEncodedData), nil
 }

@@ -31,6 +31,20 @@ func (rl RegionList) GetRegion(name blizzard.RegionName) Region {
 	return Region{}
 }
 
+func (rl RegionList) EncodeForStorage() ([]byte, error) {
+	jsonEncoded, err := json.Marshal(rl)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	gzipEncoded, err := util.GzipEncode(jsonEncoded)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return gzipEncoded, nil
+}
+
 type Region struct {
 	Name     blizzard.RegionName `json:"name"`
 	Hostname string              `json:"hostname"`
@@ -47,6 +61,15 @@ func NewRealms(reg Region, blizzRealms []blizzard.Realm) Realms {
 }
 
 type Realms []Realm
+
+func (realms Realms) ToRealmMap() RealmMap {
+	out := RealmMap{}
+	for _, realm := range realms {
+		out[realm.Slug] = realm
+	}
+
+	return out
+}
 
 func NewSkeletonRealm(regionName blizzard.RegionName, realmSlug blizzard.RealmSlug) Realm {
 	return Realm{
@@ -65,6 +88,20 @@ type Realm struct {
 	blizzard.Realm
 	Region                 Region                 `json:"region"`
 	RealmModificationDates RealmModificationDates `json:"realm_modification_dates"`
+}
+
+func (r Realm) EncodeForStorage() ([]byte, error) {
+	jsonEncoded, err := json.Marshal(r)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	gzipEncoded, err := util.GzipEncode(jsonEncoded)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return gzipEncoded, nil
 }
 
 func NewStatus(reg Region, stat blizzard.Status) Status {
@@ -95,7 +132,25 @@ type Expansion struct {
 
 type RegionRealms map[blizzard.RegionName]Realms
 
+func (regionRealms RegionRealms) TotalRealms() int {
+	out := 0
+	for _, realms := range regionRealms {
+		out += len(realms)
+	}
+
+	return out
+}
+
 type RegionRealmMap map[blizzard.RegionName]RealmMap
+
+func (regionRealmMap RegionRealmMap) ToRegionRealms() RegionRealms {
+	out := RegionRealms{}
+	for regionName, realmMap := range regionRealmMap {
+		out[regionName] = realmMap.ToRealms()
+	}
+
+	return out
+}
 
 type RealmMap map[blizzard.RealmSlug]Realm
 
@@ -112,7 +167,11 @@ type UnixTimestamp int64
 
 type WorkerStopChan chan struct{}
 
-type RealmTimestamps map[blizzard.RealmSlug]int64
+type RealmTimestampMap map[blizzard.RealmSlug]int64
+
+type RegionRealmTimestampMaps map[blizzard.RegionName]RealmTimestampMap
+
+type RealmTimestamps map[blizzard.RealmSlug][]UnixTimestamp
 
 type RegionRealmTimestamps map[blizzard.RegionName]RealmTimestamps
 
@@ -279,4 +338,67 @@ func (d IconItemsPayloads) EncodeForDelivery() (string, error) {
 type IconItemsPayload struct {
 	Name string
 	Ids  blizzard.ItemIds
+}
+
+func NewCleanupPricelistPayloads(regionRealmMap map[blizzard.RegionName]Realms) CleanupPricelistPayloads {
+	out := CleanupPricelistPayloads{}
+	for regionName, realms := range regionRealmMap {
+		for _, realm := range realms {
+			out = append(out, CleanupPricelistPayload{
+				RegionName: string(regionName),
+				RealmSlug:  string(realm.Slug),
+			})
+		}
+	}
+
+	return out
+}
+
+type CleanupPricelistPayloads []CleanupPricelistPayload
+
+func NewCleanupPricelistPayload(data string) (CleanupPricelistPayload, error) {
+	var out CleanupPricelistPayload
+	if err := json.Unmarshal([]byte(data), &out); err != nil {
+		return CleanupPricelistPayload{}, err
+	}
+
+	return out, nil
+}
+
+type CleanupPricelistPayload struct {
+	RegionName string `json:"region_name"`
+	RealmSlug  string `json:"realm_slug"`
+}
+
+func (p CleanupPricelistPayload) EncodeForDelivery() (string, error) {
+	jsonEncoded, err := json.Marshal(p)
+	if err != nil {
+		return "", err
+	}
+
+	return string(jsonEncoded), nil
+}
+
+func NewCleanupPricelistPayloadResponse(data string) (CleanupPricelistPayloadResponse, error) {
+	var out CleanupPricelistPayloadResponse
+	if err := json.Unmarshal([]byte(data), &out); err != nil {
+		return CleanupPricelistPayloadResponse{}, err
+	}
+
+	return out, nil
+}
+
+type CleanupPricelistPayloadResponse struct {
+	RegionName   string `json:"region_name"`
+	RealmSlug    string `json:"realm_slug"`
+	TotalDeleted int    `json:"total_removed"`
+}
+
+func (p CleanupPricelistPayloadResponse) EncodeForDelivery() (string, error) {
+	jsonEncoded, err := json.Marshal(p)
+	if err != nil {
+		return "", err
+	}
+
+	return string(jsonEncoded), nil
 }

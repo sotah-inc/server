@@ -7,7 +7,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/store/regions"
 )
 
-const StoreItemIconURLFormat = "https://storage.googleapis.com/%s/%s"
+const ItemIconURLFormat = "https://storage.googleapis.com/%s/%s"
 
 func NewItemIconsBase(c Client, location regions.Region) ItemIconsBase {
 	return ItemIconsBase{base{client: c, location: location}}
