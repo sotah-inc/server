@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/boltdb/bolt"
+	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
@@ -147,24 +148,52 @@ func (idBase ItemsDatabase) PersistItems(iMap sotah.ItemsMap) error {
 	return nil
 }
 
+type ReceiveSyncedItemsData struct {
+	ItemIdNamesMap map[blizzard.ItemID]string
+}
+
 type PersistEncodedItemsInJob struct {
 	Id              blizzard.ItemID
 	GzipEncodedData []byte
 }
 
-func (idBase ItemsDatabase) PersistEncodedItems(in chan PersistEncodedItemsInJob) error {
+func (idBase ItemsDatabase) PersistEncodedItems(
+	in chan PersistEncodedItemsInJob,
+	idNameMap sotah.ItemIdNameMap,
+) error {
 	logging.Info("Persisting encoded items")
 
 	err := idBase.db.Batch(func(tx *bolt.Tx) error {
-		bkt, err := tx.CreateBucketIfNotExists(databaseItemsBucketName())
+		itemsBucket, err := tx.CreateBucketIfNotExists(databaseItemsBucketName())
+		if err != nil {
+			return err
+		}
+
+		itemNamesBucket, err := tx.CreateBucketIfNotExists(databaseItemNamesBucketName())
 		if err != nil {
 			return err
 		}
 
 		for job := range in {
-			if err := bkt.Put(itemsKeyName(job.Id), job.GzipEncodedData); err != nil {
+			if err := itemsBucket.Put(itemsKeyName(job.Id), job.GzipEncodedData); err != nil {
 				return err
 			}
+		}
+
+		i := 0
+		for id, name := range idNameMap {
+			if err := itemNamesBucket.Put(itemNameKeyName(id), []byte(name)); err != nil {
+				return err
+			}
+
+			if i%100 == 0 {
+				logging.WithFields(logrus.Fields{
+					"id":   id,
+					"name": name,
+				}).Info("Inserted into item-names bucket")
+			}
+
+			i++
 		}
 
 		return nil
