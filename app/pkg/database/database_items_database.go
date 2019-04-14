@@ -77,6 +77,38 @@ func (idBase ItemsDatabase) GetItems() (sotah.ItemsMap, error) {
 	return out, nil
 }
 
+func (idBase ItemsDatabase) GetIdNormalizedNameMap() (sotah.ItemIdNameMap, error) {
+	out := sotah.ItemIdNameMap{}
+
+	err := idBase.db.View(func(tx *bolt.Tx) error {
+		bkt := tx.Bucket(databaseItemNamesBucketName())
+		if bkt == nil {
+			return nil
+		}
+
+		err := bkt.ForEach(func(k, v []byte) error {
+			itemId, err := itemIdFromItemNameKeyName(k)
+			if err != nil {
+				return err
+			}
+
+			out[itemId] = string(v)
+
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return sotah.ItemIdNameMap{}, err
+	}
+
+	return out, nil
+}
+
 func (idBase ItemsDatabase) FindItems(itemIds []blizzard.ItemID) (sotah.ItemsMap, error) {
 	out := sotah.ItemsMap{}
 	err := idBase.db.View(func(tx *bolt.Tx) error {
