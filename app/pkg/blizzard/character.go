@@ -22,3 +22,31 @@ type Character struct {
 	Faction             characterfaction.CharacterFaction `json:"faction"`
 	TotalHonorableKills int                               `json:"totalHonorableKills"`
 }
+
+type AchievementId int
+
+type CharacterAchievementsCompleted []AchievementId
+
+type CharacterAchievementsCompletedTimestamp []int
+
+type CharacterAchievementsCriteria []int
+
+type CharacterCriteriaQuantity []int
+
+type CharacterCriteriaTimestamp []int
+
+type CharacterCriteriaCreated []int
+
+type CharacterAchievements struct {
+	AchievementsCompleted          CharacterAchievementsCompleted          `json:"achievementsCompleted"`
+	AchievementsCompletedTimestamp CharacterAchievementsCompletedTimestamp `json:"achievementsCompletedTimestamp"`
+	Criteria                       CharacterAchievementsCriteria           `json:"criteria"`
+	CriteriaQuantity               CharacterCriteriaQuantity               `json:"criteriaQuantity"`
+	CriteriaTimestamp              CharacterCriteriaTimestamp              `json:"criteriaTimestamp"`
+	CriteriaCreated                CharacterCriteriaCreated                `json:"criteriaCreated"`
+}
+
+type CharacterWithAchievements struct {
+	Character
+	Achievements CharacterAchievements `json:"achievements"`
+}
