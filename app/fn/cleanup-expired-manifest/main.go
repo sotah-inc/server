@@ -14,7 +14,9 @@ import (
 	"github.com/sotah-inc/server/app/pkg/bus/codes"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
 	"github.com/sotah-inc/server/app/pkg/store"
+	"github.com/sotah-inc/server/app/pkg/store/regions"
 )
 
 var (
@@ -48,7 +50,7 @@ func init() {
 		return
 	}
 
-	auctionsStoreBase = store.NewAuctionsBaseV2(storeClient, "us-central1")
+	auctionsStoreBase = store.NewAuctionsBaseV2(storeClient, regions.USCentral1, gameversions.Retail)
 	auctionStoreBucket, err = auctionsStoreBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get firm raw-auctions bucket: %s", err.Error())
@@ -56,7 +58,7 @@ func init() {
 		return
 	}
 
-	auctionManifestStoreBase = store.NewAuctionManifestBaseV2(storeClient, "us-central1")
+	auctionManifestStoreBase = store.NewAuctionManifestBaseV2(storeClient, regions.USCentral1, gameversions.Retail)
 	auctionManifestBucket, err = auctionManifestStoreBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get firm auction-manifest bucket: %s", err.Error())

@@ -12,23 +12,29 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
 	"github.com/sotah-inc/server/app/pkg/store/regions"
 	"github.com/sotah-inc/server/app/pkg/util"
 	"github.com/twinj/uuid"
 	"google.golang.org/api/iterator"
 )
 
-func NewPricelistHistoriesBaseV2(c Client, location regions.Region) PricelistHistoriesBaseV2 {
-	return PricelistHistoriesBaseV2{base{client: c, location: location}}
+func NewPricelistHistoriesBaseV2(c Client, location regions.Region, version gameversions.GameVersion) PricelistHistoriesBaseV2 {
+	return PricelistHistoriesBaseV2{
+		base{client: c, location: location},
+		version,
+	}
 }
 
 type PricelistHistoriesBaseV2 struct {
 	base
+	GameVersion gameversions.GameVersion
 }
 
 func (b PricelistHistoriesBaseV2) getBucketName() string {
-	return "pricelist-histories"
+	return "sotah-pricelist-histories"
 }
 
 func (b PricelistHistoriesBaseV2) GetBucket() *storage.BucketHandle {
@@ -40,7 +46,7 @@ func (b PricelistHistoriesBaseV2) GetFirmBucket() (*storage.BucketHandle, error)
 }
 
 func (b PricelistHistoriesBaseV2) getObjectName(targetTime time.Time, realm sotah.Realm) string {
-	return fmt.Sprintf("%s/%s/%d.txt.gz", realm.Region.Name, realm.Slug, targetTime.Unix())
+	return fmt.Sprintf("%s/%s/%s/%d.txt.gz", b.GameVersion, realm.Region.Name, realm.Slug, targetTime.Unix())
 }
 
 func (b PricelistHistoriesBaseV2) GetObject(targetTime time.Time, realm sotah.Realm, bkt *storage.BucketHandle) *storage.ObjectHandle {
@@ -508,9 +514,7 @@ func (b PricelistHistoriesBaseV2) GetTimestamps(realm sotah.Realm, bkt *storage.
 				break
 			}
 
-			if err != nil {
-				return []sotah.UnixTimestamp{}, err
-			}
+			return []sotah.UnixTimestamp{}, err
 		}
 
 		targetTimestamp, err := strconv.Atoi(objAttrs.Name[len(prefix):(len(objAttrs.Name) - len(".txt.gz"))])
@@ -522,4 +526,115 @@ func (b PricelistHistoriesBaseV2) GetTimestamps(realm sotah.Realm, bkt *storage.
 	}
 
 	return out, nil
+}
+
+func (b PricelistHistoriesBaseV2) GetExpiredTimestamps(realm sotah.Realm, bkt *storage.BucketHandle) ([]sotah.UnixTimestamp, error) {
+	timestamps, err := b.GetTimestamps(realm, bkt)
+	if err != nil {
+		return []sotah.UnixTimestamp{}, err
+	}
+
+	limit := sotah.NormalizeTargetDate(time.Now()).AddDate(0, 0, -14)
+	expiredTimestamps := []sotah.UnixTimestamp{}
+	for _, timestamp := range timestamps {
+		targetTime := time.Unix(int64(timestamp), 0)
+		if targetTime.After(limit) {
+			continue
+		}
+
+		expiredTimestamps = append(expiredTimestamps, timestamp)
+	}
+
+	return expiredTimestamps, nil
+}
+
+type DeletePricelistHistoryJob struct {
+	Err             error
+	TargetTimestamp sotah.UnixTimestamp
+}
+
+func (b PricelistHistoriesBaseV2) DeleteAll(
+	realm sotah.Realm,
+	timestamps []sotah.UnixTimestamp,
+	bkt *storage.BucketHandle,
+) (int, error) {
+	// spinning up the workers
+	in := make(chan sotah.UnixTimestamp)
+	out := make(chan DeletePricelistHistoryJob)
+	worker := func() {
+		for targetTimestamp := range in {
+			entry := logging.WithFields(logrus.Fields{
+				"region":           realm.Region.Name,
+				"realm":            realm.Slug,
+				"target-timestamp": targetTimestamp,
+			})
+			entry.Info("Handling target-timestamp")
+
+			obj := bkt.Object(b.getObjectName(time.Unix(int64(targetTimestamp), 0), realm))
+			exists, err := b.ObjectExists(obj)
+			if err != nil {
+				entry.WithField("error", err.Error()).Error("Failed to check if obj exists")
+
+				out <- DeletePricelistHistoryJob{
+					Err:             err,
+					TargetTimestamp: targetTimestamp,
+				}
+
+				continue
+			}
+			if !exists {
+				entry.Info("Obj does not exist")
+
+				out <- DeletePricelistHistoryJob{
+					Err:             nil,
+					TargetTimestamp: targetTimestamp,
+				}
+
+				continue
+			}
+
+			if err := obj.Delete(b.client.Context); err != nil {
+				entry.WithField("error", err.Error()).Error("Could not delete obj")
+
+				out <- DeletePricelistHistoryJob{
+					Err:             err,
+					TargetTimestamp: targetTimestamp,
+				}
+
+				continue
+			}
+
+			entry.Info("Obj deleted")
+
+			out <- DeletePricelistHistoryJob{
+				Err:             nil,
+				TargetTimestamp: targetTimestamp,
+			}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(16, worker, postWork)
+
+	// queueing it up
+	go func() {
+		for _, targetTimestamp := range timestamps {
+			in <- targetTimestamp
+		}
+
+		close(in)
+	}()
+
+	// waiting for it to drain out
+	totalDeleted := 0
+	for outJob := range out {
+		if outJob.Err != nil {
+			return 0, outJob.Err
+		}
+
+		totalDeleted += 1
+	}
+
+	return totalDeleted, nil
 }
