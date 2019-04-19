@@ -139,6 +139,8 @@ func (transferState TransferState) Run() error {
 			logging.WithField("name", objAttrs.Name).Info("Found object, enqueueing")
 			in <- objAttrs.Name
 		}
+
+		close(in)
 	}()
 
 	// waiting for the results to drain out
