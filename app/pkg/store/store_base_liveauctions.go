@@ -34,7 +34,7 @@ func (b LiveAuctionsBase) resolveBucket() (*storage.BucketHandle, error) {
 }
 
 func (b LiveAuctionsBase) getObjectName(realm sotah.Realm) string {
-	return fmt.Sprintf("%s-%s.json.gz", realm.Region.Name, realm.Slug)
+	return fmt.Sprintf("%s/%s.json.gz", realm.Region.Name, realm.Slug)
 }
 
 func (b LiveAuctionsBase) GetObject(realm sotah.Realm, bkt *storage.BucketHandle) *storage.ObjectHandle {
