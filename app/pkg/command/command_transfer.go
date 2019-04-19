@@ -31,7 +31,6 @@ func Transfer(config state.TransferStateConfig) error {
 	}
 
 	logging.WithFields(logrus.Fields{
-		"error":          err.Error(),
 		"duration-in-ms": int64(time.Now().Sub(startTime)) / 1000 / 1000,
 	}).Info("Exiting")
 	return nil
