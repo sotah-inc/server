@@ -1,6 +1,7 @@
 package state
 
 import (
+	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/store"
 	"github.com/twinj/uuid"
 )
@@ -23,13 +24,25 @@ func NewTransferState(config TransferStateConfig) (TransferState, error) {
 	if err != nil {
 		return TransferState{}, err
 	}
-	transferState.InStoreClient = inStoreClient
+	transferState.InTransferBase = store.NewTransferBase(inStoreClient, "us-central1", config.InBucketName)
+
+	inBucket, err := transferState.InTransferBase.GetFirmBucket()
+	if err != nil {
+		return TransferState{}, err
+	}
+	transferState.InBucket = inBucket
 
 	outStoreClient, err := store.NewClient(config.OutProjectId)
 	if err != nil {
 		return TransferState{}, err
 	}
-	transferState.outStoreClient = outStoreClient
+	transferState.OutTransferBase = store.NewTransferBase(outStoreClient, "us-central1", config.OutBucketName)
+
+	outBucket, err := transferState.OutTransferBase.GetFirmBucket()
+	if err != nil {
+		return TransferState{}, err
+	}
+	transferState.OutBucket = outBucket
 
 	return transferState, nil
 }
@@ -37,8 +50,11 @@ func NewTransferState(config TransferStateConfig) (TransferState, error) {
 type TransferState struct {
 	State
 
-	InStoreClient  store.Client
-	outStoreClient store.Client
+	InTransferBase store.TransferBase
+	InBucket       *storage.BucketHandle
+
+	OutTransferBase store.TransferBase
+	OutBucket       *storage.BucketHandle
 }
 
 func (transferState TransferState) Run() error {
