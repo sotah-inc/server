@@ -34,7 +34,7 @@ type PricelistHistoriesBaseV2 struct {
 }
 
 func (b PricelistHistoriesBaseV2) getBucketName() string {
-	return "pricelist-histories"
+	return "sotah-pricelist-histories"
 }
 
 func (b PricelistHistoriesBaseV2) GetBucket() *storage.BucketHandle {

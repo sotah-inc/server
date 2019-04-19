@@ -23,7 +23,7 @@ type LiveAuctionsBase struct {
 }
 
 func (b LiveAuctionsBase) getBucketName() string {
-	return "live-auctions"
+	return "sotah-live-auctions"
 }
 
 func (b LiveAuctionsBase) GetFirmBucket() (*storage.BucketHandle, error) {

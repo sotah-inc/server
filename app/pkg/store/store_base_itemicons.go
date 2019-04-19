@@ -23,7 +23,7 @@ type ItemIconsBase struct {
 }
 
 func (b ItemIconsBase) GetBucketName() string {
-	return "item-icons"
+	return "sotah-item-icons"
 }
 
 func (b ItemIconsBase) GetBucket() *storage.BucketHandle {
