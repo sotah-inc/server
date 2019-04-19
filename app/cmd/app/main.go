@@ -37,6 +37,8 @@ func main() {
 		cacheDir       = app.Flag("cache-dir", "Directory to cache data files to").Required().String()
 		projectID      = app.Flag("project-id", "GCloud Storage Project ID").Default("").Envar("PROJECT_ID").String()
 		nextProjectId  = app.Flag("next-project-id", "Next GCP Project ID").Default("").Envar("NEXT_PROJECT_ID").String()
+		srcBucket      = app.Flag("source-bucket", "").Default("").Envar("SOURCE_BUCKET").String()
+		dstBucket      = app.Flag("destination-bucket", "").Default("").Envar("DESTINATION_BUCKET").String()
 
 		apiCommand                = app.Command(string(commands.API), "For running sotah-server.")
 		liveAuctionsCommand       = app.Command(string(commands.LiveAuctions), "For in-memory storage of current auctions.")
@@ -192,8 +194,8 @@ func main() {
 			return command.Transfer(state.TransferStateConfig{
 				InProjectId:   *projectID,
 				OutProjectId:  *nextProjectId,
-				InBucketName:  "item-icons",
-				OutBucketName: "sotah-item-icons",
+				InBucketName:  *srcBucket,
+				OutBucketName: *dstBucket,
 			})
 		},
 	}
