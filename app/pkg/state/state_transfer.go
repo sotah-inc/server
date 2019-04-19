@@ -63,6 +63,29 @@ type TransferState struct {
 	OutBucket       *storage.BucketHandle
 }
 
+func (transferState TransferState) Copy(name string) error {
+	src, err := transferState.InTransferBase.GetFirmObject(name, transferState.InBucket)
+	if err != nil {
+		return err
+	}
+
+	dst := transferState.OutTransferBase.GetObject(name, transferState.OutBucket)
+	destinationExists, err := transferState.OutTransferBase.ObjectExists(dst)
+	if err != nil {
+		return err
+	}
+	if destinationExists {
+		return nil
+	}
+
+	copier := dst.CopierFrom(src)
+	if _, err := copier.Run(transferState.OutStoreClient.Context); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (transferState TransferState) Run() error {
 	total := 0
 	it := transferState.InBucket.Objects(transferState.InStoreClient.Context, nil)
