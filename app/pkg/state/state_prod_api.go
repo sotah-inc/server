@@ -52,7 +52,7 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 		return ProdApiState{}, err
 	}
 	apiState.IO.StoreClient = stor
-	apiState.ItemIconsBase = store.NewItemIconsBase(stor, "us-central1")
+	apiState.ItemIconsBase = store.NewItemIconsBase(stor, "us-central1", gameversions.Retail)
 	apiState.ItemIconsBucket, err = apiState.ItemIconsBase.GetFirmBucket()
 	if err != nil {
 		return ProdApiState{}, err

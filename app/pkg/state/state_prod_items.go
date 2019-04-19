@@ -7,6 +7,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/metric"
+	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
 	"github.com/twinj/uuid"
@@ -49,7 +50,7 @@ func NewProdItemsState(config ProdItemsStateConfig) (ProdItemsState, error) {
 	}
 	itemsState.IO.StoreClient = storeClient
 
-	itemsState.ItemsBase = store.NewItemsBase(storeClient, "us-central1")
+	itemsState.ItemsBase = store.NewItemsBase(storeClient, "us-central1", gameversions.Retail)
 	itemsState.ItemsBucket, err = itemsState.ItemsBase.GetFirmBucket()
 	if err != nil {
 		return ProdItemsState{}, err
