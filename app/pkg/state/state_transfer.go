@@ -124,7 +124,7 @@ func (transferState TransferState) Run() error {
 	out := make(chan RunJob)
 	worker := func() {
 		for name := range in {
-			deleted, err := transferState.Copy(name)
+			deleted, err := transferState.Delete(name)
 			if err != nil {
 				out <- RunJob{
 					Err:     err,
