@@ -47,13 +47,17 @@ func NewDownloadAllAuctionsState(config DownloadAllAuctionsStateConfig) (Downloa
 
 		return DownloadAllAuctionsState{}, err
 	}
-	sta.receivedComputedLiveAuctionsTopic, err = sta.IO.BusClient.FirmTopic(string(subjects.ReceiveComputedLiveAuctions))
+	sta.receivedComputedLiveAuctionsTopic, err = sta.IO.BusClient.FirmTopic(
+		string(subjects.ReceiveComputedLiveAuctions),
+	)
 	if err != nil {
 		log.Fatalf("Failed to get firm topic: %s", err.Error())
 
 		return DownloadAllAuctionsState{}, err
 	}
-	sta.receivedComputedPricelistHistoriesTopic, err = sta.IO.BusClient.FirmTopic(string(subjects.ReceiveComputedPricelistHistories))
+	sta.receivedComputedPricelistHistoriesTopic, err = sta.IO.BusClient.FirmTopic(
+		string(subjects.ReceiveComputedPricelistHistories),
+	)
 	if err != nil {
 		log.Fatalf("Failed to get firm topic: %s", err.Error())
 

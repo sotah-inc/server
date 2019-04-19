@@ -11,6 +11,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/state"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
+	"github.com/sotah-inc/server/app/pkg/store/regions"
 	"github.com/twinj/uuid"
 )
 
@@ -47,7 +48,7 @@ func NewCleanupAllExpiredManifestsState(
 		return CleanupAllExpiredManifestsState{}, err
 	}
 
-	sta.bootBase = store.NewBootBase(sta.IO.StoreClient, "us-central1")
+	sta.bootBase = store.NewBootBase(sta.IO.StoreClient, regions.USCentral1)
 	sta.bootBucket, err = sta.bootBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get firm bucket: %s", err.Error())
@@ -55,13 +56,17 @@ func NewCleanupAllExpiredManifestsState(
 		return CleanupAllExpiredManifestsState{}, err
 	}
 
-	sta.realmsBase = store.NewRealmsBase(sta.IO.StoreClient, "us-central1", gameversions.Retail)
+	sta.realmsBase = store.NewRealmsBase(sta.IO.StoreClient, regions.USCentral1, gameversions.Retail)
 	sta.realmsBucket, err = sta.realmsBase.GetFirmBucket()
 	if err != nil {
 		return CleanupAllExpiredManifestsState{}, err
 	}
 
-	sta.auctionManifestStoreBase = store.NewAuctionManifestBaseV2(sta.IO.StoreClient, "us-central1")
+	sta.auctionManifestStoreBase = store.NewAuctionManifestBaseV2(
+		sta.IO.StoreClient,
+		regions.USCentral1,
+		gameversions.Retail,
+	)
 	sta.auctionManifestBucket, err = sta.auctionManifestStoreBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get firm auction-manifest bucket: %s", err.Error())

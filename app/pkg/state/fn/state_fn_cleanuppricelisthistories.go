@@ -11,6 +11,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/state"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
+	"github.com/sotah-inc/server/app/pkg/store/regions"
 	"github.com/twinj/uuid"
 )
 
@@ -47,7 +48,7 @@ func NewCleanupPricelistHistoriesState(
 		return CleanupPricelistHistoriesState{}, err
 	}
 
-	sta.bootStoreBase = store.NewBootBase(sta.IO.StoreClient, "us-central1")
+	sta.bootStoreBase = store.NewBootBase(sta.IO.StoreClient, regions.USCentral1)
 	sta.bootBucket, err = sta.bootStoreBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get firm bucket: %s", err.Error())
@@ -55,7 +56,11 @@ func NewCleanupPricelistHistoriesState(
 		return CleanupPricelistHistoriesState{}, err
 	}
 
-	sta.pricelistHistoriesStoreBase = store.NewPricelistHistoriesBaseV2(sta.IO.StoreClient, "us-central1")
+	sta.pricelistHistoriesStoreBase = store.NewPricelistHistoriesBaseV2(
+		sta.IO.StoreClient,
+		regions.USCentral1,
+		gameversions.Retail,
+	)
 	sta.pricelistHistoriesBucket, err = sta.pricelistHistoriesStoreBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get firm bucket: %s", err.Error())

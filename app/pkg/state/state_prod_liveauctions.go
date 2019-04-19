@@ -3,8 +3,6 @@ package state
 import (
 	"fmt"
 
-	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
-
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/database"
@@ -12,8 +10,10 @@ import (
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
+	"github.com/sotah-inc/server/app/pkg/store/regions"
 	"github.com/sotah-inc/server/app/pkg/util"
 	"github.com/twinj/uuid"
 )
@@ -55,7 +55,7 @@ func NewProdLiveAuctionsState(config ProdLiveAuctionsStateConfig) (ProdLiveAucti
 	}
 	liveAuctionsState.IO.StoreClient = storeClient
 
-	liveAuctionsState.LiveAuctionsBase = store.NewLiveAuctionsBase(storeClient, "us-central1")
+	liveAuctionsState.LiveAuctionsBase = store.NewLiveAuctionsBase(storeClient, regions.USCentral1, gameversions.Retail)
 	liveAuctionsState.LiveAuctionsBucket, err = liveAuctionsState.LiveAuctionsBase.GetFirmBucket()
 	if err != nil {
 		return ProdLiveAuctionsState{}, err
