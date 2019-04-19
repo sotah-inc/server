@@ -113,9 +113,9 @@ func (transferState TransferState) Delete(name string) (bool, error) {
 }
 
 type RunJob struct {
-	Err     error
-	Name    string
-	Deleted bool
+	Err    error
+	Name   string
+	Copied bool
 }
 
 func (transferState TransferState) Run() error {
@@ -124,21 +124,21 @@ func (transferState TransferState) Run() error {
 	out := make(chan RunJob)
 	worker := func() {
 		for name := range in {
-			deleted, err := transferState.Delete(name)
+			copied, err := transferState.Copy(name)
 			if err != nil {
 				out <- RunJob{
-					Err:     err,
-					Name:    name,
-					Deleted: false,
+					Err:    err,
+					Name:   name,
+					Copied: false,
 				}
 
 				continue
 			}
 
 			out <- RunJob{
-				Err:     nil,
-				Name:    name,
-				Deleted: deleted,
+				Err:    nil,
+				Name:   name,
+				Copied: copied,
 			}
 		}
 	}
@@ -176,14 +176,14 @@ func (transferState TransferState) Run() error {
 			return job.Err
 		}
 
-		if job.Deleted {
-			logging.WithField("name", job.Name).Info("Deleted object")
+		if job.Copied {
+			logging.WithField("name", job.Name).Info("Copied object")
 
 			total++
 		}
 	}
 
-	logging.WithField("total", total).Info("Deleted objects")
+	logging.WithField("total", total).Info("Copied objects")
 
 	return nil
 }
