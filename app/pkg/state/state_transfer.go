@@ -89,10 +89,27 @@ func (transferState TransferState) Copy(name string) (bool, error) {
 	return true, nil
 }
 
+func (transferState TransferState) Delete(name string) (bool, error) {
+	dst := transferState.OutTransferBase.GetObject(name, transferState.OutBucket)
+	destinationExists, err := transferState.OutTransferBase.ObjectExists(dst)
+	if err != nil {
+		return false, err
+	}
+	if !destinationExists {
+		return false, nil
+	}
+
+	if err := dst.Delete(transferState.OutStoreClient.Context); err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
 type RunJob struct {
-	Err    error
-	Name   string
-	Copied bool
+	Err     error
+	Name    string
+	Deleted bool
 }
 
 func (transferState TransferState) Run() error {
@@ -101,21 +118,21 @@ func (transferState TransferState) Run() error {
 	out := make(chan RunJob)
 	worker := func() {
 		for name := range in {
-			copied, err := transferState.Copy(name)
+			deleted, err := transferState.Copy(name)
 			if err != nil {
 				out <- RunJob{
-					Err:    err,
-					Name:   name,
-					Copied: false,
+					Err:     err,
+					Name:    name,
+					Deleted: false,
 				}
 
 				continue
 			}
 
 			out <- RunJob{
-				Err:    nil,
-				Name:   name,
-				Copied: copied,
+				Err:     nil,
+				Name:    name,
+				Deleted: deleted,
 			}
 		}
 	}
@@ -153,14 +170,14 @@ func (transferState TransferState) Run() error {
 			return job.Err
 		}
 
-		if job.Copied {
-			logging.WithField("name", job.Name).Info("Copied object")
+		if job.Deleted {
+			logging.WithField("name", job.Name).Info("Deleted object")
 
 			total++
 		}
 	}
 
-	logging.WithField("total", total).Info("Copied objects")
+	logging.WithField("total", total).Info("Deleted objects")
 
 	return nil
 }
