@@ -1,6 +1,9 @@
 package command
 
 import (
+	"time"
+
+	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/state"
 )
@@ -17,12 +20,19 @@ func Transfer(config state.TransferStateConfig) error {
 	}
 
 	// running it
+	startTime := time.Now()
 	if err := transferState.Run(); err != nil {
-		logging.WithField("error", err.Error()).Error("Failed to run")
+		logging.WithFields(logrus.Fields{
+			"error":          err.Error(),
+			"duration-in-ms": int64(time.Now().Sub(startTime)) / 1000 / 1000,
+		}).Error("Failed to run")
 
 		return err
 	}
 
-	logging.Info("Exiting")
+	logging.WithFields(logrus.Fields{
+		"error":          err.Error(),
+		"duration-in-ms": int64(time.Now().Sub(startTime)) / 1000 / 1000,
+	}).Info("Exiting")
 	return nil
 }
