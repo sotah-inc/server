@@ -64,34 +64,35 @@ type TransferState struct {
 	OutBucket       *storage.BucketHandle
 }
 
-func (transferState TransferState) Copy(name string) error {
+func (transferState TransferState) Copy(name string) (bool, error) {
 	src, err := transferState.InTransferBase.GetFirmObject(name, transferState.InBucket)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	dst := transferState.OutTransferBase.GetObject(name, transferState.OutBucket)
 	destinationExists, err := transferState.OutTransferBase.ObjectExists(dst)
 	if err != nil {
-		return err
+		return false, err
 	}
 	if destinationExists {
 		logging.WithField("object", name).Info("Object exists")
 
-		return nil
+		return false, nil
 	}
 
 	copier := dst.CopierFrom(src)
 	if _, err := copier.Run(transferState.OutStoreClient.Context); err != nil {
-		return err
+		return false, err
 	}
 
-	return nil
+	return true, nil
 }
 
 type RunJob struct {
-	Err  error
-	Name string
+	Err    error
+	Name   string
+	Copied bool
 }
 
 func (transferState TransferState) Run() error {
@@ -100,19 +101,21 @@ func (transferState TransferState) Run() error {
 	out := make(chan RunJob)
 	worker := func() {
 		for name := range in {
-			err := transferState.Copy(name)
+			copied, err := transferState.Copy(name)
 			if err != nil {
 				out <- RunJob{
-					Err:  err,
-					Name: name,
+					Err:    err,
+					Name:   name,
+					Copied: false,
 				}
 
 				continue
 			}
 
 			out <- RunJob{
-				Err:  nil,
-				Name: name,
+				Err:    nil,
+				Name:   name,
+				Copied: copied,
 			}
 		}
 	}
@@ -150,12 +153,14 @@ func (transferState TransferState) Run() error {
 			return job.Err
 		}
 
-		logging.WithField("name", job.Name).Info("Copied object")
+		if job.Copied {
+			logging.WithField("name", job.Name).Info("Copied object")
 
-		total++
+			total++
+		}
 	}
 
-	logging.WithField("total", total).Info("Found objects")
+	logging.WithField("total", total).Info("Copied objects")
 
 	return nil
 }
