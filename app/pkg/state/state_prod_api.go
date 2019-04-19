@@ -15,6 +15,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
+	"github.com/sotah-inc/server/app/pkg/store/regions"
 	"github.com/sotah-inc/server/app/pkg/util"
 	"github.com/twinj/uuid"
 )
@@ -52,12 +53,12 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 		return ProdApiState{}, err
 	}
 	apiState.IO.StoreClient = stor
-	apiState.ItemIconsBase = store.NewItemIconsBase(stor, "us-central1", gameversions.Retail)
+	apiState.ItemIconsBase = store.NewItemIconsBase(stor, regions.USCentral1, gameversions.Retail)
 	apiState.ItemIconsBucket, err = apiState.ItemIconsBase.GetFirmBucket()
 	if err != nil {
 		return ProdApiState{}, err
 	}
-	apiState.RealmsBase = store.NewRealmsBase(apiState.IO.StoreClient, "us-central1", gameversions.Retail)
+	apiState.RealmsBase = store.NewRealmsBase(apiState.IO.StoreClient, regions.USCentral1, gameversions.Retail)
 	apiState.RealmsBucket, err = apiState.RealmsBase.GetFirmBucket()
 	if err != nil {
 		return ProdApiState{}, err
