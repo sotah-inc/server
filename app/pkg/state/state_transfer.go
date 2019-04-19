@@ -76,6 +76,8 @@ func (transferState TransferState) Copy(name string) error {
 		return err
 	}
 	if destinationExists {
+		logging.WithField("object", name).Info("Object exists")
+
 		return nil
 	}
 
@@ -117,7 +119,7 @@ func (transferState TransferState) Run() error {
 	postWork := func() {
 		close(out)
 	}
-	util.Work(8, worker, postWork)
+	util.Work(16, worker, postWork)
 
 	// spinning it up
 	go func() {
@@ -145,6 +147,8 @@ func (transferState TransferState) Run() error {
 		if job.Err != nil {
 			return job.Err
 		}
+
+		logging.WithField("name", job.Name).Info("Copied object")
 
 		total++
 	}
