@@ -10,21 +10,26 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
 	"github.com/sotah-inc/server/app/pkg/store/regions"
 	"github.com/sotah-inc/server/app/pkg/util"
 	"google.golang.org/api/iterator"
 )
 
-func NewAuctionManifestBaseV2(c Client, location regions.Region) AuctionManifestBaseV2 {
-	return AuctionManifestBaseV2{base{client: c, location: location}}
+func NewAuctionManifestBaseV2(c Client, location regions.Region, version gameversions.GameVersion) AuctionManifestBaseV2 {
+	return AuctionManifestBaseV2{
+		base{client: c, location: location},
+		version,
+	}
 }
 
 type AuctionManifestBaseV2 struct {
 	base
+	GameVersion gameversions.GameVersion
 }
 
 func (b AuctionManifestBaseV2) getBucketName() string {
-	return "auctions-manifest"
+	return "sotah-auctions-manifest"
 }
 
 func (b AuctionManifestBaseV2) GetBucket() *storage.BucketHandle {
@@ -40,7 +45,7 @@ func (b AuctionManifestBaseV2) GetFirmBucket() (*storage.BucketHandle, error) {
 }
 
 func (b AuctionManifestBaseV2) GetObjectName(targetTimestamp sotah.UnixTimestamp, realm sotah.Realm) string {
-	return fmt.Sprintf("%s/%s/%d.json", realm.Region.Name, realm.Slug, targetTimestamp)
+	return fmt.Sprintf("%s/%s/%s/%d.json", b.GameVersion, realm.Region.Name, realm.Slug, targetTimestamp)
 }
 
 func (b AuctionManifestBaseV2) GetObject(targetTimestamp sotah.UnixTimestamp, realm sotah.Realm, bkt *storage.BucketHandle) *storage.ObjectHandle {
