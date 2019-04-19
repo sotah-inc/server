@@ -4,6 +4,7 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/store"
+	"github.com/sotah-inc/server/app/pkg/util"
 	"github.com/twinj/uuid"
 	"google.golang.org/api/iterator"
 )
@@ -86,20 +87,65 @@ func (transferState TransferState) Copy(name string) error {
 	return nil
 }
 
+type RunJob struct {
+	Err  error
+	Name string
+}
+
 func (transferState TransferState) Run() error {
-	total := 0
-	it := transferState.InBucket.Objects(transferState.InStoreClient.Context, nil)
-	for {
-		objAttrs, err := it.Next()
-		if err != nil {
-			if err == iterator.Done {
-				break
+	// spawning workers
+	in := make(chan string)
+	out := make(chan RunJob)
+	worker := func() {
+		for name := range in {
+			err := transferState.Copy(name)
+			if err != nil {
+				out <- RunJob{
+					Err:  err,
+					Name: name,
+				}
+
+				continue
 			}
 
-			return err
+			out <- RunJob{
+				Err:  nil,
+				Name: name,
+			}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(8, worker, postWork)
+
+	// spinning it up
+	go func() {
+		it := transferState.InBucket.Objects(transferState.InStoreClient.Context, nil)
+		for {
+			objAttrs, err := it.Next()
+			if err != nil {
+				if err == iterator.Done {
+					break
+				}
+
+				logging.WithField("error", err.Error()).Fatal("Failed to iterate to next")
+
+				continue
+			}
+
+			logging.WithField("name", objAttrs.Name).Info("Found object, enqueueing")
+			in <- objAttrs.Name
+		}
+	}()
+
+	// waiting for the results to drain out
+	total := 0
+	for job := range out {
+		if job.Err != nil {
+			return job.Err
 		}
 
-		logging.WithField("name", objAttrs.Name).Info("Found object")
 		total++
 	}
 
