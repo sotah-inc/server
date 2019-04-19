@@ -36,6 +36,7 @@ func main() {
 		verbosity      = app.Flag("verbosity", "Log verbosity").Default("info").Short('v').String()
 		cacheDir       = app.Flag("cache-dir", "Directory to cache data files to").Required().String()
 		projectID      = app.Flag("project-id", "GCloud Storage Project ID").Default("").Envar("PROJECT_ID").String()
+		nextProjectId  = app.Flag("next-project-id", "Next GCP Project ID").Default("").Envar("NEXT_PROJECT_ID").String()
 
 		apiCommand                = app.Command(string(commands.API), "For running sotah-server.")
 		liveAuctionsCommand       = app.Command(string(commands.LiveAuctions), "For in-memory storage of current auctions.")
@@ -51,6 +52,8 @@ func main() {
 		fnSyncAllItems               = app.Command(string(commands.FnSyncAllItems), "For enqueueing syncing of items and item-icons in gcp ce vm.")
 		fnCleanupAllExpiredManifests = app.Command(string(commands.FnCleanupAllExpiredManifests), "For gathering all expired auction-manifests for deletion in gcp ce vm.")
 		fnCleanupPricelistHistories  = app.Command(string(commands.FnCleanupPricelistHistories), "For gathering all expired pricelist-histories for deletion in gcp ce vm.")
+
+		transfer = app.Command(string(commands.Transfer), "For transferring storage buckets to another project.")
 	)
 	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
 
@@ -183,6 +186,14 @@ func main() {
 		fnCleanupPricelistHistories.FullCommand(): func() error {
 			return command.FnCleanupPricelistHistories(fn.CleanupPricelistHistoriesStateConfig{
 				ProjectId: *projectID,
+			})
+		},
+		transfer.FullCommand(): func() error {
+			return command.Transfer(state.TransferStateConfig{
+				InProjectId:   *projectID,
+				OutProjectId:  *nextProjectId,
+				InBucketName:  "item-icons",
+				OutBucketName: "sotah-item-icons",
 			})
 		},
 	}
