@@ -1,8 +1,11 @@
 package state
 
 import (
+	"fmt"
+
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
 	"github.com/sotah-inc/server/app/pkg/store"
 	"github.com/sotah-inc/server/app/pkg/util"
 	"github.com/twinj/uuid"
@@ -65,8 +68,8 @@ type TransferState struct {
 }
 
 func GetDestinationObjectName(name string) string {
-	//return fmt.Sprintf("%s/%s", gameversions.Retail, name)
-	return name
+	return fmt.Sprintf("%s/%s", gameversions.Retail, name)
+	//return name
 }
 
 func (transferState TransferState) Copy(name string) (bool, error) {
@@ -118,9 +121,9 @@ func (transferState TransferState) Delete(name string) (bool, error) {
 }
 
 type RunJob struct {
-	Err     error
-	Name    string
-	Deleted bool
+	Err    error
+	Name   string
+	Copied bool
 }
 
 func (transferState TransferState) Run() error {
@@ -129,21 +132,21 @@ func (transferState TransferState) Run() error {
 	out := make(chan RunJob)
 	worker := func() {
 		for name := range in {
-			deleted, err := transferState.Delete(name)
+			copied, err := transferState.Delete(name)
 			if err != nil {
 				out <- RunJob{
-					Err:     err,
-					Name:    name,
-					Deleted: false,
+					Err:    err,
+					Name:   name,
+					Copied: false,
 				}
 
 				continue
 			}
 
 			out <- RunJob{
-				Err:     nil,
-				Name:    name,
-				Deleted: deleted,
+				Err:    nil,
+				Name:   name,
+				Copied: copied,
 			}
 		}
 	}
@@ -181,14 +184,14 @@ func (transferState TransferState) Run() error {
 			return job.Err
 		}
 
-		if job.Deleted {
-			logging.WithField("name", job.Name).Info("Deleted object at destination")
+		if job.Copied {
+			logging.WithField("name", job.Name).Info("Copied object to destination")
 
 			total++
 		}
 	}
 
-	logging.WithField("total", total).Info("Deleted objects from destination")
+	logging.WithField("total", total).Info("Copied objects to destination")
 
 	return nil
 }
