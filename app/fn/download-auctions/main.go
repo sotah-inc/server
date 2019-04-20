@@ -8,9 +8,6 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
-	gcpRegions "github.com/sotah-inc/server/app/pkg/store/regions"
-
 	"cloud.google.com/go/storage"
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
@@ -18,7 +15,9 @@ import (
 	"github.com/sotah-inc/server/app/pkg/bus/codes"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
 	"github.com/sotah-inc/server/app/pkg/store"
+	gcpRegions "github.com/sotah-inc/server/app/pkg/store/regions"
 )
 
 var (

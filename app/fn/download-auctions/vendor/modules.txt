@@ -35,13 +35,15 @@ github.com/nats-io/nkeys
 github.com/nats-io/nuid
 # github.com/sirupsen/logrus v1.3.0
 github.com/sirupsen/logrus
-# github.com/sotah-inc/server/app v0.0.0-20190419200455-dfb70ae42bde
+# github.com/sotah-inc/server/app v0.0.0-20190420191544-509f9d1815aa
 github.com/sotah-inc/server/app/pkg/blizzard
 github.com/sotah-inc/server/app/pkg/bus
 github.com/sotah-inc/server/app/pkg/bus/codes
 github.com/sotah-inc/server/app/pkg/logging
 github.com/sotah-inc/server/app/pkg/sotah
+github.com/sotah-inc/server/app/pkg/sotah/gameversions
 github.com/sotah-inc/server/app/pkg/store
+github.com/sotah-inc/server/app/pkg/store/regions
 github.com/sotah-inc/server/app/pkg/blizzard/characterclass
 github.com/sotah-inc/server/app/pkg/blizzard/characterfaction
 github.com/sotah-inc/server/app/pkg/blizzard/charactergender
@@ -55,8 +57,6 @@ github.com/sotah-inc/server/app/pkg/metric
 github.com/sotah-inc/server/app/pkg/state/subjects
 github.com/sotah-inc/server/app/pkg/sotah/sortdirections
 github.com/sotah-inc/server/app/pkg/sotah/sortkinds
-github.com/sotah-inc/server/app/pkg/sotah/gameversions
-github.com/sotah-inc/server/app/pkg/store/regions
 github.com/sotah-inc/server/app/pkg/database/codes
 github.com/sotah-inc/server/app/pkg/messenger
 github.com/sotah-inc/server/app/pkg/metric/kinds
