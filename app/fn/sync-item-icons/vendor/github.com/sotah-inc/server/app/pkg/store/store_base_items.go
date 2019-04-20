@@ -1,6 +1,7 @@
 package store
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 
@@ -8,15 +9,21 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
+	"github.com/sotah-inc/server/app/pkg/store/regions"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
-func NewItemsBase(c Client, location string) ItemsBase {
-	return ItemsBase{base{client: c, location: location}}
+func NewItemsBase(c Client, location regions.Region, version gameversions.GameVersion) ItemsBase {
+	return ItemsBase{
+		base{client: c, location: location},
+		version,
+	}
 }
 
 type ItemsBase struct {
 	base
+	GameVersion gameversions.GameVersion
 }
 
 func (b ItemsBase) getBucketName() string {
@@ -36,7 +43,7 @@ func (b ItemsBase) resolveBucket() (*storage.BucketHandle, error) {
 }
 
 func (b ItemsBase) getObjectName(id blizzard.ItemID) string {
-	return fmt.Sprintf("%d.json.gz", id)
+	return fmt.Sprintf("%s/%d.json.gz", b.GameVersion, id)
 }
 
 func (b ItemsBase) GetObject(id blizzard.ItemID, bkt *storage.BucketHandle) *storage.ObjectHandle {
@@ -45,10 +52,6 @@ func (b ItemsBase) GetObject(id blizzard.ItemID, bkt *storage.BucketHandle) *sto
 
 func (b ItemsBase) GetFirmObject(id blizzard.ItemID, bkt *storage.BucketHandle) (*storage.ObjectHandle, error) {
 	return b.base.getFirmObject(b.getObjectName(id), bkt)
-}
-
-func (b ItemsBase) ObjectExists(id blizzard.ItemID, bkt *storage.BucketHandle) (bool, error) {
-	return b.base.ObjectExists(b.GetObject(id, bkt))
 }
 
 func (b ItemsBase) NewItem(obj *storage.ObjectHandle) (sotah.Item, error) {
@@ -137,4 +140,21 @@ func (b ItemsBase) GetItems(ids blizzard.ItemIds, bkt *storage.BucketHandle) cha
 	}()
 
 	return out
+}
+
+func (b ItemsBase) WriteItem(obj *storage.ObjectHandle, item sotah.Item) error {
+	jsonEncoded, err := json.Marshal(item)
+	if err != nil {
+		return err
+	}
+
+	gzipEncodedBody, err := util.GzipEncode(jsonEncoded)
+	if err != nil {
+		return err
+	}
+
+	wc := obj.NewWriter(b.client.Context)
+	wc.ContentType = "application/json"
+	wc.ContentEncoding = "gzip"
+	return b.Write(wc, gzipEncodedBody)
 }

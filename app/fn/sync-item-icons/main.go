@@ -9,6 +9,10 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
+
+	"github.com/sotah-inc/server/app/pkg/store/regions"
+
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
@@ -59,7 +63,7 @@ func init() {
 		return
 	}
 
-	itemsBase = store.NewItemsBase(storeClient, "us-central1")
+	itemsBase = store.NewItemsBase(storeClient, regions.USCentral1, gameversions.Retail)
 	itemsBucket, err = itemsBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get firm bucket: %s", err.Error())
@@ -67,7 +71,7 @@ func init() {
 		return
 	}
 
-	itemIconsBase = store.NewItemIconsBase(storeClient, "us-central1")
+	itemIconsBase = store.NewItemIconsBase(storeClient, regions.USCentral1, gameversions.Retail)
 	itemIconsBucket, err = itemIconsBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get firm bucket: %s", err.Error())
