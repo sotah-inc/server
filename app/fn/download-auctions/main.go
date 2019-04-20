@@ -97,7 +97,7 @@ func init() {
 		return
 	}
 
-	bootBase := store.NewBootBase(storeClient, "us-central1")
+	bootBase := store.NewBootBase(storeClient, gcpRegions.USCentral1)
 	var bootBucket *storage.BucketHandle
 	bootBucket, err = bootBase.GetFirmBucket()
 	if err != nil {
@@ -118,7 +118,7 @@ func init() {
 		return
 	}
 
-	realmsBase := store.NewRealmsBase(storeClient, "us-central1", gameversions.Retail)
+	realmsBase := store.NewRealmsBase(storeClient, gcpRegions.USCentral1, gameversions.Retail)
 	realmsBucket, err := realmsBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get firm bucket: %s", err.Error())
