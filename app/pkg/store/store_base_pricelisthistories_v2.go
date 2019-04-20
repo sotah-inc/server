@@ -45,8 +45,12 @@ func (b PricelistHistoriesBaseV2) GetFirmBucket() (*storage.BucketHandle, error)
 	return b.base.getFirmBucket(b.getBucketName())
 }
 
+func (b PricelistHistoriesBaseV2) GetObjectPrefix(realm sotah.Realm) string {
+	return fmt.Sprintf("%s/%s/%s", b.GameVersion, realm.Region.Name, realm.Slug)
+}
+
 func (b PricelistHistoriesBaseV2) getObjectName(targetTime time.Time, realm sotah.Realm) string {
-	return fmt.Sprintf("%s/%s/%s/%d.txt.gz", b.GameVersion, realm.Region.Name, realm.Slug, targetTime.Unix())
+	return fmt.Sprintf("%s/%d.txt.gz", b.GetObjectPrefix(realm), targetTime.Unix())
 }
 
 func (b PricelistHistoriesBaseV2) GetObject(targetTime time.Time, realm sotah.Realm, bkt *storage.BucketHandle) *storage.ObjectHandle {
@@ -504,7 +508,7 @@ func (b PricelistHistoriesBaseV2) GetAllExpiredTimestamps(
 }
 
 func (b PricelistHistoriesBaseV2) GetTimestamps(realm sotah.Realm, bkt *storage.BucketHandle) ([]sotah.UnixTimestamp, error) {
-	prefix := fmt.Sprintf("%s/%s/", realm.Region.Name, realm.Slug)
+	prefix := fmt.Sprintf("%s/", b.GetObjectPrefix(realm))
 	it := bkt.Objects(b.client.Context, &storage.Query{Prefix: prefix})
 	out := []sotah.UnixTimestamp{}
 	for {
