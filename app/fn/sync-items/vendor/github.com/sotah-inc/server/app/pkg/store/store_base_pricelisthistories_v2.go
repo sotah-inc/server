@@ -14,22 +14,27 @@ import (
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
 	"github.com/sotah-inc/server/app/pkg/store/regions"
 	"github.com/sotah-inc/server/app/pkg/util"
 	"github.com/twinj/uuid"
 	"google.golang.org/api/iterator"
 )
 
-func NewPricelistHistoriesBaseV2(c Client, location regions.Region) PricelistHistoriesBaseV2 {
-	return PricelistHistoriesBaseV2{base{client: c, location: location}}
+func NewPricelistHistoriesBaseV2(c Client, location regions.Region, version gameversions.GameVersion) PricelistHistoriesBaseV2 {
+	return PricelistHistoriesBaseV2{
+		base{client: c, location: location},
+		version,
+	}
 }
 
 type PricelistHistoriesBaseV2 struct {
 	base
+	GameVersion gameversions.GameVersion
 }
 
 func (b PricelistHistoriesBaseV2) getBucketName() string {
-	return "pricelist-histories"
+	return "sotah-pricelist-histories"
 }
 
 func (b PricelistHistoriesBaseV2) GetBucket() *storage.BucketHandle {
@@ -41,7 +46,7 @@ func (b PricelistHistoriesBaseV2) GetFirmBucket() (*storage.BucketHandle, error)
 }
 
 func (b PricelistHistoriesBaseV2) getObjectName(targetTime time.Time, realm sotah.Realm) string {
-	return fmt.Sprintf("%s/%s/%d.txt.gz", realm.Region.Name, realm.Slug, targetTime.Unix())
+	return fmt.Sprintf("%s/%s/%s/%d.txt.gz", b.GameVersion, realm.Region.Name, realm.Slug, targetTime.Unix())
 }
 
 func (b PricelistHistoriesBaseV2) GetObject(targetTime time.Time, realm sotah.Realm, bkt *storage.BucketHandle) *storage.ObjectHandle {

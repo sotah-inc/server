@@ -15,8 +15,10 @@ import (
 	"github.com/sotah-inc/server/app/pkg/bus/codes"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 	"github.com/sotah-inc/server/app/pkg/store"
+	"github.com/sotah-inc/server/app/pkg/store/regions"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
@@ -57,7 +59,7 @@ func init() {
 		return
 	}
 
-	itemsBase = store.NewItemsBase(storeClient, "us-central1")
+	itemsBase = store.NewItemsBase(storeClient, regions.USCentral1, gameversions.Retail)
 	itemsBucket, err = itemsBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get firm bucket: %s", err.Error())
@@ -65,7 +67,7 @@ func init() {
 		return
 	}
 
-	bootBase := store.NewBootBase(storeClient, "us-central1")
+	bootBase := store.NewBootBase(storeClient, regions.USCentral1)
 
 	var bootBucket *storage.BucketHandle
 	bootBucket, err = bootBase.GetFirmBucket()
