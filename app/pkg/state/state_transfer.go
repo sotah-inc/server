@@ -96,7 +96,7 @@ func (transferState TransferState) Copy(name string) (bool, error) {
 	return true, nil
 }
 
-func (transferState TransferState) Delete(name string) (bool, error) {
+func (transferState TransferState) DeleteAtDestination(name string) (bool, error) {
 	destinationName := GetDestinationObjectName(name)
 
 	dst := transferState.OutTransferBase.GetObject(destinationName, transferState.OutBucket)
@@ -117,10 +117,29 @@ func (transferState TransferState) Delete(name string) (bool, error) {
 	return true, nil
 }
 
+func (transferState TransferState) DeleteAtSource(name string) (bool, error) {
+	src := transferState.InTransferBase.GetObject(name, transferState.InBucket)
+	sourceExists, err := transferState.InTransferBase.ObjectExists(src)
+	if err != nil {
+		return false, err
+	}
+	if !sourceExists {
+		logging.WithField("source-name", name).Info("Source object does not exist")
+
+		return false, nil
+	}
+
+	if err := src.Delete(transferState.InStoreClient.Context); err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
 type RunJob struct {
-	Err    error
-	Name   string
-	Copied bool
+	Err     error
+	Name    string
+	Deleted bool
 }
 
 func (transferState TransferState) Run() error {
@@ -129,21 +148,21 @@ func (transferState TransferState) Run() error {
 	out := make(chan RunJob)
 	worker := func() {
 		for name := range in {
-			copied, err := transferState.Copy(name)
+			deleted, err := transferState.DeleteAtSource(name)
 			if err != nil {
 				out <- RunJob{
-					Err:    err,
-					Name:   name,
-					Copied: false,
+					Err:     err,
+					Name:    name,
+					Deleted: false,
 				}
 
 				continue
 			}
 
 			out <- RunJob{
-				Err:    nil,
-				Name:   name,
-				Copied: copied,
+				Err:     nil,
+				Name:    name,
+				Deleted: deleted,
 			}
 		}
 	}
@@ -181,8 +200,8 @@ func (transferState TransferState) Run() error {
 			return job.Err
 		}
 
-		if job.Copied {
-			logging.WithField("name", job.Name).Info("Copied object to destination")
+		if job.Deleted {
+			logging.WithField("name", job.Name).Info("Deleted object at source")
 
 			total++
 		}
