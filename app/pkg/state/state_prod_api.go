@@ -10,7 +10,6 @@ import (
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/metric"
-	"github.com/sotah-inc/server/app/pkg/resolver"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
@@ -43,7 +42,6 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 	apiState.Regions = config.SotahConfig.FilterInRegions(config.SotahConfig.Regions)
 	apiState.Expansions = config.SotahConfig.Expansions
 	apiState.Professions = config.SotahConfig.Professions
-	apiState.ItemBlacklist = config.SotahConfig.ItemBlacklist
 	apiState.BlizzardClientId = config.BlizzardClientId
 	apiState.BlizzardClientSecret = config.BlizzardClientSecret
 
@@ -53,11 +51,6 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 		return ProdApiState{}, err
 	}
 	apiState.IO.StoreClient = stor
-	apiState.ItemIconsBase = store.NewItemIconsBase(stor, regions.USCentral1, gameversions.Retail)
-	apiState.ItemIconsBucket, err = apiState.ItemIconsBase.GetFirmBucket()
-	if err != nil {
-		return ProdApiState{}, err
-	}
 	apiState.RealmsBase = store.NewRealmsBase(apiState.IO.StoreClient, regions.USCentral1, gameversions.Retail)
 	apiState.RealmsBucket, err = apiState.RealmsBase.GetFirmBucket()
 	if err != nil {
@@ -81,13 +74,6 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 
 	// initializing a reporter
 	apiState.IO.Reporter = metric.NewReporter(mess)
-
-	// connecting a new blizzard client
-	blizzardClient, err := blizzard.NewClient(config.BlizzardClientId, config.BlizzardClientSecret)
-	if err != nil {
-		return ProdApiState{}, err
-	}
-	apiState.IO.Resolver = resolver.NewResolver(blizzardClient, apiState.IO.Reporter)
 
 	// filling state with region statuses
 	for _, region := range apiState.Regions {
@@ -122,18 +108,23 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 	apiState.ItemClasses = itemClasses
 
 	// gathering profession icons
+	itemIconsBase := store.NewItemIconsBase(stor, regions.USCentral1, gameversions.Retail)
+	itemIconsBucket, err := itemIconsBase.GetFirmBucket()
+	if err != nil {
+		return ProdApiState{}, err
+	}
 	for i, prof := range apiState.Professions {
 		itemIconUrl, err := func() (string, error) {
-			obj := apiState.ItemIconsBase.GetObject(prof.Icon, apiState.ItemIconsBucket)
-			exists, err := apiState.ItemIconsBase.ObjectExists(obj)
+			obj := itemIconsBase.GetObject(prof.Icon, itemIconsBucket)
+			exists, err := itemIconsBase.ObjectExists(obj)
 			if err != nil {
 				return "", err
 			}
 
 			url := fmt.Sprintf(
 				store.ItemIconURLFormat,
-				apiState.ItemIconsBase.GetBucketName(),
-				apiState.ItemIconsBase.GetObjectName(prof.Icon),
+				itemIconsBase.GetBucketName(),
+				itemIconsBase.GetObjectName(prof.Icon),
 			)
 
 			if exists {
@@ -145,7 +136,7 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 				return "", err
 			}
 
-			if err := apiState.ItemIconsBase.Write(obj.NewWriter(stor.Context), body); err != nil {
+			if err := itemIconsBase.Write(obj.NewWriter(stor.Context), body); err != nil {
 				return "", err
 			}
 
@@ -178,9 +169,6 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 
 type ProdApiState struct {
 	State
-
-	ItemIconsBase   store.ItemIconsBase
-	ItemIconsBucket *storage.BucketHandle
 
 	RealmsBase   store.RealmsBase
 	RealmsBucket *storage.BucketHandle
