@@ -6,19 +6,25 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
+	"github.com/sotah-inc/server/app/pkg/store/regions"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
 
-func NewAuctionsBaseV2(c Client, location string) AuctionsBaseV2 {
-	return AuctionsBaseV2{base{client: c, location: location}}
+func NewAuctionsBaseV2(c Client, location regions.Region, version gameversions.GameVersion) AuctionsBaseV2 {
+	return AuctionsBaseV2{
+		base{client: c, location: location},
+		version,
+	}
 }
 
 type AuctionsBaseV2 struct {
 	base
+	GameVersion gameversions.GameVersion
 }
 
 func (b AuctionsBaseV2) getBucketName() string {
-	return "raw-auctions"
+	return "sotah-raw-auctions"
 }
 
 func (b AuctionsBaseV2) GetBucket() *storage.BucketHandle {
@@ -34,7 +40,7 @@ func (b AuctionsBaseV2) ResolveBucket() (*storage.BucketHandle, error) {
 }
 
 func (b AuctionsBaseV2) getObjectName(realm sotah.Realm, lastModified time.Time) string {
-	return fmt.Sprintf("%s/%s/%d.json.gz", realm.Region.Name, realm.Slug, lastModified.Unix())
+	return fmt.Sprintf("%s/%s/%s/%d.json.gz", b.GameVersion, realm.Region.Name, realm.Slug, lastModified.Unix())
 }
 
 func (b AuctionsBaseV2) GetObject(realm sotah.Realm, lastModified time.Time, bkt *storage.BucketHandle) *storage.ObjectHandle {

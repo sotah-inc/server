@@ -8,6 +8,9 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
+	gcpRegions "github.com/sotah-inc/server/app/pkg/store/regions"
+
 	"cloud.google.com/go/storage"
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
@@ -40,7 +43,7 @@ var (
 	pricelistHistoriesBucket    *storage.BucketHandle
 
 	regions      sotah.RegionList
-	regionRealms map[blizzard.RegionName]sotah.Realms
+	regionRealms sotah.RegionRealms
 )
 
 func init() {
@@ -59,7 +62,7 @@ func init() {
 		return
 	}
 
-	auctionsStoreBase = store.NewAuctionsBaseV2(storeClient, "us-central1")
+	auctionsStoreBase = store.NewAuctionsBaseV2(storeClient, gcpRegions.USCentral1, gameversions.Retail)
 	auctionsBucket, err = auctionsStoreBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get firm bucket: %s", err.Error())
@@ -67,7 +70,7 @@ func init() {
 		return
 	}
 
-	auctionManifestStoreBase = store.NewAuctionManifestBaseV2(storeClient, "us-central1")
+	auctionManifestStoreBase = store.NewAuctionManifestBaseV2(storeClient, gcpRegions.USCentral1, gameversions.Retail)
 	auctionsManifestBucket, err = auctionManifestStoreBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get firm bucket: %s", err.Error())
@@ -75,7 +78,7 @@ func init() {
 		return
 	}
 
-	liveAuctionsStoreBase = store.NewLiveAuctionsBase(storeClient, "us-central1")
+	liveAuctionsStoreBase = store.NewLiveAuctionsBase(storeClient, gcpRegions.USCentral1, gameversions.Retail)
 	liveAuctionsBucket, err = liveAuctionsStoreBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get firm bucket: %s", err.Error())
@@ -83,7 +86,11 @@ func init() {
 		return
 	}
 
-	pricelistHistoriesStoreBase = store.NewPricelistHistoriesBaseV2(storeClient, "us-central1")
+	pricelistHistoriesStoreBase = store.NewPricelistHistoriesBaseV2(
+		storeClient,
+		gcpRegions.USCentral1,
+		gameversions.Retail,
+	)
 	pricelistHistoriesBucket, err = pricelistHistoriesStoreBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get firm bucket: %s", err.Error())
@@ -105,17 +112,30 @@ func init() {
 
 		return
 	}
-	regionRealms, err = bootBase.GetRegionRealms(bootBucket)
-	if err != nil {
-		log.Fatalf("Failed to get region-realms: %s", err.Error())
-
-		return
-	}
 	blizzardCredentials, err := bootBase.GetBlizzardCredentials(bootBucket)
 	if err != nil {
 		log.Fatalf("Failed to get blizzard-credentials: %s", err.Error())
 
 		return
+	}
+
+	realmsBase := store.NewRealmsBase(storeClient, "us-central1", gameversions.Retail)
+	realmsBucket, err := realmsBase.GetFirmBucket()
+	if err != nil {
+		log.Fatalf("Failed to get firm bucket: %s", err.Error())
+
+		return
+	}
+
+	for _, region := range regions {
+		realms, err := realmsBase.GetAllRealms(region.Name, realmsBucket)
+		if err != nil {
+			log.Fatalf("Failed to get realms: %s", err.Error())
+
+			return
+		}
+
+		regionRealms[region.Name] = realms
 	}
 
 	logging.Info("Received regions, region-realms, and blizzard-credentials")

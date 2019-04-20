@@ -6,18 +6,24 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
+	"github.com/sotah-inc/server/app/pkg/store/regions"
 )
 
-func NewLiveAuctionsBase(c Client, location string) LiveAuctionsBase {
-	return LiveAuctionsBase{base{client: c, location: location}}
+func NewLiveAuctionsBase(c Client, location regions.Region, version gameversions.GameVersion) LiveAuctionsBase {
+	return LiveAuctionsBase{
+		base{client: c, location: location},
+		version,
+	}
 }
 
 type LiveAuctionsBase struct {
 	base
+	GameVersion gameversions.GameVersion
 }
 
 func (b LiveAuctionsBase) getBucketName() string {
-	return "live-auctions"
+	return "sotah-live-auctions"
 }
 
 func (b LiveAuctionsBase) GetFirmBucket() (*storage.BucketHandle, error) {
@@ -33,7 +39,7 @@ func (b LiveAuctionsBase) resolveBucket() (*storage.BucketHandle, error) {
 }
 
 func (b LiveAuctionsBase) getObjectName(realm sotah.Realm) string {
-	return fmt.Sprintf("%s-%s.json.gz", realm.Region.Name, realm.Slug)
+	return fmt.Sprintf("%s/%s/%s.json.gz", b.GameVersion, realm.Region.Name, realm.Slug)
 }
 
 func (b LiveAuctionsBase) GetObject(realm sotah.Realm, bkt *storage.BucketHandle) *storage.ObjectHandle {

@@ -23,6 +23,8 @@ github.com/golang/protobuf/ptypes/empty
 github.com/googleapis/gax-go/v2
 # github.com/konsorten/go-windows-terminal-sequences v1.0.1
 github.com/konsorten/go-windows-terminal-sequences
+# github.com/lithammer/fuzzysearch v1.0.2
+github.com/lithammer/fuzzysearch/fuzzy
 # github.com/nats-io/go-nats v1.7.0
 github.com/nats-io/go-nats
 github.com/nats-io/go-nats/encoders/builtin
@@ -33,13 +35,17 @@ github.com/nats-io/nkeys
 github.com/nats-io/nuid
 # github.com/sirupsen/logrus v1.3.0
 github.com/sirupsen/logrus
-# github.com/sotah-inc/server/app v0.0.0-20190325000550-30fdc1165d44
+# github.com/sotah-inc/server/app v0.0.0-20190419200455-dfb70ae42bde
 github.com/sotah-inc/server/app/pkg/blizzard
 github.com/sotah-inc/server/app/pkg/bus
 github.com/sotah-inc/server/app/pkg/bus/codes
 github.com/sotah-inc/server/app/pkg/logging
 github.com/sotah-inc/server/app/pkg/sotah
 github.com/sotah-inc/server/app/pkg/store
+github.com/sotah-inc/server/app/pkg/blizzard/characterclass
+github.com/sotah-inc/server/app/pkg/blizzard/characterfaction
+github.com/sotah-inc/server/app/pkg/blizzard/charactergender
+github.com/sotah-inc/server/app/pkg/blizzard/characterrace
 github.com/sotah-inc/server/app/pkg/blizzard/itembinds
 github.com/sotah-inc/server/app/pkg/blizzard/realmpopulations
 github.com/sotah-inc/server/app/pkg/blizzard/realmtypes
@@ -49,6 +55,8 @@ github.com/sotah-inc/server/app/pkg/metric
 github.com/sotah-inc/server/app/pkg/state/subjects
 github.com/sotah-inc/server/app/pkg/sotah/sortdirections
 github.com/sotah-inc/server/app/pkg/sotah/sortkinds
+github.com/sotah-inc/server/app/pkg/sotah/gameversions
+github.com/sotah-inc/server/app/pkg/store/regions
 github.com/sotah-inc/server/app/pkg/database/codes
 github.com/sotah-inc/server/app/pkg/messenger
 github.com/sotah-inc/server/app/pkg/metric/kinds
