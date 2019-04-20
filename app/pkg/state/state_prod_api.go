@@ -26,9 +26,6 @@ type ProdApiStateConfig struct {
 
 	MessengerHost string
 	MessengerPort int
-
-	BlizzardClientId     string
-	BlizzardClientSecret string
 }
 
 func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
@@ -42,8 +39,6 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 	apiState.Regions = config.SotahConfig.FilterInRegions(config.SotahConfig.Regions)
 	apiState.Expansions = config.SotahConfig.Expansions
 	apiState.Professions = config.SotahConfig.Professions
-	apiState.BlizzardClientId = config.BlizzardClientId
-	apiState.BlizzardClientSecret = config.BlizzardClientSecret
 
 	// establishing a store
 	stor, err := store.NewClient(config.GCloudProjectID)
@@ -151,7 +146,6 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 
 	// establishing bus-listeners
 	apiState.BusListeners = NewBusListeners(SubjectBusListeners{
-		subjects.Boot:   apiState.ListenForBusAuthenticatedBoot,
 		subjects.Status: apiState.ListenForBusStatus,
 	})
 
