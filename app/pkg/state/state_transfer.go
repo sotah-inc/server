@@ -289,5 +289,5 @@ func (transferState TransferState) DeleteAll() error {
 }
 
 func (transferState TransferState) Run() error {
-	return transferState.DeleteAll()
+	return transferState.CopyAll()
 }
