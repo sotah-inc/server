@@ -1,11 +1,8 @@
 package state
 
 import (
-	"fmt"
-
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/logging"
-	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
 	"github.com/sotah-inc/server/app/pkg/store"
 	"github.com/sotah-inc/server/app/pkg/util"
 	"github.com/twinj/uuid"
@@ -68,8 +65,8 @@ type TransferState struct {
 }
 
 func GetDestinationObjectName(name string) string {
-	return fmt.Sprintf("%s/%s", gameversions.Retail, name)
-	//return name
+	//return fmt.Sprintf("%s/%s", gameversions.Retail, name)
+	return name
 }
 
 func (transferState TransferState) Copy(name string) (bool, error) {
