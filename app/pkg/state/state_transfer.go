@@ -1,11 +1,8 @@
 package state
 
 import (
-	"fmt"
-
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/logging"
-	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
 	"github.com/sotah-inc/server/app/pkg/store"
 	"github.com/sotah-inc/server/app/pkg/util"
 	"github.com/twinj/uuid"
@@ -74,7 +71,7 @@ func (transferState TransferState) Copy(name string) (bool, error) {
 	}
 
 	dst := transferState.OutTransferBase.GetObject(
-		fmt.Sprintf("%s/%s", gameversions.Retail, name),
+		name,
 		transferState.OutBucket,
 	)
 	destinationExists, err := transferState.OutTransferBase.ObjectExists(dst)
