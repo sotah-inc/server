@@ -136,21 +136,21 @@ func (transferState TransferState) DeleteAtSource(name string) (bool, error) {
 	return true, nil
 }
 
-type RunJob struct {
+type CopyAllJob struct {
 	Err    error
 	Name   string
 	Copied bool
 }
 
-func (transferState TransferState) Run() error {
+func (transferState TransferState) CopyAll() error {
 	// spawning workers
 	in := make(chan string)
-	out := make(chan RunJob)
+	out := make(chan CopyAllJob)
 	worker := func() {
 		for name := range in {
 			copied, err := transferState.Copy(name)
 			if err != nil {
-				out <- RunJob{
+				out <- CopyAllJob{
 					Err:    err,
 					Name:   name,
 					Copied: false,
@@ -159,7 +159,7 @@ func (transferState TransferState) Run() error {
 				continue
 			}
 
-			out <- RunJob{
+			out <- CopyAllJob{
 				Err:    nil,
 				Name:   name,
 				Copied: copied,
@@ -210,4 +210,84 @@ func (transferState TransferState) Run() error {
 	logging.WithField("total", total).Info("Copied objects to destination")
 
 	return nil
+}
+
+type DeleteAllJob struct {
+	Err     error
+	Name    string
+	Deleted bool
+}
+
+func (transferState TransferState) DeleteAll() error {
+	// spawning workers
+	in := make(chan string)
+	out := make(chan DeleteAllJob)
+	worker := func() {
+		for name := range in {
+			deleted, err := transferState.DeleteAtSource(name)
+			if err != nil {
+				out <- DeleteAllJob{
+					Err:     err,
+					Name:    name,
+					Deleted: false,
+				}
+
+				continue
+			}
+
+			out <- DeleteAllJob{
+				Err:     nil,
+				Name:    name,
+				Deleted: deleted,
+			}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(16, worker, postWork)
+
+	// spinning it up
+	go func() {
+		it := transferState.InBucket.Objects(transferState.InStoreClient.Context, nil)
+		for {
+			objAttrs, err := it.Next()
+			if err != nil {
+				if err == iterator.Done {
+					break
+				}
+
+				logging.WithField("error", err.Error()).Fatal("Failed to iterate to next")
+
+				continue
+			}
+
+			logging.WithField("name", objAttrs.Name).Info("Found object, enqueueing")
+			in <- objAttrs.Name
+		}
+
+		close(in)
+	}()
+
+	// waiting for the results to drain out
+	total := 0
+	for job := range out {
+		if job.Err != nil {
+			return job.Err
+		}
+
+		if job.Deleted {
+			logging.WithField("name", job.Name).Info("Deleted object")
+
+			total++
+		}
+	}
+
+	logging.WithField("total", total).Info("Deleted objects")
+
+	return nil
+}
+
+func (transferState TransferState) Run() error {
+	return transferState.DeleteAll()
 }
