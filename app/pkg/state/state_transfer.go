@@ -75,13 +75,15 @@ func (transferState TransferState) Copy(name string) (bool, error) {
 		return false, err
 	}
 
-	dst := transferState.OutTransferBase.GetObject(GetDestinationObjectName(name), transferState.OutBucket)
+	destinationName := GetDestinationObjectName(name)
+
+	dst := transferState.OutTransferBase.GetObject(destinationName, transferState.OutBucket)
 	destinationExists, err := transferState.OutTransferBase.ObjectExists(dst)
 	if err != nil {
 		return false, err
 	}
 	if destinationExists {
-		logging.WithField("object", name).Info("Object exists")
+		logging.WithField("object", destinationName).Info("Object exists")
 
 		return false, nil
 	}
@@ -95,12 +97,16 @@ func (transferState TransferState) Copy(name string) (bool, error) {
 }
 
 func (transferState TransferState) Delete(name string) (bool, error) {
-	dst := transferState.OutTransferBase.GetObject(GetDestinationObjectName(name), transferState.OutBucket)
+	destinationName := GetDestinationObjectName(name)
+
+	dst := transferState.OutTransferBase.GetObject(destinationName, transferState.OutBucket)
 	destinationExists, err := transferState.OutTransferBase.ObjectExists(dst)
 	if err != nil {
 		return false, err
 	}
 	if !destinationExists {
+		logging.WithField("destination-name", destinationName).Info("Destination object does not exist")
+
 		return false, nil
 	}
 
