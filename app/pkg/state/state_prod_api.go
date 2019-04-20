@@ -10,6 +10,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/metric"
+	"github.com/sotah-inc/server/app/pkg/resolver"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
@@ -46,6 +47,19 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 		return ProdApiState{}, err
 	}
 	apiState.IO.StoreClient = stor
+
+	bootBase := store.NewBootBase(apiState.IO.StoreClient, regions.USCentral1)
+
+	var bootBucket *storage.BucketHandle
+	bootBucket, err = bootBase.GetFirmBucket()
+	if err != nil {
+		return ProdApiState{}, err
+	}
+	blizzardCredentials, err := bootBase.GetBlizzardCredentials(bootBucket)
+	if err != nil {
+		return ProdApiState{}, err
+	}
+
 	apiState.RealmsBase = store.NewRealmsBase(apiState.IO.StoreClient, regions.USCentral1, gameversions.Retail)
 	apiState.RealmsBucket, err = apiState.RealmsBase.GetFirmBucket()
 	if err != nil {
@@ -69,6 +83,13 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 
 	// initializing a reporter
 	apiState.IO.Reporter = metric.NewReporter(mess)
+
+	// connecting a new blizzard client
+	blizzardClient, err := blizzard.NewClient(blizzardCredentials.ClientId, blizzardCredentials.ClientSecret)
+	if err != nil {
+		return ProdApiState{}, err
+	}
+	apiState.IO.Resolver = resolver.NewResolver(blizzardClient, apiState.IO.Reporter)
 
 	// filling state with region statuses
 	for _, region := range apiState.Regions {
