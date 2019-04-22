@@ -4,32 +4,24 @@ import (
 	"context"
 	"log"
 	"os"
-	"strconv"
-
-	"google.golang.org/api/iterator"
-
-	"github.com/sotah-inc/server/app/pkg/util"
 
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/logging"
-	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
 	"github.com/sotah-inc/server/app/pkg/store"
 	"github.com/sotah-inc/server/app/pkg/store/regions"
+	"github.com/sotah-inc/server/app/pkg/util"
+	"google.golang.org/api/iterator"
 )
 
 var (
 	projectId = os.Getenv("GCP_PROJECT")
-	natsHost  = os.Getenv("NATS_HOST")
-	natsPort  = os.Getenv("NATS_PORT")
 
 	storeClient     store.Client
 	bootBase        store.BootBase
 	bootBucket      *storage.BucketHandle
 	itemIconsBase   store.ItemIconsBase
 	itemIconsBucket *storage.BucketHandle
-
-	messengerClient messenger.Messenger
 )
 
 func init() {
@@ -54,21 +46,6 @@ func init() {
 	itemIconsBucket, err = itemIconsBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get firm bucket: %s", err.Error())
-
-		return
-	}
-
-	var parsedNatsPort int
-	parsedNatsPort, err = strconv.Atoi(natsPort)
-	if err != nil {
-		log.Fatalf("Failed to parse nats port: %s", err.Error())
-
-		return
-	}
-
-	messengerClient, err = messenger.NewMessenger(natsHost, parsedNatsPort)
-	if err != nil {
-		log.Fatalf("Failed to get messenger client: %s", err.Error())
 
 		return
 	}
