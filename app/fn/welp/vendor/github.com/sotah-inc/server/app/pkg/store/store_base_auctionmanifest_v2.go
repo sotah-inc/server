@@ -10,21 +10,26 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
 	"github.com/sotah-inc/server/app/pkg/store/regions"
 	"github.com/sotah-inc/server/app/pkg/util"
 	"google.golang.org/api/iterator"
 )
 
-func NewAuctionManifestBaseV2(c Client, location regions.Region) AuctionManifestBaseV2 {
-	return AuctionManifestBaseV2{base{client: c, location: location}}
+func NewAuctionManifestBaseV2(c Client, location regions.Region, version gameversions.GameVersion) AuctionManifestBaseV2 {
+	return AuctionManifestBaseV2{
+		base{client: c, location: location},
+		version,
+	}
 }
 
 type AuctionManifestBaseV2 struct {
 	base
+	GameVersion gameversions.GameVersion
 }
 
 func (b AuctionManifestBaseV2) getBucketName() string {
-	return "auctions-manifest"
+	return "sotah-auctions-manifest"
 }
 
 func (b AuctionManifestBaseV2) GetBucket() *storage.BucketHandle {
@@ -39,8 +44,12 @@ func (b AuctionManifestBaseV2) GetFirmBucket() (*storage.BucketHandle, error) {
 	return b.base.getFirmBucket(b.getBucketName())
 }
 
+func (b AuctionManifestBaseV2) GetObjectPrefix(realm sotah.Realm) string {
+	return fmt.Sprintf("%s/%s/%s", b.GameVersion, realm.Region.Name, realm.Slug)
+}
+
 func (b AuctionManifestBaseV2) GetObjectName(targetTimestamp sotah.UnixTimestamp, realm sotah.Realm) string {
-	return fmt.Sprintf("%s/%s/%d.json", realm.Region.Name, realm.Slug, targetTimestamp)
+	return fmt.Sprintf("%s/%d.json", b.GetObjectPrefix(realm), targetTimestamp)
 }
 
 func (b AuctionManifestBaseV2) GetObject(targetTimestamp sotah.UnixTimestamp, realm sotah.Realm, bkt *storage.BucketHandle) *storage.ObjectHandle {
@@ -287,7 +296,7 @@ func (b AuctionManifestBaseV2) NewAuctionManifest(obj *storage.ObjectHandle) (so
 func (b AuctionManifestBaseV2) GetAllTimestamps(
 	regionRealms map[blizzard.RegionName]sotah.Realms,
 	bkt *storage.BucketHandle,
-) (RegionRealmTimestamps, error) {
+) (sotah.RegionRealmTimestamps, error) {
 	out := make(chan GetTimestampsJob)
 	in := make(chan sotah.Realm)
 
@@ -328,15 +337,15 @@ func (b AuctionManifestBaseV2) GetAllTimestamps(
 	}()
 
 	// going over results
-	results := RegionRealmTimestamps{}
+	results := sotah.RegionRealmTimestamps{}
 	for job := range out {
 		if job.Err != nil {
-			return RegionRealmTimestamps{}, job.Err
+			return sotah.RegionRealmTimestamps{}, job.Err
 		}
 
 		regionName := job.Realm.Region.Name
 		if _, ok := results[regionName]; !ok {
-			results[regionName] = RealmTimestamps{}
+			results[regionName] = sotah.RealmTimestamps{}
 		}
 
 		results[regionName][job.Realm.Slug] = job.Timestamps
@@ -348,13 +357,13 @@ func (b AuctionManifestBaseV2) GetAllTimestamps(
 func (b AuctionManifestBaseV2) GetAllExpiredTimestamps(
 	regionRealms map[blizzard.RegionName]sotah.Realms,
 	bkt *storage.BucketHandle,
-) (RegionRealmTimestamps, error) {
+) (sotah.RegionRealmTimestamps, error) {
 	regionRealmTimestamps, err := b.GetAllTimestamps(regionRealms, bkt)
 	if err != nil {
-		return RegionRealmTimestamps{}, err
+		return sotah.RegionRealmTimestamps{}, err
 	}
 
-	out := RegionRealmTimestamps{}
+	out := sotah.RegionRealmTimestamps{}
 	limit := sotah.NormalizeTargetDate(time.Now()).AddDate(0, 0, -14)
 	for regionName, realmTimestamps := range regionRealmTimestamps {
 		for realmSlug, timestamps := range realmTimestamps {
@@ -365,7 +374,7 @@ func (b AuctionManifestBaseV2) GetAllExpiredTimestamps(
 				}
 
 				if _, ok := out[regionName]; !ok {
-					out[regionName] = RealmTimestamps{}
+					out[regionName] = sotah.RealmTimestamps{}
 				}
 				if _, ok := out[regionName][realmSlug]; !ok {
 					out[regionName][realmSlug] = []sotah.UnixTimestamp{}
@@ -380,7 +389,7 @@ func (b AuctionManifestBaseV2) GetAllExpiredTimestamps(
 }
 
 func (b AuctionManifestBaseV2) GetTimestamps(realm sotah.Realm, bkt *storage.BucketHandle) ([]sotah.UnixTimestamp, error) {
-	prefix := fmt.Sprintf("%s/%s/", realm.Region.Name, realm.Slug)
+	prefix := fmt.Sprintf("%s/", b.GetObjectPrefix(realm))
 	it := bkt.Objects(b.client.Context, &storage.Query{Prefix: prefix})
 	out := []sotah.UnixTimestamp{}
 	for {
@@ -390,12 +399,10 @@ func (b AuctionManifestBaseV2) GetTimestamps(realm sotah.Realm, bkt *storage.Buc
 				break
 			}
 
-			if err != nil {
-				return []sotah.UnixTimestamp{}, err
-			}
+			return []sotah.UnixTimestamp{}, err
 		}
 
-		targetTimestamp, err := strconv.Atoi(objAttrs.Name[len(prefix):(len(objAttrs.Name) - len(".txt.gz"))])
+		targetTimestamp, err := strconv.Atoi(objAttrs.Name[len(prefix):(len(objAttrs.Name) - len(".json"))])
 		if err != nil {
 			return []sotah.UnixTimestamp{}, err
 		}

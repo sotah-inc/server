@@ -40,7 +40,11 @@ func (b RealmsBase) GetFirmBucket() (*storage.BucketHandle, error) {
 }
 
 func (b RealmsBase) GetObjectName(regionName blizzard.RegionName, realmSlug blizzard.RealmSlug) string {
-	return fmt.Sprintf("%s/%s/%s.json.gz", b.GameVersion, regionName, realmSlug)
+	return fmt.Sprintf("%s/%s.json.gz", b.GetObjectPrefix(regionName), realmSlug)
+}
+
+func (b RealmsBase) GetObjectPrefix(regionName blizzard.RegionName) string {
+	return fmt.Sprintf("%s/%s", b.GameVersion, regionName)
 }
 
 func (b RealmsBase) GetObject(
@@ -74,12 +78,20 @@ func (b RealmsBase) NewRealm(obj *storage.ObjectHandle) (sotah.Realm, error) {
 	return out, nil
 }
 
+func (b RealmsBase) GetAllRealms(regionName blizzard.RegionName, bkt *storage.BucketHandle) (sotah.Realms, error) {
+	return b.GetRealms(regionName, map[blizzard.RealmSlug]interface{}{}, bkt)
+}
+
 type GetRealmsOutJob struct {
 	Err   error
 	Realm sotah.Realm
 }
 
-func (b RealmsBase) GetRealms(regionName blizzard.RegionName, bkt *storage.BucketHandle) (sotah.Realms, error) {
+func (b RealmsBase) GetRealms(
+	regionName blizzard.RegionName,
+	realmSlugWhitelist map[blizzard.RealmSlug]interface{},
+	bkt *storage.BucketHandle,
+) (sotah.Realms, error) {
 	// spinning up the workers
 	in := make(chan string)
 	out := make(chan GetRealmsOutJob)
@@ -107,7 +119,7 @@ func (b RealmsBase) GetRealms(regionName blizzard.RegionName, bkt *storage.Bucke
 	util.Work(8, worker, postWork)
 
 	// queueing it up
-	prefix := fmt.Sprintf("%s/", regionName)
+	prefix := fmt.Sprintf("%s/", b.GetObjectPrefix(regionName))
 	it := bkt.Objects(b.client.Context, &storage.Query{Prefix: prefix})
 	go func() {
 		for {
@@ -120,6 +132,17 @@ func (b RealmsBase) GetRealms(regionName blizzard.RegionName, bkt *storage.Bucke
 				logging.WithField("error", err.Error()).Error("Failed to iterate to next")
 
 				break
+			}
+
+			if len(realmSlugWhitelist) == 0 {
+				in <- objAttrs.Name
+
+				continue
+			}
+
+			realmSlug := blizzard.RealmSlug(objAttrs.Name[len(prefix):(len(objAttrs.Name) - len(".json.gz"))])
+			if _, ok := realmSlugWhitelist[realmSlug]; !ok {
+				continue
 			}
 
 			in <- objAttrs.Name
@@ -141,7 +164,9 @@ func (b RealmsBase) GetRealms(regionName blizzard.RegionName, bkt *storage.Bucke
 	return results, nil
 }
 
-func (b ItemsBase) WriteRealm(obj *storage.ObjectHandle, realm sotah.Realm) error {
+func (b RealmsBase) WriteRealm(realm sotah.Realm, bkt *storage.BucketHandle) error {
+	obj := b.GetObject(realm.Region.Name, realm.Slug, bkt)
+
 	jsonEncoded, err := json.Marshal(realm)
 	if err != nil {
 		return err
@@ -156,4 +181,56 @@ func (b ItemsBase) WriteRealm(obj *storage.ObjectHandle, realm sotah.Realm) erro
 	wc.ContentType = "application/json"
 	wc.ContentEncoding = "gzip"
 	return b.Write(wc, gzipEncodedBody)
+}
+
+type WriteRealmsMapJob struct {
+	Err   error
+	Realm sotah.Realm
+}
+
+func (b RealmsBase) WriteRealms(regionRealms sotah.RegionRealms, bkt *storage.BucketHandle) error {
+	// spinning up the workers
+	in := make(chan sotah.Realm)
+	out := make(chan WriteRealmsMapJob)
+	worker := func() {
+		for realm := range in {
+			if err := b.WriteRealm(realm, bkt); err != nil {
+				out <- WriteRealmsMapJob{
+					Err:   err,
+					Realm: realm,
+				}
+
+				continue
+			}
+
+			out <- WriteRealmsMapJob{
+				Err:   nil,
+				Realm: realm,
+			}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(2, worker, postWork)
+
+	// queueing it up
+	go func() {
+		for _, realms := range regionRealms {
+			for _, realm := range realms {
+				in <- realm
+			}
+		}
+
+		close(in)
+	}()
+
+	// waiting for it to drain out
+	for job := range out {
+		if job.Err != nil {
+			return job.Err
+		}
+	}
+
+	return nil
 }
