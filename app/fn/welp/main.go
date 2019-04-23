@@ -52,10 +52,7 @@ func init() {
 }
 
 func MakePublic(name string) error {
-	obj, err := itemIconsBase.GetFirmObject(name, itemIconsBucket)
-	if err != nil {
-		return err
-	}
+	obj := itemIconsBucket.Object(name)
 
 	// setting acl of item-icon object to public
 	acl := obj.ACL()
@@ -76,8 +73,10 @@ type MakePublicJob struct {
 }
 
 func Welp(_ context.Context, _ PubSubMessage) error {
-	matches, err := bootBase.Guard("welp.txt", "item-icons\n", bootBucket)
+	matches, err := bootBase.Guard("welp.txt", "item-icons-6\n", bootBucket)
 	if err != nil {
+		logging.WithField("error", err.Error()).Error("Failed to check boot-base guard")
+
 		return err
 	}
 	if !matches {
