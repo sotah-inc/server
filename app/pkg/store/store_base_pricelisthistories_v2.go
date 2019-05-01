@@ -125,14 +125,11 @@ func (b PricelistHistoriesBaseV2) Handle(aucs blizzard.Auctions, targetTime time
 		wc.Metadata = map[string]string{}
 	}
 	wc.Metadata["version_id"] = uuid.NewV4().String()
-	if _, err := wc.Write(gzipEncodedBody); err != nil {
-		return 0, err
-	}
-	if err := wc.Close(); err != nil {
+	if err := b.Write(wc, gzipEncodedBody); err != nil {
 		return 0, err
 	}
 
-	return sotah.UnixTimestamp(normalizedTargetDate.Unix()), wc.Close()
+	return sotah.UnixTimestamp(normalizedTargetDate.Unix()), nil
 }
 
 type GetAllPricelistHistoriesInJob struct {
