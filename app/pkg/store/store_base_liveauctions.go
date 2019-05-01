@@ -61,10 +61,7 @@ func (b LiveAuctionsBase) Handle(aucs blizzard.Auctions, realm sotah.Realm, bkt 
 	wc := b.GetObject(realm, bkt).NewWriter(b.client.Context)
 	wc.ContentType = "application/json"
 	wc.ContentEncoding = "gzip"
-	if _, err := wc.Write(gzipEncodedBody); err != nil {
-		return err
-	}
-	if err := wc.Close(); err != nil {
+	if err := b.Write(wc, gzipEncodedBody); err != nil {
 		return err
 	}
 
