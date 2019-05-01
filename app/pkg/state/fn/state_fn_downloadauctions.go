@@ -16,9 +16,6 @@ import (
 
 type DownloadAuctionsStateConfig struct {
 	ProjectId string
-
-	MessengerHost string
-	MessengerPort int
 }
 
 func NewDownloadAuctionsState(config DownloadAuctionsStateConfig) (DownloadAuctionsState, error) {
