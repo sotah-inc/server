@@ -211,9 +211,9 @@ func (sta DownloadAllAuctionsState) Run() error {
 	}
 
 	// publishing to sync-all-items
-	if err := sta.PublishToSyncAllItems(tuples); err != nil {
-		return err
-	}
+	//if err := sta.PublishToSyncAllItems(tuples); err != nil {
+	//	return err
+	//}
 
 	// publishing to receive-computed-live-auctions
 	if err := sta.PublishToReceiveComputedLiveAuctions(tuples); err != nil {
