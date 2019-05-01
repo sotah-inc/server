@@ -925,13 +925,9 @@ func (j LoadRegionRealmTimestampsInJob) ToRegionRealmTimestampTuple() RegionReal
 	}
 }
 
-func (j LoadRegionRealmTimestampsInJob) ToRegionRealmTime() (sotah.Region, sotah.Realm, time.Time) {
-	region := sotah.Region{Name: blizzard.RegionName(j.RegionName)}
-	realm := sotah.Realm{
-		Realm:  blizzard.Realm{Slug: blizzard.RealmSlug(j.RealmSlug)},
-		Region: region,
-	}
+func (j LoadRegionRealmTimestampsInJob) ToRealmTime() (sotah.Realm, time.Time) {
+	realm := sotah.NewSkeletonRealm(blizzard.RegionName(j.RegionName), blizzard.RealmSlug(j.RealmSlug))
 	targetTime := time.Unix(int64(j.TargetTimestamp), 0)
 
-	return region, realm, targetTime
+	return realm, targetTime
 }
