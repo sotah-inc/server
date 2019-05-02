@@ -26,7 +26,7 @@ func (sta ComputeAllLiveAuctionsState) PublishToReceiveComputedLiveAuctions(tupl
 
 	// publishing to receive-computed-live-auctions
 	logging.Info("Publishing to receive-computed-live-auctions")
-	if _, err := sta.IO.BusClient.Publish(sta.receivedComputedLiveAuctionsTopic, msg); err != nil {
+	if _, err := sta.IO.BusClient.Publish(sta.receiveComputedLiveAuctionsTopic, msg); err != nil {
 		return err
 	}
 

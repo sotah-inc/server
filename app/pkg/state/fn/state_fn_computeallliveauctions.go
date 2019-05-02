@@ -38,7 +38,7 @@ func NewComputeAllLiveAuctionsState(config ComputeAllLiveAuctionsStateConfig) (C
 
 		return ComputeAllLiveAuctionsState{}, err
 	}
-	sta.receivedComputedLiveAuctionsTopic, err = sta.IO.BusClient.FirmTopic(
+	sta.receiveComputedLiveAuctionsTopic, err = sta.IO.BusClient.FirmTopic(
 		string(subjects.ReceiveComputedLiveAuctions),
 	)
 	if err != nil {
@@ -65,8 +65,8 @@ func NewComputeAllLiveAuctionsState(config ComputeAllLiveAuctionsStateConfig) (C
 type ComputeAllLiveAuctionsState struct {
 	state.State
 
-	computeLiveAuctionsTopic          *pubsub.Topic
-	receivedComputedLiveAuctionsTopic *pubsub.Topic
+	computeLiveAuctionsTopic         *pubsub.Topic
+	receiveComputedLiveAuctionsTopic *pubsub.Topic
 }
 
 func (sta ComputeAllLiveAuctionsState) ListenForComputeAllLiveAuctions(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {
