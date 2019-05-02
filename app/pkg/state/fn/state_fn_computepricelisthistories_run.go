@@ -1,6 +1,7 @@
 package fn
 
 import (
+	"encoding/json"
 	"io/ioutil"
 
 	"github.com/sirupsen/logrus"
@@ -70,6 +71,22 @@ func (sta ComputeLivePricelistHistoriesState) Handle(job bus.LoadRegionRealmTime
 	return m
 }
 
-func (sta ComputeLivePricelistHistoriesState) Run() error {
+func (sta ComputeLivePricelistHistoriesState) Run(data string) error {
+	var in bus.Message
+	if err := json.Unmarshal([]byte(data), &in); err != nil {
+		return err
+	}
+
+	job, err := bus.NewLoadRegionRealmTimestampsInJob(in.Data)
+	if err != nil {
+		return err
+	}
+
+	msg := sta.Handle(job)
+	msg.ReplyToId = in.ReplyToId
+	if _, err := sta.IO.BusClient.ReplyTo(in, msg); err != nil {
+		return err
+	}
+
 	return nil
 }

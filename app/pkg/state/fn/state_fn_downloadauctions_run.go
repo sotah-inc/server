@@ -177,6 +177,22 @@ func (sta DownloadAuctionsState) Handle(job bus.CollectAuctionsJob) bus.Message 
 	return m
 }
 
-func (sta DownloadAuctionsState) Run() error {
+func (sta DownloadAuctionsState) Run(data string) error {
+	var in bus.Message
+	if err := json.Unmarshal([]byte(data), &in); err != nil {
+		return err
+	}
+
+	var job bus.CollectAuctionsJob
+	if err := json.Unmarshal([]byte(in.Data), &job); err != nil {
+		return err
+	}
+
+	msg := sta.Handle(job)
+	msg.ReplyToId = in.ReplyToId
+	if _, err := sta.IO.BusClient.ReplyTo(in, msg); err != nil {
+		return err
+	}
+
 	return nil
 }
