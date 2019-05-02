@@ -5,19 +5,24 @@ import (
 
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/bus/codes"
+	"github.com/sotah-inc/server/app/pkg/database"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/metric"
 )
 
-func (sta ComputeAllPricelistHistoriesState) PublishToReceiveComputedPricelistHistories(tuples bus.RegionRealmTimestampTuples) error {
-	// stripping non-essential data
-	bareTuples := bus.RegionRealmTimestampTuples{}
+func (sta ComputeAllPricelistHistoriesState) PublishToReceivePricelistHistories(tuples bus.RegionRealmTimestampTuples) error {
+	// producing pricelist-histories-compute-intake-requests
+	requests := database.PricelistHistoriesComputeIntakeRequests{}
 	for _, tuple := range tuples {
-		bareTuples = append(bareTuples, tuple.Bare())
+		requests = append(requests, database.PricelistHistoriesComputeIntakeRequest{
+			RegionName:                tuple.RegionName,
+			RealmSlug:                 tuple.RealmSlug,
+			NormalizedTargetTimestamp: tuple.NormalizedTargetTimestamp,
+		})
 	}
 
 	// producing a message for computation
-	data, err := bareTuples.EncodeForDelivery()
+	data, err := requests.EncodeForDelivery()
 	if err != nil {
 		return err
 	}
