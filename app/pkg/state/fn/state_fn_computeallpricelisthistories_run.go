@@ -77,7 +77,7 @@ func (sta ComputeAllPricelistHistoriesState) Run(data string) error {
 	}
 
 	// publishing to receive-computed-pricelist-histories
-	if err := sta.PublishToReceiveComputedPricelistHistories(tuples); err != nil {
+	if err := sta.PublishToReceivePricelistHistories(tuples); err != nil {
 		return err
 	}
 
