@@ -47,16 +47,16 @@ func NewDownloadAllAuctionsState(config DownloadAllAuctionsStateConfig) (Downloa
 
 		return DownloadAllAuctionsState{}, err
 	}
-	sta.receivedComputedLiveAuctionsTopic, err = sta.IO.BusClient.FirmTopic(
-		string(subjects.ReceiveComputedLiveAuctions),
+	sta.computeAllLiveAuctionsTopic, err = sta.IO.BusClient.FirmTopic(
+		string(subjects.ComputeAllLiveAuctions),
 	)
 	if err != nil {
 		log.Fatalf("Failed to get firm topic: %s", err.Error())
 
 		return DownloadAllAuctionsState{}, err
 	}
-	sta.receivedComputedPricelistHistoriesTopic, err = sta.IO.BusClient.FirmTopic(
-		string(subjects.ReceiveComputedPricelistHistories),
+	sta.computeAllPricelistHistoriesTopic, err = sta.IO.BusClient.FirmTopic(
+		string(subjects.ComputeAllPricelistHistories),
 	)
 	if err != nil {
 		log.Fatalf("Failed to get firm topic: %s", err.Error())
@@ -110,10 +110,10 @@ type DownloadAllAuctionsState struct {
 	realmsBase   store.RealmsBase
 	realmsBucket *storage.BucketHandle
 
-	downloadAuctionsTopic                   *pubsub.Topic
-	syncAllItemsTopic                       *pubsub.Topic
-	receivedComputedLiveAuctionsTopic       *pubsub.Topic
-	receivedComputedPricelistHistoriesTopic *pubsub.Topic
+	downloadAuctionsTopic             *pubsub.Topic
+	syncAllItemsTopic                 *pubsub.Topic
+	computeAllLiveAuctionsTopic       *pubsub.Topic
+	computeAllPricelistHistoriesTopic *pubsub.Topic
 }
 
 func (sta DownloadAllAuctionsState) ListenForDownloadAllAuctions(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {

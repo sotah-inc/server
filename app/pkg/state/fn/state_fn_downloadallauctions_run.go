@@ -9,7 +9,6 @@ import (
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	bCodes "github.com/sotah-inc/server/app/pkg/bus/codes"
-	"github.com/sotah-inc/server/app/pkg/database"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	mCodes "github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/metric"
@@ -46,59 +45,29 @@ func (sta DownloadAllAuctionsState) PublishToSyncAllItems(tuples bus.RegionRealm
 	return nil
 }
 
-func (sta DownloadAllAuctionsState) PublishToReceiveComputedLiveAuctions(tuples bus.RegionRealmTimestampTuples) error {
-	// stripping non-essential data
-	bareTuples := bus.RegionRealmTimestampTuples{}
+func (sta DownloadAllAuctionsState) PublishToReceiveRealms(
+	regionRealmMap sotah.RegionRealmMap,
+	tuples bus.RegionRealmTimestampTuples,
+) error {
+	// updating the list of realms' timestamps
 	for _, tuple := range tuples {
-		bareTuples = append(bareTuples, tuple.Bare())
+		realm := regionRealmMap[blizzard.RegionName(tuple.RegionName)][blizzard.RealmSlug(tuple.RealmSlug)]
+		realm.RealmModificationDates.Downloaded = int64(tuple.TargetTimestamp)
+		regionRealmMap[blizzard.RegionName(tuple.RegionName)][blizzard.RealmSlug(tuple.RealmSlug)] = realm
+
+		logging.WithFields(logrus.Fields{
+			"region":           realm.Region.Name,
+			"realm":            realm.Slug,
+			"target-timestamp": tuple.TargetTimestamp,
+		}).Info("Flagged realm as having been downloaded")
 	}
 
-	// producing a message for computation
-	data, err := bareTuples.EncodeForDelivery()
-	if err != nil {
-		return err
-	}
-	msg := bus.NewMessage()
-	msg.Data = data
-
-	// publishing to receive-computed-live-auctions
-	logging.Info("Publishing to receive-computed-live-auctions")
-	if _, err := sta.IO.BusClient.Publish(sta.receivedComputedLiveAuctionsTopic, msg); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (sta DownloadAllAuctionsState) PublishToReceivePricelistHistories(tuples bus.RegionRealmTimestampTuples) error {
-	// producing pricelist-histories-compute-intake-requests
-	requests := database.PricelistHistoriesComputeIntakeRequests{}
-	for _, tuple := range tuples {
-		requests = append(requests, database.PricelistHistoriesComputeIntakeRequest{
-			RegionName:                tuple.RegionName,
-			RealmSlug:                 tuple.RealmSlug,
-			NormalizedTargetTimestamp: tuple.NormalizedTargetTimestamp,
-		})
-	}
-
-	// producing a message for computation
-	data, err := requests.EncodeForDelivery()
-	if err != nil {
-		return err
-	}
-	msg := bus.NewMessage()
-	msg.Data = data
-
-	// publishing to receive-computed-pricelist-histories
-	logging.Info("Publishing to receive-computed-pricelist-histories")
-	if _, err := sta.IO.BusClient.Publish(sta.receivedComputedPricelistHistoriesTopic, msg); err != nil {
+	// writing updated realms
+	logging.Info("Writing realms to realms-base")
+	if err := sta.realmsBase.WriteRealms(regionRealmMap.ToRegionRealms(), sta.realmsBucket); err != nil {
 		return err
 	}
 
-	return nil
-}
-
-func (sta DownloadAllAuctionsState) PublishToReceiveRealms(tuples bus.RegionRealmTimestampTuples) error {
 	regionRealmSlugs := map[blizzard.RegionName][]blizzard.RealmSlug{}
 	for _, tuple := range tuples {
 		realmSlugWhitelist := func() []blizzard.RealmSlug {
@@ -160,6 +129,7 @@ func (sta DownloadAllAuctionsState) Run() error {
 		return err
 	}
 
+	// gathering validated response messages
 	validatedResponseItems := bus.BulkRequestMessages{}
 	for k, msg := range responseItems {
 		if msg.Code != bCodes.Ok {
@@ -197,69 +167,34 @@ func (sta DownloadAllAuctionsState) Run() error {
 		return err
 	}
 
-	// updating the list of realms' timestamps
-	for _, tuple := range tuples {
-		realm := regionRealmMap[blizzard.RegionName(tuple.RegionName)][blizzard.RealmSlug(tuple.RealmSlug)]
-		realm.RealmModificationDates.Downloaded = int64(tuple.TargetTimestamp)
-		regionRealmMap[blizzard.RegionName(tuple.RegionName)][blizzard.RealmSlug(tuple.RealmSlug)] = realm
-
-		logging.WithFields(logrus.Fields{
-			"region":           realm.Region.Name,
-			"realm":            realm.Slug,
-			"target-timestamp": tuple.TargetTimestamp,
-		}).Info("Flagged realm as having been downloaded")
+	// publishing to receive-realms
+	logging.Info("Publishing realms to receive-realms")
+	if err := sta.PublishToReceiveRealms(regionRealmMap, tuples); err != nil {
+		return err
 	}
 
 	// publishing to sync-all-items
-	//if err := sta.PublishToSyncAllItems(tuples); err != nil {
-	//	return err
-	//}
-
-	// publishing to receive-computed-live-auctions
-	if err := sta.PublishToReceiveComputedLiveAuctions(tuples); err != nil {
+	if err := sta.PublishToSyncAllItems(tuples); err != nil {
 		return err
 	}
 
-	// updating the list of realms' timestamps
-	for _, tuple := range tuples {
-		realm := regionRealmMap[blizzard.RegionName(tuple.RegionName)][blizzard.RealmSlug(tuple.RealmSlug)]
-		realm.RealmModificationDates.LiveAuctionsReceived = time.Now().Unix()
-		regionRealmMap[blizzard.RegionName(tuple.RegionName)][blizzard.RealmSlug(tuple.RealmSlug)] = realm
-
-		logging.WithFields(logrus.Fields{
-			"region":           realm.Region.Name,
-			"realm":            realm.Slug,
-			"target-timestamp": tuple.TargetTimestamp,
-		}).Info("Flagged realm as having live-auctions been updated")
+	// encoding tuples for publishing to compute-all-live-auctions and compute-all-pricelist-histories
+	encodedTuples, err := tuples.EncodeForDelivery()
+	if err != nil {
+		return err
 	}
+	encodedTuplesMsg := bus.NewMessage()
+	encodedTuplesMsg.Data = encodedTuples
 
-	// publishing to receive-live-auctions
-	if err := sta.PublishToReceivePricelistHistories(tuples); err != nil {
+	// publishing to compute-all-live-auctions
+	logging.Info("Publishing to compute-all-live-auctions")
+	if _, err := sta.IO.BusClient.Publish(sta.computeAllLiveAuctionsTopic, encodedTuplesMsg); err != nil {
 		return err
 	}
 
-	// updating the list of realms' timestamps
-	for _, tuple := range tuples {
-		realm := regionRealmMap[blizzard.RegionName(tuple.RegionName)][blizzard.RealmSlug(tuple.RealmSlug)]
-		realm.RealmModificationDates.PricelistHistoriesReceived = time.Now().Unix()
-		regionRealmMap[blizzard.RegionName(tuple.RegionName)][blizzard.RealmSlug(tuple.RealmSlug)] = realm
-
-		logging.WithFields(logrus.Fields{
-			"region":           realm.Region.Name,
-			"realm":            realm.Slug,
-			"target-timestamp": tuple.TargetTimestamp,
-		}).Info("Flagged realm as having pricelist-histories been updated")
-	}
-
-	// writing updated realms
-	logging.Info("Writing realms to realms-base")
-	if err := sta.realmsBase.WriteRealms(regionRealmMap.ToRegionRealms(), sta.realmsBucket); err != nil {
-		return err
-	}
-
-	// publishing to receive-realms
-	logging.Info("Publishing realms to receive-realms")
-	if err := sta.PublishToReceiveRealms(tuples); err != nil {
+	// publishing to compute-all-pricelist-histories
+	logging.Info("Publishing to compute-all-live-auctions")
+	if _, err := sta.IO.BusClient.Publish(sta.computeAllPricelistHistoriesTopic, encodedTuplesMsg); err != nil {
 		return err
 	}
 
