@@ -8,6 +8,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/bus/codes"
+	"github.com/sotah-inc/server/app/pkg/database"
 	"github.com/sotah-inc/server/app/pkg/logging"
 )
 
@@ -67,6 +68,20 @@ func (sta ComputePricelistHistoriesState) Handle(job bus.LoadRegionRealmTimestam
 	}
 
 	logging.WithField("normalized-target-timestamp", normalizedTargetTimestamp).Info("e")
+
+	replyRequest := database.PricelistHistoriesComputeIntakeRequest{
+		RegionName:                job.RegionName,
+		RealmSlug:                 job.RealmSlug,
+		NormalizedTargetTimestamp: int(normalizedTargetTimestamp),
+	}
+	encodedReplyRequest, err := replyRequest.EncodeForDelivery()
+	if err != nil {
+		m.Err = err.Error()
+		m.Code = codes.GenericError
+
+		return m
+	}
+	m.Data = encodedReplyRequest
 
 	return m
 }
