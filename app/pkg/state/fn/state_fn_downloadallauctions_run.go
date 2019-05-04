@@ -188,7 +188,7 @@ func (sta DownloadAllAuctionsState) Run() error {
 	encodedTuplesMsg.Data = encodedTuples
 
 	// publishing to compute-all-live-auctions
-	logging.Info("Publishing to compute-all-live-auctions")
+	logging.WithField("tuples", len(tuples)).Info("Publishing to compute-all-live-auctions")
 	if _, err := sta.IO.BusClient.Publish(sta.computeAllLiveAuctionsTopic, encodedTuplesMsg); err != nil {
 		return err
 	}
