@@ -95,6 +95,9 @@ func (sta ComputeAllLiveAuctionsState) Run(data string) error {
 		validatedResponseItems[k] = msg
 	}
 	nextTuples, err := bus.NewRegionRealmTimestampTuplesFromMessages(validatedResponseItems)
+	if err != nil {
+		return err
+	}
 
 	// reporting metrics
 	if err := sta.IO.BusClient.PublishMetrics(metric.Metrics{
