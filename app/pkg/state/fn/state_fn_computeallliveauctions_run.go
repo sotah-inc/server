@@ -49,7 +49,7 @@ func (sta ComputeAllLiveAuctionsState) Run(data string) error {
 
 	// enqueueing them and gathering result jobs
 	startTime := time.Now()
-	responseItems, err := sta.IO.BusClient.BulkRequest(sta.computeLiveAuctionsTopic, messages, 400*time.Second)
+	responseItems, err := sta.IO.BusClient.BulkRequest(sta.computeLiveAuctionsTopic, messages, 120*time.Second)
 	if err != nil {
 		return err
 	}
