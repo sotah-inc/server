@@ -41,13 +41,14 @@ func (sta ComputeAllLiveAuctionsState) Run(data string) error {
 	}
 
 	// producing messages
-	logging.Info("Producing messages for bulk requesting")
+	logging.WithField("tuples", len(tuples)).Info("Producing messages for bulk requesting")
 	messages, err := tuples.ToMessages()
 	if err != nil {
 		return err
 	}
 
 	// enqueueing them and gathering result jobs
+	logging.WithField("messages", len(messages)).Info("Enqueueing compute-live-auctions messages")
 	startTime := time.Now()
 	responseItems, err := sta.IO.BusClient.BulkRequest(sta.computeLiveAuctionsTopic, messages, 120*time.Second)
 	if err != nil {
