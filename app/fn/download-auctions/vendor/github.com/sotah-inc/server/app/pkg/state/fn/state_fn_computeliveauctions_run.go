@@ -60,6 +60,22 @@ func (sta ComputeLiveAuctionsState) Handle(job bus.LoadRegionRealmTimestampsInJo
 		return m
 	}
 
+	replyTuple := bus.RegionRealmTimestampTuple{
+		RegionName:      job.RegionName,
+		RealmSlug:       job.RealmSlug,
+		TargetTimestamp: job.TargetTimestamp,
+		ItemIds:         aucs.ItemIds().ToInts(),
+		OwnerNames:      aucs.OwnerNames(),
+	}
+	encodedReplyTuple, err := replyTuple.EncodeForDelivery()
+	if err != nil {
+		m.Err = err.Error()
+		m.Code = codes.GenericError
+
+		return m
+	}
+	m.Data = encodedReplyTuple
+
 	return m
 }
 

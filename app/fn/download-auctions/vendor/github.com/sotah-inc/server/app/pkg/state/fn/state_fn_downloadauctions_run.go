@@ -174,6 +174,20 @@ func (sta DownloadAuctionsState) Handle(job bus.CollectAuctionsJob) bus.Message 
 		return m
 	}
 
+	replyTuple := bus.RegionRealmTimestampTuple{
+		RegionName:      job.RegionName,
+		RealmSlug:       job.RealmSlug,
+		TargetTimestamp: int(lastModifiedTimestamp),
+	}
+	encodedReplyTuple, err := replyTuple.EncodeForDelivery()
+	if err != nil {
+		m.Err = err.Error()
+		m.Code = codes.GenericError
+
+		return m
+	}
+	m.Data = encodedReplyTuple
+
 	return m
 }
 

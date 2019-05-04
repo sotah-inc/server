@@ -12,13 +12,13 @@ import (
 	"github.com/twinj/uuid"
 )
 
-type ComputeLivePricelistHistoriesStateConfig struct {
+type ComputePricelistHistoriesStateConfig struct {
 	ProjectId string
 }
 
-func NewComputeLivePricelistHistoriesState(config ComputeLivePricelistHistoriesStateConfig) (ComputeLivePricelistHistoriesState, error) {
+func NewComputePricelistHistoriesState(config ComputePricelistHistoriesStateConfig) (ComputePricelistHistoriesState, error) {
 	// establishing an initial state
-	sta := ComputeLivePricelistHistoriesState{
+	sta := ComputePricelistHistoriesState{
 		State: state.NewState(uuid.NewV4(), true),
 	}
 
@@ -28,14 +28,14 @@ func NewComputeLivePricelistHistoriesState(config ComputeLivePricelistHistoriesS
 	if err != nil {
 		log.Fatalf("Failed to create new bus client: %s", err.Error())
 
-		return ComputeLivePricelistHistoriesState{}, err
+		return ComputePricelistHistoriesState{}, err
 	}
 
 	sta.IO.StoreClient, err = store.NewClient(config.ProjectId)
 	if err != nil {
 		log.Fatalf("Failed to create new store client: %s", err.Error())
 
-		return ComputeLivePricelistHistoriesState{}, err
+		return ComputePricelistHistoriesState{}, err
 	}
 
 	sta.auctionsStoreBase = store.NewAuctionsBaseV2(sta.IO.StoreClient, regions.USCentral1, gameversions.Retail)
@@ -43,7 +43,7 @@ func NewComputeLivePricelistHistoriesState(config ComputeLivePricelistHistoriesS
 	if err != nil {
 		log.Fatalf("Failed to get firm bucket: %s", err.Error())
 
-		return ComputeLivePricelistHistoriesState{}, err
+		return ComputePricelistHistoriesState{}, err
 	}
 
 	sta.pricelistHistoriesStoreBase = store.NewPricelistHistoriesBaseV2(
@@ -55,13 +55,13 @@ func NewComputeLivePricelistHistoriesState(config ComputeLivePricelistHistoriesS
 	if err != nil {
 		log.Fatalf("Failed to get firm bucket: %s", err.Error())
 
-		return ComputeLivePricelistHistoriesState{}, err
+		return ComputePricelistHistoriesState{}, err
 	}
 
 	return sta, nil
 }
 
-type ComputeLivePricelistHistoriesState struct {
+type ComputePricelistHistoriesState struct {
 	state.State
 
 	auctionsStoreBase store.AuctionsBaseV2

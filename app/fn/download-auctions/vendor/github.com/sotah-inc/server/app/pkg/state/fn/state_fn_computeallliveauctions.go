@@ -35,6 +35,12 @@ func NewComputeAllLiveAuctionsState(config ComputeAllLiveAuctionsStateConfig) (C
 
 		return ComputeAllLiveAuctionsState{}, err
 	}
+	sta.syncAllItemsTopic, err = sta.IO.BusClient.FirmTopic(string(subjects.SyncAllItems))
+	if err != nil {
+		log.Fatalf("Failed to get firm topic: %s", err.Error())
+
+		return ComputeAllLiveAuctionsState{}, err
+	}
 	sta.receiveComputedLiveAuctionsTopic, err = sta.IO.BusClient.FirmTopic(
 		string(subjects.ReceiveComputedLiveAuctions),
 	)
@@ -63,6 +69,7 @@ type ComputeAllLiveAuctionsState struct {
 	state.State
 
 	computeLiveAuctionsTopic         *pubsub.Topic
+	syncAllItemsTopic                *pubsub.Topic
 	receiveComputedLiveAuctionsTopic *pubsub.Topic
 }
 

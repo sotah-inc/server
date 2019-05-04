@@ -11,7 +11,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/logging"
 )
 
-func (sta ComputeLivePricelistHistoriesState) Handle(job bus.LoadRegionRealmTimestampsInJob) bus.Message {
+func (sta ComputePricelistHistoriesState) Handle(job bus.LoadRegionRealmTimestampsInJob) bus.Message {
 	m := bus.NewMessage()
 
 	realm, targetTime := job.ToRealmTime()
@@ -71,7 +71,7 @@ func (sta ComputeLivePricelistHistoriesState) Handle(job bus.LoadRegionRealmTime
 	return m
 }
 
-func (sta ComputeLivePricelistHistoriesState) Run(data string) error {
+func (sta ComputePricelistHistoriesState) Run(data string) error {
 	var in bus.Message
 	if err := json.Unmarshal([]byte(data), &in); err != nil {
 		return err

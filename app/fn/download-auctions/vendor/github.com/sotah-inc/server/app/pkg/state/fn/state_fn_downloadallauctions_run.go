@@ -16,35 +16,6 @@ import (
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
-func (sta DownloadAllAuctionsState) PublishToSyncAllItems(tuples bus.RegionRealmTimestampTuples) error {
-	itemIdsMap := sotah.ItemIdsMap{}
-	for _, tuple := range tuples {
-		for _, id := range tuple.ItemIds {
-			itemIdsMap[blizzard.ItemID(id)] = struct{}{}
-		}
-	}
-	itemIds := blizzard.ItemIds{}
-	for id := range itemIdsMap {
-		itemIds = append(itemIds, id)
-	}
-
-	// producing a item-ids message for syncing
-	data, err := itemIds.EncodeForDelivery()
-	if err != nil {
-		return err
-	}
-	msg := bus.NewMessage()
-	msg.Data = data
-
-	// publishing to sync-all-items
-	logging.Info("Publishing to sync-all-items")
-	if _, err := sta.IO.BusClient.Publish(sta.syncAllItemsTopic, msg); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (sta DownloadAllAuctionsState) PublishToReceiveRealms(
 	regionRealmMap sotah.RegionRealmMap,
 	tuples bus.RegionRealmTimestampTuples,
@@ -124,7 +95,7 @@ func (sta DownloadAllAuctionsState) Run() error {
 
 	// enqueueing them and gathering result jobs
 	startTime := time.Now()
-	responseItems, err := sta.IO.BusClient.BulkRequest(sta.downloadAuctionsTopic, []bus.Message{messages[0]}, 400*time.Second)
+	responseItems, err := sta.IO.BusClient.BulkRequest(sta.downloadAuctionsTopic, messages, 120*time.Second)
 	if err != nil {
 		return err
 	}
@@ -173,12 +144,6 @@ func (sta DownloadAllAuctionsState) Run() error {
 		return err
 	}
 
-	// publishing to sync-all-items
-	//logging.Info("Publishing tuples to sync-all-items")
-	//if err := sta.PublishToSyncAllItems(tuples); err != nil {
-	//	return err
-	//}
-
 	// encoding tuples for publishing to compute-all-live-auctions and compute-all-pricelist-histories
 	encodedTuples, err := tuples.EncodeForDelivery()
 	if err != nil {
@@ -188,10 +153,10 @@ func (sta DownloadAllAuctionsState) Run() error {
 	encodedTuplesMsg.Data = encodedTuples
 
 	// publishing to compute-all-live-auctions
-	//logging.Info("Publishing to compute-all-live-auctions")
-	//if _, err := sta.IO.BusClient.Publish(sta.computeAllLiveAuctionsTopic, encodedTuplesMsg); err != nil {
-	//	return err
-	//}
+	logging.WithField("tuples", len(tuples)).Info("Publishing to compute-all-live-auctions")
+	if _, err := sta.IO.BusClient.Publish(sta.computeAllLiveAuctionsTopic, encodedTuplesMsg); err != nil {
+		return err
+	}
 
 	// publishing to compute-all-pricelist-histories
 	//logging.Info("Publishing to compute-all-live-auctions")
