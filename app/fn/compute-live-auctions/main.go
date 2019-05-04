@@ -28,6 +28,6 @@ type PubSubMessage struct {
 	Data []byte `json:"data"`
 }
 
-func DownloadAuctions(_ context.Context, m PubSubMessage) error {
+func ComputeLiveAuctions(_ context.Context, m PubSubMessage) error {
 	return sta.Run(string(m.Data))
 }
