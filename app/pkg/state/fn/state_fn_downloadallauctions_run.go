@@ -16,35 +16,6 @@ import (
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
-func (sta DownloadAllAuctionsState) PublishToSyncAllItems(tuples bus.RegionRealmTimestampTuples) error {
-	itemIdsMap := sotah.ItemIdsMap{}
-	for _, tuple := range tuples {
-		for _, id := range tuple.ItemIds {
-			itemIdsMap[blizzard.ItemID(id)] = struct{}{}
-		}
-	}
-	itemIds := blizzard.ItemIds{}
-	for id := range itemIdsMap {
-		itemIds = append(itemIds, id)
-	}
-
-	// producing a item-ids message for syncing
-	data, err := itemIds.EncodeForDelivery()
-	if err != nil {
-		return err
-	}
-	msg := bus.NewMessage()
-	msg.Data = data
-
-	// publishing to sync-all-items
-	logging.Info("Publishing to sync-all-items")
-	if _, err := sta.IO.BusClient.Publish(sta.syncAllItemsTopic, msg); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (sta DownloadAllAuctionsState) PublishToReceiveRealms(
 	regionRealmMap sotah.RegionRealmMap,
 	tuples bus.RegionRealmTimestampTuples,
@@ -170,12 +141,6 @@ func (sta DownloadAllAuctionsState) Run() error {
 	// publishing to receive-realms
 	logging.Info("Publishing realms to receive-realms")
 	if err := sta.PublishToReceiveRealms(regionRealmMap, tuples); err != nil {
-		return err
-	}
-
-	// publishing to sync-all-items
-	logging.Info("Publishing tuples to sync-all-items")
-	if err := sta.PublishToSyncAllItems(tuples); err != nil {
 		return err
 	}
 

@@ -41,12 +41,6 @@ func NewDownloadAllAuctionsState(config DownloadAllAuctionsStateConfig) (Downloa
 
 		return DownloadAllAuctionsState{}, err
 	}
-	sta.syncAllItemsTopic, err = sta.IO.BusClient.FirmTopic(string(subjects.SyncAllItems))
-	if err != nil {
-		log.Fatalf("Failed to get firm topic: %s", err.Error())
-
-		return DownloadAllAuctionsState{}, err
-	}
 	sta.computeAllLiveAuctionsTopic, err = sta.IO.BusClient.FirmTopic(
 		string(subjects.ComputeAllLiveAuctions),
 	)
@@ -111,7 +105,6 @@ type DownloadAllAuctionsState struct {
 	realmsBucket *storage.BucketHandle
 
 	downloadAuctionsTopic             *pubsub.Topic
-	syncAllItemsTopic                 *pubsub.Topic
 	computeAllLiveAuctionsTopic       *pubsub.Topic
 	computeAllPricelistHistoriesTopic *pubsub.Topic
 }
