@@ -14,9 +14,6 @@ import (
 
 type ComputeAllPricelistHistoriesStateConfig struct {
 	ProjectId string
-
-	MessengerHost string
-	MessengerPort int
 }
 
 func NewComputeAllPricelistHistoriesState(config ComputeAllPricelistHistoriesStateConfig) (ComputeAllPricelistHistoriesState, error) {

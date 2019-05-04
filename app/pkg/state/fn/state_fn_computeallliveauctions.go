@@ -14,9 +14,6 @@ import (
 
 type ComputeAllLiveAuctionsStateConfig struct {
 	ProjectId string
-
-	MessengerHost string
-	MessengerPort int
 }
 
 func NewComputeAllLiveAuctionsState(config ComputeAllLiveAuctionsStateConfig) (ComputeAllLiveAuctionsState, error) {

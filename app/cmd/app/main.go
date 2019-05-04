@@ -47,10 +47,12 @@ func main() {
 		prodPricelistHistoriesCommand = app.Command(string(commands.ProdPricelistHistories), "For managing pricelist-histories in gcp ce vm.")
 		prodItemsCommand              = app.Command(string(commands.ProdItems), "For managing items in gcp ce vm.")
 
-		fnDownloadAllAuctions        = app.Command(string(commands.FnDownloadAllAuctions), "For enqueueing downloading of auctions in gcp ce vm.")
-		fnSyncAllItems               = app.Command(string(commands.FnSyncAllItems), "For enqueueing syncing of items and item-icons in gcp ce vm.")
-		fnCleanupAllExpiredManifests = app.Command(string(commands.FnCleanupAllExpiredManifests), "For gathering all expired auction-manifests for deletion in gcp ce vm.")
-		fnCleanupPricelistHistories  = app.Command(string(commands.FnCleanupPricelistHistories), "For gathering all expired pricelist-histories for deletion in gcp ce vm.")
+		fnDownloadAllAuctions          = app.Command(string(commands.FnDownloadAllAuctions), "For enqueueing downloading of auctions in gcp ce vm.")
+		fnComputeAllLiveAuctions       = app.Command(string(commands.FnComputeAllLiveAuctions), "For enqueueing computing of all live-auctions in gcp ce vm.")
+		fnComputeAllPricelistHistories = app.Command(string(commands.FnComputeAllPricelistHistories), "For enqueueing computing of all live-auctions in gcp ce vm.")
+		fnSyncAllItems                 = app.Command(string(commands.FnSyncAllItems), "For enqueueing syncing of items and item-icons in gcp ce vm.")
+		fnCleanupAllExpiredManifests   = app.Command(string(commands.FnCleanupAllExpiredManifests), "For gathering all expired auction-manifests for deletion in gcp ce vm.")
+		fnCleanupPricelistHistories    = app.Command(string(commands.FnCleanupPricelistHistories), "For gathering all expired pricelist-histories for deletion in gcp ce vm.")
 	)
 	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
 
@@ -166,6 +168,16 @@ func main() {
 				ProjectId:     *projectID,
 				MessengerHost: *natsHost,
 				MessengerPort: *natsPort,
+			})
+		},
+		fnComputeAllLiveAuctions.FullCommand(): func() error {
+			return command.FnComputeAllLiveAuctions(fn.ComputeAllLiveAuctionsStateConfig{
+				ProjectId: *projectID,
+			})
+		},
+		fnComputeAllPricelistHistories.FullCommand(): func() error {
+			return command.FnComputeAllPricelistHistories(fn.ComputeAllPricelistHistoriesStateConfig{
+				ProjectId: *projectID,
 			})
 		},
 		fnSyncAllItems.FullCommand(): func() error {
