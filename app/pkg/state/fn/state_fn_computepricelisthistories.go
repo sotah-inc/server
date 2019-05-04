@@ -12,11 +12,11 @@ import (
 	"github.com/twinj/uuid"
 )
 
-type ComputeLivePricelistHistoriesStateConfig struct {
+type ComputePricelistHistoriesStateConfig struct {
 	ProjectId string
 }
 
-func NewComputeLivePricelistHistoriesState(config ComputeLivePricelistHistoriesStateConfig) (ComputePricelistHistoriesState, error) {
+func NewComputeLivePricelistHistoriesState(config ComputePricelistHistoriesStateConfig) (ComputePricelistHistoriesState, error) {
 	// establishing an initial state
 	sta := ComputePricelistHistoriesState{
 		State: state.NewState(uuid.NewV4(), true),
