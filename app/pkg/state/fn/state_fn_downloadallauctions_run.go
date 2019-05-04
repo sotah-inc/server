@@ -124,7 +124,7 @@ func (sta DownloadAllAuctionsState) Run() error {
 
 	// enqueueing them and gathering result jobs
 	startTime := time.Now()
-	responseItems, err := sta.IO.BusClient.BulkRequest(sta.downloadAuctionsTopic, []bus.Message{messages[0]}, 400*time.Second)
+	responseItems, err := sta.IO.BusClient.BulkRequest(sta.downloadAuctionsTopic, messages, 400*time.Second)
 	if err != nil {
 		return err
 	}
