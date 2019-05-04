@@ -68,6 +68,20 @@ func (sta ComputePricelistHistoriesState) Handle(job bus.LoadRegionRealmTimestam
 
 	logging.WithField("normalized-target-timestamp", normalizedTargetTimestamp).Info("e")
 
+	replyTuple := bus.RegionRealmTimestampTuple{
+		RegionName:                job.RegionName,
+		RealmSlug:                 job.RealmSlug,
+		NormalizedTargetTimestamp: int(normalizedTargetTimestamp),
+	}
+	encodedReplyRequest, err := replyTuple.EncodeForDelivery()
+	if err != nil {
+		m.Err = err.Error()
+		m.Code = codes.GenericError
+
+		return m
+	}
+	m.Data = encodedReplyRequest
+
 	return m
 }
 

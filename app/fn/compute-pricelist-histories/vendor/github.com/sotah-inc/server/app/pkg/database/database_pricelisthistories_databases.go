@@ -300,6 +300,15 @@ type PricelistHistoriesComputeIntakeRequest struct {
 	NormalizedTargetTimestamp int    `json:"normalized_target_timestamp"`
 }
 
+func (r PricelistHistoriesComputeIntakeRequest) EncodeForDelivery() (string, error) {
+	jsonEncoded, err := json.Marshal(r)
+	if err != nil {
+		return "", err
+	}
+
+	return string(jsonEncoded), nil
+}
+
 type PricelistHistoryDatabaseEncodedLoadInJob struct {
 	RegionName                blizzard.RegionName
 	RealmSlug                 blizzard.RealmSlug

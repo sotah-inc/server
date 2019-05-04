@@ -4,21 +4,26 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/storage"
+	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
 	"github.com/sotah-inc/server/app/pkg/store/regions"
 )
 
-const StoreItemIconURLFormat = "https://storage.googleapis.com/%s/%s"
+const ItemIconURLFormat = "https://storage.googleapis.com/%s/%s"
 
-func NewItemIconsBase(c Client, location regions.Region) ItemIconsBase {
-	return ItemIconsBase{base{client: c, location: location}}
+func NewItemIconsBase(c Client, location regions.Region, version gameversions.GameVersion) ItemIconsBase {
+	return ItemIconsBase{
+		base{client: c, location: location},
+		version,
+	}
 }
 
 type ItemIconsBase struct {
 	base
+	GameVersion gameversions.GameVersion
 }
 
 func (b ItemIconsBase) GetBucketName() string {
-	return "item-icons"
+	return "sotah-item-icons"
 }
 
 func (b ItemIconsBase) GetBucket() *storage.BucketHandle {
@@ -34,7 +39,7 @@ func (b ItemIconsBase) resolveBucket() (*storage.BucketHandle, error) {
 }
 
 func (b ItemIconsBase) GetObjectName(name string) string {
-	return fmt.Sprintf("%s.jpg", name)
+	return fmt.Sprintf("%s/%s.jpg", b.GameVersion, name)
 }
 
 func (b ItemIconsBase) GetObject(name string, bkt *storage.BucketHandle) *storage.ObjectHandle {

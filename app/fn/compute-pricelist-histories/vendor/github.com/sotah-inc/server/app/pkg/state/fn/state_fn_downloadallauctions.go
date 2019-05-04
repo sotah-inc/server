@@ -41,28 +41,22 @@ func NewDownloadAllAuctionsState(config DownloadAllAuctionsStateConfig) (Downloa
 
 		return DownloadAllAuctionsState{}, err
 	}
-	sta.syncAllItemsTopic, err = sta.IO.BusClient.FirmTopic(string(subjects.SyncAllItems))
+	sta.computeAllLiveAuctionsTopic, err = sta.IO.BusClient.FirmTopic(
+		string(subjects.ComputeAllLiveAuctions),
+	)
 	if err != nil {
 		log.Fatalf("Failed to get firm topic: %s", err.Error())
 
 		return DownloadAllAuctionsState{}, err
 	}
-	//sta.computeAllLiveAuctionsTopic, err = sta.IO.BusClient.FirmTopic(
-	//	string(subjects.ComputeAllLiveAuctions),
-	//)
-	//if err != nil {
-	//	log.Fatalf("Failed to get firm topic: %s", err.Error())
-	//
-	//	return DownloadAllAuctionsState{}, err
-	//}
-	//sta.computeAllPricelistHistoriesTopic, err = sta.IO.BusClient.FirmTopic(
-	//	string(subjects.ComputeAllPricelistHistories),
-	//)
-	//if err != nil {
-	//	log.Fatalf("Failed to get firm topic: %s", err.Error())
-	//
-	//	return DownloadAllAuctionsState{}, err
-	//}
+	sta.computeAllPricelistHistoriesTopic, err = sta.IO.BusClient.FirmTopic(
+		string(subjects.ComputeAllPricelistHistories),
+	)
+	if err != nil {
+		log.Fatalf("Failed to get firm topic: %s", err.Error())
+
+		return DownloadAllAuctionsState{}, err
+	}
 
 	// connecting to the messenger host
 	mess, err := messenger.NewMessenger(config.MessengerHost, config.MessengerPort)
@@ -111,7 +105,6 @@ type DownloadAllAuctionsState struct {
 	realmsBucket *storage.BucketHandle
 
 	downloadAuctionsTopic             *pubsub.Topic
-	syncAllItemsTopic                 *pubsub.Topic
 	computeAllLiveAuctionsTopic       *pubsub.Topic
 	computeAllPricelistHistoriesTopic *pubsub.Topic
 }

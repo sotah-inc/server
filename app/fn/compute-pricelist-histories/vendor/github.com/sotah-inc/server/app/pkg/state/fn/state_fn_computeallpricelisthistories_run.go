@@ -67,6 +67,10 @@ func (sta ComputeAllPricelistHistoriesState) Run(data string) error {
 
 		validatedResponseItems[k] = msg
 	}
+	nextTuples, err := bus.NewRegionRealmTimestampTuplesFromMessages(validatedResponseItems)
+	if err != nil {
+		return err
+	}
 
 	// reporting metrics
 	if err := sta.IO.BusClient.PublishMetrics(metric.Metrics{
@@ -77,7 +81,7 @@ func (sta ComputeAllPricelistHistoriesState) Run(data string) error {
 	}
 
 	// publishing to receive-computed-pricelist-histories
-	if err := sta.PublishToReceivePricelistHistories(tuples); err != nil {
+	if err := sta.PublishToReceivePricelistHistories(nextTuples); err != nil {
 		return err
 	}
 

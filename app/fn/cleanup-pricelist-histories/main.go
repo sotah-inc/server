@@ -6,6 +6,10 @@ import (
 	"log"
 	"os"
 
+	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
+
+	"github.com/sotah-inc/server/app/pkg/store/regions"
+
 	"cloud.google.com/go/storage"
 	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
@@ -44,7 +48,7 @@ func init() {
 		return
 	}
 
-	pricelistHistoriesBase = store.NewPricelistHistoriesBaseV2(storeClient, "us-central1")
+	pricelistHistoriesBase = store.NewPricelistHistoriesBaseV2(storeClient, regions.USCentral1, gameversions.Retail)
 	pricelistHistoriesBucket, err = pricelistHistoriesBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get firm raw-auctions bucket: %s", err.Error())

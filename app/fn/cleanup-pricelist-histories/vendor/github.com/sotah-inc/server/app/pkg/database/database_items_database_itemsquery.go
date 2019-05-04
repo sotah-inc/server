@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"github.com/lithammer/fuzzysearch/fuzzy"
+	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/database/codes"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 )
@@ -22,21 +23,21 @@ type QueryItemsRequest struct {
 	Query string `json:"query"`
 }
 type QueryItemsItem struct {
-	Target string     `json:"target"`
-	Item   sotah.Item `json:"item"`
-	Rank   int        `json:"rank"`
+	Target string          `json:"target"`
+	ItemId blizzard.ItemID `json:"item_id"`
+	Rank   int             `json:"rank"`
 }
 
-func NewQueryItemsItems(items sotah.ItemsMap) QueryItemsItems {
+func NewQueryItemsItems(idNormalizedNameMap sotah.ItemIdNameMap) QueryItemsItems {
 	out := QueryItemsItems{}
-	for _, item := range items {
-		if item.NormalizedName == "" {
+	for id, normalizedName := range idNormalizedNameMap {
+		if normalizedName == "" {
 			continue
 		}
 
 		out = append(out, QueryItemsItem{
-			Item:   item,
-			Target: item.NormalizedName,
+			ItemId: id,
+			Target: normalizedName,
 		})
 	}
 
@@ -93,13 +94,13 @@ func (r QueryItemsResponse) EncodeForDelivery() ([]byte, error) {
 
 func (idBase ItemsDatabase) QueryItems(req QueryItemsRequest) (QueryItemsResponse, codes.Code, error) {
 	// gathering items
-	items, err := idBase.GetItems()
+	idNormalizedNameMap, err := idBase.GetIdNormalizedNameMap()
 	if err != nil {
 		return QueryItemsResponse{}, codes.GenericError, err
 	}
 
 	// reformatting into query-items-items
-	queryItems := NewQueryItemsItems(items)
+	queryItems := NewQueryItemsItems(idNormalizedNameMap)
 
 	// optionally sorting by rank or sorting by name
 	if req.Query != "" {
