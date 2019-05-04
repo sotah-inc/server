@@ -174,10 +174,10 @@ func (sta DownloadAllAuctionsState) Run() error {
 	}
 
 	// publishing to sync-all-items
-	//logging.Info("Publishing tuples to sync-all-items")
-	//if err := sta.PublishToSyncAllItems(tuples); err != nil {
-	//	return err
-	//}
+	logging.Info("Publishing tuples to sync-all-items")
+	if err := sta.PublishToSyncAllItems(tuples); err != nil {
+		return err
+	}
 
 	// encoding tuples for publishing to compute-all-live-auctions and compute-all-pricelist-histories
 	encodedTuples, err := tuples.EncodeForDelivery()
@@ -188,10 +188,10 @@ func (sta DownloadAllAuctionsState) Run() error {
 	encodedTuplesMsg.Data = encodedTuples
 
 	// publishing to compute-all-live-auctions
-	//logging.Info("Publishing to compute-all-live-auctions")
-	//if _, err := sta.IO.BusClient.Publish(sta.computeAllLiveAuctionsTopic, encodedTuplesMsg); err != nil {
-	//	return err
-	//}
+	logging.Info("Publishing to compute-all-live-auctions")
+	if _, err := sta.IO.BusClient.Publish(sta.computeAllLiveAuctionsTopic, encodedTuplesMsg); err != nil {
+		return err
+	}
 
 	// publishing to compute-all-pricelist-histories
 	//logging.Info("Publishing to compute-all-live-auctions")
