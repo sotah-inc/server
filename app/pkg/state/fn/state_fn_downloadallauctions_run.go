@@ -159,10 +159,10 @@ func (sta DownloadAllAuctionsState) Run() error {
 	}
 
 	// publishing to compute-all-pricelist-histories
-	//logging.Info("Publishing to compute-all-live-auctions")
-	//if _, err := sta.IO.BusClient.Publish(sta.computeAllPricelistHistoriesTopic, encodedTuplesMsg); err != nil {
-	//	return err
-	//}
+	logging.Info("Publishing to compute-all-live-auctions")
+	if _, err := sta.IO.BusClient.Publish(sta.computeAllPricelistHistoriesTopic, encodedTuplesMsg); err != nil {
+		return err
+	}
 
 	logging.Info("Finished")
 

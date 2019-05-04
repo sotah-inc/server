@@ -49,14 +49,14 @@ func NewDownloadAllAuctionsState(config DownloadAllAuctionsStateConfig) (Downloa
 
 		return DownloadAllAuctionsState{}, err
 	}
-	//sta.computeAllPricelistHistoriesTopic, err = sta.IO.BusClient.FirmTopic(
-	//	string(subjects.ComputeAllPricelistHistories),
-	//)
-	//if err != nil {
-	//	log.Fatalf("Failed to get firm topic: %s", err.Error())
-	//
-	//	return DownloadAllAuctionsState{}, err
-	//}
+	sta.computeAllPricelistHistoriesTopic, err = sta.IO.BusClient.FirmTopic(
+		string(subjects.ComputeAllPricelistHistories),
+	)
+	if err != nil {
+		log.Fatalf("Failed to get firm topic: %s", err.Error())
+
+		return DownloadAllAuctionsState{}, err
+	}
 
 	// connecting to the messenger host
 	mess, err := messenger.NewMessenger(config.MessengerHost, config.MessengerPort)
