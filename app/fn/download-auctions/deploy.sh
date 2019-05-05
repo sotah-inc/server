@@ -9,4 +9,4 @@ gcloud functions deploy DownloadAuctions \
     --source . \
     --memory 256MB \
     --region us-central1 \
-    --timeout 120s
+    --timeout 60s

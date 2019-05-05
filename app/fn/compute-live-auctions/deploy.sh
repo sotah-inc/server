@@ -9,4 +9,4 @@ gcloud functions deploy ComputeLiveAuctions \
     --source . \
     --memory 256MB \
     --region us-central1 \
-    --timeout 120s
+    --timeout 60s
