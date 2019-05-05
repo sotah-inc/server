@@ -9,7 +9,11 @@ import (
 	"github.com/sotah-inc/server/app/pkg/metric/kinds"
 )
 
-const appMetricSubject = "appMetrics"
+const (
+	appMetricSubject = "appMetrics"
+	ClassA           = "class_a"
+	ClassB           = "class_b"
+)
 
 func NewReporter(mess messenger.Messenger) Reporter {
 	return Reporter{mess}
