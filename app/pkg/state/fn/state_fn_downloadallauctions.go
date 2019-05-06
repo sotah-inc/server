@@ -8,7 +8,6 @@ import (
 	"github.com/sotah-inc/server/app/pkg/bus"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/messenger"
-	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
 	"github.com/sotah-inc/server/app/pkg/state"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
@@ -65,9 +64,6 @@ func NewDownloadAllAuctionsState(config DownloadAllAuctionsStateConfig) (Downloa
 		return DownloadAllAuctionsState{}, err
 	}
 	sta.IO.Messenger = mess
-
-	// initializing a reporter
-	sta.IO.Reporter = metric.NewReporter(mess)
 
 	sta.IO.StoreClient, err = store.NewClient(config.ProjectId)
 	if err != nil {
