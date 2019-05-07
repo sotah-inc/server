@@ -9,6 +9,7 @@ import (
 	"github.com/sotah-inc/server/app/pkg/database"
 	dCodes "github.com/sotah-inc/server/app/pkg/database/codes"
 	"github.com/sotah-inc/server/app/pkg/diskstore"
+	"github.com/sotah-inc/server/app/pkg/hell"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	mCodes "github.com/sotah-inc/server/app/pkg/messenger/codes"
@@ -42,6 +43,7 @@ type IO struct {
 	DiskStore   diskstore.DiskStore
 	Reporter    metric.Reporter
 	BusClient   bus.Client
+	HellClient  hell.Client
 }
 
 // bus-listener functionality
