@@ -5,6 +5,7 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/hell"
+	"github.com/sotah-inc/server/app/pkg/hell/collections"
 	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
 	"github.com/sotah-inc/server/app/pkg/state"
 	"github.com/sotah-inc/server/app/pkg/store"
@@ -67,5 +68,21 @@ type LoadHellState struct {
 }
 
 func (sta LoadHellState) Run() error {
+	gamesRef := sta.IO.HellClient.Collection(string(collections.Games))
+	retailGameRef := gamesRef.Doc(string(gameversions.Retail))
+	regionsRef := retailGameRef.Collection(string(collections.Regions))
+
+	regions, err := sta.bootBase.GetRegions(sta.bootBucket)
+	if err != nil {
+		return err
+	}
+
+	for _, region := range regions {
+		regionRef := regionsRef.Doc(string(region.Name))
+		if _, err := regionRef.Set(sta.IO.HellClient.Context, hell.NewRegion(region)); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
