@@ -53,6 +53,7 @@ func main() {
 		fnSyncAllItems                 = app.Command(string(commands.FnSyncAllItems), "For enqueueing syncing of items and item-icons in gcp ce vm.")
 		fnCleanupAllExpiredManifests   = app.Command(string(commands.FnCleanupAllExpiredManifests), "For gathering all expired auction-manifests for deletion in gcp ce vm.")
 		fnCleanupPricelistHistories    = app.Command(string(commands.FnCleanupPricelistHistories), "For gathering all expired pricelist-histories for deletion in gcp ce vm.")
+		fnLoadHell                     = app.Command(string(commands.FnLoadHell), "For loading initial structure into firestore.")
 	)
 	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
 
@@ -192,6 +193,11 @@ func main() {
 		},
 		fnCleanupPricelistHistories.FullCommand(): func() error {
 			return command.FnCleanupPricelistHistories(fn.CleanupPricelistHistoriesStateConfig{
+				ProjectId: *projectID,
+			})
+		},
+		fnLoadHell.FullCommand(): func() error {
+			return command.FnLoadHell(fn.LoadHellStateConfig{
 				ProjectId: *projectID,
 			})
 		},

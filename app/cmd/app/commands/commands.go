@@ -22,4 +22,5 @@ var (
 	FnSyncAllItems                 command = "fn-sync-all-items"
 	FnCleanupAllExpiredManifests   command = "fn-cleanup-all-expired-manifests"
 	FnCleanupPricelistHistories    command = "fn-cleanup-pricelist-histories"
+	FnLoadHell                     command = "fn-load-hell"
 )
