@@ -25,3 +25,7 @@ type Client struct {
 	projectID string
 	client    *firestore.Client
 }
+
+func (c Client) Close() error {
+	return c.client.Close()
+}
