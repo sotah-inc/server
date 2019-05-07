@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"cloud.google.com/go/firestore"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 )
 
 func NewClient(projectId string) (Client, error) {
@@ -59,6 +60,10 @@ func (c Client) FirmDocument(path string) (*firestore.DocumentRef, error) {
 
 type Region struct {
 	Name string `firestore:"name"`
+}
+
+func NewRegion(region sotah.Region) Region {
+	return Region{Name: string(region.Name)}
 }
 
 type Realm struct {
