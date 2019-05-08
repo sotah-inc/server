@@ -79,8 +79,18 @@ func (sta LoadHellState) Run() error {
 
 	for _, region := range regions {
 		regionRef := regionsRef.Doc(string(region.Name))
-		if _, err := regionRef.Set(sta.IO.HellClient.Context, hell.NewRegion(region)); err != nil {
+
+		realms, err := sta.realmsBase.GetAllRealms(region.Name, sta.realmsBucket)
+		if err != nil {
 			return err
+		}
+
+		realmsRef := regionRef.Collection(string(collections.Realms))
+		for _, realm := range realms {
+			realmRef := realmsRef.Doc(string(realm.Slug))
+			if _, err := realmRef.Set(sta.IO.HellClient.Context, hell.NewRealm(realm)); err != nil {
+				return err
+			}
 		}
 	}
 
