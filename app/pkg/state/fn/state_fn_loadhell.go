@@ -103,14 +103,9 @@ func (sta LoadHellState) Run() error {
 				return err
 			}
 
-			realmEntry.Info("Getting realm-ref docsnap")
-			docsnap, err := realmRef.Get(sta.IO.HellClient.Context)
+			realmEntry.Info("Getting hell realm")
+			realmData, err := sta.IO.HellClient.GetRealm(realmRef)
 			if err != nil {
-				return err
-			}
-
-			var realmData hell.Realm
-			if err := docsnap.DataTo(&realmData); err != nil {
 				return err
 			}
 
