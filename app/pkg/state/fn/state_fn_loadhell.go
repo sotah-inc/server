@@ -1,6 +1,7 @@
 package fn
 
 import (
+	"fmt"
 	"log"
 
 	"cloud.google.com/go/storage"
@@ -68,27 +69,44 @@ type LoadHellState struct {
 }
 
 func (sta LoadHellState) Run() error {
-	gamesRef := sta.IO.HellClient.Collection(string(collections.Games))
-	retailGameRef := gamesRef.Doc(string(gameversions.Retail))
-	regionsRef := retailGameRef.Collection(string(collections.Regions))
-
 	regions, err := sta.bootBase.GetRegions(sta.bootBucket)
 	if err != nil {
 		return err
 	}
 
 	for _, region := range regions {
-		regionRef := regionsRef.Doc(string(region.Name))
-
 		realms, err := sta.realmsBase.GetAllRealms(region.Name, sta.realmsBucket)
 		if err != nil {
 			return err
 		}
 
-		realmsRef := regionRef.Collection(string(collections.Realms))
 		for _, realm := range realms {
-			realmRef := realmsRef.Doc(string(realm.Slug))
-			if _, err := realmRef.Set(sta.IO.HellClient.Context, hell.NewRealm(realm)); err != nil {
+			realmRef, err := sta.IO.HellClient.FirmDocument(fmt.Sprintf(
+				"%s/%s/%s/%s/%s/%s",
+				collections.Games,
+				gameversions.Retail,
+				collections.Regions,
+				region.Name,
+				collections.Realms,
+				realm.Slug,
+			))
+			if err != nil {
+				return err
+			}
+
+			docsnap, err := realmRef.Get(sta.IO.HellClient.Context)
+			if err != nil {
+				return err
+			}
+
+			var realmData hell.Realm
+			if err := docsnap.DataTo(&realmData); err != nil {
+				return err
+			}
+
+			realmData.Downloaded = 1
+
+			if _, err := realmRef.Set(sta.IO.HellClient.Context, realmData); err != nil {
 				return err
 			}
 		}
