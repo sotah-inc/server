@@ -58,6 +58,25 @@ func (c Client) FirmDocument(path string) (*firestore.DocumentRef, error) {
 	return out, nil
 }
 
+func (c Client) GetRealm(path string) (Realm, error) {
+	realmRef, err := c.FirmDocument(path)
+	if err != nil {
+		return Realm{}, err
+	}
+
+	docsnap, err := realmRef.Get(c.Context)
+	if err != nil {
+		return Realm{}, err
+	}
+
+	var realmData Realm
+	if err := docsnap.DataTo(&realmData); err != nil {
+		return Realm{}, err
+	}
+
+	return realmData, nil
+}
+
 type Region struct {
 	Name string `firestore:"name"`
 }
