@@ -58,12 +58,7 @@ func (c Client) FirmDocument(path string) (*firestore.DocumentRef, error) {
 	return out, nil
 }
 
-func (c Client) GetRealm(path string) (Realm, error) {
-	realmRef, err := c.FirmDocument(path)
-	if err != nil {
-		return Realm{}, err
-	}
-
+func (c Client) GetRealm(realmRef *firestore.DocumentRef) (Realm, error) {
 	docsnap, err := realmRef.Get(c.Context)
 	if err != nil {
 		return Realm{}, err
