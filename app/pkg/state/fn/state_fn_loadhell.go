@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/sotah-inc/server/app/pkg/logging"
+
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/hell"
 	"github.com/sotah-inc/server/app/pkg/hell/collections"
@@ -69,18 +71,25 @@ type LoadHellState struct {
 }
 
 func (sta LoadHellState) Run() error {
+	logging.Info("Fetching regions")
 	regions, err := sta.bootBase.GetRegions(sta.bootBucket)
 	if err != nil {
 		return err
 	}
 
 	for _, region := range regions {
+		regionEntry := logging.WithField("region", region.Name)
+
+		regionEntry.Info("Getting realms")
 		realms, err := sta.realmsBase.GetAllRealms(region.Name, sta.realmsBucket)
 		if err != nil {
 			return err
 		}
 
 		for _, realm := range realms {
+			realmEntry := regionEntry.WithField("realm", realm.Slug)
+
+			realmEntry.Info("Getting firm document")
 			realmRef, err := sta.IO.HellClient.FirmDocument(fmt.Sprintf(
 				"%s/%s/%s/%s/%s/%s",
 				collections.Games,
@@ -94,6 +103,7 @@ func (sta LoadHellState) Run() error {
 				return err
 			}
 
+			realmEntry.Info("Getting realm-ref docsnap")
 			docsnap, err := realmRef.Get(sta.IO.HellClient.Context)
 			if err != nil {
 				return err
@@ -106,6 +116,7 @@ func (sta LoadHellState) Run() error {
 
 			realmData.Downloaded = 1
 
+			realmEntry.Info("Writing new data")
 			if _, err := realmRef.Set(sta.IO.HellClient.Context, realmData); err != nil {
 				return err
 			}
