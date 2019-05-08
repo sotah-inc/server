@@ -72,3 +72,12 @@ type Realm struct {
 	LiveAuctionsReceived       int    `firestore:"live_auctions_received"`
 	PricelistHistoriesReceived int    `firestore:"pricelist_histories_received"`
 }
+
+func NewRealm(realm sotah.Realm) Realm {
+	return Realm{
+		Slug:                       string(realm.Slug),
+		Downloaded:                 0,
+		LiveAuctionsReceived:       0,
+		PricelistHistoriesReceived: 0,
+	}
+}
