@@ -3,9 +3,13 @@ package hell
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"cloud.google.com/go/firestore"
+	"github.com/sotah-inc/server/app/pkg/hell/collections"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
+	"github.com/sotah-inc/server/app/pkg/util"
 )
 
 func NewClient(projectId string) (Client, error) {
@@ -72,6 +76,74 @@ func (c Client) GetRealm(realmRef *firestore.DocumentRef) (Realm, error) {
 	return realmData, nil
 }
 
+type WriteRealmsJob struct {
+	Err   error
+	Realm sotah.Realm
+}
+
+func (c Client) WriteRealms(realms sotah.Realms) error {
+	// spawning workers
+	in := make(chan sotah.Realm)
+	out := make(chan WriteRealmsJob)
+	worker := func() {
+		for realm := range in {
+			realmRef, err := c.FirmDocument(fmt.Sprintf(
+				"%s/%s/%s/%s/%s/%s",
+				collections.Games,
+				gameversions.Retail,
+				collections.Regions,
+				realm.Region.Name,
+				collections.Realms,
+				realm.Slug,
+			))
+			if err != nil {
+				out <- WriteRealmsJob{
+					Err:   err,
+					Realm: realm,
+				}
+
+				continue
+			}
+
+			if _, err := realmRef.Set(c.Context, NewRealm(realm)); err != nil {
+				out <- WriteRealmsJob{
+					Err:   err,
+					Realm: realm,
+				}
+
+				continue
+			}
+
+			out <- WriteRealmsJob{
+				Err:   nil,
+				Realm: realm,
+			}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(4, worker, postWork)
+
+	// spinning it up
+	go func() {
+		for _, realm := range realms {
+			in <- realm
+		}
+
+		close(in)
+	}()
+
+	// waiting for results to drain out
+	for job := range out {
+		if job.Err != nil {
+			return job.Err
+		}
+	}
+
+	return nil
+}
+
 type Region struct {
 	Name string `firestore:"name"`
 }
@@ -90,8 +162,8 @@ type Realm struct {
 func NewRealm(realm sotah.Realm) Realm {
 	return Realm{
 		Slug:                       string(realm.Slug),
-		Downloaded:                 0,
-		LiveAuctionsReceived:       0,
-		PricelistHistoriesReceived: 0,
+		Downloaded:                 int(realm.RealmModificationDates.Downloaded),
+		LiveAuctionsReceived:       int(realm.RealmModificationDates.LiveAuctionsReceived),
+		PricelistHistoriesReceived: int(realm.RealmModificationDates.PricelistHistoriesReceived),
 	}
 }

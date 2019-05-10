@@ -1,14 +1,11 @@
 package fn
 
 import (
-	"fmt"
 	"log"
-
-	"github.com/sotah-inc/server/app/pkg/logging"
 
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/hell"
-	"github.com/sotah-inc/server/app/pkg/hell/collections"
+	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
 	"github.com/sotah-inc/server/app/pkg/state"
 	"github.com/sotah-inc/server/app/pkg/store"
@@ -86,35 +83,8 @@ func (sta LoadHellState) Run() error {
 			return err
 		}
 
-		for _, realm := range realms {
-			realmEntry := regionEntry.WithField("realm", realm.Slug)
-
-			realmEntry.Info("Getting firm document")
-			realmRef, err := sta.IO.HellClient.FirmDocument(fmt.Sprintf(
-				"%s/%s/%s/%s/%s/%s",
-				collections.Games,
-				gameversions.Retail,
-				collections.Regions,
-				region.Name,
-				collections.Realms,
-				realm.Slug,
-			))
-			if err != nil {
-				return err
-			}
-
-			realmEntry.Info("Getting hell realm")
-			realmData, err := sta.IO.HellClient.GetRealm(realmRef)
-			if err != nil {
-				return err
-			}
-
-			realmData.Downloaded = 1
-
-			realmEntry.Info("Writing new data")
-			if _, err := realmRef.Set(sta.IO.HellClient.Context, realmData); err != nil {
-				return err
-			}
+		if err := sta.IO.HellClient.WriteRealms(realms); err != nil {
+			return err
 		}
 	}
 
