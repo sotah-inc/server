@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/firestore"
+	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/hell/collections"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
@@ -77,58 +78,83 @@ func (c Client) GetRealm(realmRef *firestore.DocumentRef) (Realm, error) {
 }
 
 type WriteRealmsJob struct {
-	Err   error
-	Realm sotah.Realm
+	Err     error
+	Payload WriteRealmsPayload
 }
 
-func (c Client) WriteRealms(realms sotah.Realms) error {
+func NewWriteRealmsPayloads(realms sotah.Realms) WriteRealmsPayloads {
+	out := WriteRealmsPayloads{}
+	for _, realm := range realms {
+		out = append(out, NewWriteRealmsPayload(realm))
+	}
+
+	return out
+}
+
+type WriteRealmsPayloads []WriteRealmsPayload
+
+func NewWriteRealmsPayload(realm sotah.Realm) WriteRealmsPayload {
+	return WriteRealmsPayload{
+		RegionName:             realm.Region.Name,
+		RealmSlug:              realm.Slug,
+		RealmModificationDates: realm.RealmModificationDates,
+	}
+}
+
+type WriteRealmsPayload struct {
+	RegionName             blizzard.RegionName
+	RealmSlug              blizzard.RealmSlug
+	RealmModificationDates sotah.RealmModificationDates
+}
+
+func (c Client) WriteRealms(payloads []WriteRealmsPayload) error {
 	// spawning workers
-	in := make(chan sotah.Realm)
+	in := make(chan WriteRealmsPayload)
 	out := make(chan WriteRealmsJob)
 	worker := func() {
-		for realm := range in {
+		for payload := range in {
 			realmRef, err := c.FirmDocument(fmt.Sprintf(
 				"%s/%s/%s/%s/%s/%s",
 				collections.Games,
 				gameversions.Retail,
 				collections.Regions,
-				realm.Region.Name,
+				payload.RegionName,
 				collections.Realms,
-				realm.Slug,
+				payload.RealmSlug,
 			))
 			if err != nil {
 				out <- WriteRealmsJob{
-					Err:   err,
-					Realm: realm,
+					Err:     err,
+					Payload: payload,
 				}
 
 				continue
 			}
 
-			if _, err := realmRef.Set(c.Context, NewRealm(realm)); err != nil {
+			if _, err := realmRef.Set(c.Context, NewRealm(payload)); err != nil {
 				out <- WriteRealmsJob{
-					Err:   err,
-					Realm: realm,
+					Err:     err,
+					Payload: payload,
 				}
 
 				continue
 			}
 
 			out <- WriteRealmsJob{
-				Err:   nil,
-				Realm: realm,
+				Err:     nil,
+				Payload: payload,
 			}
 		}
 	}
 	postWork := func() {
 		close(out)
 	}
-	util.Work(4, worker, postWork)
+	util.Work(8, worker, postWork)
 
 	// spinning it up
 	go func() {
-		for _, realm := range realms {
-			in <- realm
+		for _, payload := range payloads {
+			in <- payload
 		}
 
 		close(in)
@@ -152,18 +178,18 @@ func NewRegion(region sotah.Region) Region {
 	return Region{Name: string(region.Name)}
 }
 
+func NewRealm(payload WriteRealmsPayload) Realm {
+	return Realm{
+		Slug:                       string(payload.RealmSlug),
+		Downloaded:                 int(payload.RealmModificationDates.Downloaded),
+		LiveAuctionsReceived:       int(payload.RealmModificationDates.LiveAuctionsReceived),
+		PricelistHistoriesReceived: int(payload.RealmModificationDates.PricelistHistoriesReceived),
+	}
+}
+
 type Realm struct {
 	Slug                       string `firestore:"slug"`
 	Downloaded                 int    `firestore:"downloaded"`
 	LiveAuctionsReceived       int    `firestore:"live_auctions_received"`
 	PricelistHistoriesReceived int    `firestore:"pricelist_histories_received"`
-}
-
-func NewRealm(realm sotah.Realm) Realm {
-	return Realm{
-		Slug:                       string(realm.Slug),
-		Downloaded:                 int(realm.RealmModificationDates.Downloaded),
-		LiveAuctionsReceived:       int(realm.RealmModificationDates.LiveAuctionsReceived),
-		PricelistHistoriesReceived: int(realm.RealmModificationDates.PricelistHistoriesReceived),
-	}
 }

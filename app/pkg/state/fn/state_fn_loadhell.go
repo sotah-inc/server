@@ -83,7 +83,7 @@ func (sta LoadHellState) Run() error {
 			return err
 		}
 
-		if err := sta.IO.HellClient.WriteRealms(realms); err != nil {
+		if err := sta.IO.HellClient.WriteRealms(hell.NewWriteRealmsPayloads(realms)); err != nil {
 			return err
 		}
 	}
