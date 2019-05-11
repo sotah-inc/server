@@ -55,7 +55,7 @@ type WriteRealmsPayload struct {
 	RealmModificationDates sotah.RealmModificationDates
 }
 
-func (c Client) WriteRealms(payloads []WriteRealmsPayload) error {
+func (c Client) WriteRealms(payloads []WriteRealmsPayload, version gameversions.GameVersion) error {
 	// spawning workers
 	in := make(chan WriteRealmsPayload)
 	out := make(chan WriteRealmsJob)
@@ -64,7 +64,7 @@ func (c Client) WriteRealms(payloads []WriteRealmsPayload) error {
 			realmRef, err := c.FirmDocument(fmt.Sprintf(
 				"%s/%s/%s/%s/%s/%s",
 				collections.Games,
-				gameversions.Retail,
+				version,
 				collections.Regions,
 				payload.RegionName,
 				collections.Realms,
