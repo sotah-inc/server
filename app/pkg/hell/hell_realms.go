@@ -6,7 +6,6 @@ import (
 	"cloud.google.com/go/firestore"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/hell/collections"
-	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
@@ -25,73 +24,43 @@ func (c Client) GetRealm(realmRef *firestore.DocumentRef) (Realm, error) {
 	return realmData, nil
 }
 
-type WriteRealmsJob struct {
-	Err     error
-	Payload WriteRealmsPayload
+type WriteRegionRealmsJob struct {
+	Err        error
+	RegionName blizzard.RegionName
+	RealmSlug  blizzard.RealmSlug
+	Realm      Realm
 }
 
-func NewWriteRealmsPayloads(realms sotah.Realms) WriteRealmsPayloads {
-	out := WriteRealmsPayloads{}
-	for _, realm := range realms {
-		out = append(out, NewWriteRealmsPayload(realm))
-	}
-
-	return out
-}
-
-type WriteRealmsPayloads []WriteRealmsPayload
-
-func NewWriteRealmsPayload(realm sotah.Realm) WriteRealmsPayload {
-	return WriteRealmsPayload{
-		RegionName:             realm.Region.Name,
-		RealmSlug:              realm.Slug,
-		RealmModificationDates: realm.RealmModificationDates,
-	}
-}
-
-type WriteRealmsPayload struct {
-	RegionName             blizzard.RegionName
-	RealmSlug              blizzard.RealmSlug
-	RealmModificationDates sotah.RealmModificationDates
-}
-
-func (c Client) WriteRealms(payloads []WriteRealmsPayload, version gameversions.GameVersion) error {
+func (c Client) WriteRegionRealms(regionRealms RegionRealmsMap, version gameversions.GameVersion) error {
 	// spawning workers
-	in := make(chan WriteRealmsPayload)
-	out := make(chan WriteRealmsJob)
+	in := make(chan WriteRegionRealmsJob)
+	out := make(chan WriteRegionRealmsJob)
 	worker := func() {
-		for payload := range in {
+		for inJob := range in {
 			realmRef, err := c.FirmDocument(fmt.Sprintf(
 				"%s/%s/%s/%s/%s/%s",
 				collections.Games,
 				version,
 				collections.Regions,
-				payload.RegionName,
+				inJob.RegionName,
 				collections.Realms,
-				payload.RealmSlug,
+				inJob.RealmSlug,
 			))
 			if err != nil {
-				out <- WriteRealmsJob{
-					Err:     err,
-					Payload: payload,
-				}
+				inJob.Err = err
+				out <- inJob
 
 				continue
 			}
 
-			if _, err := realmRef.Set(c.Context, NewRealm(payload)); err != nil {
-				out <- WriteRealmsJob{
-					Err:     err,
-					Payload: payload,
-				}
+			if _, err := realmRef.Set(c.Context, inJob.Realm); err != nil {
+				inJob.Err = err
+				out <- inJob
 
 				continue
 			}
 
-			out <- WriteRealmsJob{
-				Err:     nil,
-				Payload: payload,
-			}
+			out <- inJob
 		}
 	}
 	postWork := func() {
@@ -101,8 +70,14 @@ func (c Client) WriteRealms(payloads []WriteRealmsPayload, version gameversions.
 
 	// spinning it up
 	go func() {
-		for _, payload := range payloads {
-			in <- payload
+		for regionName, realms := range regionRealms {
+			for realmSlug, realm := range realms {
+				in <- WriteRegionRealmsJob{
+					RegionName: regionName,
+					RealmSlug:  realmSlug,
+					Realm:      realm,
+				}
+			}
 		}
 
 		close(in)
@@ -118,69 +93,45 @@ func (c Client) WriteRealms(payloads []WriteRealmsPayload, version gameversions.
 	return nil
 }
 
-type GetRealmsJob struct {
+type GetRegionRealmsJob struct {
 	Err        error
 	RegionName blizzard.RegionName
+	RealmSlug  blizzard.RealmSlug
 	Realm      Realm
 }
 
-type GetRealmsPayload struct {
-	RegionName blizzard.RegionName
-	RealmSlug  blizzard.RealmSlug
-}
-
-func (c Client) GetRealms(regionRealmSlugs map[blizzard.RegionName][]blizzard.RealmSlug, version gameversions.GameVersion) (RegionRealms, error) {
+func (c Client) GetRegionRealms(regionRealmSlugs map[blizzard.RegionName][]blizzard.RealmSlug, version gameversions.GameVersion) (RegionRealmsMap, error) {
 	// spawning workers
-	in := make(chan GetRealmsPayload)
-	out := make(chan GetRealmsJob)
+	in := make(chan GetRegionRealmsJob)
+	out := make(chan GetRegionRealmsJob)
 	worker := func() {
-		for payload := range in {
+		for inJob := range in {
 			realmRef, err := c.FirmDocument(fmt.Sprintf(
 				"%s/%s/%s/%s/%s/%s",
 				collections.Games,
 				version,
 				collections.Regions,
-				payload.RegionName,
+				inJob.RegionName,
 				collections.Realms,
-				payload.RealmSlug,
+				inJob.RealmSlug,
 			))
 			if err != nil {
-				out <- GetRealmsJob{
-					Err:        err,
-					RegionName: blizzard.RegionName(""),
-					Realm:      Realm{},
-				}
+				inJob.Err = err
+				out <- inJob
 
 				continue
 			}
 
-			docsnap, err := realmRef.Get(c.Context)
+			realm, err := c.GetRealm(realmRef)
 			if err != nil {
-				out <- GetRealmsJob{
-					Err:        err,
-					RegionName: blizzard.RegionName(""),
-					Realm:      Realm{},
-				}
+				inJob.Err = err
+				out <- inJob
 
 				continue
 			}
 
-			var realm Realm
-			if err := docsnap.DataTo(&realm); err != nil {
-				out <- GetRealmsJob{
-					Err:        err,
-					RegionName: blizzard.RegionName(""),
-					Realm:      Realm{},
-				}
-
-				continue
-			}
-
-			out <- GetRealmsJob{
-				Err:        nil,
-				RegionName: payload.RegionName,
-				Realm:      realm,
-			}
+			inJob.Realm = realm
+			out <- inJob
 		}
 	}
 	postWork := func() {
@@ -192,7 +143,7 @@ func (c Client) GetRealms(regionRealmSlugs map[blizzard.RegionName][]blizzard.Re
 	go func() {
 		for regionName, realmSlugs := range regionRealmSlugs {
 			for _, realmSlug := range realmSlugs {
-				in <- GetRealmsPayload{
+				in <- GetRegionRealmsJob{
 					RegionName: regionName,
 					RealmSlug:  realmSlug,
 				}
@@ -203,44 +154,33 @@ func (c Client) GetRealms(regionRealmSlugs map[blizzard.RegionName][]blizzard.Re
 	}()
 
 	// waiting for results to drain out
-	regionRealms := RegionRealms{}
+	regionRealms := RegionRealmsMap{}
 	for job := range out {
 		if job.Err != nil {
-			return RegionRealms{}, job.Err
+			return RegionRealmsMap{}, job.Err
 		}
 
-		next := func() Realms {
-			result, ok := regionRealms[job.RegionName]
+		realms := func() RealmsMap {
+			foundRealms, ok := regionRealms[job.RegionName]
 			if !ok {
-				return Realms{}
+				return RealmsMap{}
 			}
 
-			return result
+			return foundRealms
 		}()
-		next = append(next, job.Realm)
-
-		regionRealms[job.RegionName] = next
+		realms[job.RealmSlug] = job.Realm
+		regionRealms[job.RegionName] = realms
 	}
 
 	return regionRealms, nil
 }
 
-func NewRealm(payload WriteRealmsPayload) Realm {
-	return Realm{
-		Slug:                       string(payload.RealmSlug),
-		Downloaded:                 int(payload.RealmModificationDates.Downloaded),
-		LiveAuctionsReceived:       int(payload.RealmModificationDates.LiveAuctionsReceived),
-		PricelistHistoriesReceived: int(payload.RealmModificationDates.PricelistHistoriesReceived),
-	}
-}
-
 type Realm struct {
-	Slug                       string `firestore:"slug"`
-	Downloaded                 int    `firestore:"downloaded"`
-	LiveAuctionsReceived       int    `firestore:"live_auctions_received"`
-	PricelistHistoriesReceived int    `firestore:"pricelist_histories_received"`
+	Downloaded                 int `firestore:"downloaded"`
+	LiveAuctionsReceived       int `firestore:"live_auctions_received"`
+	PricelistHistoriesReceived int `firestore:"pricelist_histories_received"`
 }
 
-type Realms []Realm
+type RealmsMap map[blizzard.RealmSlug]Realm
 
-type RegionRealms map[blizzard.RegionName]Realms
+type RegionRealmsMap map[blizzard.RegionName]RealmsMap
