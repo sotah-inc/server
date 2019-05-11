@@ -778,6 +778,25 @@ func (s RegionRealmTimestampTuples) ToMessages() ([]Message, error) {
 	return out, nil
 }
 
+func (s RegionRealmTimestampTuples) ToRegionRealmSlugs() map[blizzard.RegionName][]blizzard.RealmSlug {
+	out := map[blizzard.RegionName][]blizzard.RealmSlug{}
+	for _, tuple := range s {
+		next := func() []blizzard.RealmSlug {
+			result, ok := out[blizzard.RegionName(tuple.RegionName)]
+			if ok {
+				return result
+			}
+
+			return []blizzard.RealmSlug{}
+		}()
+
+		next = append(next, blizzard.RealmSlug(tuple.RealmSlug))
+		out[blizzard.RegionName(tuple.RegionName)] = next
+	}
+
+	return out
+}
+
 func NewRegionRealmTimestampTuple(data string) (RegionRealmTimestampTuple, error) {
 	base64Decoded, err := base64.StdEncoding.DecodeString(data)
 	if err != nil {
