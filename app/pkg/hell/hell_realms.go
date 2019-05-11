@@ -118,6 +118,95 @@ func (c Client) WriteRealms(payloads []WriteRealmsPayload, version gameversions.
 	return nil
 }
 
+type GetRealmsJob struct {
+	Err   error
+	Realm Realm
+}
+
+type GetRealmsPayload struct {
+	RegionName blizzard.RegionName
+	RealmSlug  blizzard.RealmSlug
+}
+
+func (c Client) GetRealms(regionRealmSlugs map[blizzard.RegionName][]blizzard.RealmSlug, version gameversions.GameVersion) error {
+	// spawning workers
+	in := make(chan GetRealmsPayload)
+	out := make(chan GetRealmsJob)
+	worker := func() {
+		for payload := range in {
+			realmRef, err := c.FirmDocument(fmt.Sprintf(
+				"%s/%s/%s/%s/%s/%s",
+				collections.Games,
+				version,
+				collections.Regions,
+				payload.RegionName,
+				collections.Realms,
+				payload.RealmSlug,
+			))
+			if err != nil {
+				out <- GetRealmsJob{
+					Err:   err,
+					Realm: Realm{},
+				}
+
+				continue
+			}
+
+			docsnap, err := realmRef.Get(c.Context)
+			if err != nil {
+				out <- GetRealmsJob{
+					Err:   err,
+					Realm: Realm{},
+				}
+
+				continue
+			}
+
+			var realm Realm
+			if err := docsnap.DataTo(&realm); err != nil {
+				out <- GetRealmsJob{
+					Err:   err,
+					Realm: Realm{},
+				}
+
+				continue
+			}
+
+			out <- GetRealmsJob{
+				Err:   nil,
+				Realm: realm,
+			}
+		}
+	}
+	postWork := func() {
+		close(out)
+	}
+	util.Work(8, worker, postWork)
+
+	// spinning it up
+	go func() {
+		for regionName, realmSlugs := range regionRealmSlugs {
+			for _, realmSlug := range realmSlugs {
+				in <- GetRealmsPayload{
+					RegionName: regionName,
+					RealmSlug:  realmSlug,
+				}
+			}
+		}
+
+		close(in)
+	}()
+
+	// waiting for results to drain out
+	for job := range out {
+		if job.Err != nil {
+			return job.Err
+		}
+	}
+
+	return nil
+}
+
 func NewRealm(payload WriteRealmsPayload) Realm {
 	return Realm{
 		Slug:                       string(payload.RealmSlug),
