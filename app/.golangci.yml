@@ -5,3 +5,4 @@ linter-settings:
     line-length: 120
   gocyclo:
     min-complexity: 10
+  unconvert:
