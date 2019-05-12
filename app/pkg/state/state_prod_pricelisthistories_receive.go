@@ -117,7 +117,9 @@ func (phState ProdPricelistHistoriesState) ListenForComputedPricelistHistories(
 			logging.WithField("requests", len(requests)).Info("Done handling requests")
 
 			// reporting metrics
-			m := metric.Metrics{"receive_all_pricelist_histories_duration": int(int64(time.Now().Sub(startTime)) / 1000 / 1000 / 1000)}
+			m := metric.Metrics{
+				"receive_all_pricelist_histories_duration": int(int64(time.Since(startTime)) / 1000 / 1000 / 1000),
+			}
 			if err := phState.IO.BusClient.PublishMetrics(m); err != nil {
 				logging.WithField("error", err.Error()).Error("Failed to publish metric")
 

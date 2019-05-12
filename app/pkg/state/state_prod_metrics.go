@@ -54,7 +54,11 @@ type ProdMetricsState struct {
 	State
 }
 
-func (metricsState ProdMetricsState) ListenForMetrics(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {
+func (metricsState ProdMetricsState) ListenForMetrics(
+	onReady chan interface{},
+	stop chan interface{},
+	onStopped chan interface{},
+) {
 	// establishing subscriber config
 	config := bus.SubscribeConfig{
 		Stop: stop,

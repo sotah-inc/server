@@ -28,7 +28,9 @@ type pricelistHistoriesIntakeRequest struct {
 	RegionRealmTimestamps sotah.RegionRealmTimestampMaps `json:"realm_timestamps"`
 }
 
-func (pRequest pricelistHistoriesIntakeRequest) resolve(statuses sotah.Statuses) (RegionRealmTimes, sotah.RegionRealmMap) {
+func (pRequest pricelistHistoriesIntakeRequest) resolve(
+	statuses sotah.Statuses,
+) (RegionRealmTimes, sotah.RegionRealmMap) {
 	included := RegionRealmTimes{}
 	excluded := sotah.RegionRealmMap{}
 
@@ -145,7 +147,9 @@ func (sta PricelistHistoriesState) ListenForPricelistHistoriesIntake(stop Listen
 		sta.IO.Reporter.ReportWithPrefix(metric.Metrics{
 			"buffer_size": len(pRequest.RegionRealmTimestamps),
 		}, kinds.PricelistHistoriesIntake)
-		logging.WithField("capacity", len(in)).Info("Received pricelist-histories-intake-request, pushing onto handle channel")
+		logging.WithField("capacity", len(in)).Info(
+			"Received pricelist-histories-intake-request, pushing onto handle channel",
+		)
 
 		in <- pRequest
 	})

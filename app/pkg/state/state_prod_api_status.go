@@ -14,7 +14,11 @@ import (
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
-func (sta ProdApiState) ListenForBusStatus(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {
+func (sta ProdApiState) ListenForBusStatus(
+	onReady chan interface{},
+	stop chan interface{},
+	onStopped chan interface{},
+) {
 	// establishing subscriber config
 	config := bus.SubscribeConfig{
 		Stop: stop,

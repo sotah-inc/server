@@ -43,7 +43,11 @@ func HandleFilterInItemsToSync(busMsg bus.Message, itemsState ProdItemsState, id
 	return nil
 }
 
-func (itemsState ProdItemsState) ListenForFilterIn(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {
+func (itemsState ProdItemsState) ListenForFilterIn(
+	onReady chan interface{},
+	stop chan interface{},
+	onStopped chan interface{},
+) {
 	// establishing subscriber config
 	config := bus.SubscribeConfig{
 		Stop: stop,

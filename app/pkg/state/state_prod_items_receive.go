@@ -40,7 +40,11 @@ func ReceiveSyncedItems(itemsState ProdItemsState, idNameMap sotah.ItemIdNameMap
 	return itemsState.IO.Databases.ItemsDatabase.PersistEncodedItems(encodedIn, idNameMap)
 }
 
-func (itemsState ProdItemsState) ListenForSyncedItems(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {
+func (itemsState ProdItemsState) ListenForSyncedItems(
+	onReady chan interface{},
+	stop chan interface{},
+	onStopped chan interface{},
+) {
 	// spinning up a worker
 	in := make(chan sotah.ItemIdNameMap, 50)
 	go func() {

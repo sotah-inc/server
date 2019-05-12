@@ -111,7 +111,11 @@ func HandleComputedLiveAuctions(liveAuctionsState ProdLiveAuctionsState, tuples 
 	}
 }
 
-func (liveAuctionsState ProdLiveAuctionsState) ListenForComputedLiveAuctions(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {
+func (liveAuctionsState ProdLiveAuctionsState) ListenForComputedLiveAuctions(
+	onReady chan interface{},
+	stop chan interface{},
+	onStopped chan interface{},
+) {
 	// establishing subscriber config
 	config := bus.SubscribeConfig{
 		Stop: stop,
@@ -130,7 +134,9 @@ func (liveAuctionsState ProdLiveAuctionsState) ListenForComputedLiveAuctions(onR
 			logging.WithField("requests", len(tuples)).Info("Done handling tuples")
 
 			// reporting metrics
-			m := metric.Metrics{"receive_all_live_auctions_duration": int(int64(time.Since(startTime)) / 1000 / 1000 / 1000)}
+			m := metric.Metrics{
+				"receive_all_live_auctions_duration": int(int64(time.Since(startTime)) / 1000 / 1000 / 1000),
+			}
 			if err := liveAuctionsState.IO.BusClient.PublishMetrics(m); err != nil {
 				logging.WithField("error", err.Error()).Error("Failed to publish metric")
 
@@ -143,7 +149,10 @@ func (liveAuctionsState ProdLiveAuctionsState) ListenForComputedLiveAuctions(onR
 
 	// starting up worker for the subscription
 	go func() {
-		if err := liveAuctionsState.IO.BusClient.SubscribeToTopic(string(subjects.ReceiveComputedLiveAuctions), config); err != nil {
+		if err := liveAuctionsState.IO.BusClient.SubscribeToTopic(
+			string(subjects.ReceiveComputedLiveAuctions),
+			config,
+		); err != nil {
 			logging.WithField("error", err.Error()).Fatal("Failed to subscribe to topic")
 		}
 	}()
