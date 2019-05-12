@@ -4,12 +4,11 @@ import (
 	"encoding/json"
 
 	nats "github.com/nats-io/go-nats"
-	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
-	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/hell"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	mCodes "github.com/sotah-inc/server/app/pkg/messenger/codes"
-	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
@@ -26,44 +25,30 @@ func (sta ProdApiState) ListenForReceiveRealms(stop ListenStopChan) error {
 			return
 		}
 
-		for regionName, realmSlugs := range regionRealmSlugs {
-			realmSlugWhitelist := map[blizzard.RealmSlug]interface{}{}
-			for _, realmSlug := range realmSlugs {
-				realmSlugWhitelist[realmSlug] = struct{}{}
-			}
+		hellRegionRealms, err := sta.IO.HellClient.GetRegionRealms(regionRealmSlugs, gameversions.Retail)
+		if err != nil {
+			m.Err = err.Error()
+			m.Code = mCodes.GenericError
+			sta.IO.Messenger.ReplyTo(natsMsg, m)
 
-			realms, err := sta.RealmsBase.GetRealms(regionName, realmSlugWhitelist, sta.RealmsBucket)
-			if err != nil {
-				m.Err = err.Error()
-				m.Code = mCodes.GenericError
-				sta.IO.Messenger.ReplyTo(natsMsg, m)
+			return
+		}
 
-				return
-			}
+		for regionName, hellRealms := range hellRegionRealms {
+			next := func() hell.RealmsMap {
+				result, ok := sta.HellRegionRealms[regionName]
+				if !ok {
+					return hell.RealmsMap{}
+				}
 
-			logging.WithFields(logrus.Fields{
-				"region": regionName,
-				"realms": len(realms),
-			}).Info("Received realms")
-			sta.Statuses[regionName] = func() sotah.Status {
-				status := sta.Statuses[regionName]
-				status.Realms = func() sotah.Realms {
-					statusRealms := status.Realms
-					realmMap := realms.ToRealmMap()
-					for i, realm := range statusRealms {
-						replacedRealm, ok := realmMap[realm.Slug]
-						if !ok {
-							continue
-						}
-
-						statusRealms[i] = replacedRealm
-					}
-
-					return statusRealms
-				}()
-
-				return status
+				return result
 			}()
+
+			for realmSlug, hellRealm := range hellRealms {
+				next[realmSlug] = hellRealm
+			}
+
+			sta.HellRegionRealms[regionName] = next
 		}
 
 		sta.IO.Messenger.ReplyTo(natsMsg, m)
