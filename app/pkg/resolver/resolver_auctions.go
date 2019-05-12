@@ -52,6 +52,12 @@ func (r Resolver) GetAuctionsForRealm(
 	}
 	aFile := aInfo.Files[0]
 
+	logging.WithFields(logrus.Fields{
+		"region":     rea.Region.Name,
+		"realm":      rea.Slug,
+		"downloaded": realmModDates.Downloaded,
+	}).Info("Downloading")
+
 	// optionally downloading where the Realm has stale data
 	if realmModDates.Downloaded == 0 || time.Unix(realmModDates.Downloaded, 0).Before(aFile.LastModifiedAsTime()) {
 		aucs, err := r.NewAuctionsFromHTTP(aFile.URL)
