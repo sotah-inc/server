@@ -36,7 +36,10 @@ func (r Resolver) NewAuctionsFromHTTP(uri string) (blizzard.Auctions, error) {
 	return blizzard.NewAuctions(resp.Body)
 }
 
-func (r Resolver) GetAuctionsForRealm(rea sotah.Realm, modDates sotah.RegionRealmModificationDates) (blizzard.Auctions, time.Time, error) {
+func (r Resolver) GetAuctionsForRealm(
+	rea sotah.Realm,
+	modDates sotah.RegionRealmModificationDates,
+) (blizzard.Auctions, time.Time, error) {
 	// resolving auction-info from the api
 	aInfo, err := r.NewAuctionInfoFromHTTP(r.GetAuctionInfoURL(rea.Region.Hostname, rea.Slug))
 	if err != nil {
@@ -62,6 +65,12 @@ func (r Resolver) GetAuctionsForRealm(rea sotah.Realm, modDates sotah.RegionReal
 		return aucs, aFile.LastModifiedAsTime(), nil
 	}
 
+	logging.WithFields(logrus.Fields{
+		"region":     rea.Region.Name,
+		"realm":      rea.Slug,
+		"downloaded": realmModDates.Downloaded,
+	}).Info("No new auctions found, skipping")
+
 	return blizzard.Auctions{}, time.Time{}, nil
 }
 
@@ -81,7 +90,10 @@ func (job GetAuctionsJob) ToLogrusFields() logrus.Fields {
 	}
 }
 
-func (r Resolver) GetAuctionsForRealms(reas sotah.Realms, modDates sotah.RegionRealmModificationDates) chan GetAuctionsJob {
+func (r Resolver) GetAuctionsForRealms(
+	reas sotah.Realms,
+	modDates sotah.RegionRealmModificationDates,
+) chan GetAuctionsJob {
 	// establishing channels
 	out := make(chan GetAuctionsJob)
 	in := make(chan sotah.Realm)

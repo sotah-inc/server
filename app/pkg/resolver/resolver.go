@@ -55,5 +55,9 @@ func (r Resolver) Download(uri string, shouldAppendAccessToken bool) (blizzard.R
 		})
 	}
 
+	if err != nil {
+		return blizzard.ResponseMeta{}, err
+	}
+
 	return resp, nil
 }
