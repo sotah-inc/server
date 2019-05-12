@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"log"
 
 	"cloud.google.com/go/storage"
 	"github.com/sirupsen/logrus"
@@ -74,6 +75,14 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 		return ProdApiState{}, err
 	}
 	apiState.IO.BusClient = busClient
+
+	// connecting to hell
+	apiState.IO.HellClient, err = hell.NewClient(config.GCloudProjectID)
+	if err != nil {
+		log.Fatalf("Failed to connect to firebase: %s", err.Error())
+
+		return ProdApiState{}, err
+	}
 
 	// connecting to the messenger host
 	mess, err := messenger.NewMessenger(config.MessengerHost, config.MessengerPort)
