@@ -159,7 +159,7 @@ func (maList MiniAuctionList) TotalAuctions() int {
 	return out
 }
 
-func (maList MiniAuctionList) totalQuantity() int {
+func (maList MiniAuctionList) TotalQuantity() int {
 	out := 0
 	for _, auc := range maList {
 		out += int(auc.Quantity) * len(auc.AucList)
@@ -168,7 +168,7 @@ func (maList MiniAuctionList) totalQuantity() int {
 	return out
 }
 
-func (maList MiniAuctionList) totalBuyout() int64 {
+func (maList MiniAuctionList) TotalBuyout() int64 {
 	out := int64(0)
 	for _, auc := range maList {
 		out += auc.Buyout * auc.Quantity * int64(len(auc.AucList))
