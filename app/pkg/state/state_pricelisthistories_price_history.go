@@ -44,7 +44,7 @@ func (sta PricelistHistoriesState) ListenForPriceListHistory(stop ListenStopChan
 		}
 
 		// dumping it out
-		m.Data = string(encodedMessage)
+		m.Data = encodedMessage
 		sta.IO.Messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {

@@ -44,7 +44,7 @@ func (liveAuctionsState ProdLiveAuctionsState) ListenForOwnersQueryByItems(stop 
 		}
 
 		// dumping it out
-		m.Data = string(encodedMessage)
+		m.Data = encodedMessage
 		liveAuctionsState.IO.Messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {

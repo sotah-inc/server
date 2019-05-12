@@ -44,7 +44,7 @@ func (phState ProdPricelistHistoriesState) ListenForPriceListHistory(stop Listen
 		}
 
 		// dumping it out
-		m.Data = string(encodedMessage)
+		m.Data = encodedMessage
 		phState.IO.Messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {

@@ -44,7 +44,7 @@ func (laState LiveAuctionsState) ListenForOwnersQueryByItems(stop ListenStopChan
 		}
 
 		// dumping it out
-		m.Data = string(encodedMessage)
+		m.Data = encodedMessage
 		laState.IO.Messenger.ReplyTo(natsMsg, m)
 	})
 	if err != nil {
