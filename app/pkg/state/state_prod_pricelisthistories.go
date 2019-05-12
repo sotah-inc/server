@@ -70,6 +70,9 @@ func NewProdPricelistHistoriesState(config ProdPricelistHistoriesStateConfig) (P
 	// gathering region-realms
 	statuses := sotah.Statuses{}
 	bootBucket, err := bootBase.GetFirmBucket()
+	if err != nil {
+		return ProdPricelistHistoriesState{}, err
+	}
 
 	regions, err := bootBase.GetRegions(bootBucket)
 	if err != nil {
