@@ -130,7 +130,10 @@ func (phState ProdPricelistHistoriesState) ListenForComputedPricelistHistories(
 
 	// starting up worker for the subscription
 	go func() {
-		if err := phState.IO.BusClient.SubscribeToTopic(string(subjects.ReceiveComputedPricelistHistories), config); err != nil {
+		if err := phState.IO.BusClient.SubscribeToTopic(
+			string(subjects.ReceiveComputedPricelistHistories),
+			config,
+		); err != nil {
 			logging.WithField("error", err.Error()).Fatal("Failed to subscribe to topic")
 		}
 	}()
