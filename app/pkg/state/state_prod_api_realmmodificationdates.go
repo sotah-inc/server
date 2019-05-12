@@ -1,8 +1,6 @@
 package state
 
 import (
-	"errors"
-
 	nats "github.com/nats-io/go-nats"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/messenger"
@@ -24,49 +22,31 @@ func (sta ProdApiState) ListenForRealmModificationDates(stop ListenStopChan) err
 			return
 		}
 
-		regionName, err := func() (blizzard.RegionName, error) {
-			for _, region := range sta.Regions {
-				if region.Name != blizzard.RegionName(req.RegionName) {
-					continue
-				}
-
-				if _, ok := sta.Statuses[blizzard.RegionName(req.RegionName)]; !ok {
-					continue
-				}
-
-				return region.Name, nil
-			}
-
-			return blizzard.RegionName(""), errors.New("region not found")
-		}()
-		if err != nil {
-			m.Err = err.Error()
+		hellRealms, ok := sta.HellRegionRealms[blizzard.RegionName(req.RegionName)]
+		if !ok {
+			m.Err = "region not found"
 			m.Code = mCodes.NotFound
 			sta.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
-		realm, err := func() (sotah.Realm, error) {
-			for _, realm := range sta.Statuses[regionName].Realms {
-				if realm.Slug != blizzard.RealmSlug(req.RealmSlug) {
-					continue
-				}
-
-				return realm, nil
-			}
-
-			return sotah.Realm{}, errors.New("realm not found")
-		}()
-		if err != nil {
-			m.Err = err.Error()
+		hellRealm, ok := hellRealms[blizzard.RealmSlug(req.RealmSlug)]
+		if !ok {
+			m.Err = "realm not found"
 			m.Code = mCodes.NotFound
 			sta.IO.Messenger.ReplyTo(natsMsg, m)
 
 			return
 		}
 
-		res := RealmModificationDatesResponse{RealmModificationDates: realm.RealmModificationDates}
+		res := RealmModificationDatesResponse{
+			RealmModificationDates: sotah.RealmModificationDates{
+				Downloaded:                 int64(hellRealm.Downloaded),
+				LiveAuctionsReceived:       int64(hellRealm.LiveAuctionsReceived),
+				PricelistHistoriesReceived: int64(hellRealm.PricelistHistoriesReceived),
+			},
+		}
 
 		encodedData, err := res.EncodeForDelivery()
 		if err != nil {
