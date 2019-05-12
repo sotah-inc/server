@@ -127,8 +127,6 @@ func (pRequest pricelistHistoriesIntakeRequest) handle(sta PricelistHistoriesSta
 		"excluded_realms":                    excludedRealmCount,
 		"total_realms":                       includedRealmCount + excludedRealmCount,
 	})
-
-	return
 }
 
 func (sta PricelistHistoriesState) ListenForPricelistHistoriesIntake(stop ListenStopChan) error {

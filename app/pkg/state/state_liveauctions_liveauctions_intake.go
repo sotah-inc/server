@@ -196,8 +196,6 @@ func (iRequest liveAuctionsIntakeRequest) handle(laState LiveAuctionsState) {
 		"total_new_auctions":           totalNewAuctions,
 		"total_removed_auctions":       totalRemovedAuctions,
 	})
-
-	return
 }
 
 func (laState LiveAuctionsState) ListenForLiveAuctionsIntake(stop ListenStopChan) error {

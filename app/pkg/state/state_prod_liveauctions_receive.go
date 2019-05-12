@@ -136,8 +136,6 @@ func (liveAuctionsState ProdLiveAuctionsState) ListenForComputedLiveAuctions(onR
 
 				return
 			}
-
-			return
 		},
 		OnReady:   onReady,
 		OnStopped: onStopped,

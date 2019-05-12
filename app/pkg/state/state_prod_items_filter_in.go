@@ -70,8 +70,6 @@ func (itemsState ProdItemsState) ListenForFilterIn(onReady chan interface{}, sto
 
 				return
 			}
-
-			return
 		},
 		OnReady:   onReady,
 		OnStopped: onStopped,

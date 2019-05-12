@@ -39,8 +39,8 @@ func HandleComputedPricelistHistories(
 				RegionName:                outJob.RegionName,
 				RealmSlug:                 outJob.RealmSlug,
 				NormalizedTargetTimestamp: outJob.TargetTimestamp,
-				Data:                      outJob.Data,
-				VersionId:                 outJob.VersionId,
+				Data:      outJob.Data,
+				VersionId: outJob.VersionId,
 			}
 		}
 
@@ -51,8 +51,8 @@ func HandleComputedPricelistHistories(
 	go func() {
 		for _, request := range requests {
 			logging.WithFields(logrus.Fields{
-				"region":                      request.RegionName,
-				"realm":                       request.RealmSlug,
+				"region": request.RegionName,
+				"realm":  request.RealmSlug,
 				"normalized-target-timestamp": request.NormalizedTargetTimestamp,
 			}).Info("Loading request")
 
@@ -123,8 +123,6 @@ func (phState ProdPricelistHistoriesState) ListenForComputedPricelistHistories(
 
 				return
 			}
-
-			return
 		},
 		OnReady:   onReady,
 		OnStopped: onStopped,

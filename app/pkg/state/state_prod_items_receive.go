@@ -84,8 +84,6 @@ func (itemsState ProdItemsState) ListenForSyncedItems(onReady chan interface{}, 
 			}
 
 			in <- idNormalizedNameMap
-
-			return
 		},
 		OnReady:   onReady,
 		OnStopped: onStopped,
