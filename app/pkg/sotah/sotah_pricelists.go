@@ -72,13 +72,14 @@ func NewItemPrices(maList MiniAuctionList) ItemPrices {
 		buyoutsSlice := sort.Float64Slice(buyouts)
 		buyoutsSlice.Sort()
 		hasEvenMembers := len(buyoutsSlice)%2 == 0
-		median := float64(0)
-		if hasEvenMembers {
-			middle := float64(len(buyoutsSlice)) / 2
-			median = (buyoutsSlice[int(math.Floor(middle))] + buyoutsSlice[int(math.Ceil(middle))]) / 2
-		} else {
-			median = buyoutsSlice[(len(buyoutsSlice)-1)/2]
-		}
+		median := func() float64 {
+			if hasEvenMembers {
+				middle := float64(len(buyoutsSlice)) / 2
+				return (buyoutsSlice[int(math.Floor(middle))] + buyoutsSlice[int(math.Ceil(middle))]) / 2
+			}
+
+			return buyoutsSlice[(len(buyoutsSlice)-1)/2]
+		}()
 		p.MedianBuyoutPer = median
 
 		iPrices[id] = p
