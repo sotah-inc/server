@@ -101,15 +101,19 @@ func (mess Messenger) Subscribe(subject string, stop chan interface{}, cb func(n
 	return nil
 }
 
-func (mess Messenger) ReplyTo(natsMsg nats.Msg, m Message) error {
+func (mess Messenger) ReplyTo(natsMsg nats.Msg, m Message) {
 	if m.Code == codes.Blank {
-		return errors.New("code cannot be blank")
+		logging.WithField("error", "code cannot be blank").Fatal("Failed to call ReplyTo")
+
+		return
 	}
 
 	// json-encoding the message
 	jsonMessage, err := json.Marshal(m)
 	if err != nil {
-		return err
+		logging.WithField("error", err.Error()).Fatal("Failed to call ReplyTo")
+
+		return
 	}
 
 	if m.Code != codes.Ok {
@@ -135,10 +139,10 @@ func (mess Messenger) ReplyTo(natsMsg nats.Msg, m Message) error {
 			"subject": natsMsg.Reply,
 		}).Error("Failed to Publish message")
 
-		return err
-	}
+		logging.WithField("error", err.Error()).Fatal("Failed to call ReplyTo")
 
-	return nil
+		return
+	}
 }
 
 func (mess Messenger) Request(subject string, data []byte) (Message, error) {
