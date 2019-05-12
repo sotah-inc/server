@@ -138,16 +138,11 @@ func (sta State) StoreAuctions(in chan StoreAuctionsInJob) chan StoreAuctionsOut
 				continue
 			}
 
-			outItemIds := []blizzard.ItemID{}
-			for _, auc := range inJob.Auctions.Auctions {
-				outItemIds = append(outItemIds, auc.Item)
-			}
-
 			out <- StoreAuctionsOutJob{
 				Err:        nil,
 				Realm:      inJob.Realm,
 				TargetTime: inJob.TargetTime,
-				ItemIds:    outItemIds,
+				ItemIds:    inJob.Auctions.ItemIds(),
 			}
 		}
 	}
