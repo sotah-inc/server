@@ -73,7 +73,10 @@ func (sta APIState) collectRegions() {
 				"region": regionName,
 				"realms": len(status.Realms),
 			}).Debug("Downloading region")
-			for getAuctionsJob := range sta.IO.Resolver.GetAuctionsForRealms(status.Realms) {
+			for getAuctionsJob := range sta.IO.Resolver.GetAuctionsForRealms(
+				status.Realms,
+				sta.RegionRealmModificationDates,
+			) {
 				if getAuctionsJob.Err != nil {
 					logrus.WithFields(getAuctionsJob.ToLogrusFields()).Error("Failed to fetch auctions")
 
@@ -107,16 +110,15 @@ func (sta APIState) collectRegions() {
 			}
 			regionRealmTimestamps[job.Realm.Region.Name][job.Realm.Slug] = job.TargetTime.Unix()
 
-			// updating the realm last-modified in statuses
-			for i, statusRealm := range status.Realms {
-				if statusRealm.Slug != job.Realm.Slug {
-					continue
-				}
+			// updating the realm last-modified in realm-modification-dates
+			realmModDates := sta.RegionRealmModificationDates.Get(job.Realm.Region.Name, job.Realm.Slug)
+			realmModDates.Downloaded = job.TargetTime.Unix()
 
-				sta.Statuses[job.Realm.Region.Name].Realms[i].RealmModificationDates.Downloaded = job.TargetTime.Unix()
-
-				break
-			}
+			sta.RegionRealmModificationDates = sta.RegionRealmModificationDates.Set(
+				job.Realm.Region.Name,
+				job.Realm.Slug,
+				realmModDates,
+			)
 
 			// appending to received item-ids
 			for _, itemId := range job.ItemIds {

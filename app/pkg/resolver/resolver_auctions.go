@@ -36,7 +36,7 @@ func (r Resolver) NewAuctionsFromHTTP(uri string) (blizzard.Auctions, error) {
 	return blizzard.NewAuctions(resp.Body)
 }
 
-func (r Resolver) GetAuctionsForRealm(rea sotah.Realm) (blizzard.Auctions, time.Time, error) {
+func (r Resolver) GetAuctionsForRealm(rea sotah.Realm, modDates sotah.RegionRealmModificationDates) (blizzard.Auctions, time.Time, error) {
 	// resolving auction-info from the api
 	aInfo, err := r.NewAuctionInfoFromHTTP(r.GetAuctionInfoURL(rea.Region.Hostname, rea.Slug))
 	if err != nil {
@@ -49,8 +49,11 @@ func (r Resolver) GetAuctionsForRealm(rea sotah.Realm) (blizzard.Auctions, time.
 	}
 	aFile := aInfo.Files[0]
 
+	// resolving realm-mod-dates
+	realmModDates := modDates.Get(rea.Region.Name, rea.Slug)
+
 	// optionally downloading where the Realm has stale data
-	if rea.RealmModificationDates.Downloaded == 0 || time.Unix(rea.RealmModificationDates.Downloaded, 0).Before(aFile.LastModifiedAsTime()) {
+	if realmModDates.Downloaded == 0 || time.Unix(realmModDates.Downloaded, 0).Before(aFile.LastModifiedAsTime()) {
 		aucs, err := r.NewAuctionsFromHTTP(aFile.URL)
 		if err != nil {
 			return blizzard.Auctions{}, time.Time{}, err
@@ -78,7 +81,7 @@ func (job GetAuctionsJob) ToLogrusFields() logrus.Fields {
 	}
 }
 
-func (r Resolver) GetAuctionsForRealms(reas sotah.Realms) chan GetAuctionsJob {
+func (r Resolver) GetAuctionsForRealms(reas sotah.Realms, modDates sotah.RegionRealmModificationDates) chan GetAuctionsJob {
 	// establishing channels
 	out := make(chan GetAuctionsJob)
 	in := make(chan sotah.Realm)
@@ -86,7 +89,7 @@ func (r Resolver) GetAuctionsForRealms(reas sotah.Realms) chan GetAuctionsJob {
 	// spinning up the workers for fetching Auctions
 	worker := func() {
 		for rea := range in {
-			aucs, lastModified, err := r.GetAuctionsForRealm(rea)
+			aucs, lastModified, err := r.GetAuctionsForRealm(rea, modDates)
 
 			// optionally halting on error
 			if err != nil {

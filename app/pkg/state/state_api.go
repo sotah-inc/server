@@ -149,6 +149,8 @@ func NewAPIState(config APIStateConfig) (APIState, error) {
 		subjects.RealmModificationDates: apiState.ListenForRealmModificationDates,
 	})
 
+	apiState.RegionRealmModificationDates = sotah.RegionRealmModificationDates{}
+
 	return apiState, nil
 }
 
@@ -160,6 +162,8 @@ type APIState struct {
 	Expansions    []sotah.Expansion
 	Professions   []sotah.Profession
 	ItemBlacklist ItemBlacklist
+
+	RegionRealmModificationDates sotah.RegionRealmModificationDates
 }
 
 type ItemBlacklist []blizzard.ItemID

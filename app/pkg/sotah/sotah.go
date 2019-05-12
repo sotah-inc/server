@@ -54,7 +54,7 @@ type Region struct {
 func NewRealms(reg Region, blizzRealms []blizzard.Realm) Realms {
 	reas := make([]Realm, len(blizzRealms))
 	for i, rea := range blizzRealms {
-		reas[i] = Realm{rea, reg, RealmModificationDates{}}
+		reas[i] = Realm{rea, reg}
 	}
 
 	return reas
@@ -71,11 +71,41 @@ func (realms Realms) ToRealmMap() RealmMap {
 	return out
 }
 
-func NewSkeletonRealm(regionName blizzard.RegionName, realmSlug blizzard.RealmSlug) Realm {
-	return Realm{
-		Region: Region{Name: regionName},
-		Realm:  blizzard.Realm{Slug: realmSlug},
+type RegionRealmModificationDates map[blizzard.RegionName]map[blizzard.RealmSlug]RealmModificationDates
+
+func (d RegionRealmModificationDates) Get(
+	regionName blizzard.RegionName,
+	realmSlug blizzard.RealmSlug,
+) RealmModificationDates {
+	realmsModDates, ok := d[regionName]
+	if !ok {
+		return RealmModificationDates{}
 	}
+
+	realmModDates, ok := realmsModDates[realmSlug]
+	if !ok {
+		return RealmModificationDates{}
+	}
+
+	return realmModDates
+}
+
+func (d RegionRealmModificationDates) Set(
+	regionName blizzard.RegionName,
+	realmSlug blizzard.RealmSlug,
+	modDates RealmModificationDates,
+) RegionRealmModificationDates {
+	realmsModDates, ok := d[regionName]
+	if !ok {
+		d[regionName] = map[blizzard.RealmSlug]RealmModificationDates{realmSlug: modDates}
+
+		return d
+	}
+
+	realmsModDates[realmSlug] = modDates
+	d[regionName] = realmsModDates
+
+	return d
 }
 
 type RealmModificationDates struct {
@@ -84,10 +114,16 @@ type RealmModificationDates struct {
 	PricelistHistoriesReceived int64 `json:"pricelist_histories_received"`
 }
 
+func NewSkeletonRealm(regionName blizzard.RegionName, realmSlug blizzard.RealmSlug) Realm {
+	return Realm{
+		Region: Region{Name: regionName},
+		Realm:  blizzard.Realm{Slug: realmSlug},
+	}
+}
+
 type Realm struct {
 	blizzard.Realm
-	Region                 Region                 `json:"region"`
-	RealmModificationDates RealmModificationDates `json:"realm_modification_dates"`
+	Region Region `json:"region"`
 }
 
 func (r Realm) EncodeForStorage() ([]byte, error) {

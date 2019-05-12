@@ -66,7 +66,9 @@ func (sta APIState) ListenForRealmModificationDates(stop ListenStopChan) error {
 			return
 		}
 
-		res := RealmModificationDatesResponse{RealmModificationDates: realm.RealmModificationDates}
+		res := RealmModificationDatesResponse{
+			RealmModificationDates: sta.RegionRealmModificationDates.Get(realm.Region.Name, realm.Slug),
+		}
 
 		encodedData, err := res.EncodeForDelivery()
 		if err != nil {
