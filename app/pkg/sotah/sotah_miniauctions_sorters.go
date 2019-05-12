@@ -32,7 +32,11 @@ func newMiniAuctionSorter() miniAuctionSorter {
 
 type miniAuctionSorter map[string]miniAuctionSortFn
 
-func (mas miniAuctionSorter) sort(kind sortkinds.SortKind, direction sortdirections.SortDirection, data MiniAuctionList) error {
+func (mas miniAuctionSorter) sort(
+	kind sortkinds.SortKind,
+	direction sortdirections.SortDirection,
+	data MiniAuctionList,
+) error {
 	// resolving the sort kind as a string
 	kindMap := map[sortkinds.SortKind]string{
 		sortkinds.Item:      "Item",
