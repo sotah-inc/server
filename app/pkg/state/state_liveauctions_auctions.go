@@ -172,15 +172,6 @@ func (laState LiveAuctionsState) ListenForAuctions(stop ListenStopChan) error {
 	return nil
 }
 
-type NewMiniAuctionsListFromMessengerConfig struct {
-	realm         sotah.Realm
-	count         int
-	page          int
-	sortDirection sortdirections.SortDirection
-	sortKind      sortkinds.SortKind
-	ownerFilter   sotah.OwnerName
-}
-
 func (sta State) NewMiniAuctionsList(req AuctionsRequest) (sotah.MiniAuctionList, error) {
 	encodedMessage, err := json.Marshal(req)
 	if err != nil {
