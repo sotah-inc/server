@@ -37,7 +37,7 @@ func (liveAuctionsState ProdLiveAuctionsState) ListenForOwnersQuery(stop ListenS
 
 			return
 		}
-		duration := time.Now().Sub(startTime)
+		duration := time.Since(startTime)
 		logging.WithFields(logrus.Fields{
 			"region":         request.RegionName,
 			"realm":          request.RealmSlug,

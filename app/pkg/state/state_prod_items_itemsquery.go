@@ -37,7 +37,7 @@ func (itemsState ProdItemsState) ListenForItemsQuery(stop ListenStopChan) error 
 
 			return
 		}
-		duration := time.Now().Sub(startTime)
+		duration := time.Since(startTime)
 		logging.WithFields(logrus.Fields{
 			"query":          request.Query,
 			"duration-in-ms": int64(duration) / 1000 / 1000,

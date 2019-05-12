@@ -156,7 +156,7 @@ func (iRequest liveAuctionsIntakeRequest) handle(laState LiveAuctionsState) {
 	// publishing for pricelist-histories-intake
 	err := func() error {
 		if laState.UseGCloud {
-			phiRequest := pricelistHistoriesIntakeRequest{RegionRealmTimestamps: iRequest.RegionRealmTimestamps}
+			phiRequest := pricelistHistoriesIntakeRequest(iRequest)
 			return func() error {
 				encodedRequest, err := json.Marshal(phiRequest)
 				if err != nil {
@@ -167,7 +167,7 @@ func (iRequest liveAuctionsIntakeRequest) handle(laState LiveAuctionsState) {
 			}()
 		}
 
-		phiRequest := pricelistHistoriesIntakeRequest{RegionRealmTimestamps: iRequest.RegionRealmTimestamps}
+		phiRequest := pricelistHistoriesIntakeRequest(iRequest)
 		return func() error {
 			encodedRequest, err := json.Marshal(phiRequest)
 			if err != nil {
@@ -183,7 +183,7 @@ func (iRequest liveAuctionsIntakeRequest) handle(laState LiveAuctionsState) {
 		return
 	}
 
-	duration := time.Now().Sub(startTime)
+	duration := time.Since(startTime)
 	laState.IO.Reporter.Report(metric.Metrics{
 		"liveauctions_intake_duration": int(duration) / 1000 / 1000 / 1000,
 		"included_realms":              includedRealmCount,

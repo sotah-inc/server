@@ -61,7 +61,7 @@ func (itemsState ProdItemsState) ListenForSyncedItems(onReady chan interface{}, 
 			}).Info("Done receiving synced item-ids")
 
 			// reporting metrics
-			m := metric.Metrics{"receive_synced_items": int(int64(time.Now().Sub(startTime)) / 1000 / 1000 / 1000)}
+			m := metric.Metrics{"receive_synced_items": int(int64(time.Since(startTime)) / 1000 / 1000 / 1000)}
 			if err := itemsState.IO.BusClient.PublishMetrics(m); err != nil {
 				logging.WithField("error", err.Error()).Error("Failed to publish metric")
 
