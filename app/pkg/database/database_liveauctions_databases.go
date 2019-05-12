@@ -165,7 +165,9 @@ func (job LiveAuctionsLoadEncodedDataOutJob) ToLogrusFields() logrus.Fields {
 	}
 }
 
-func (ladBases LiveAuctionsDatabases) LoadEncodedData(in chan LiveAuctionsLoadEncodedDataInJob) chan LiveAuctionsLoadEncodedDataOutJob {
+func (ladBases LiveAuctionsDatabases) LoadEncodedData(
+	in chan LiveAuctionsLoadEncodedDataInJob,
+) chan LiveAuctionsLoadEncodedDataOutJob {
 	// establishing channels
 	out := make(chan LiveAuctionsLoadEncodedDataOutJob)
 
@@ -287,7 +289,9 @@ func (qr QueryAuctionsResponse) EncodeForDelivery() (string, error) {
 	return base64.StdEncoding.EncodeToString(gzipEncoded), nil
 }
 
-func (ladBases LiveAuctionsDatabases) QueryAuctions(qr QueryAuctionsRequest) (QueryAuctionsResponse, codes.Code, error) {
+func (ladBases LiveAuctionsDatabases) QueryAuctions(
+	qr QueryAuctionsRequest,
+) (QueryAuctionsResponse, codes.Code, error) {
 	regionLadBases, ok := ladBases[qr.RegionName]
 	if !ok {
 		return QueryAuctionsResponse{}, codes.UserError, errors.New("invalid region")
@@ -384,7 +388,9 @@ func (plResponse GetPricelistResponse) EncodeForDelivery() (string, error) {
 	return base64.StdEncoding.EncodeToString(gzipEncoded), nil
 }
 
-func (ladBases LiveAuctionsDatabases) GetPricelist(plRequest GetPricelistRequest) (GetPricelistResponse, codes.Code, error) {
+func (ladBases LiveAuctionsDatabases) GetPricelist(
+	plRequest GetPricelistRequest,
+) (GetPricelistResponse, codes.Code, error) {
 	regionLadBases, ok := ladBases[plRequest.RegionName]
 	if !ok {
 		return GetPricelistResponse{}, codes.UserError, errors.New("invalid region")
@@ -449,7 +455,9 @@ func (plResponse QueryOwnersByItemsResponse) EncodeForDelivery() (string, error)
 	return string(jsonEncoded), nil
 }
 
-func (ladBases LiveAuctionsDatabases) QueryOwnersByItems(req QueryOwnersByItemsRequest) (QueryOwnersByItemsResponse, codes.Code, error) {
+func (ladBases LiveAuctionsDatabases) QueryOwnersByItems(
+	req QueryOwnersByItemsRequest,
+) (QueryOwnersByItemsResponse, codes.Code, error) {
 	regionLadBases, ok := ladBases[req.RegionName]
 	if !ok {
 		return QueryOwnersByItemsResponse{}, codes.UserError, errors.New("invalid region")

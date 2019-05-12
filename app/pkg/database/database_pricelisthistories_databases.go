@@ -56,7 +56,9 @@ type PricelistHistoryDatabases struct {
 	Databases   regionRealmDatabaseShards
 }
 
-func (phdBases PricelistHistoryDatabases) resolveDatabaseFromLoadInJob(job LoadInJob) (PricelistHistoryDatabase, error) {
+func (phdBases PricelistHistoryDatabases) resolveDatabaseFromLoadInJob(
+	job LoadInJob,
+) (PricelistHistoryDatabase, error) {
 	normalizedTargetDate := sotah.NormalizeTargetDate(job.TargetTime)
 	normalizedTargetTimestamp := sotah.UnixTimestamp(normalizedTargetDate.Unix())
 
@@ -327,9 +329,9 @@ type PricelistHistoryDatabaseEncodedLoadOutJob struct {
 
 func (job PricelistHistoryDatabaseEncodedLoadOutJob) ToLogrusFields() logrus.Fields {
 	return logrus.Fields{
-		"error":                       job.Err.Error(),
-		"region":                      job.RegionName,
-		"realm":                       job.RealmSlug,
+		"error":  job.Err.Error(),
+		"region": job.RegionName,
+		"realm":  job.RealmSlug,
 		"normalized-target-timestamp": job.NormalizedTargetTimestamp,
 	}
 }
@@ -431,7 +433,9 @@ func (res GetPricelistHistoryResponse) EncodeForDelivery() (string, error) {
 	return base64.StdEncoding.EncodeToString(gzipEncoded), nil
 }
 
-func (phdBases PricelistHistoryDatabases) GetPricelistHistory(req GetPricelistHistoryRequest) (GetPricelistHistoryResponse, codes.Code, error) {
+func (phdBases PricelistHistoryDatabases) GetPricelistHistory(
+	req GetPricelistHistoryRequest,
+) (GetPricelistHistoryResponse, codes.Code, error) {
 	regionShards, ok := phdBases.Databases[req.RegionName]
 	if !ok {
 		return GetPricelistHistoryResponse{}, codes.UserError, errors.New("invalid region")
