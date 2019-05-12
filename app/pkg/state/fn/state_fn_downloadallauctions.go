@@ -6,6 +6,7 @@ import (
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/storage"
 	"github.com/sotah-inc/server/app/pkg/bus"
+	"github.com/sotah-inc/server/app/pkg/hell"
 	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
@@ -28,6 +29,7 @@ func NewDownloadAllAuctionsState(config DownloadAllAuctionsStateConfig) (Downloa
 		State: state.NewState(uuid.NewV4(), true),
 	}
 
+	// establishing a bus
 	var err error
 	sta.IO.BusClient, err = bus.NewClient(config.ProjectId, "fn-download-all-auctions")
 	if err != nil {
@@ -54,6 +56,14 @@ func NewDownloadAllAuctionsState(config DownloadAllAuctionsStateConfig) (Downloa
 	)
 	if err != nil {
 		log.Fatalf("Failed to get firm topic: %s", err.Error())
+
+		return DownloadAllAuctionsState{}, err
+	}
+
+	// connecting to hell
+	sta.IO.HellClient, err = hell.NewClient(config.ProjectId)
+	if err != nil {
+		log.Fatalf("Failed to connect to firebase: %s", err.Error())
 
 		return DownloadAllAuctionsState{}, err
 	}
