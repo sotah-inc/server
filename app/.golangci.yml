@@ -1,5 +1,5 @@
 run:
-  concurrency: 16
+  concurrency: 8
 linter-settings:
   lll:
     line-length: 120
