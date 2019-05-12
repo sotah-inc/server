@@ -86,15 +86,6 @@ func newItemsMap(body []byte) (ItemsMap, error) {
 
 type ItemsMap map[blizzard.ItemID]Item
 
-func (iMap ItemsMap) getItemIds() []blizzard.ItemID {
-	out := []blizzard.ItemID{}
-	for ID := range iMap {
-		out = append(out, ID)
-	}
-
-	return out
-}
-
 func (iMap ItemsMap) GetItemIconsMap(excludeWithURL bool) ItemIconItemIdsMap {
 	out := ItemIconItemIdsMap{}
 	for itemId, iValue := range iMap {
