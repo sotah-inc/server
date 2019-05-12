@@ -21,43 +21,23 @@ func (sta DownloadAllAuctionsState) PublishToReceiveRealms(
 	regionRealmMap sotah.RegionRealmMap,
 	tuples bus.RegionRealmTimestampTuples,
 ) error {
+	// gathering a whitelist of region-realm-slugs
+	regionRealmSlugs := tuples.ToRegionRealmSlugs()
+
 	// gathering hell-realms for syncing
-	hellRegionRealms, err := sta.IO.HellClient.GetRegionRealms(tuples.ToRegionRealmSlugs(), gameversions.Retail)
+	hellRegionRealms, err := sta.IO.HellClient.GetRegionRealms(regionRealmSlugs, gameversions.Retail)
 	if err != nil {
 		return err
 	}
 
 	// updating the list of realms' timestamps
 	for _, tuple := range tuples {
-		realm := regionRealmMap[blizzard.RegionName(tuple.RegionName)][blizzard.RealmSlug(tuple.RealmSlug)]
-		realm.RealmModificationDates.Downloaded = int64(tuple.TargetTimestamp)
-		regionRealmMap[blizzard.RegionName(tuple.RegionName)][blizzard.RealmSlug(tuple.RealmSlug)] = realm
-
-		logging.WithFields(logrus.Fields{
-			"region":           realm.Region.Name,
-			"realm":            realm.Slug,
-			"target-timestamp": tuple.TargetTimestamp,
-		}).Info("Flagged realm as having been downloaded")
+		hellRealm := hellRegionRealms[blizzard.RegionName(tuple.RegionName)][blizzard.RealmSlug(tuple.RealmSlug)]
+		hellRealm.Downloaded = tuple.TargetTimestamp
+		hellRegionRealms[blizzard.RegionName(tuple.RegionName)][blizzard.RealmSlug(tuple.RealmSlug)] = hellRealm
 	}
-
-	// writing updated realms
-	logging.Info("Writing realms to realms-base")
-	if err := sta.realmsBase.WriteRealms(regionRealmMap.ToRegionRealms(), sta.realmsBucket); err != nil {
+	if err := sta.IO.HellClient.WriteRegionRealms(hellRegionRealms, gameversions.Retail); err != nil {
 		return err
-	}
-
-	regionRealmSlugs := map[blizzard.RegionName][]blizzard.RealmSlug{}
-	for _, tuple := range tuples {
-		realmSlugWhitelist := func() []blizzard.RealmSlug {
-			out, ok := regionRealmSlugs[blizzard.RegionName(tuple.RegionName)]
-			if !ok {
-				return []blizzard.RealmSlug{}
-			}
-
-			return out
-		}()
-		realmSlugWhitelist = append(realmSlugWhitelist, blizzard.RealmSlug(tuple.RealmSlug))
-		regionRealmSlugs[blizzard.RegionName(tuple.RegionName)] = realmSlugWhitelist
 	}
 
 	jsonEncoded, err := json.Marshal(regionRealmSlugs)
