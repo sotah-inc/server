@@ -38,7 +38,7 @@ func (r Resolver) NewAuctionsFromHTTP(uri string) (blizzard.Auctions, error) {
 
 func (r Resolver) GetAuctionsForRealm(
 	rea sotah.Realm,
-	modDates sotah.RegionRealmModificationDates,
+	realmModDates sotah.RealmModificationDates,
 ) (blizzard.Auctions, time.Time, error) {
 	// resolving auction-info from the api
 	aInfo, err := r.NewAuctionInfoFromHTTP(r.GetAuctionInfoURL(rea.Region.Hostname, rea.Slug))
@@ -51,9 +51,6 @@ func (r Resolver) GetAuctionsForRealm(
 		return blizzard.Auctions{}, time.Time{}, errors.New("cannot fetch auctions with blank files")
 	}
 	aFile := aInfo.Files[0]
-
-	// resolving realm-mod-dates
-	realmModDates := modDates.Get(rea.Region.Name, rea.Slug)
 
 	// optionally downloading where the Realm has stale data
 	if realmModDates.Downloaded == 0 || time.Unix(realmModDates.Downloaded, 0).Before(aFile.LastModifiedAsTime()) {
@@ -101,7 +98,7 @@ func (r Resolver) GetAuctionsForRealms(
 	// spinning up the workers for fetching Auctions
 	worker := func() {
 		for rea := range in {
-			aucs, lastModified, err := r.GetAuctionsForRealm(rea, modDates)
+			aucs, lastModified, err := r.GetAuctionsForRealm(rea, modDates.Get(rea.Region.Name, rea.Slug))
 
 			// optionally halting on error
 			if err != nil {
