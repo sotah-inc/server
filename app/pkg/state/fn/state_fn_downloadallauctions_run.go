@@ -13,6 +13,7 @@ import (
 	mCodes "github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/metric"
 	"github.com/sotah-inc/server/app/pkg/sotah"
+	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
@@ -20,6 +21,12 @@ func (sta DownloadAllAuctionsState) PublishToReceiveRealms(
 	regionRealmMap sotah.RegionRealmMap,
 	tuples bus.RegionRealmTimestampTuples,
 ) error {
+	// gathering hell-realms for syncing
+	hellRegionRealms, err := sta.IO.HellClient.GetRegionRealms(tuples.ToRegionRealmSlugs(), gameversions.Retail)
+	if err != nil {
+		return err
+	}
+
 	// updating the list of realms' timestamps
 	for _, tuple := range tuples {
 		realm := regionRealmMap[blizzard.RegionName(tuple.RegionName)][blizzard.RealmSlug(tuple.RealmSlug)]
