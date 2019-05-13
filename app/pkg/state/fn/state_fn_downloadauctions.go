@@ -64,7 +64,11 @@ func NewDownloadAuctionsState(config DownloadAuctionsStateConfig) (DownloadAucti
 		return DownloadAuctionsState{}, err
 	}
 
-	sta.auctionManifestStoreBase = store.NewAuctionManifestBaseV2(sta.IO.StoreClient, regions.USCentral1, gameversions.Retail)
+	sta.auctionManifestStoreBase = store.NewAuctionManifestBaseV2(
+		sta.IO.StoreClient,
+		regions.USCentral1,
+		gameversions.Retail,
+	)
 	sta.auctionsManifestBucket, err = sta.auctionManifestStoreBase.GetFirmBucket()
 	if err != nil {
 		log.Fatalf("Failed to get firm bucket: %s", err.Error())

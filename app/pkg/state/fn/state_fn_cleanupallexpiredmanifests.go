@@ -95,7 +95,11 @@ type CleanupAllExpiredManifestsState struct {
 	bootBucket               *storage.BucketHandle
 }
 
-func (sta CleanupAllExpiredManifestsState) ListenForCleanupAllExpiredManifests(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {
+func (sta CleanupAllExpiredManifestsState) ListenForCleanupAllExpiredManifests(
+	onReady chan interface{},
+	stop chan interface{},
+	onStopped chan interface{},
+) {
 	// establishing subscriber config
 	config := bus.SubscribeConfig{
 		Stop: stop,

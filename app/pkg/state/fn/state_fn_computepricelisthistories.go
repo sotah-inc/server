@@ -16,7 +16,9 @@ type ComputePricelistHistoriesStateConfig struct {
 	ProjectId string
 }
 
-func NewComputePricelistHistoriesState(config ComputePricelistHistoriesStateConfig) (ComputePricelistHistoriesState, error) {
+func NewComputePricelistHistoriesState(
+	config ComputePricelistHistoriesStateConfig,
+) (ComputePricelistHistoriesState, error) {
 	// establishing an initial state
 	sta := ComputePricelistHistoriesState{
 		State: state.NewState(uuid.NewV4(), true),

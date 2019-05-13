@@ -137,7 +137,7 @@ func (sta SyncAllItemsState) Run(in bus.Message) error {
 
 	// reporting metrics
 	if err := sta.IO.BusClient.PublishMetrics(metric.Metrics{
-		"sync_all_items_duration": int(int64(time.Now().Sub(startTime)) / 1000 / 1000 / 1000),
+		"sync_all_items_duration": int(int64(time.Since(startTime)) / 1000 / 1000 / 1000),
 		"sync_all_items_ids":      len(syncPayload.Ids),
 		"sync_all_items_icons":    len(syncPayload.IconIdsMap),
 	}); err != nil {

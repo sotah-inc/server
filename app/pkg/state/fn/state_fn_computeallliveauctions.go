@@ -73,7 +73,11 @@ type ComputeAllLiveAuctionsState struct {
 	receiveComputedLiveAuctionsTopic *pubsub.Topic
 }
 
-func (sta ComputeAllLiveAuctionsState) ListenForComputeAllLiveAuctions(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {
+func (sta ComputeAllLiveAuctionsState) ListenForComputeAllLiveAuctions(
+	onReady chan interface{},
+	stop chan interface{},
+	onStopped chan interface{},
+) {
 	in := make(chan string)
 	go func() {
 		for {

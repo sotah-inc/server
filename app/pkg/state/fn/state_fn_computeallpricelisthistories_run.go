@@ -10,7 +10,9 @@ import (
 	"github.com/sotah-inc/server/app/pkg/metric"
 )
 
-func (sta ComputeAllPricelistHistoriesState) PublishToReceivePricelistHistories(tuples bus.RegionRealmTimestampTuples) error {
+func (sta ComputeAllPricelistHistoriesState) PublishToReceivePricelistHistories(
+	tuples bus.RegionRealmTimestampTuples,
+) error {
 	// producing pricelist-histories-compute-intake-requests
 	requests := database.PricelistHistoriesComputeIntakeRequests{}
 	for _, tuple := range tuples {
@@ -74,7 +76,7 @@ func (sta ComputeAllPricelistHistoriesState) Run(data string) error {
 
 	// reporting metrics
 	if err := sta.IO.BusClient.PublishMetrics(metric.Metrics{
-		"compute_all_pricelist_histories_duration": int(int64(time.Now().Sub(startTime)) / 1000 / 1000 / 1000),
+		"compute_all_pricelist_histories_duration": int(int64(time.Since(startTime)) / 1000 / 1000 / 1000),
 		"included_realms":                          len(validatedResponseItems),
 	}); err != nil {
 		return err

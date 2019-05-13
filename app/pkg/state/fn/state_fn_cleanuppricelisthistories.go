@@ -98,7 +98,11 @@ type CleanupPricelistHistoriesState struct {
 	realmsBucket  *storage.BucketHandle
 }
 
-func (sta CleanupPricelistHistoriesState) ListenForCleanupAllPricelistHistories(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {
+func (sta CleanupPricelistHistoriesState) ListenForCleanupAllPricelistHistories(
+	onReady chan interface{},
+	stop chan interface{},
+	onStopped chan interface{},
+) {
 	// establishing subscriber config
 	config := bus.SubscribeConfig{
 		Stop: stop,

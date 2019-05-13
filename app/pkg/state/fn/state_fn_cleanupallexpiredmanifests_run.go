@@ -83,7 +83,9 @@ func (sta CleanupAllExpiredManifestsState) Run() error {
 		totalRemoved += jobResponse.TotalDeleted
 	}
 
-	if err := sta.IO.BusClient.PublishMetrics(metric.Metrics{"total_expired_manifests_removed": totalRemoved}); err != nil {
+	if err := sta.IO.BusClient.PublishMetrics(metric.Metrics{
+		"total_expired_manifests_removed": totalRemoved,
+	}); err != nil {
 		return err
 	}
 

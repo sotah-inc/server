@@ -63,7 +63,11 @@ type SyncAllItemsState struct {
 	filterInItemsToSyncTopic *pubsub.Topic
 }
 
-func (sta SyncAllItemsState) ListenForSyncAllItems(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {
+func (sta SyncAllItemsState) ListenForSyncAllItems(
+	onReady chan interface{},
+	stop chan interface{},
+	onStopped chan interface{},
+) {
 	in := make(chan bus.Message)
 	go func() {
 		for busMsg := range in {

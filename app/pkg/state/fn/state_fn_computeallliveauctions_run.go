@@ -40,7 +40,9 @@ func (sta ComputeAllLiveAuctionsState) PublishToSyncAllItems(tuples bus.RegionRe
 	return nil
 }
 
-func (sta ComputeAllLiveAuctionsState) PublishToReceiveComputedLiveAuctions(tuples bus.RegionRealmTimestampTuples) error {
+func (sta ComputeAllLiveAuctionsState) PublishToReceiveComputedLiveAuctions(
+	tuples bus.RegionRealmTimestampTuples,
+) error {
 	// stripping non-essential data
 	bareTuples := bus.RegionRealmTimestampTuples{}
 	for _, tuple := range tuples {
@@ -101,7 +103,7 @@ func (sta ComputeAllLiveAuctionsState) Run(data string) error {
 
 	// reporting metrics
 	if err := sta.IO.BusClient.PublishMetrics(metric.Metrics{
-		"compute_all_live_auctions_duration": int(int64(time.Now().Sub(startTime)) / 1000 / 1000 / 1000),
+		"compute_all_live_auctions_duration": int(int64(time.Since(startTime)) / 1000 / 1000 / 1000),
 		"included_realms":                    len(validatedResponseItems),
 	}); err != nil {
 		return err

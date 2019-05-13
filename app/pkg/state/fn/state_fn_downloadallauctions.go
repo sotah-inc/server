@@ -119,7 +119,11 @@ type DownloadAllAuctionsState struct {
 	computeAllPricelistHistoriesTopic *pubsub.Topic
 }
 
-func (sta DownloadAllAuctionsState) ListenForDownloadAllAuctions(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {
+func (sta DownloadAllAuctionsState) ListenForDownloadAllAuctions(
+	onReady chan interface{},
+	stop chan interface{},
+	onStopped chan interface{},
+) {
 	in := make(chan interface{})
 	go func() {
 		for {

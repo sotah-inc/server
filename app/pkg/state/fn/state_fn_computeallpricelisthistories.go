@@ -16,7 +16,9 @@ type ComputeAllPricelistHistoriesStateConfig struct {
 	ProjectId string
 }
 
-func NewComputeAllPricelistHistoriesState(config ComputeAllPricelistHistoriesStateConfig) (ComputeAllPricelistHistoriesState, error) {
+func NewComputeAllPricelistHistoriesState(
+	config ComputeAllPricelistHistoriesStateConfig,
+) (ComputeAllPricelistHistoriesState, error) {
 	// establishing an initial state
 	sta := ComputeAllPricelistHistoriesState{
 		State: state.NewState(uuid.NewV4(), true),
@@ -66,7 +68,11 @@ type ComputeAllPricelistHistoriesState struct {
 	receiveComputedPricelistHistoriesTopic *pubsub.Topic
 }
 
-func (sta ComputeAllPricelistHistoriesState) ListenForComputeAllPricelistHistories(onReady chan interface{}, stop chan interface{}, onStopped chan interface{}) {
+func (sta ComputeAllPricelistHistoriesState) ListenForComputeAllPricelistHistories(
+	onReady chan interface{},
+	stop chan interface{},
+	onStopped chan interface{},
+) {
 	in := make(chan string)
 	go func() {
 		for {
