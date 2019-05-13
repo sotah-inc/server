@@ -35,20 +35,20 @@ func (sta ProdApiState) ListenForReceiveRealms(stop ListenStopChan) error {
 		}
 
 		for regionName, hellRealms := range hellRegionRealms {
-			next := func() hell.RealmsMap {
-				result, ok := sta.HellRegionRealms[regionName]
+			nextHellRealms := func() hell.RealmsMap {
+				foundHellRealms, ok := sta.HellRegionRealms[regionName]
 				if !ok {
 					return hell.RealmsMap{}
 				}
 
-				return result
+				return foundHellRealms
 			}()
 
 			for realmSlug, hellRealm := range hellRealms {
-				next[realmSlug] = hellRealm
+				nextHellRealms[realmSlug] = hellRealm
 			}
 
-			sta.HellRegionRealms[regionName] = next
+			sta.HellRegionRealms[regionName] = nextHellRealms
 		}
 
 		sta.IO.Messenger.ReplyTo(natsMsg, m)
