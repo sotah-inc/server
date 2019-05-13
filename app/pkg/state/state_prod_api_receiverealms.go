@@ -5,10 +5,8 @@ import (
 
 	nats "github.com/nats-io/go-nats"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
-	"github.com/sotah-inc/server/app/pkg/hell"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	mCodes "github.com/sotah-inc/server/app/pkg/messenger/codes"
-	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
 	"github.com/sotah-inc/server/app/pkg/state/subjects"
 )
 
@@ -25,31 +23,31 @@ func (sta ProdApiState) ListenForReceiveRealms(stop ListenStopChan) error {
 			return
 		}
 
-		hellRegionRealms, err := sta.IO.HellClient.GetRegionRealms(regionRealmSlugs, gameversions.Retail)
-		if err != nil {
-			m.Err = err.Error()
-			m.Code = mCodes.GenericError
-			sta.IO.Messenger.ReplyTo(natsMsg, m)
+		//hellRegionRealms, err := sta.IO.HellClient.GetRegionRealms(regionRealmSlugs, gameversions.Retail)
+		//if err != nil {
+		//	m.Err = err.Error()
+		//	m.Code = mCodes.GenericError
+		//	sta.IO.Messenger.ReplyTo(natsMsg, m)
+		//
+		//	return
+		//}
 
-			return
-		}
-
-		for regionName, hellRealms := range hellRegionRealms {
-			nextHellRealms := func() hell.RealmsMap {
-				foundHellRealms, ok := sta.HellRegionRealms[regionName]
-				if !ok {
-					return hell.RealmsMap{}
-				}
-
-				return foundHellRealms
-			}()
-
-			for realmSlug, hellRealm := range hellRealms {
-				nextHellRealms[realmSlug] = hellRealm
-			}
-
-			sta.HellRegionRealms[regionName] = nextHellRealms
-		}
+		//for regionName, hellRealms := range hellRegionRealms {
+		//	nextHellRealms := func() hell.RealmsMap {
+		//		foundHellRealms, ok := sta.HellRegionRealms[regionName]
+		//		if !ok {
+		//			return hell.RealmsMap{}
+		//		}
+		//
+		//		return foundHellRealms
+		//	}()
+		//
+		//	for realmSlug, hellRealm := range hellRealms {
+		//		nextHellRealms[realmSlug] = hellRealm
+		//	}
+		//
+		//	sta.HellRegionRealms[regionName] = nextHellRealms
+		//}
 
 		sta.IO.Messenger.ReplyTo(natsMsg, m)
 	})
