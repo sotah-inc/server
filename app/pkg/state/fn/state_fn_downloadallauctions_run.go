@@ -35,6 +35,12 @@ func (sta DownloadAllAuctionsState) PublishToReceiveRealms(
 		hellRealm := hellRegionRealms[blizzard.RegionName(tuple.RegionName)][blizzard.RealmSlug(tuple.RealmSlug)]
 		hellRealm.Downloaded = tuple.TargetTimestamp
 		hellRegionRealms[blizzard.RegionName(tuple.RegionName)][blizzard.RealmSlug(tuple.RealmSlug)] = hellRealm
+
+		logrus.WithFields(logrus.Fields{
+			"region":     blizzard.RegionName(tuple.RegionName),
+			"realm":      blizzard.RealmSlug(tuple.RealmSlug),
+			"downloaded": tuple.TargetTimestamp,
+		}).Info("Setting downloaded value for hell realm")
 	}
 	if err := sta.IO.HellClient.WriteRegionRealms(hellRegionRealms, gameversions.Retail); err != nil {
 		return err
@@ -113,7 +119,7 @@ func (sta DownloadAllAuctionsState) Run() error {
 
 	// reporting metrics
 	if err := sta.IO.BusClient.PublishMetrics(metric.Metrics{
-		"download_all_auctions_duration": int(int64(time.Now().Sub(startTime)) / 1000 / 1000 / 1000),
+		"download_all_auctions_duration": int(int64(time.Since(startTime)) / 1000 / 1000 / 1000),
 		"included_realms":                len(validatedResponseItems),
 	}); err != nil {
 		return err
