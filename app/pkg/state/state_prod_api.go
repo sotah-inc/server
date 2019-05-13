@@ -189,6 +189,8 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 		subjects.RealmModificationDates: apiState.ListenForRealmModificationDates,
 	})
 
+	apiState.HellRegionRealms = hell.RegionRealmsMap{}
+
 	return apiState, nil
 }
 
