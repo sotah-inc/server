@@ -191,6 +191,16 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 
 	apiState.HellRegionRealms = hell.RegionRealmsMap{}
 
+	hellRegionRealms, err := apiState.IO.HellClient.GetRegionRealms(
+		apiState.Statuses.RegionRealmsMap().RegionRealmSlugs(),
+		gameversions.Retail,
+	)
+	if err != nil {
+		return ProdApiState{}, err
+	}
+
+	apiState.HellRegionRealms = apiState.HellRegionRealms.Merge(hellRegionRealms)
+
 	return apiState, nil
 }
 
