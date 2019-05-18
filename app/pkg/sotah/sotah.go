@@ -152,6 +152,20 @@ type Status struct {
 
 type Statuses map[blizzard.RegionName]Status
 
+func (s Statuses) RegionRealmsMap() RegionRealmMap {
+	out := RegionRealmMap{}
+
+	for regionName, status := range s {
+		out[regionName] = RealmMap{}
+
+		for _, realm := range status.Realms {
+			out[regionName][realm.Slug] = realm
+		}
+	}
+
+	return out
+}
+
 type Profession struct {
 	Name    string `json:"name"`
 	Label   string `json:"label"`
@@ -183,6 +197,22 @@ func (regionRealmMap RegionRealmMap) ToRegionRealms() RegionRealms {
 	out := RegionRealms{}
 	for regionName, realmMap := range regionRealmMap {
 		out[regionName] = realmMap.ToRealms()
+	}
+
+	return out
+}
+
+func (regionRealmMap RegionRealmMap) RegionRealmSlugs() map[blizzard.RegionName][]blizzard.RealmSlug {
+	out := map[blizzard.RegionName][]blizzard.RealmSlug{}
+
+	for regionName, realmsMap := range regionRealmMap {
+		out[regionName] = make([]blizzard.RealmSlug, len(realmsMap))
+		i := 0
+		for realmSlug := range realmsMap {
+			out[regionName][i] = realmSlug
+
+			i++
+		}
 	}
 
 	return out
