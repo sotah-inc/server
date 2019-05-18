@@ -175,6 +175,23 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 		apiState.Professions[i].IconURL = itemIconUrl
 	}
 
+	apiState.HellRegionRealms, err = func() (hell.RegionRealmsMap, error) {
+		out := hell.RegionRealmsMap{}
+
+		hellRegionRealms, err := apiState.IO.HellClient.GetRegionRealms(
+			apiState.Statuses.RegionRealmsMap().RegionRealmSlugs(),
+			gameversions.Retail,
+		)
+		if err != nil {
+			return hell.RegionRealmsMap{}, err
+		}
+
+		return out.Merge(hellRegionRealms), nil
+	}()
+	if err != nil {
+		return ProdApiState{}, err
+	}
+
 	// establishing bus-listeners
 	apiState.BusListeners = NewBusListeners(SubjectBusListeners{
 		subjects.Status: apiState.ListenForBusStatus,
@@ -188,18 +205,6 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 		subjects.ReceiveRealms:          apiState.ListenForReceiveRealms,
 		subjects.RealmModificationDates: apiState.ListenForRealmModificationDates,
 	})
-
-	apiState.HellRegionRealms = hell.RegionRealmsMap{}
-
-	hellRegionRealms, err := apiState.IO.HellClient.GetRegionRealms(
-		apiState.Statuses.RegionRealmsMap().RegionRealmSlugs(),
-		gameversions.Retail,
-	)
-	if err != nil {
-		return ProdApiState{}, err
-	}
-
-	apiState.HellRegionRealms = apiState.HellRegionRealms.Merge(hellRegionRealms)
 
 	return apiState, nil
 }
