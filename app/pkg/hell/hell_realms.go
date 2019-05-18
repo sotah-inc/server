@@ -197,3 +197,24 @@ func (m RegionRealmsMap) Total() int {
 
 	return out
 }
+
+func (m RegionRealmsMap) Merge(in RegionRealmsMap) RegionRealmsMap {
+	for regionName, hellRealms := range in {
+		nextHellRealms := func() RealmsMap {
+			foundHellRealms, ok := m[regionName]
+			if !ok {
+				return RealmsMap{}
+			}
+
+			return foundHellRealms
+		}()
+
+		for realmSlug, hellRealm := range hellRealms {
+			nextHellRealms[realmSlug] = hellRealm
+		}
+
+		m[regionName] = nextHellRealms
+	}
+
+	return m
+}
