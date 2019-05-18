@@ -100,7 +100,10 @@ type GetRegionRealmsJob struct {
 	Realm      Realm
 }
 
-func (c Client) GetRegionRealms(regionRealmSlugs map[blizzard.RegionName][]blizzard.RealmSlug, version gameversions.GameVersion) (RegionRealmsMap, error) {
+func (c Client) GetRegionRealms(
+	regionRealmSlugs map[blizzard.RegionName][]blizzard.RealmSlug,
+	version gameversions.GameVersion,
+) (RegionRealmsMap, error) {
 	// spawning workers
 	in := make(chan GetRegionRealmsJob)
 	out := make(chan GetRegionRealmsJob)
@@ -184,3 +187,13 @@ type Realm struct {
 type RealmsMap map[blizzard.RealmSlug]Realm
 
 type RegionRealmsMap map[blizzard.RegionName]RealmsMap
+
+func (m RegionRealmsMap) Total() int {
+	out := 0
+
+	for _, realms := range m {
+		out += len(realms)
+	}
+
+	return out
+}

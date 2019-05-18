@@ -3,6 +3,7 @@ package state
 import (
 	nats "github.com/nats-io/go-nats"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
+	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/messenger"
 	mCodes "github.com/sotah-inc/server/app/pkg/messenger/codes"
 	"github.com/sotah-inc/server/app/pkg/sotah"
@@ -21,6 +22,8 @@ func (sta ProdApiState) ListenForRealmModificationDates(stop ListenStopChan) err
 
 			return
 		}
+
+		logging.WithField("hell-region-realms", sta.HellRegionRealms.Total()).Info("Checking hell-region-realms")
 
 		hellRealms, ok := sta.HellRegionRealms[blizzard.RegionName(req.RegionName)]
 		if !ok {
