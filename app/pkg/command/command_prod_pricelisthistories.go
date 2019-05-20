@@ -31,7 +31,7 @@ func ProdPricelistHistories(config state.ProdPricelistHistoriesStateConfig) erro
 	//}
 
 	// reporting sync duration
-	m := metric.Metrics{"pricelist_histories_sync": int(int64(time.Now().Sub(startTime)) / 1000 / 1000 / 1000)}
+	m := metric.Metrics{"pricelist_histories_sync": int(int64(time.Since(startTime)) / 1000 / 1000 / 1000)}
 	if err := pricelistHistoriesState.IO.BusClient.PublishMetrics(m); err != nil {
 		logging.WithField("error", err.Error()).Error("Failed to publish metric")
 
