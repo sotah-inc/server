@@ -3,6 +3,9 @@ package hell
 import (
 	"fmt"
 
+	"github.com/sirupsen/logrus"
+	"github.com/sotah-inc/server/app/pkg/logging"
+
 	"cloud.google.com/go/firestore"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/hell/collections"
@@ -207,4 +210,40 @@ func (m RegionRealmsMap) ToRegionRealmModificationDates() sotah.RegionRealmModif
 	}
 
 	return out
+}
+
+func (m RegionRealmsMap) Total() int {
+	out := 0
+
+	for _, realms := range m {
+		out += len(realms)
+	}
+
+	return out
+}
+
+func (m RegionRealmsMap) Merge(in RegionRealmsMap) RegionRealmsMap {
+	logging.WithFields(logrus.Fields{
+		"current":  m.Total(),
+		"provided": in.Total(),
+	}).Info("Merging in")
+
+	for regionName, hellRealms := range in {
+		nextHellRealms := func() RealmsMap {
+			foundHellRealms, ok := m[regionName]
+			if !ok {
+				return RealmsMap{}
+			}
+
+			return foundHellRealms
+		}()
+
+		for realmSlug, hellRealm := range hellRealms {
+			nextHellRealms[realmSlug] = hellRealm
+		}
+
+		m[regionName] = nextHellRealms
+	}
+
+	return m
 }
