@@ -3,12 +3,11 @@ package hell
 import (
 	"fmt"
 
-	"github.com/sirupsen/logrus"
-	"github.com/sotah-inc/server/app/pkg/logging"
-
 	"cloud.google.com/go/firestore"
+	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/hell/collections"
+	"github.com/sotah-inc/server/app/pkg/logging"
 	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
 	"github.com/sotah-inc/server/app/pkg/util"
