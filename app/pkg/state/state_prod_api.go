@@ -204,6 +204,7 @@ func NewProdApiState(config ProdApiStateConfig) (ProdApiState, error) {
 		subjects.SessionSecret:               apiState.ListenForSessionSecret,
 		subjects.ReceiveRealms:               apiState.ListenForReceiveRealms,
 		subjects.QueryRealmModificationDates: apiState.ListenForQueryRealmModificationDates,
+		subjects.RealmModificationDates:      apiState.ListenForRealmModificationDates,
 	})
 
 	return apiState, nil
