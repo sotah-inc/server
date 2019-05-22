@@ -29,7 +29,7 @@ const (
 	PricelistHistoriesCompute       Subject = "pricelistHistoriesCompute"
 	PricelistHistoriesComputeIntake Subject = "pricelistHistoriesComputeIntake"
 	AuctionsQuery                   Subject = "auctionsQuery"
-	RealmModificationDates          Subject = "realmModificationDates"
+	QueryRealmModificationDates     Subject = "queryRealmModificationDates"
 )
 
 // gcloud fn-related
