@@ -108,6 +108,10 @@ func (d RegionRealmModificationDates) Set(
 	return d
 }
 
+func (d RegionRealmModificationDates) EncodeForDelivery() ([]byte, error) {
+	return json.Marshal(d)
+}
+
 type RealmModificationDates struct {
 	Downloaded                 int64 `json:"downloaded"`
 	LiveAuctionsReceived       int64 `json:"live_auctions_received"`

@@ -142,12 +142,12 @@ func NewAPIState(config APIStateConfig) (APIState, error) {
 
 	// establishing listeners
 	apiState.Listeners = NewListeners(SubjectListeners{
-		subjects.Boot:                   apiState.ListenForBoot,
-		subjects.SessionSecret:          apiState.ListenForSessionSecret,
-		subjects.Status:                 apiState.ListenForStatus,
-		subjects.Items:                  apiState.ListenForItems,
-		subjects.ItemsQuery:             apiState.ListenForItemsQuery,
-		subjects.RealmModificationDates: apiState.ListenForRealmModificationDates,
+		subjects.Boot:                        apiState.ListenForBoot,
+		subjects.SessionSecret:               apiState.ListenForSessionSecret,
+		subjects.Status:                      apiState.ListenForStatus,
+		subjects.Items:                       apiState.ListenForItems,
+		subjects.ItemsQuery:                  apiState.ListenForItemsQuery,
+		subjects.QueryRealmModificationDates: apiState.ListenForQueryRealmModificationDates,
 	})
 
 	apiState.RegionRealmModificationDates = sotah.RegionRealmModificationDates{}

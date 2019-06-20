@@ -29,6 +29,7 @@ const (
 	PricelistHistoriesCompute       Subject = "pricelistHistoriesCompute"
 	PricelistHistoriesComputeIntake Subject = "pricelistHistoriesComputeIntake"
 	AuctionsQuery                   Subject = "auctionsQuery"
+	QueryRealmModificationDates     Subject = "queryRealmModificationDates"
 	RealmModificationDates          Subject = "realmModificationDates"
 )
 

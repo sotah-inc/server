@@ -3,12 +3,12 @@ package hell
 import (
 	"fmt"
 
-	"github.com/sirupsen/logrus"
-	"github.com/sotah-inc/server/app/pkg/logging"
-
 	"cloud.google.com/go/firestore"
+	"github.com/sirupsen/logrus"
 	"github.com/sotah-inc/server/app/pkg/blizzard"
 	"github.com/sotah-inc/server/app/pkg/hell/collections"
+	"github.com/sotah-inc/server/app/pkg/logging"
+	"github.com/sotah-inc/server/app/pkg/sotah"
 	"github.com/sotah-inc/server/app/pkg/sotah/gameversions"
 	"github.com/sotah-inc/server/app/pkg/util"
 )
@@ -187,9 +187,29 @@ type Realm struct {
 	PricelistHistoriesReceived int `firestore:"pricelist_histories_received"`
 }
 
+func (r Realm) ToRealmModificationDates() sotah.RealmModificationDates {
+	return sotah.RealmModificationDates{
+		Downloaded:                 int64(r.Downloaded),
+		LiveAuctionsReceived:       int64(r.LiveAuctionsReceived),
+		PricelistHistoriesReceived: int64(r.PricelistHistoriesReceived),
+	}
+}
+
 type RealmsMap map[blizzard.RealmSlug]Realm
 
 type RegionRealmsMap map[blizzard.RegionName]RealmsMap
+
+func (m RegionRealmsMap) ToRegionRealmModificationDates() sotah.RegionRealmModificationDates {
+	out := sotah.RegionRealmModificationDates{}
+	for regionName, realms := range m {
+		out[regionName] = map[blizzard.RealmSlug]sotah.RealmModificationDates{}
+		for realmSlug, realm := range realms {
+			out[regionName][realmSlug] = realm.ToRealmModificationDates()
+		}
+	}
+
+	return out
+}
 
 func (m RegionRealmsMap) Total() int {
 	out := 0
