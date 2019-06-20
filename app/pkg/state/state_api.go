@@ -69,6 +69,7 @@ func NewAPIState(config APIStateConfig) (APIState, error) {
 			config.DiskStoreCacheDir,
 			fmt.Sprintf("%s/items", config.DiskStoreCacheDir),
 			fmt.Sprintf("%s/auctions", config.DiskStoreCacheDir),
+			fmt.Sprintf("%s/databases", config.DiskStoreCacheDir),
 		}
 		for _, reg := range apiState.Regions {
 			cacheDirs = append(cacheDirs, fmt.Sprintf("%s/auctions/%s", config.DiskStoreCacheDir, reg.Name))
